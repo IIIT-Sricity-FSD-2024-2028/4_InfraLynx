@@ -1,6 +1,6 @@
 # Domain:Smart City & Urban Services Platform
 # Problem Statement:City Resource and Infrastructure Management Platform
-lastUpdated: "2026-01-31"
+#lastUpdated: "2026-01-31"
 
 terms:
   - name: BudgetAllocation
@@ -163,4 +163,5 @@ terms:
     aliases:
       - Deny
       - Decline
+
 
