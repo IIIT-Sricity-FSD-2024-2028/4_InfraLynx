@@ -1,0 +1,167 @@
+name: "City Resource & Infrastructure Management"
+domainVisionStatement: >
+  Single source of truth for reporting, approving, assigning and verifying
+  city infrastructure work, budgets and performance across roles.
+lastUpdated: "2026-01-31"
+
+terms:
+  - name: BudgetAllocation
+    definition: >
+      The multi-stage process of approving and releasing funds for a project
+      or WorkOrder, including vendor quotations, finance review, and staged release.
+    examples:
+      - "Admin allocates funds for winter road repairs after CFO approval."
+      - "Budget released in stages after vendor quotation verification."
+    aliases:
+      - Budget
+      - Allocation
+
+  - name: QCDepartment
+    definition: >
+      An independent unit that performs quality checks and certifies completed work.
+    examples:
+      - "QC inspects repaired pipeline and issues completion certificate."
+      - "QC flags non-conforming workmanship for rework."
+    aliases:
+      - QualityControl
+      - QA
+
+  - name: VendorQuotation
+    definition: >
+      Competitive price proposals from vendors used to justify procurement and budget decisions.
+    examples:
+      - "Three vendor quotations received for transformer replacement."
+      - "Officer compares quotations before recommending purchase."
+    aliases:
+      - Quotation
+      - Quote
+
+  - name: UtilizationReview
+    definition: >
+      Periodic evaluation of how allocated funds were used against planned outcomes.
+    examples:
+      - "Quarterly review shows under-utilization of drainage budget."
+      - "Utilization review triggered after project delay."
+    aliases:
+      - SpendReview
+      - BudgetReview
+
+  - name: WorkOrder
+    definition: >
+      A formal request to investigate, repair, or maintain a specific infrastructure asset.
+    examples:
+      - "Resident reports a pothole; system creates WorkOrder #WO-2026-001."
+      - "Officer raises a WorkOrder for transformer maintenance."
+    aliases:
+      - ServiceRequest
+      - MaintenanceRequest
+
+  - name: Task
+    definition: >
+      A specific actionable unit derived from a WorkOrder and assigned to a Field Engineer.
+    examples:
+      - "Inspect and measure pothole depth."
+      - "Replace damaged streetlight bulbs and upload photos."
+    aliases:
+      - Job
+      - Assignment
+
+  - name: CityAdministrator
+    definition: >
+      Role responsible for city-wide oversight: dashboards, budgets, reports, and high-level assignments.
+    examples:
+      - "Admin allocates departmental budgets."
+      - "Admin generates monthly infrastructure reports."
+    aliases:
+      - Admin
+      - CityAdmin
+
+  - name: DepartmentOfficer
+    definition: >
+      Role responsible for analyzing WorkOrders, planning execution, approving budgets, and assigning tasks.
+    examples:
+      - "Officer approves a WorkOrder and assigns tasks to engineers."
+      - "Officer verifies vendor quotations before budget submission."
+    aliases:
+      - Officer
+      - DeptOfficer
+
+  - name: FieldEngineer
+    definition: >
+      Role responsible for on-site execution: inspections, repairs, and reporting progress with evidence.
+    examples:
+      - "Engineer performs maintenance and uploads before/after photos."
+      - "Engineer reports requirement for additional budget."
+    aliases:
+      - Engineer
+      - Technician
+
+  - name: Department
+    definition: >
+      An organizational unit responsible for a class of infrastructure (e.g., Roads, Water, Electrical).
+    examples:
+      - "Roads Department handles all road repairs."
+      - "Water Department manages pipeline maintenance."
+    aliases:
+      - Division
+      - Unit
+
+  - name: Asset
+    definition: >
+      A physical infrastructure item referenced by WorkOrders and Tasks (e.g., valve, streetlight, road segment).
+    examples:
+      - "Streetlight SL-102 on Elm St."
+      - "Water valve WV-47 reported leaking."
+    aliases:
+      - InfrastructureItem
+      - Resource
+
+  - name: Priority
+    definition: >
+      Urgency level that affects scheduling and approval speed (LOW, MEDIUM, HIGH, EMERGENCY).
+    examples:
+      - "EMERGENCY priority for a gas leak."
+      - "LOW priority for cosmetic repairs."
+    aliases:
+      - Severity
+      - Urgency
+
+  - name: Status
+    definition: >
+      Current lifecycle stage of a WorkOrder or Task (e.g., PENDING, APPROVED, ASSIGNED, IN_PROGRESS, COMPLETED).
+    examples:
+      - "WorkOrder status = APPROVED"
+      - "Task status = IN_PROGRESS"
+    aliases:
+      - State
+      - Stage
+
+  - name: Report
+    definition: >
+      Aggregated or individual summaries used for decision-making and audits (budget use, completion rates).
+    examples:
+      - "Monthly department performance report."
+      - "Budget utilization report for Q1."
+    aliases:
+      - Summary
+      - DashboardReport
+
+  - name: Approval
+    definition: >
+      A recorded authorization by an authorized role allowing a WorkOrder or budget to proceed.
+    examples:
+      - "Officer approval logged for WorkOrder #2026-110."
+      - "Budget approval recorded before procurement."
+    aliases:
+      - Authorize
+      - SignOff
+
+  - name: Rejection
+    definition: >
+      A recorded decision to decline a WorkOrder or request, typically with reason and next steps.
+    examples:
+      - "WorkOrder rejected due to missing GST number; requester asked to resubmit."
+      - "Budget request rejected for exceeding limits."
+    aliases:
+      - Deny
+      - Decline
