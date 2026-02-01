@@ -9,7 +9,7 @@ Cities face significant challenges in managing infrastructure efficiently due to
 - Lack of accountability for project outcomes and quality verification
 - Manual intervention requirements even in automatable processes
 
-#lastUpdated: "2026-01-31"
+#Last Updated: "2026-01-31"
 
 terms:
   - name: BudgetAllocation
@@ -172,3 +172,4 @@ terms:
     aliases:
       - Deny
       - Decline
+
