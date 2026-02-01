@@ -1,7 +1,5 @@
-name: "City Resource & Infrastructure Management"
-domainVisionStatement: >
-  Single source of truth for reporting, approving, assigning and verifying
-  city infrastructure work, budgets and performance across roles.
+# Domain:Smart City & Urban Services Platform
+# Problem Statement:City Resource and Infrastructure Management Platform
 lastUpdated: "2026-01-31"
 
 terms:
@@ -165,3 +163,4 @@ terms:
     aliases:
       - Deny
       - Decline
+
