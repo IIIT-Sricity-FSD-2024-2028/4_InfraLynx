@@ -96,6 +96,8 @@ The overall purpose of the City Resource and Infrastructure Management system is
 
 - All purchases must be fully justified with technical and financial details
 - GST number is mandatory for bill approval
+- Multi-stage approval process is mandatory for budget allocations
+- QC department certification is mandatory for project closure
 - Preference is given to government vendors
 
 ### Constraints or Limitations:
