@@ -173,3 +173,14 @@ terms:
       - Deny
       - Decline
 
+  - name: Resource
+    definition: >
+      Any consumable or assignable input required to execute a Task or WorkOrder,
+      such as labor, materials, vehicles, tools, or contracted services.
+    examples:
+      - "Officer reserves asphalt mix and a road roller as resources for the pothole repair task."
+      - "Engineer requests an additional resource (portable pump) to complete drainage maintenance."
+    aliases:
+      - AssetResource
+      - ExecutionResource
+
