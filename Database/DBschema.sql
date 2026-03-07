@@ -23,7 +23,6 @@ CREATE TYPE wo_status AS ENUM (
     'REJECTED'
 );
 
-
 CREATE TYPE task_status AS ENUM (
     'PENDING',
     'ASSIGNED',
@@ -34,9 +33,7 @@ CREATE TYPE task_status AS ENUM (
 
 CREATE TYPE fund_quarter AS ENUM ('Q1', 'Q2', 'Q3', 'Q4');
 CREATE TYPE budget_status AS ENUM ('PENDING', 'APPROVED', 'EXHAUSTED');
-
 CREATE TYPE infra_status AS ENUM ('OPERATIONAL', 'UNDER_MAINTENANCE', 'DECOMMISSIONED');
-
 
 CREATE TYPE notification_type AS ENUM (
     'TASK_ASSIGNED',
@@ -49,9 +46,12 @@ CREATE TYPE notification_type AS ENUM (
 );
 
 CREATE TYPE resource_request_status AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'FULFILLED');
-
--- Vendor quotation status 
 CREATE TYPE quotation_status AS ENUM ('SUBMITTED', 'UNDER_REVIEW', 'ACCEPTED', 'REJECTED');
+
+
+CREATE TYPE inspection_severity AS ENUM ('LOW', 'MODERATE', 'SEVERE', 'CRITICAL');
+CREATE TYPE schedule_frequency AS ENUM ('ONE_TIME', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'ANNUAL');
+CREATE TYPE sensor_status AS ENUM ('ACTIVE', 'INACTIVE', 'FAULTY', 'DECOMMISSIONED');
 
 
 
@@ -59,12 +59,11 @@ CREATE TYPE quotation_status AS ENUM ('SUBMITTED', 'UNDER_REVIEW', 'ACCEPTED', '
 -- "An organizational unit responsible for a class of infrastructure (e.g., Roads, Water, Electrical)."
 
 
-
 CREATE TABLE departments (
-    department_id   UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    name            VARCHAR(150) NOT NULL UNIQUE,   
+    department_id   UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    name            VARCHAR(150) NOT NULL UNIQUE,
     description     TEXT,
-    created_at      TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
+    created_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
 
@@ -75,12 +74,14 @@ CREATE TABLE departments (
 
 
 CREATE TABLE users (
-    user_id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id         UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     full_name       VARCHAR(150) NOT NULL,
     email           VARCHAR(150) UNIQUE NOT NULL,
-    role            user_role   NOT NULL,
-    department_id   UUID        REFERENCES departments(department_id), -- NULL for ADMINISTRATOR
-    created_at      TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    password_hash   VARCHAR(255) NOT NULL,           -- required for login screen
+    phone_number    VARCHAR(20),
+    role            user_role    NOT NULL,
+    department_id   UUID         REFERENCES departments(department_id), -- NULL for ADMINISTRATOR
+    created_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
 
     -- Administrators are city-wide; Officers and Engineers must belong to a department
     CONSTRAINT chk_department_required_for_staff CHECK (
@@ -91,18 +92,20 @@ CREATE TABLE users (
 
 
 -- 4. Infrastructure
--- Asset = "A physical infrastructure item referenced by WorkOrders and Tasks (e.g., valve, streetlight, road segment)."
+-- Asset = "A physical infrastructure item referenced by WorkOrders and Tasks."
 
 
 
 CREATE TABLE infrastructure (
-    infra_id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    infra_id                UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     name                    VARCHAR(200) NOT NULL,
     type                    VARCHAR(100) NOT NULL,
-    location_coordinates    VARCHAR(100) NOT NULL,
+    location_coordinates    VARCHAR(100) NOT NULL,   
+    latitude                NUMERIC(9, 6),           
+    longitude               NUMERIC(9, 6),           
     status                  infra_status NOT NULL DEFAULT 'OPERATIONAL',
-    department_id           UUID        REFERENCES departments(department_id), -- owning department
-    created_at              TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
+    department_id           UUID         REFERENCES departments(department_id),
+    created_at              TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
 
@@ -116,14 +119,16 @@ CREATE TABLE budget_allocations (
     project_name    VARCHAR(255)    NOT NULL,
     department_id   UUID            REFERENCES departments(department_id),
     base_amount     NUMERIC(15, 2)  NOT NULL CHECK (base_amount > 0),
-    gst_amount      NUMERIC(15, 2)  NOT NULL,
+    gst_amount      NUMERIC(15, 2)  NOT NULL DEFAULT 0,
     total_amount    NUMERIC(15, 2)  GENERATED ALWAYS AS (base_amount + gst_amount) STORED,
     status          budget_status   NOT NULL DEFAULT 'PENDING',
     approved_by     UUID            REFERENCES users(user_id),
     created_at      TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
 
-    -- GST mandatory 
-    CONSTRAINT chk_gst_mandatory CHECK (gst_amount > 0),
+    -- GST mandatory only at approval stage, not creation
+    CONSTRAINT chk_gst_mandatory CHECK (
+        status = 'PENDING' OR gst_amount > 0
+    ),
 
     CONSTRAINT chk_approved_requires_approver CHECK (
         status = 'PENDING' OR approved_by IS NOT NULL
@@ -133,26 +138,24 @@ CREATE TABLE budget_allocations (
 
 
 -- 6. Vendor Quotations
--- 1:"Competitive price proposals from vendors used to justify procurement and budget decisions."
+-- 1: "Competitive price proposals from vendors used to justify procurement and budget decisions."
 -- 2: "Multiple vendor quotations are collected"
 
 
-
 CREATE TABLE vendor_quotations (
-    quotation_id        UUID                PRIMARY KEY DEFAULT gen_random_uuid(),
-    budget_id           UUID                NOT NULL REFERENCES budget_allocations(budget_id) ON DELETE CASCADE,
-    vendor_name         VARCHAR(200)        NOT NULL,
-    vendor_gstin        VARCHAR(20)         NOT NULL, 
-    is_government_vendor BOOLEAN            NOT NULL DEFAULT FALSE, 
-    description         TEXT                NOT NULL,
-    quoted_amount       NUMERIC(15, 2)      NOT NULL CHECK (quoted_amount > 0),
-    status              quotation_status    NOT NULL DEFAULT 'SUBMITTED',
-    reviewed_by         UUID                REFERENCES users(user_id),
-    review_notes        TEXT,
-    submitted_at        TIMESTAMP           DEFAULT CURRENT_TIMESTAMP,
-    reviewed_at         TIMESTAMP,
+    quotation_id         UUID             PRIMARY KEY DEFAULT gen_random_uuid(),
+    budget_id            UUID             NOT NULL REFERENCES budget_allocations(budget_id) ON DELETE CASCADE,
+    vendor_name          VARCHAR(200)     NOT NULL,
+    vendor_gstin         VARCHAR(20)      NOT NULL,
+    is_government_vendor BOOLEAN          NOT NULL DEFAULT FALSE,
+    description          TEXT             NOT NULL,
+    quoted_amount        NUMERIC(15, 2)   NOT NULL CHECK (quoted_amount > 0),
+    status               quotation_status NOT NULL DEFAULT 'SUBMITTED',
+    reviewed_by          UUID             REFERENCES users(user_id),
+    review_notes         TEXT,
+    submitted_at         TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at          TIMESTAMP,
 
-    -- Review fields required when a decision is made
     CONSTRAINT chk_quotation_review_required CHECK (
         status = 'SUBMITTED' OR status = 'UNDER_REVIEW' OR
         (reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL)
@@ -163,7 +166,6 @@ CREATE TABLE vendor_quotations (
 
 -- 7. Quarterly Fund Releases
 -- "Funds are released on a quarterly basis"
--- Trigger prevents over-release beyond approved budget total.
 
 
 
@@ -173,6 +175,7 @@ CREATE TABLE fund_releases (
     release_quarter fund_quarter    NOT NULL,
     release_year    INT             NOT NULL CHECK (release_year >= 2024),
     amount_released NUMERIC(15, 2)  NOT NULL CHECK (amount_released > 0),
+    release_notes   TEXT,                            
     released_by     UUID            REFERENCES users(user_id),
     released_on     TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
 
@@ -183,16 +186,14 @@ CREATE TABLE fund_releases (
 CREATE OR REPLACE FUNCTION check_fund_release_limit()
 RETURNS TRIGGER AS $$
 DECLARE
-    total_budget        NUMERIC(15, 2);
-    already_released    NUMERIC(15, 2);
+    total_budget     NUMERIC(15, 2);
+    already_released NUMERIC(15, 2);
 BEGIN
     SELECT total_amount INTO total_budget
-    FROM budget_allocations
-    WHERE budget_id = NEW.budget_id;
+    FROM budget_allocations WHERE budget_id = NEW.budget_id;
 
     SELECT COALESCE(SUM(amount_released), 0) INTO already_released
-    FROM fund_releases
-    WHERE budget_id = NEW.budget_id;
+    FROM fund_releases WHERE budget_id = NEW.budget_id;
 
     IF (already_released + NEW.amount_released) > total_budget THEN
         RAISE EXCEPTION 'Fund release of % exceeds remaining budget. Already released: %, Total budget: %',
@@ -211,26 +212,28 @@ FOR EACH ROW EXECUTE FUNCTION check_fund_release_limit();
 
 -- 8. Work Orders
 -- "A formal request to investigate, repair, or maintain a specific infrastructure asset."
--- Multi-stage approval.
-
-
+-- Multi Stage approval.
 
 
 CREATE TABLE work_orders (
-    wo_id               UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
-    infra_id            UUID            REFERENCES infrastructure(infra_id),
-    budget_id           UUID            REFERENCES budget_allocations(budget_id),
-    department_id       UUID            REFERENCES departments(department_id),
-    title               VARCHAR(200)    NOT NULL,
-    description         TEXT            NOT NULL,
-    priority            priority_level  NOT NULL DEFAULT 'MEDIUM',
-    status              wo_status       NOT NULL DEFAULT 'DRAFT',
-    qc_passed           BOOLEAN         NOT NULL DEFAULT FALSE,
-    deadline            TIMESTAMP,
-    created_at          TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
-    updated_at          TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
+    wo_id           UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+    display_code    VARCHAR(20)     UNIQUE,              
+    infra_id        UUID            REFERENCES infrastructure(infra_id),
+    budget_id       UUID            REFERENCES budget_allocations(budget_id),
+    department_id   UUID            REFERENCES departments(department_id),
+    created_by      UUID            REFERENCES users(user_id),   
+    approved_by     UUID            REFERENCES users(user_id),   
+    approved_at     TIMESTAMP,
+    title           VARCHAR(200)    NOT NULL,
+    description     TEXT            NOT NULL,
+    priority        priority_level  NOT NULL DEFAULT 'MEDIUM',
+    status          wo_status       NOT NULL DEFAULT 'DRAFT',
+    qc_passed       BOOLEAN         NOT NULL DEFAULT FALSE,
+    deadline        TIMESTAMP,
+    created_at      TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
 
-    -- QC certification mandatory for closure
+    
     CONSTRAINT chk_qc_mandatory_for_closure CHECK (
         status != 'COMPLETED' OR qc_passed = TRUE
     ),
@@ -238,10 +241,15 @@ CREATE TABLE work_orders (
     -- Budget must be linked before approval
     CONSTRAINT chk_budget_required_for_approval CHECK (
         status NOT IN ('APPROVED', 'IN_PROGRESS', 'PENDING_QC', 'COMPLETED') OR budget_id IS NOT NULL
+    ),
+
+    -- approved_by must be set when status is APPROVED or beyond
+    CONSTRAINT chk_approved_by_required CHECK (
+        status NOT IN ('APPROVED', 'IN_PROGRESS', 'PENDING_QC', 'COMPLETED') OR approved_by IS NOT NULL
     )
 );
 
--- Auto-update updated_at on row change
+-- Auto-update updated_at
 CREATE OR REPLACE FUNCTION update_wo_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -272,7 +280,7 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
--- Trigger attached after qc_reviews table is created below.
+-- Trigger attached after qc_reviews table below.
 
 
 
@@ -281,19 +289,20 @@ $$ LANGUAGE plpgsql;
 
 
 
-
 CREATE TABLE tasks (
-    task_id         UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
-    wo_id           UUID            NOT NULL REFERENCES work_orders(wo_id) ON DELETE CASCADE,
-    assigned_to     UUID            NOT NULL REFERENCES users(user_id), -- Field Engineer
-    assigned_by     UUID            NOT NULL REFERENCES users(user_id), -- Department Officer
-    title           VARCHAR(200)    NOT NULL,
-    description     TEXT            NOT NULL,
-    priority        priority_level  NOT NULL DEFAULT 'MEDIUM',
-    status          task_status     NOT NULL DEFAULT 'PENDING',
-    deadline        TIMESTAMP,
-    created_at      TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
+    task_id           UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
+    wo_id             UUID           NOT NULL REFERENCES work_orders(wo_id) ON DELETE CASCADE,
+    assigned_to       UUID           NOT NULL REFERENCES users(user_id),  -- Field Engineer
+    assigned_by       UUID           NOT NULL REFERENCES users(user_id),  -- Department Officer
+    title             VARCHAR(200)   NOT NULL,
+    description       TEXT           NOT NULL,
+    priority          priority_level NOT NULL DEFAULT 'MEDIUM',
+    status            task_status    NOT NULL DEFAULT 'PENDING',
+    deadline          TIMESTAMP,
+    completion_notes  VARCHAR(500),                -- progress notes from engineer
+    actual_hours      NUMERIC(5, 2),               -- time logged by engineer
+    created_at        TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT chk_deadline_required_for_assigned CHECK (
         status = 'PENDING' OR deadline IS NOT NULL
@@ -304,8 +313,8 @@ CREATE TABLE tasks (
 CREATE OR REPLACE FUNCTION check_task_role_assignment()
 RETURNS TRIGGER AS $$
 DECLARE
-    assignee_role   user_role;
-    assigner_role   user_role;
+    assignee_role user_role;
+    assigner_role user_role;
 BEGIN
     SELECT role INTO assignee_role FROM users WHERE user_id = NEW.assigned_to;
     SELECT role INTO assigner_role FROM users WHERE user_id = NEW.assigned_by;
@@ -326,7 +335,6 @@ CREATE TRIGGER trg_check_task_role_assignment
 BEFORE INSERT OR UPDATE ON tasks
 FOR EACH ROW EXECUTE FUNCTION check_task_role_assignment();
 
--- Auto-update updated_at
 CREATE OR REPLACE FUNCTION update_task_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -347,13 +355,14 @@ FOR EACH ROW EXECUTE FUNCTION update_task_timestamp();
 
 
 CREATE TABLE maintenance_logs (
-    log_id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    wo_id               UUID        NOT NULL REFERENCES work_orders(wo_id) ON DELETE CASCADE,
-    task_id             UUID        REFERENCES tasks(task_id) ON DELETE SET NULL,
-    engineer_id         UUID        NOT NULL REFERENCES users(user_id),
-    log_description     TEXT        NOT NULL,
-    proof_image_url     VARCHAR(500),
-    logged_at           TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
+    log_id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    wo_id             UUID         NOT NULL REFERENCES work_orders(wo_id) ON DELETE CASCADE,
+    task_id           UUID         REFERENCES tasks(task_id) ON DELETE SET NULL,
+    engineer_id       UUID         NOT NULL REFERENCES users(user_id),
+    log_description   TEXT         NOT NULL,
+    before_image_url  VARCHAR(500),   -- before photo
+    after_image_url   VARCHAR(500),   -- after photo
+    logged_at         TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
 
@@ -361,19 +370,16 @@ CREATE TABLE maintenance_logs (
 -- 11. Quality Control (QC) Reviews
 -- "QC department performs quality verification"
 -- Trigger enforces reviewed_by must be OFFICER or ADMINISTRATOR.
--- Engineers cannot perform QC on their own work.
-
 
 
 CREATE TABLE qc_reviews (
-    qc_id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    wo_id           UUID        NOT NULL REFERENCES work_orders(wo_id) ON DELETE CASCADE,
-    reviewed_by     UUID        NOT NULL REFERENCES users(user_id), -- must be OFFICER or ADMINISTRATOR
-    is_approved     BOOLEAN     NOT NULL,
-    comments        TEXT,
-    reviewed_at     TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    qc_id        UUID      PRIMARY KEY DEFAULT gen_random_uuid(),
+    wo_id        UUID      NOT NULL REFERENCES work_orders(wo_id) ON DELETE CASCADE,
+    reviewed_by  UUID      NOT NULL REFERENCES users(user_id), -- must be OFFICER or ADMINISTRATOR
+    is_approved  BOOLEAN   NOT NULL,
+    comments     TEXT,
+    reviewed_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    -- Failed QC must include comments explaining why
     CONSTRAINT chk_qc_comments_required_on_fail CHECK (
         is_approved = TRUE OR comments IS NOT NULL
     )
@@ -406,52 +412,111 @@ FOR EACH ROW EXECUTE FUNCTION check_qc_review_exists();
 
 
 
--- 12. Utilization Reviews
+-- 12. Inspection Reports
+--  Covers "Inspect Infrastructure" screen with condition rating,GPS tag, photo, and severity.
+       
+
+
+CREATE TABLE inspection_reports (
+    inspection_id    UUID                PRIMARY KEY DEFAULT gen_random_uuid(),
+    infra_id         UUID                NOT NULL REFERENCES infrastructure(infra_id),
+    engineer_id      UUID                NOT NULL REFERENCES users(user_id),
+    condition_rating INT                 NOT NULL CHECK (condition_rating BETWEEN 1 AND 5),
+    severity         inspection_severity NOT NULL DEFAULT 'LOW',
+    description      TEXT                NOT NULL,
+    location_tag     VARCHAR(100),       -- GPS coordinates at time of inspection
+    photo_url        VARCHAR(500),
+    wo_id            UUID                REFERENCES work_orders(wo_id) ON DELETE SET NULL,
+    inspected_at     TIMESTAMP           DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
+-- 13. Maintenance Schedules
+--  Covers calendar-based scheduling screen with assigned engineer,scheduled date, checklist count, and recurrence.
+           
+
+
+CREATE TABLE maintenance_schedules (
+    schedule_id     UUID               PRIMARY KEY DEFAULT gen_random_uuid(),
+    infra_id        UUID               NOT NULL REFERENCES infrastructure(infra_id),
+    department_id   UUID               NOT NULL REFERENCES departments(department_id),
+    assigned_to     UUID               REFERENCES users(user_id),     -- Field Engineer
+    scheduled_by    UUID               REFERENCES users(user_id),     -- Dept Officer
+    title           VARCHAR(200)       NOT NULL,
+    description     TEXT,
+    frequency       schedule_frequency NOT NULL DEFAULT 'ONE_TIME',
+    scheduled_date  TIMESTAMP          NOT NULL,
+    checklist_items INT                NOT NULL DEFAULT 0,
+    is_completed    BOOLEAN            NOT NULL DEFAULT FALSE,
+    completed_at    TIMESTAMP,
+    created_at      TIMESTAMP          DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
+-- 14. Sensor Deployments
+--  Covers "Deploy Sensors/Equipment" screen with location mapping and commissioning status.
+         
+
+
+CREATE TABLE sensor_deployments (
+    sensor_id        UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+    infra_id         UUID          NOT NULL REFERENCES infrastructure(infra_id),
+    deployed_by      UUID          NOT NULL REFERENCES users(user_id),
+    sensor_type      VARCHAR(100)  NOT NULL,   -- e.g. 'Water Flow', 'Electricity Meter'
+    location_tag     VARCHAR(100)  NOT NULL,
+    status           sensor_status NOT NULL DEFAULT 'ACTIVE',
+    commissioned_at  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    last_reading_at  TIMESTAMP,
+    notes            TEXT
+);
+
+
+
+-- 15. Utilization Reviews
 -- "Periodic evaluation of how allocated funds were used against planned outcomes."
 
 
-
 CREATE TABLE utilization_reviews (
-    review_id           UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
-    budget_id           UUID            NOT NULL REFERENCES budget_allocations(budget_id),
-    department_id       UUID            NOT NULL REFERENCES departments(department_id),
-    review_quarter      fund_quarter    NOT NULL,
-    review_year         INT             NOT NULL CHECK (review_year >= 2024),
-    planned_amount      NUMERIC(15, 2)  NOT NULL CHECK (planned_amount > 0),
-    actual_spent        NUMERIC(15, 2)  NOT NULL CHECK (actual_spent >= 0),
-    utilization_percent NUMERIC(5, 2)   GENERATED ALWAYS AS (
+    review_id           UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
+    budget_id           UUID           NOT NULL REFERENCES budget_allocations(budget_id),
+    department_id       UUID           NOT NULL REFERENCES departments(department_id),
+    review_quarter      fund_quarter   NOT NULL,
+    review_year         INT            NOT NULL CHECK (review_year >= 2024),
+    planned_amount      NUMERIC(15, 2) NOT NULL CHECK (planned_amount > 0),
+    actual_spent        NUMERIC(15, 2) NOT NULL CHECK (actual_spent >= 0),
+    utilization_percent NUMERIC(5, 2)  GENERATED ALWAYS AS (
                             CASE WHEN planned_amount > 0
                             THEN ROUND((actual_spent / planned_amount) * 100, 2)
                             ELSE 0 END
                         ) STORED,
-    reviewed_by         UUID            REFERENCES users(user_id),
+    reviewed_by         UUID           REFERENCES users(user_id),
     notes               TEXT,
-    reviewed_at         TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at         TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
 
-    -- One review per department per quarter per year
     UNIQUE (budget_id, department_id, review_quarter, review_year)
 );
 
 
 
--- 13. Resource Requests
+-- 16. Resource Requests
 -- "Any consumable or assignable input required to execute a Task or WorkOrder."
 
 
-
 CREATE TABLE resource_requests (
-    request_id              UUID                    PRIMARY KEY DEFAULT gen_random_uuid(),
-    wo_id                   UUID                    NOT NULL REFERENCES work_orders(wo_id) ON DELETE CASCADE,
-    task_id                 UUID                    REFERENCES tasks(task_id) ON DELETE SET NULL,
-    requested_by            UUID                    NOT NULL REFERENCES users(user_id),
-    resource_description    TEXT                    NOT NULL,
-    quantity                INT                     NOT NULL CHECK (quantity > 0),
-    estimated_cost          NUMERIC(15, 2)          CHECK (estimated_cost > 0),
-    status                  resource_request_status NOT NULL DEFAULT 'PENDING',
-    reviewed_by             UUID                    REFERENCES users(user_id),
-    review_notes            TEXT,
-    requested_at            TIMESTAMP               DEFAULT CURRENT_TIMESTAMP,
-    reviewed_at             TIMESTAMP,
+    request_id           UUID                    PRIMARY KEY DEFAULT gen_random_uuid(),
+    wo_id                UUID                    NOT NULL REFERENCES work_orders(wo_id) ON DELETE CASCADE,
+    task_id              UUID                    REFERENCES tasks(task_id) ON DELETE SET NULL,
+    requested_by         UUID                    NOT NULL REFERENCES users(user_id),
+    resource_description TEXT                    NOT NULL,
+    quantity             INT                     NOT NULL CHECK (quantity > 0),
+    estimated_cost       NUMERIC(15, 2)          CHECK (estimated_cost > 0),
+    status               resource_request_status NOT NULL DEFAULT 'PENDING',
+    reviewed_by          UUID                    REFERENCES users(user_id),
+    review_notes         TEXT,
+    requested_at         TIMESTAMP               DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at          TIMESTAMP,
 
     CONSTRAINT chk_review_required_for_decision CHECK (
         status = 'PENDING' OR (reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL)
@@ -460,28 +525,25 @@ CREATE TABLE resource_requests (
 
 
 
--- 14. Notifications
+-- 17. Notifications
 -- "Send Task Notification", "Send Rejection Notification",
 -- "Send Completion Report", "Send Escalation Notification"
 
 
 
-
 CREATE TABLE notifications (
-    notification_id     UUID                PRIMARY KEY DEFAULT gen_random_uuid(),
-    recipient_id        UUID                NOT NULL REFERENCES users(user_id),
-    sender_id           UUID                REFERENCES users(user_id), -- NULL = system generated
-    wo_id               UUID                REFERENCES work_orders(wo_id) ON DELETE SET NULL,
-    task_id             UUID                REFERENCES tasks(task_id) ON DELETE SET NULL, -- for task-level notifications
-    notification_type   notification_type   NOT NULL,
-    message             TEXT                NOT NULL,
-    is_read             BOOLEAN             NOT NULL DEFAULT FALSE,
-    created_at          TIMESTAMP           DEFAULT CURRENT_TIMESTAMP
-    CONSTRAINT chk_notification_reference CHECK (
-    wo_id IS NOT NULL OR task_id IS NOT NULL
-)
+    notification_id   UUID              PRIMARY KEY DEFAULT gen_random_uuid(),
+    recipient_id      UUID              NOT NULL REFERENCES users(user_id),
+    sender_id         UUID              REFERENCES users(user_id),   -- NULL = system generated
+    wo_id             UUID              REFERENCES work_orders(wo_id) ON DELETE SET NULL,
+    task_id           UUID              REFERENCES tasks(task_id) ON DELETE SET NULL,
+    notification_type notification_type NOT NULL,
+    message           TEXT              NOT NULL,
+    is_read           BOOLEAN           NOT NULL DEFAULT FALSE,
+    created_at        TIMESTAMP         DEFAULT CURRENT_TIMESTAMP
 );
 
 
 
 -- END OF SCHEMA
+-- Tables: 17 | ENUMs: 13 | Triggers: 8 | Functions: 8
