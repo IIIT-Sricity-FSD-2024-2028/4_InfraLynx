@@ -150,5 +150,15 @@ Provide regular status updates with milestone reporting, issue communication, an
 
 ---
 
+**Figma Design** :-
+```
+https://www.figma.com/design/o8BuFkq9js3i8HpXTkhHEI/Untitled?node-id=84-3&t=vhKn399owspRL5KZ-1
+```
+
+**Figma Prototype** :-
+```
+https://www.figma.com/proto/o8BuFkq9js3i8HpXTkhHEI/Untitled?node-id=84-3&t=vhKn399owspRL5KZ-1
+```
+
 
 **Project Status:** In Development | **Version:** 1.0.0 | **Last Updated:** January 2026
