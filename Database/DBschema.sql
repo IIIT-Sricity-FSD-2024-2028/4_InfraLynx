@@ -7,7 +7,7 @@
 -- 1. Enumerated Types
 
 
-CREATE TYPE user_role AS ENUM ('ADMINISTRATOR', 'OFFICER', 'ENGINEER');
+CREATE TYPE user_role AS ENUM ('ADMINISTRATOR', 'CFO', 'OFFICER', 'ENGINEER');
 
 CREATE TYPE priority_level AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'EMERGENCY');
 
@@ -32,7 +32,7 @@ CREATE TYPE task_status AS ENUM (
 );
 
 CREATE TYPE fund_quarter AS ENUM ('Q1', 'Q2', 'Q3', 'Q4');
-CREATE TYPE budget_status AS ENUM ('PENDING', 'APPROVED', 'EXHAUSTED');
+
 CREATE TYPE infra_status AS ENUM ('OPERATIONAL', 'UNDER_MAINTENANCE', 'DECOMMISSIONED');
 
 CREATE TYPE notification_type AS ENUM (
@@ -48,10 +48,29 @@ CREATE TYPE notification_type AS ENUM (
 CREATE TYPE resource_request_status AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'FULFILLED');
 CREATE TYPE quotation_status AS ENUM ('SUBMITTED', 'UNDER_REVIEW', 'ACCEPTED', 'REJECTED');
 
-
 CREATE TYPE inspection_severity AS ENUM ('LOW', 'MODERATE', 'SEVERE', 'CRITICAL');
 CREATE TYPE schedule_frequency AS ENUM ('ONE_TIME', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'ANNUAL');
 CREATE TYPE sensor_status AS ENUM ('ACTIVE', 'INACTIVE', 'FAULTY', 'DECOMMISSIONED');
+
+-- Budget workflow stages (with CFO review)
+CREATE TYPE budget_stage AS ENUM (
+    'DRAFT',
+    'PENDING_ADMIN_FORWARD',
+    'PENDING_OFFICER_VERIFICATION',
+    'PENDING_CFO_REVIEW',
+    'APPROVED',
+    'PARTIALLY_RELEASED',
+    'FULLY_RELEASED',
+    'REJECTED'
+);
+
+CREATE TYPE approval_action AS ENUM (
+    'FORWARDED',
+    'VERIFIED',
+    'APPROVED',
+    'REJECTED',
+    'RETURNED'
+);
 
 
 
@@ -72,20 +91,19 @@ CREATE TABLE departments (
 -- Represents the three-tier administrative hierarchy.
 
 
-
 CREATE TABLE users (
     user_id         UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     full_name       VARCHAR(150) NOT NULL,
     email           VARCHAR(150) UNIQUE NOT NULL,
-    password_hash   VARCHAR(255) NOT NULL,           -- required for login screen
+    password_hash   VARCHAR(255) NOT NULL,
     phone_number    VARCHAR(20),
     role            user_role    NOT NULL,
     department_id   UUID         REFERENCES departments(department_id), -- NULL for ADMINISTRATOR
     created_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
 
-    -- Administrators are city-wide; Officers and Engineers must belong to a department
+    -- Administrators and CFOs are city-wide; Officers and Engineers must belong to a department
     CONSTRAINT chk_department_required_for_staff CHECK (
-        role = 'ADMINISTRATOR' OR department_id IS NOT NULL
+        role IN ('ADMINISTRATOR', 'CFO') OR department_id IS NOT NULL
     )
 );
 
@@ -95,14 +113,13 @@ CREATE TABLE users (
 -- Asset = "A physical infrastructure item referenced by WorkOrders and Tasks."
 
 
-
 CREATE TABLE infrastructure (
     infra_id                UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     name                    VARCHAR(200) NOT NULL,
     type                    VARCHAR(100) NOT NULL,
-    location_coordinates    VARCHAR(100) NOT NULL,   
-    latitude                NUMERIC(9, 6),           
-    longitude               NUMERIC(9, 6),           
+    location_coordinates    VARCHAR(100) NOT NULL,
+    latitude                NUMERIC(9, 6),
+    longitude               NUMERIC(9, 6),
     status                  infra_status NOT NULL DEFAULT 'OPERATIONAL',
     department_id           UUID         REFERENCES departments(department_id),
     created_at              TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
@@ -113,25 +130,38 @@ CREATE TABLE infrastructure (
 -- 5. Budget Allocations
 
 
-
 CREATE TABLE budget_allocations (
-    budget_id       UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_name    VARCHAR(255)    NOT NULL,
-    department_id   UUID            REFERENCES departments(department_id),
-    base_amount     NUMERIC(15, 2)  NOT NULL CHECK (base_amount > 0),
-    gst_amount      NUMERIC(15, 2)  NOT NULL DEFAULT 0,
-    total_amount    NUMERIC(15, 2)  GENERATED ALWAYS AS (base_amount + gst_amount) STORED,
-    status          budget_status   NOT NULL DEFAULT 'PENDING',
-    approved_by     UUID            REFERENCES users(user_id),
-    created_at      TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
+    budget_id        UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_name     VARCHAR(255)    NOT NULL,
+    department_id    UUID            REFERENCES departments(department_id),
+    base_amount      NUMERIC(15, 2)  NOT NULL CHECK (base_amount > 0),
+    gst_amount       NUMERIC(15, 2)  NOT NULL DEFAULT 0,
+    total_amount     NUMERIC(15, 2)  GENERATED ALWAYS AS (base_amount + gst_amount) STORED,
+    stage            budget_stage    NOT NULL DEFAULT 'DRAFT',
+    approved_by      UUID            REFERENCES users(user_id),
+    verified_by      UUID            REFERENCES users(user_id),
+    verified_at      TIMESTAMP,
+    cfo_approved_by  UUID            REFERENCES users(user_id),
+    cfo_approved_at  TIMESTAMP,
+    created_at       TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
 
     -- GST mandatory only at approval stage, not creation
     CONSTRAINT chk_gst_mandatory CHECK (
-        status = 'PENDING' OR gst_amount > 0
+        stage IN ('DRAFT', 'PENDING_ADMIN_FORWARD') OR gst_amount > 0
     ),
 
     CONSTRAINT chk_approved_requires_approver CHECK (
-        status = 'PENDING' OR approved_by IS NOT NULL
+        stage NOT IN ('APPROVED', 'PARTIALLY_RELEASED', 'FULLY_RELEASED') OR approved_by IS NOT NULL
+    ),
+
+    -- Officer must verify before CFO can review
+    CONSTRAINT chk_officer_verification_before_cfo CHECK (
+        stage != 'PENDING_CFO_REVIEW' OR verified_by IS NOT NULL
+    ),
+
+    -- CFO must approve before final approval
+    CONSTRAINT chk_cfo_required_for_final_approval CHECK (
+        stage != 'APPROVED' OR cfo_approved_by IS NOT NULL
     )
 );
 
@@ -151,6 +181,8 @@ CREATE TABLE vendor_quotations (
     description          TEXT             NOT NULL,
     quoted_amount        NUMERIC(15, 2)   NOT NULL CHECK (quoted_amount > 0),
     status               quotation_status NOT NULL DEFAULT 'SUBMITTED',
+    verified_by_officer  UUID             REFERENCES users(user_id),
+    verified_at_officer  TIMESTAMP,
     reviewed_by          UUID             REFERENCES users(user_id),
     review_notes         TEXT,
     submitted_at         TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
@@ -168,61 +200,37 @@ CREATE TABLE vendor_quotations (
 -- "Funds are released on a quarterly basis"
 
 
-
 CREATE TABLE fund_releases (
-    release_id      UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
-    budget_id       UUID            NOT NULL REFERENCES budget_allocations(budget_id) ON DELETE CASCADE,
-    release_quarter fund_quarter    NOT NULL,
-    release_year    INT             NOT NULL CHECK (release_year >= 2024),
-    amount_released NUMERIC(15, 2)  NOT NULL CHECK (amount_released > 0),
-    release_notes   TEXT,                            
-    released_by     UUID            REFERENCES users(user_id),
-    released_on     TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
+    release_id            UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+    budget_id             UUID            NOT NULL REFERENCES budget_allocations(budget_id) ON DELETE CASCADE,
+    release_quarter       fund_quarter    NOT NULL,
+    release_year          INT             NOT NULL CHECK (release_year >= 2024),
+    amount_released       NUMERIC(15, 2)  NOT NULL CHECK (amount_released > 0),
+    release_notes         TEXT,
+    milestone_name        VARCHAR(150),
+    milestone_verified_by UUID            REFERENCES users(user_id),
+    milestone_verified_at TIMESTAMP,
+    released_by           UUID            REFERENCES users(user_id),
+    released_on           TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
 
     UNIQUE (budget_id, release_quarter, release_year)
 );
-
--- Trigger: cumulative releases must never exceed budget total_amount
-CREATE OR REPLACE FUNCTION check_fund_release_limit()
-RETURNS TRIGGER AS $$
-DECLARE
-    total_budget     NUMERIC(15, 2);
-    already_released NUMERIC(15, 2);
-BEGIN
-    SELECT total_amount INTO total_budget
-    FROM budget_allocations WHERE budget_id = NEW.budget_id;
-
-    SELECT COALESCE(SUM(amount_released), 0) INTO already_released
-    FROM fund_releases WHERE budget_id = NEW.budget_id;
-
-    IF (already_released + NEW.amount_released) > total_budget THEN
-        RAISE EXCEPTION 'Fund release of % exceeds remaining budget. Already released: %, Total budget: %',
-            NEW.amount_released, already_released, total_budget;
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_check_fund_release_limit
-BEFORE INSERT ON fund_releases
-FOR EACH ROW EXECUTE FUNCTION check_fund_release_limit();
 
 
 
 -- 8. Work Orders
 -- "A formal request to investigate, repair, or maintain a specific infrastructure asset."
--- Multi Stage approval.
+-- Multi-stage approval.
 
 
 CREATE TABLE work_orders (
     wo_id           UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
-    display_code    VARCHAR(20)     UNIQUE,              
+    display_code    VARCHAR(20)     UNIQUE,
     infra_id        UUID            REFERENCES infrastructure(infra_id),
     budget_id       UUID            REFERENCES budget_allocations(budget_id),
     department_id   UUID            REFERENCES departments(department_id),
-    created_by      UUID            REFERENCES users(user_id),   
-    approved_by     UUID            REFERENCES users(user_id),   
+    created_by      UUID            REFERENCES users(user_id),
+    approved_by     UUID            REFERENCES users(user_id),
     approved_at     TIMESTAMP,
     title           VARCHAR(200)    NOT NULL,
     description     TEXT            NOT NULL,
@@ -233,7 +241,7 @@ CREATE TABLE work_orders (
     created_at      TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
 
-    
+    -- QC certification mandatory for closure
     CONSTRAINT chk_qc_mandatory_for_closure CHECK (
         status != 'COMPLETED' OR qc_passed = TRUE
     ),
@@ -249,44 +257,10 @@ CREATE TABLE work_orders (
     )
 );
 
--- Auto-update updated_at
-CREATE OR REPLACE FUNCTION update_wo_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_update_wo_timestamp
-BEFORE UPDATE ON work_orders
-FOR EACH ROW EXECUTE FUNCTION update_wo_timestamp();
-
--- Trigger: qc_passed = TRUE only if an approved QC review record exists
-CREATE OR REPLACE FUNCTION check_qc_review_exists()
-RETURNS TRIGGER AS $$
-DECLARE
-    approved_review_count INT;
-BEGIN
-    IF NEW.qc_passed = TRUE AND OLD.qc_passed = FALSE THEN
-        SELECT COUNT(*) INTO approved_review_count
-        FROM qc_reviews
-        WHERE wo_id = NEW.wo_id AND is_approved = TRUE;
-
-        IF approved_review_count = 0 THEN
-            RAISE EXCEPTION 'Cannot set qc_passed = TRUE without an approved QC review record for work order %', NEW.wo_id;
-        END IF;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
--- Trigger attached after qc_reviews table below.
-
 
 
 -- 9. Tasks
 -- "A specific actionable unit derived from a WorkOrder and assigned to a Field Engineer."
-
 
 
 CREATE TABLE tasks (
@@ -299,8 +273,8 @@ CREATE TABLE tasks (
     priority          priority_level NOT NULL DEFAULT 'MEDIUM',
     status            task_status    NOT NULL DEFAULT 'PENDING',
     deadline          TIMESTAMP,
-    completion_notes  VARCHAR(500),                -- progress notes from engineer
-    actual_hours      NUMERIC(5, 2),               -- time logged by engineer
+    completion_notes  VARCHAR(500),
+    actual_hours      NUMERIC(5, 2),
     created_at        TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
     updated_at        TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
 
@@ -309,49 +283,10 @@ CREATE TABLE tasks (
     )
 );
 
--- Trigger: enforce role constraints on task assignment
-CREATE OR REPLACE FUNCTION check_task_role_assignment()
-RETURNS TRIGGER AS $$
-DECLARE
-    assignee_role user_role;
-    assigner_role user_role;
-BEGIN
-    SELECT role INTO assignee_role FROM users WHERE user_id = NEW.assigned_to;
-    SELECT role INTO assigner_role FROM users WHERE user_id = NEW.assigned_by;
-
-    IF assignee_role != 'ENGINEER' THEN
-        RAISE EXCEPTION 'Tasks can only be assigned to ENGINEER role users.';
-    END IF;
-
-    IF assigner_role NOT IN ('OFFICER', 'ADMINISTRATOR') THEN
-        RAISE EXCEPTION 'Tasks can only be assigned by OFFICER or ADMINISTRATOR role users.';
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_check_task_role_assignment
-BEFORE INSERT OR UPDATE ON tasks
-FOR EACH ROW EXECUTE FUNCTION check_task_role_assignment();
-
-CREATE OR REPLACE FUNCTION update_task_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_update_task_timestamp
-BEFORE UPDATE ON tasks
-FOR EACH ROW EXECUTE FUNCTION update_task_timestamp();
-
 
 
 -- 10. Maintenance and Execution Logs
 -- Stores proof of execution from Field Engineers.
-
 
 
 CREATE TABLE maintenance_logs (
@@ -360,8 +295,8 @@ CREATE TABLE maintenance_logs (
     task_id           UUID         REFERENCES tasks(task_id) ON DELETE SET NULL,
     engineer_id       UUID         NOT NULL REFERENCES users(user_id),
     log_description   TEXT         NOT NULL,
-    before_image_url  VARCHAR(500),   -- before photo
-    after_image_url   VARCHAR(500),   -- after photo
+    before_image_url  VARCHAR(500),
+    after_image_url   VARCHAR(500),
     logged_at         TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -369,7 +304,6 @@ CREATE TABLE maintenance_logs (
 
 -- 11. Quality Control (QC) Reviews
 -- "QC department performs quality verification"
--- Trigger enforces reviewed_by must be OFFICER or ADMINISTRATOR.
 
 
 CREATE TABLE qc_reviews (
@@ -385,36 +319,10 @@ CREATE TABLE qc_reviews (
     )
 );
 
--- Trigger: only OFFICER or ADMINISTRATOR can perform QC reviews
-CREATE OR REPLACE FUNCTION check_qc_reviewer_role()
-RETURNS TRIGGER AS $$
-DECLARE
-    reviewer_role user_role;
-BEGIN
-    SELECT role INTO reviewer_role FROM users WHERE user_id = NEW.reviewed_by;
-
-    IF reviewer_role = 'ENGINEER' THEN
-        RAISE EXCEPTION 'Engineers cannot perform QC reviews. Only OFFICER or ADMINISTRATOR allowed.';
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_check_qc_reviewer_role
-BEFORE INSERT OR UPDATE ON qc_reviews
-FOR EACH ROW EXECUTE FUNCTION check_qc_reviewer_role();
-
--- Attach QC bypass prevention trigger on work_orders
-CREATE TRIGGER trg_check_qc_review_exists
-BEFORE UPDATE ON work_orders
-FOR EACH ROW EXECUTE FUNCTION check_qc_review_exists();
-
 
 
 -- 12. Inspection Reports
---  Covers "Inspect Infrastructure" screen with condition rating,GPS tag, photo, and severity.
-       
+-- Covers "Inspect Infrastructure" screen with condition rating, GPS tag, photo, and severity.
 
 
 CREATE TABLE inspection_reports (
@@ -424,7 +332,7 @@ CREATE TABLE inspection_reports (
     condition_rating INT                 NOT NULL CHECK (condition_rating BETWEEN 1 AND 5),
     severity         inspection_severity NOT NULL DEFAULT 'LOW',
     description      TEXT                NOT NULL,
-    location_tag     VARCHAR(100),       -- GPS coordinates at time of inspection
+    location_tag     VARCHAR(100),
     photo_url        VARCHAR(500),
     wo_id            UUID                REFERENCES work_orders(wo_id) ON DELETE SET NULL,
     inspected_at     TIMESTAMP           DEFAULT CURRENT_TIMESTAMP
@@ -433,16 +341,15 @@ CREATE TABLE inspection_reports (
 
 
 -- 13. Maintenance Schedules
---  Covers calendar-based scheduling screen with assigned engineer,scheduled date, checklist count, and recurrence.
-           
+-- Covers calendar-based scheduling screen with assigned engineer, scheduled date, checklist count, and recurrence.
 
 
 CREATE TABLE maintenance_schedules (
     schedule_id     UUID               PRIMARY KEY DEFAULT gen_random_uuid(),
     infra_id        UUID               NOT NULL REFERENCES infrastructure(infra_id),
     department_id   UUID               NOT NULL REFERENCES departments(department_id),
-    assigned_to     UUID               REFERENCES users(user_id),     -- Field Engineer
-    scheduled_by    UUID               REFERENCES users(user_id),     -- Dept Officer
+    assigned_to     UUID               REFERENCES users(user_id),
+    scheduled_by    UUID               REFERENCES users(user_id),
     title           VARCHAR(200)       NOT NULL,
     description     TEXT,
     frequency       schedule_frequency NOT NULL DEFAULT 'ONE_TIME',
@@ -456,15 +363,14 @@ CREATE TABLE maintenance_schedules (
 
 
 -- 14. Sensor Deployments
---  Covers "Deploy Sensors/Equipment" screen with location mapping and commissioning status.
-         
+-- Covers "Deploy Sensors/Equipment" screen with location mapping and commissioning status.
 
 
 CREATE TABLE sensor_deployments (
     sensor_id        UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
     infra_id         UUID          NOT NULL REFERENCES infrastructure(infra_id),
     deployed_by      UUID          NOT NULL REFERENCES users(user_id),
-    sensor_type      VARCHAR(100)  NOT NULL,   -- e.g. 'Water Flow', 'Electricity Meter'
+    sensor_type      VARCHAR(100)  NOT NULL,
     location_tag     VARCHAR(100)  NOT NULL,
     status           sensor_status NOT NULL DEFAULT 'ACTIVE',
     commissioned_at  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
@@ -530,11 +436,10 @@ CREATE TABLE resource_requests (
 -- "Send Completion Report", "Send Escalation Notification"
 
 
-
 CREATE TABLE notifications (
     notification_id   UUID              PRIMARY KEY DEFAULT gen_random_uuid(),
     recipient_id      UUID              NOT NULL REFERENCES users(user_id),
-    sender_id         UUID              REFERENCES users(user_id),   -- NULL = system generated
+    sender_id         UUID              REFERENCES users(user_id),
     wo_id             UUID              REFERENCES work_orders(wo_id) ON DELETE SET NULL,
     task_id           UUID              REFERENCES tasks(task_id) ON DELETE SET NULL,
     notification_type notification_type NOT NULL,
@@ -545,5 +450,36 @@ CREATE TABLE notifications (
 
 
 
+-- 18. Budget Approval History
+
+
+CREATE TABLE budget_approval_history (
+    history_id    UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+    budget_id     UUID            NOT NULL REFERENCES budget_allocations(budget_id) ON DELETE CASCADE,
+    actioned_by   UUID            NOT NULL REFERENCES users(user_id),
+    actor_role    user_role       NOT NULL,
+    stage         budget_stage    NOT NULL,
+    action        approval_action NOT NULL,
+    comments      TEXT,
+    actioned_at   TIMESTAMP       DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
+-- 19. Work Order Approval History
+
+
+CREATE TABLE wo_approval_history (
+    history_id  UUID      PRIMARY KEY DEFAULT gen_random_uuid(),
+    wo_id       UUID      NOT NULL REFERENCES work_orders(wo_id) ON DELETE CASCADE,
+    actioned_by UUID      NOT NULL REFERENCES users(user_id),
+    from_status wo_status NOT NULL,
+    to_status   wo_status NOT NULL,
+    comments    TEXT,
+    actioned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
 -- END OF SCHEMA
--- Tables: 17 | ENUMs: 13 | Triggers: 8 | Functions: 8
+-- Tables: 19 | ENUMs: 14
