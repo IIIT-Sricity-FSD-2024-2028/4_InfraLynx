@@ -48,7 +48,6 @@ CREATE TYPE notification_type AS ENUM (
 CREATE TYPE resource_request_status AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'FULFILLED');
 CREATE TYPE quotation_status AS ENUM ('SUBMITTED', 'UNDER_REVIEW', 'ACCEPTED', 'REJECTED');
 
-
 CREATE TYPE inspection_severity AS ENUM ('LOW', 'MODERATE', 'SEVERE', 'CRITICAL');
 CREATE TYPE schedule_frequency AS ENUM ('ONE_TIME', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'ANNUAL');
 CREATE TYPE sensor_status AS ENUM ('ACTIVE', 'INACTIVE', 'FAULTY', 'DECOMMISSIONED');
@@ -70,7 +69,6 @@ CREATE TABLE departments (
 
 -- 3. System Users
 -- Represents the three-tier administrative hierarchy.
-
 
 
 CREATE TABLE users (
@@ -95,14 +93,13 @@ CREATE TABLE users (
 -- Asset = "A physical infrastructure item referenced by WorkOrders and Tasks."
 
 
-
 CREATE TABLE infrastructure (
     infra_id                UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     name                    VARCHAR(200) NOT NULL,
     type                    VARCHAR(100) NOT NULL,
-    location_coordinates    VARCHAR(100) NOT NULL,   
-    latitude                NUMERIC(9, 6),           
-    longitude               NUMERIC(9, 6),           
+    location_coordinates    VARCHAR(100) NOT NULL,
+    latitude                NUMERIC(9, 6),
+    longitude               NUMERIC(9, 6),
     status                  infra_status NOT NULL DEFAULT 'OPERATIONAL',
     department_id           UUID         REFERENCES departments(department_id),
     created_at              TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
@@ -111,7 +108,6 @@ CREATE TABLE infrastructure (
 
 
 -- 5. Budget Allocations
-
 
 
 CREATE TABLE budget_allocations (
@@ -168,61 +164,34 @@ CREATE TABLE vendor_quotations (
 -- "Funds are released on a quarterly basis"
 
 
-
 CREATE TABLE fund_releases (
     release_id      UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
     budget_id       UUID            NOT NULL REFERENCES budget_allocations(budget_id) ON DELETE CASCADE,
     release_quarter fund_quarter    NOT NULL,
     release_year    INT             NOT NULL CHECK (release_year >= 2024),
     amount_released NUMERIC(15, 2)  NOT NULL CHECK (amount_released > 0),
-    release_notes   TEXT,                            
+    release_notes   TEXT,
     released_by     UUID            REFERENCES users(user_id),
     released_on     TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
 
     UNIQUE (budget_id, release_quarter, release_year)
 );
 
--- Trigger: cumulative releases must never exceed budget total_amount
-CREATE OR REPLACE FUNCTION check_fund_release_limit()
-RETURNS TRIGGER AS $$
-DECLARE
-    total_budget     NUMERIC(15, 2);
-    already_released NUMERIC(15, 2);
-BEGIN
-    SELECT total_amount INTO total_budget
-    FROM budget_allocations WHERE budget_id = NEW.budget_id;
-
-    SELECT COALESCE(SUM(amount_released), 0) INTO already_released
-    FROM fund_releases WHERE budget_id = NEW.budget_id;
-
-    IF (already_released + NEW.amount_released) > total_budget THEN
-        RAISE EXCEPTION 'Fund release of % exceeds remaining budget. Already released: %, Total budget: %',
-            NEW.amount_released, already_released, total_budget;
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_check_fund_release_limit
-BEFORE INSERT ON fund_releases
-FOR EACH ROW EXECUTE FUNCTION check_fund_release_limit();
-
 
 
 -- 8. Work Orders
 -- "A formal request to investigate, repair, or maintain a specific infrastructure asset."
--- Multi Stage approval.
+-- Multi-stage approval.
 
 
 CREATE TABLE work_orders (
     wo_id           UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
-    display_code    VARCHAR(20)     UNIQUE,              
+    display_code    VARCHAR(20)     UNIQUE,
     infra_id        UUID            REFERENCES infrastructure(infra_id),
     budget_id       UUID            REFERENCES budget_allocations(budget_id),
     department_id   UUID            REFERENCES departments(department_id),
-    created_by      UUID            REFERENCES users(user_id),   
-    approved_by     UUID            REFERENCES users(user_id),   
+    created_by      UUID            REFERENCES users(user_id),
+    approved_by     UUID            REFERENCES users(user_id),
     approved_at     TIMESTAMP,
     title           VARCHAR(200)    NOT NULL,
     description     TEXT            NOT NULL,
@@ -233,7 +202,7 @@ CREATE TABLE work_orders (
     created_at      TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
 
-    
+    -- QC certification mandatory for closure
     CONSTRAINT chk_qc_mandatory_for_closure CHECK (
         status != 'COMPLETED' OR qc_passed = TRUE
     ),
@@ -249,44 +218,10 @@ CREATE TABLE work_orders (
     )
 );
 
--- Auto-update updated_at
-CREATE OR REPLACE FUNCTION update_wo_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_update_wo_timestamp
-BEFORE UPDATE ON work_orders
-FOR EACH ROW EXECUTE FUNCTION update_wo_timestamp();
-
--- Trigger: qc_passed = TRUE only if an approved QC review record exists
-CREATE OR REPLACE FUNCTION check_qc_review_exists()
-RETURNS TRIGGER AS $$
-DECLARE
-    approved_review_count INT;
-BEGIN
-    IF NEW.qc_passed = TRUE AND OLD.qc_passed = FALSE THEN
-        SELECT COUNT(*) INTO approved_review_count
-        FROM qc_reviews
-        WHERE wo_id = NEW.wo_id AND is_approved = TRUE;
-
-        IF approved_review_count = 0 THEN
-            RAISE EXCEPTION 'Cannot set qc_passed = TRUE without an approved QC review record for work order %', NEW.wo_id;
-        END IF;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
--- Trigger attached after qc_reviews table below.
-
 
 
 -- 9. Tasks
 -- "A specific actionable unit derived from a WorkOrder and assigned to a Field Engineer."
-
 
 
 CREATE TABLE tasks (
@@ -309,49 +244,10 @@ CREATE TABLE tasks (
     )
 );
 
--- Trigger: enforce role constraints on task assignment
-CREATE OR REPLACE FUNCTION check_task_role_assignment()
-RETURNS TRIGGER AS $$
-DECLARE
-    assignee_role user_role;
-    assigner_role user_role;
-BEGIN
-    SELECT role INTO assignee_role FROM users WHERE user_id = NEW.assigned_to;
-    SELECT role INTO assigner_role FROM users WHERE user_id = NEW.assigned_by;
-
-    IF assignee_role != 'ENGINEER' THEN
-        RAISE EXCEPTION 'Tasks can only be assigned to ENGINEER role users.';
-    END IF;
-
-    IF assigner_role NOT IN ('OFFICER', 'ADMINISTRATOR') THEN
-        RAISE EXCEPTION 'Tasks can only be assigned by OFFICER or ADMINISTRATOR role users.';
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_check_task_role_assignment
-BEFORE INSERT OR UPDATE ON tasks
-FOR EACH ROW EXECUTE FUNCTION check_task_role_assignment();
-
-CREATE OR REPLACE FUNCTION update_task_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_update_task_timestamp
-BEFORE UPDATE ON tasks
-FOR EACH ROW EXECUTE FUNCTION update_task_timestamp();
-
 
 
 -- 10. Maintenance and Execution Logs
 -- Stores proof of execution from Field Engineers.
-
 
 
 CREATE TABLE maintenance_logs (
@@ -369,7 +265,6 @@ CREATE TABLE maintenance_logs (
 
 -- 11. Quality Control (QC) Reviews
 -- "QC department performs quality verification"
--- Trigger enforces reviewed_by must be OFFICER or ADMINISTRATOR.
 
 
 CREATE TABLE qc_reviews (
@@ -385,36 +280,10 @@ CREATE TABLE qc_reviews (
     )
 );
 
--- Trigger: only OFFICER or ADMINISTRATOR can perform QC reviews
-CREATE OR REPLACE FUNCTION check_qc_reviewer_role()
-RETURNS TRIGGER AS $$
-DECLARE
-    reviewer_role user_role;
-BEGIN
-    SELECT role INTO reviewer_role FROM users WHERE user_id = NEW.reviewed_by;
-
-    IF reviewer_role = 'ENGINEER' THEN
-        RAISE EXCEPTION 'Engineers cannot perform QC reviews. Only OFFICER or ADMINISTRATOR allowed.';
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_check_qc_reviewer_role
-BEFORE INSERT OR UPDATE ON qc_reviews
-FOR EACH ROW EXECUTE FUNCTION check_qc_reviewer_role();
-
--- Attach QC bypass prevention trigger on work_orders
-CREATE TRIGGER trg_check_qc_review_exists
-BEFORE UPDATE ON work_orders
-FOR EACH ROW EXECUTE FUNCTION check_qc_review_exists();
-
 
 
 -- 12. Inspection Reports
---  Covers "Inspect Infrastructure" screen with condition rating,GPS tag, photo, and severity.
-       
+-- Covers "Inspect Infrastructure" screen with condition rating, GPS tag, photo, and severity.
 
 
 CREATE TABLE inspection_reports (
@@ -433,8 +302,7 @@ CREATE TABLE inspection_reports (
 
 
 -- 13. Maintenance Schedules
---  Covers calendar-based scheduling screen with assigned engineer,scheduled date, checklist count, and recurrence.
-           
+-- Covers calendar-based scheduling screen with assigned engineer, scheduled date, checklist count, and recurrence.
 
 
 CREATE TABLE maintenance_schedules (
@@ -456,8 +324,7 @@ CREATE TABLE maintenance_schedules (
 
 
 -- 14. Sensor Deployments
---  Covers "Deploy Sensors/Equipment" screen with location mapping and commissioning status.
-         
+-- Covers "Deploy Sensors/Equipment" screen with location mapping and commissioning status.
 
 
 CREATE TABLE sensor_deployments (
@@ -530,7 +397,6 @@ CREATE TABLE resource_requests (
 -- "Send Completion Report", "Send Escalation Notification"
 
 
-
 CREATE TABLE notifications (
     notification_id   UUID              PRIMARY KEY DEFAULT gen_random_uuid(),
     recipient_id      UUID              NOT NULL REFERENCES users(user_id),
@@ -546,4 +412,4 @@ CREATE TABLE notifications (
 
 
 -- END OF SCHEMA
--- Tables: 17 | ENUMs: 13 | Triggers: 8 | Functions: 8
+-- Tables: 17 | ENUMs: 13
