@@ -2057,7 +2057,7 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    deployed_resource_type resource_type;
+    deployed_resource_type VARCHAR(100);
 BEGIN
     SELECT resource_type
     INTO deployed_resource_type
