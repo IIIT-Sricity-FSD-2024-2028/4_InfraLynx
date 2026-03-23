@@ -184,3 +184,58 @@ terms:
       - AssetResource
       - ExecutionResource
 
+  - name: QCReviewer
+    definition: >
+      A specialized quality control role responsible for evaluating completed work
+      and validating inspection reports before final acceptance.
+    examples:
+      - "QCReviewer confirmed the sewer rehabilitation job meets safety standards."
+      - "QCReviewer requested rework on the road resurfacing contractor's submission."
+    aliases:
+      - QualityControlReviewer
+      - QCInspector
+
+  - name: CFO
+    definition: >
+      Chief Financial Officer; executive responsible for financial governance, budget authorization,
+      fund release approvals, and expenditure oversight.
+    examples:
+      - "CFO approved the quarterly fund release for stormwater projects."
+      - "CFO blocked a procurement request due to budget overrun risk."
+    aliases:
+      - FinanceHead
+      - FinanceOfficer
+
+  - name: CitizenRequest
+    definition: >
+      A service demand or incident report submitted by a citizen via mobile app,
+      web portal, or call center, which may generate a WorkOrder.
+    examples:
+      - "CitizenRequest filed for a new streetlight outage in Ward 6."
+      - "CitizenRequest tracked and closed after pothole repair."
+    aliases:
+      - PublicRequest
+      - ResidentRequest
+
+  - name: ProcurementBill
+    definition: >
+      A formal financial document recording authorized procurement purchases,
+      itemized costs, vendor details, and payment status for project material/services.
+    examples:
+      - "ProcurementBill logged for 50 tonnes of asphalt from approved vendor."
+      - "ProcurementBill pending payment until CFO review is complete."
+    aliases:
+      - PurchaseBill
+      - PurchaseOrderInvoice
+
+  - name: BudgetEstimate
+    definition: >
+      A preliminary cost projection for a project or WorkOrder used for approvals,
+      planning, and comparing vendor quotations.
+    examples:
+      - "BudgetEstimate for pipeline replacement was 18% lower than final bid."
+      - "Officer used BudgetEstimate as baseline in the budget approval workflow."
+    aliases:
+      - CostEstimate
+      - FinancialEstimate
+
