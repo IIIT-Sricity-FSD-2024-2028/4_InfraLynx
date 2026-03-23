@@ -105,8 +105,6 @@ CREATE TYPE bill_status AS ENUM (
     'PAID'
 );
 
-CREATE TYPE resource_type AS ENUM ('ELECTRICITY', 'WATER');
-
 CREATE TYPE project_outcome_status AS ENUM ('SUCCESS', 'PARTIAL_SUCCESS', 'FAILED');
 
 CREATE TYPE generated_report_type AS ENUM (
@@ -182,22 +180,14 @@ CREATE TABLE engineers (
     UNIQUE (user_id, department_id)
 );
 
-CREATE TABLE qc_units (
-    qc_unit_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name         VARCHAR(150) NOT NULL UNIQUE,
-    description  TEXT,
-    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE qc_reviewers (
-    user_id     UUID PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
-    qc_unit_id  UUID NOT NULL REFERENCES qc_units(qc_unit_id)
+    user_id     UUID PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE
 );
 
 
 -- 5. Citizen Request Intake
 
-CREATE TABLE citizen_requests (
+CREATE TABLE requests (
     request_id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     department_id         UUID NOT NULL REFERENCES departments(department_id),
     public_reference_no   VARCHAR(30) NOT NULL UNIQUE,
@@ -246,7 +236,7 @@ CREATE TABLE request_assessments (
 
     CONSTRAINT fk_request_assessments_request
         FOREIGN KEY (request_id, department_id)
-        REFERENCES citizen_requests(request_id, department_id)
+        REFERENCES requests(request_id, department_id)
         ON DELETE CASCADE
 );
 
@@ -303,7 +293,7 @@ CREATE TABLE work_orders (
 
     CONSTRAINT fk_work_orders_request
         FOREIGN KEY (request_id, department_id)
-        REFERENCES citizen_requests(request_id, department_id),
+        REFERENCES requests(request_id, department_id),
 
     CONSTRAINT fk_work_orders_infrastructure
         FOREIGN KEY (infra_id, department_id)
@@ -1073,7 +1063,7 @@ CREATE TABLE sensor_deployments (
     infra_id          UUID NOT NULL,
     department_id     UUID NOT NULL REFERENCES departments(department_id),
     deployed_by       UUID NOT NULL,
-    resource_type     resource_type NOT NULL,
+    resource_type     VARCHAR(100) NOT NULL,
     sensor_type       VARCHAR(100) NOT NULL,
     location_tag      VARCHAR(100) NOT NULL,
     status            sensor_status NOT NULL DEFAULT 'ACTIVE',
@@ -1099,7 +1089,7 @@ CREATE TABLE sensor_readings (
     reading_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sensor_id         UUID NOT NULL,
     department_id     UUID NOT NULL REFERENCES departments(department_id),
-    resource_type     resource_type NOT NULL,
+    resource_type     VARCHAR(100) NOT NULL,
     reading_value     NUMERIC(15, 4) NOT NULL CHECK (reading_value >= 0),
     reading_unit      VARCHAR(30) NOT NULL,
     quality_flag      VARCHAR(30) NOT NULL DEFAULT 'VALID',
@@ -1387,17 +1377,12 @@ CREATE UNIQUE INDEX idx_work_validation_reviews_one_approved_per_work_order
 
 
 -- END OF BASE SCHEMA
--- Tables: 39 | ENUMs: 24 | Indexes: 9 | Triggers: defined separately
+-- Tables: 38 | ENUMs: 23 | Indexes: 9 | Triggers: defined separately
 
 -- ==============================================================================
--- MERGED: schema.sql + triggers/trigger_rules.sql
--- This file can be executed in one run.
--- ==============================================================================
 
--- ==============================================================================
--- City Resource and Infrastructure Management System (CRIMS)
 -- Trigger rules for Database/trigger_enabled/schema.sql
--- Run this file after the base schema has been created.
+
 -- ==============================================================================
 
 
