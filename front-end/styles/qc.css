@@ -1,0 +1,154 @@
+/* ============================================================
+   qc.css — QC Reviewer Workspace
+   Extends base.css + dashboard.css
+   ============================================================ */
+
+/* ── QC KPI items ── */
+.qc-kpi-item {
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--surface-muted);
+  border: 1px solid rgba(22, 101, 52, 0.07);
+  transition: transform 0.18s var(--ease);
+}
+
+.qc-kpi-item:hover {
+  transform: translateY(-2px);
+}
+
+.qc-kpi-item span {
+  display: block;
+  font-size: 0.70rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.qc-kpi-item strong {
+  display: block;
+  font-family: "Sora", sans-serif;
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin: 4px 0 2px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.qc-kpi-item p {
+  margin: 0;
+  font-size: 0.79rem;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+/* ── Work closure-watch list ── */
+.closure-item {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(22, 101, 52, 0.07);
+  margin-bottom: 8px;
+  transition: transform 0.18s var(--ease);
+}
+
+.closure-item:hover {
+  transform: translateY(-1px);
+}
+
+.closure-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.closure-head strong {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.closure-item p {
+  margin: 0;
+  font-size: 0.83rem;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+/* ── Review feed ── */
+.review-feed-item {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(22, 101, 52, 0.07);
+  margin-bottom: 8px;
+}
+
+.review-feed-item .feed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.review-feed-item .feed-head strong {
+  font-family: "Sora", sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.review-feed-item p {
+  margin: 0;
+  font-size: 0.83rem;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+/* ── Score bar in table ── */
+.score-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.score-bar {
+  flex: 1;
+  height: 5px;
+  border-radius: 10px;
+  background: var(--surface-muted);
+  overflow: hidden;
+  min-width: 50px;
+}
+
+.score-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+  transition: width 0.4s var(--ease);
+}
+
+.score-label {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary-dark);
+  white-space: nowrap;
+}
+
+/* ── QC table row status highlight ── */
+.data-table tbody tr[data-qc-status="CERTIFIED"] td:first-child {
+  border-left: 3px solid #22c55e;
+}
+
+.data-table tbody tr[data-qc-status="REWORK_REQUIRED"] td:first-child {
+  border-left: 3px solid #ef4444;
+}
+
+.data-table tbody tr[data-qc-status="UNDER_REVIEW"] td:first-child {
+  border-left: 3px solid #f59e0b;
+}

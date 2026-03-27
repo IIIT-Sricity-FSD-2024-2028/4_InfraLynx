@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InfraLynx | CRIMS Secure Access</title>
+  <meta name="description"
+    content="Citizen sign-up and sign-in, plus role-based official access for the InfraLynx CRIMS platform.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="./styles/base.css">
+  <link rel="stylesheet" href="./styles/auth.css">
+</head>
+
+<body class="auth-page">
+  <div class="page-shell">
+    <div class="ambient-orb left" aria-hidden="true"></div>
+    <div class="ambient-orb right" aria-hidden="true"></div>
+    <div class="grid-sheen" aria-hidden="true"></div>
+
+    <header class="site-header content-wrap">
+      <a class="brand" href="./index.html" aria-label="Back to home">
+        <img src="./assets/CRIMS_logo.png" alt="CRIMS logo">
+        <span class="brand-copy">
+          <span class="brand-title">InfraLynx</span>
+          <span class="brand-subtitle">CRIMS secure access</span>
+        </span>
+      </a>
+
+      <div class="header-actions">
+        <a class="button button-secondary" href="./index.html" data-i18n="auth.backHome">Back to home</a>
+        <label class="language-control" for="auth-language-select">
+          <span>Language</span>
+          <select id="auth-language-select" aria-label="Language"></select>
+        </label>
+      </div>
+    </header>
+
+    <main class="content-wrap auth-main">
+      <aside class="glass-card auth-intro">
+        <div class="auth-intro-top">
+          <div class="eyebrow">Citizen and official access</div>
+          <h1 data-i18n="auth.title">Secure access for citizens and officials</h1>
+          <p data-i18n="auth.copy">
+            Citizens can create or use an access profile. Officials sign in through role-based government access only.
+          </p>
+
+          <div class="auth-badge-row">
+            <span class="status-pill">Light Theme</span>
+            <span class="status-pill neutral">Aadhaar uniqueness</span>
+            <span class="status-pill neutral">Invite-only officials</span>
+          </div>
+        </div>
+
+        <div class="auth-stat-strip">
+          <article class="auth-stat-card">
+            <span>Public requests</span>
+            <strong>Reference-based</strong>
+          </article>
+          <article class="auth-stat-card">
+            <span>Official actors</span>
+            <strong>5 schema roles</strong>
+          </article>
+          <article class="auth-stat-card">
+            <span>Prototype state</span>
+            <strong>Local + JSON</strong>
+          </article>
+        </div>
+
+        <div class="auth-impact-list">
+          <article class="auth-impact-item">
+            <strong>Citizen access</strong>
+            <p>Create one citizen identity per Aadhaar number, sign in later, and quickly track your submitted
+              references.</p>
+          </article>
+          <article class="auth-impact-item">
+            <strong>Official access</strong>
+            <p>City Administrator, Department Officer, Field Engineer, CFO, and QC Reviewer sign in using their
+              registered email and password.</p>
+          </article>
+          <article class="auth-impact-item">
+            <strong>Secure and role-aware</strong>
+            <p>Officials are automatically routed to their workspace based on the registered email — no manual role
+              selection required.</p>
+          </article>
+        </div>
+
+        <article class="glass-card auth-spotlight">
+          <div class="section-kicker">Civic-ready access</div>
+          <h2>Modern for citizens, structured for government teams</h2>
+          <p>
+            The public side stays welcoming and simple, while official access uses email-based role recognition for a
+            fast, clean government sign-in experience.
+          </p>
+          <div class="auth-spotlight-grid">
+            <div>
+              <span>Citizen flow</span>
+              <strong>Submit, track, return</strong>
+            </div>
+            <div>
+              <span>Official flow</span>
+              <strong>Email-based role routing</strong>
+            </div>
+          </div>
+        </article>
+      </aside>
+
+      <section class="glass-card auth-shell">
+        <div class="auth-shell-top">
+          <div>
+            <div class="section-kicker">Access portal</div>
+            <h2>Choose your path into CRIMS</h2>
+          </div>
+          <p>
+            Citizens can create an optional profile for easier repeat tracking. Officials use controlled sign-in linked
+            to the schema roles in the system design.
+          </p>
+        </div>
+
+        <div class="auth-lane-strip">
+          <article class="auth-lane-card">
+            <span class="field-label">Citizen lane</span>
+            <strong>Fast public access with Aadhaar uniqueness</strong>
+            <p>Citizens can sign in, create one profile per Aadhaar number, and return later to track requests more
+              easily.</p>
+          </article>
+          <article class="auth-lane-card">
+            <span class="field-label">Official lane</span>
+            <strong>Controlled municipal access with role routing</strong>
+            <p>Officials authenticate through invite-only access and move directly into the right workspace for their
+              role.</p>
+          </article>
+        </div>
+
+        <div class="auth-tabs" role="tablist" aria-label="Access type">
+          <button class="auth-tab is-active" id="citizen-tab" type="button" data-mode="citizen"
+            data-i18n="auth.citizenTab">Citizen Access</button>
+          <button class="auth-tab" id="official-tab" type="button" data-mode="official"
+            data-i18n="auth.officialTab">Official Access</button>
+        </div>
+
+        <section class="auth-panel" id="citizen-panel">
+          <div class="auth-panel-header">
+            <h2 data-i18n="auth.citizenSignIn">Citizen sign in</h2>
+            <p data-i18n="auth.copy">
+              Citizens can create or use an access profile. Officials sign in through role-based government access only.
+            </p>
+          </div>
+
+          <div class="auth-subtabs" role="tablist" aria-label="Citizen auth mode">
+            <button class="auth-subtab is-active" id="citizen-signin-tab" type="button" data-citizen-mode="signin"
+              data-i18n="auth.citizenSignIn">Citizen sign in</button>
+            <button class="auth-subtab" id="citizen-signup-tab" type="button" data-citizen-mode="signup"
+              data-i18n="auth.citizenSignUp">Create citizen account</button>
+          </div>
+
+          <div class="auth-form-grid">
+            <article class="glass-card auth-form-card">
+              <form id="citizen-signin-form" class="form-grid" novalidate>
+                <label class="field">
+                  <span class="field-label" data-i18n="auth.identifierLabel">Aadhaar number or email</span>
+                  <input type="text" name="identifier" placeholder="Aadhaar number or email">
+                </label>
+                <label class="field">
+                  <span class="field-label" data-i18n="auth.passwordLabel">Password</span>
+                  <input type="password" name="password" placeholder="Enter password">
+                </label>
+                <div class="auth-actions">
+                  <button class="button button-primary" type="submit" data-i18n="auth.signInButton">Sign in</button>
+                </div>
+                <div class="error-text hidden" id="citizen-signin-error"></div>
+              </form>
+
+              <form id="citizen-signup-form" class="form-grid hidden" novalidate>
+                <div class="inline-grid">
+                  <label class="field">
+                    <span class="field-label" data-i18n="request.nameLabel">Citizen name</span>
+                    <input type="text" name="name" autocomplete="name" placeholder="Full name">
+                  </label>
+                  <label class="field">
+                    <span class="field-label" data-i18n="request.phoneLabel">Phone number</span>
+                    <input type="tel" name="phone" autocomplete="tel" placeholder="10-digit mobile number">
+                  </label>
+                </div>
+                <div class="inline-grid">
+                  <label class="field">
+                    <span class="field-label" data-i18n="request.emailLabel">Email address</span>
+                    <input type="email" name="email" autocomplete="email" placeholder="name@example.com">
+                  </label>
+                  <label class="field">
+                    <span class="field-label" data-i18n="request.aadhaarLabel">Aadhaar number</span>
+                    <input type="text" name="aadhaar" maxlength="12" inputmode="numeric" placeholder="12-digit Aadhaar">
+                  </label>
+                </div>
+                <div class="inline-grid">
+                  <label class="field">
+                    <span class="field-label" data-i18n="auth.passwordLabel">Password</span>
+                    <input type="password" name="password" placeholder="Create password">
+                  </label>
+                  <label class="field">
+                    <span class="field-label" data-i18n="auth.confirmPasswordLabel">Confirm password</span>
+                    <input type="password" name="confirmPassword" placeholder="Confirm password">
+                  </label>
+                </div>
+                <div class="auth-actions">
+                  <button class="button button-primary" type="submit" data-i18n="auth.signUpButton">Create
+                    account</button>
+                </div>
+                <div class="error-text hidden" id="citizen-signup-error"></div>
+              </form>
+
+              <article class="glass-card result-panel hidden" id="citizen-result-panel">
+                <h3 data-i18n="auth.sampleCitizens">Citizen profile summary</h3>
+                <p data-i18n="auth.successCitizen">Citizen access ready. You can now track your requests more easily.
+                </p>
+                <div class="result-meta" id="citizen-result-meta"></div>
+              </article>
+            </article>
+
+            <aside class="glass-card note-card auth-side-card">
+              <h3 data-i18n="auth.profileCardTitle">Citizen account policy</h3>
+              <p data-i18n="auth.profileCardCopy">
+                One citizen identity is allowed per Aadhaar number in this prototype. Officials are sign-in only.
+              </p>
+              <div class="note-list">
+                <div>
+                  <span>Direct public submission</span>
+                  <strong>Still available on landing</strong>
+                </div>
+                <div>
+                  <span>Returning citizen</span>
+                  <strong>Use Aadhaar or email</strong>
+                </div>
+                <div>
+                  <span>Sample citizen login</span>
+                  <strong class="mono">ananya.rao@example.com</strong>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="auth-panel hidden" id="official-panel">
+          <div class="auth-panel-header">
+            <h2 data-i18n="auth.officialHeading">Official government sign in</h2>
+            <p>Enter your official email and password. Your role and workspace will be determined automatically.</p>
+          </div>
+
+          <div class="auth-form-grid">
+            <article class="glass-card auth-form-card">
+              <form id="official-form" class="form-grid" novalidate>
+                <label class="field">
+                  <span class="field-label" data-i18n="auth.emailLabel">Official email address</span>
+                  <input type="email" name="email" autocomplete="username" placeholder="name@crims.gov.in">
+                </label>
+                <label class="field">
+                  <span class="field-label" data-i18n="auth.passwordLabel">Password</span>
+                  <input type="password" name="password" autocomplete="current-password" placeholder="Enter password">
+                </label>
+                <div class="auth-actions">
+                  <button class="button button-primary" type="submit" data-i18n="auth.signInButton">Sign in</button>
+                </div>
+                <div class="error-text hidden" id="official-error"></div>
+              </form>
+
+              <article class="glass-card result-panel hidden" id="official-result-panel">
+                <h3 data-i18n="auth.sampleOfficials">Official access summary</h3>
+                <p>Official access verified. Redirecting to your workspace…</p>
+                <div class="result-meta" id="official-result-meta"></div>
+              </article>
+            </article>
+
+            <aside class="glass-card note-card auth-side-card auth-role-guide">
+              <h3>Government access policy</h3>
+              <p data-i18n="auth.noteOfficial">For account creation, contact the CRIMS system administrator.</p>
+              <div class="note-list">
+                <div>
+                  <span>City Administrator</span>
+                  <strong class="mono">administrator@crims.gov.in</strong>
+                </div>
+                <div>
+                  <span>Department Officer</span>
+                  <strong class="mono">officer@crims.gov.in</strong>
+                </div>
+                <div>
+                  <span>Field Engineer</span>
+                  <strong class="mono">engineer@crims.gov.in</strong>
+                </div>
+                <div>
+                  <span>CFO</span>
+                  <strong class="mono">cfo@crims.gov.in</strong>
+                </div>
+                <div>
+                  <span>QC Reviewer</span>
+                  <strong class="mono">qc@crims.gov.in</strong>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="./scripts/seed-data.js"></script>
+  <script src="./scripts/data-store.js"></script>
+  <script src="./scripts/i18n.js"></script>
+  <script src="./scripts/validators.js"></script>
+  <script src="./scripts/auth.js"></script>
+</body>
+
+</html>

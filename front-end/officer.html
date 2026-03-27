@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InfraLynx | Department Officer Workspace</title>
+  <meta name="description"
+    content="Department Officer workspace for InfraLynx CRIMS — work orders, quotations, and maintenance schedules.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="./styles/base.css">
+  <link rel="stylesheet" href="./styles/dashboard.css">
+  <link rel="stylesheet" href="./styles/officer.css">
+</head>
+
+<body class="officer-page">
+  <div class="page-shell">
+    <div class="ambient-orb left" aria-hidden="true"></div>
+    <div class="ambient-orb right" aria-hidden="true"></div>
+    <div class="grid-sheen" aria-hidden="true"></div>
+
+    <div class="dashboard-shell content-wrap">
+      <!-- Sidebar -->
+      <aside class="dashboard-sidebar glass-card" aria-label="Officer navigation">
+        <a class="sidebar-brand" href="./index.html" aria-label="InfraLynx home">
+          <img src="./assets/CRIMS_logo.png" alt="CRIMS logo">
+          <div class="sidebar-brand-copy">
+            <span class="sidebar-brand-title">InfraLynx</span>
+            <span class="sidebar-brand-role">Department Officer</span>
+          </div>
+        </a>
+
+        <div class="sidebar-session">
+          <div class="sidebar-avatar" aria-hidden="true">O</div>
+          <div class="sidebar-session-copy">
+            <span class="sidebar-session-name" id="officer-greeting">Officer</span>
+            <span class="sidebar-session-role" id="officer-department-name">Department</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Officer sections">
+          <a class="sidebar-nav-link is-active" href="#overview" data-officer-nav aria-current="page">
+            <div class="sidebar-nav-icon">📊</div>
+            <div class="sidebar-nav-label">
+              <span>Overview</span>
+              <strong>Department posture</strong>
+            </div>
+          </a>
+          <a class="sidebar-nav-link" href="#work-orders" data-officer-nav>
+            <div class="sidebar-nav-icon">🔧</div>
+            <div class="sidebar-nav-label">
+              <span>Work Orders</span>
+              <strong>Assign &amp; track</strong>
+            </div>
+          </a>
+          <a class="sidebar-nav-link" href="#quotations" data-officer-nav>
+            <div class="sidebar-nav-icon">💼</div>
+            <div class="sidebar-nav-label">
+              <span>Quotations</span>
+              <strong>Vendor &amp; cost review</strong>
+            </div>
+          </a>
+          <a class="sidebar-nav-link" href="#schedules" data-officer-nav>
+            <div class="sidebar-nav-icon">📅</div>
+            <div class="sidebar-nav-label">
+              <span>Maintenance</span>
+              <strong>Preventive schedules</strong>
+            </div>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <label class="language-control" for="officer-language-select">
+            <span>Language</span>
+            <select id="officer-language-select" aria-label="Language"></select>
+          </label>
+          <a class="button button-secondary small-button" href="./index.html">Public portal</a>
+          <button class="button button-primary small-button" id="officer-sign-out" type="button">Sign out</button>
+        </div>
+      </aside>
+
+      <!-- Workspace -->
+      <div class="dashboard-workspace officer-workspace">
+        <header class="workspace-topbar glass-card">
+          <div class="workspace-topbar-left">
+            <div class="workspace-topbar-eyebrow">Operational control</div>
+            <h1 class="workspace-topbar-title" id="officer-department-copy">Department workspace</h1>
+          </div>
+          <div class="workspace-topbar-right">
+            <span class="status-pill">Officer</span>
+            <span class="status-pill neutral" id="officer-clock">--:--</span>
+          </div>
+        </header>
+
+        <main class="workspace-main officer-main">
+
+          <!-- ── Overview ── -->
+          <section id="overview">
+            <div class="hero-panel">
+              <article class="glass-card hero-copy-card">
+                <div class="section-kicker">Department readiness</div>
+                <h2>Manage field execution and track department throughput</h2>
+                <p>Use work orders to assign engineers, quotations to validate vendor costs, and maintenance schedules
+                  to keep assets in preventive care cycles.</p>
+                <div class="hero-actions">
+                  <a class="button button-primary" href="#work-orders" data-officer-nav>Open work orders</a>
+                  <a class="button button-secondary" href="#quotations" data-officer-nav>Review quotations</a>
+                </div>
+                <article class="hero-alert-card" id="officer-alert-card"></article>
+              </article>
+
+              <div class="hero-side">
+                <article class="glass-card kpi-card">
+                  <div class="kpi-card-head">
+                    <div>
+                      <span class="field-label">Department KPIs</span>
+                      <h3>Live operational metrics</h3>
+                    </div>
+                    <span class="status-pill">Officer</span>
+                  </div>
+                  <div class="kpi-grid" id="officer-kpi-grid"></div>
+                </article>
+
+                <article class="glass-card panel-card">
+                  <div class="section-kicker">Planning queue</div>
+                  <h3 style="margin:8px 0 12px;font-family:'Sora',sans-serif;font-size:1rem;">Active citizen requests
+                  </h3>
+                  <div id="planning-queue"></div>
+                </article>
+
+                <article class="glass-card panel-card">
+                  <div class="section-kicker">Field engineers</div>
+                  <h3 style="margin:8px 0 12px;font-family:'Sora',sans-serif;font-size:1rem;">Mapped to this department
+                  </h3>
+                  <div id="engineer-list"></div>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <!-- ── Work Orders ── -->
+          <section id="work-orders" class="nav-panel-hidden">
+            <div class="section-heading">
+              <div class="section-kicker">Work Orders</div>
+              <h2>Create, assign, and track field work orders</h2>
+              <p>Link each work order to an incoming citizen request and assign a field engineer. Track progress from
+                draft to QC-ready.</p>
+            </div>
+            <div class="control-grid">
+              <article class="glass-card table-card">
+                <div class="table-shell">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Reference / Title</th>
+                        <th>Engineer</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Due date</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="work-order-table-body"></tbody>
+                  </table>
+                </div>
+              </article>
+              <article class="glass-card form-card">
+                <div class="panel-heading compact">
+                  <div>
+                    <div class="section-kicker">Work Order Editor</div>
+                    <h3 id="work-order-form-title">Add work order</h3>
+                  </div>
+                  <button class="button button-secondary small-button" id="work-order-reset"
+                    type="button">Reset</button>
+                </div>
+                <form class="form-grid" id="work-order-form" novalidate>
+                  <input type="hidden" name="id">
+                  <input type="hidden" name="referenceNo">
+                  <input type="hidden" name="departmentId">
+                  <label class="field">
+                    <span class="field-label">Linked request</span>
+                    <select name="requestId" id="work-order-request-select"></select>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Work order title</span>
+                    <input type="text" name="title" placeholder="Short operational description">
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Location</span>
+                    <input type="text" name="locationText" placeholder="Site or asset location">
+                  </label>
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Engineer</span>
+                      <select name="engineerId" id="work-order-engineer-select"></select>
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Priority</span>
+                      <select name="priority" id="work-order-priority-select"></select>
+                    </label>
+                  </div>
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Status</span>
+                      <select name="status" id="work-order-status-select"></select>
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Due date</span>
+                      <input type="date" name="dueDate">
+                    </label>
+                  </div>
+                  <label class="field">
+                    <span class="field-label">Operational notes</span>
+                    <textarea name="notes" placeholder="Scope, site details, officer notes"></textarea>
+                  </label>
+                  <div class="auth-actions">
+                    <button class="button button-primary" type="submit">Save work order</button>
+                  </div>
+                  <div class="error-text hidden" id="work-order-error"></div>
+                </form>
+              </article>
+            </div>
+          </section>
+
+          <!-- ── Quotations ── -->
+          <section id="quotations" class="nav-panel-hidden">
+            <div class="section-heading">
+              <div class="section-kicker">Quotations</div>
+              <h2>Review and manage vendor quotations</h2>
+              <p>Quotations support cost validation before procurement. Verify GST compliance and submit for CFO review.
+              </p>
+            </div>
+            <div class="control-grid">
+              <article class="glass-card table-card">
+                <div class="table-shell">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Vendor</th>
+                        <th>Item</th>
+                        <th>Amount</th>
+                        <th>GST</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="quotation-table-body"></tbody>
+                  </table>
+                </div>
+              </article>
+              <article class="glass-card form-card">
+                <div class="panel-heading compact">
+                  <div>
+                    <div class="section-kicker">Quotation Editor</div>
+                    <h3 id="quotation-form-title">Add quotation</h3>
+                  </div>
+                  <button class="button button-secondary small-button" id="quotation-reset" type="button">Reset</button>
+                </div>
+                <form class="form-grid" id="quotation-form" novalidate>
+                  <input type="hidden" name="id">
+                  <input type="hidden" name="departmentId">
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Vendor</span>
+                      <input type="text" name="vendor" placeholder="Vendor or supplier name">
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Item / service</span>
+                      <input type="text" name="item" placeholder="Work item description">
+                    </label>
+                  </div>
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Amount (Lakhs)</span>
+                      <input type="number" name="amountLakhs" min="0" step="0.1" placeholder="0.0">
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Status</span>
+                      <select name="status" id="quotation-status-select"></select>
+                    </label>
+                  </div>
+                  <label class="toggle-field">
+                    <input type="checkbox" name="gstValid" value="true">
+                    <span>GST details verified</span>
+                  </label>
+                  <div class="auth-actions">
+                    <button class="button button-primary" type="submit">Save quotation</button>
+                  </div>
+                  <div class="error-text hidden" id="quotation-error"></div>
+                </form>
+              </article>
+            </div>
+          </section>
+
+          <!-- ── Maintenance Schedules ── -->
+          <section id="schedules" class="nav-panel-hidden">
+            <div class="section-heading">
+              <div class="section-kicker">Maintenance Schedules</div>
+              <h2>Plan and manage preventive maintenance cycles</h2>
+              <p>Assign engineers to periodic asset maintenance tasks to reduce reactive repair costs and downtime.</p>
+            </div>
+            <div class="control-grid">
+              <article class="glass-card table-card">
+                <div class="table-shell">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Task</th>
+                        <th>Frequency</th>
+                        <th>Next date</th>
+                        <th>Assignee</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="schedule-table-body"></tbody>
+                  </table>
+                </div>
+              </article>
+              <article class="glass-card form-card">
+                <div class="panel-heading compact">
+                  <div>
+                    <div class="section-kicker">Schedule Editor</div>
+                    <h3 id="schedule-form-title">Add schedule</h3>
+                  </div>
+                  <button class="button button-secondary small-button" id="schedule-reset" type="button">Reset</button>
+                </div>
+                <form class="form-grid" id="schedule-form" novalidate>
+                  <input type="hidden" name="id">
+                  <input type="hidden" name="departmentId">
+                  <label class="field">
+                    <span class="field-label">Task title</span>
+                    <input type="text" name="title" placeholder="Maintenance task description">
+                  </label>
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Frequency</span>
+                      <select name="frequency" id="schedule-frequency-select"></select>
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Next date</span>
+                      <input type="date" name="nextDate">
+                    </label>
+                  </div>
+                  <label class="field">
+                    <span class="field-label">Assigned engineer</span>
+                    <select name="assignee" id="schedule-assignee-select"></select>
+                  </label>
+                  <div class="auth-actions">
+                    <button class="button button-primary" type="submit">Save schedule</button>
+                  </div>
+                  <div class="error-text hidden" id="schedule-error"></div>
+                </form>
+              </article>
+            </div>
+          </section>
+
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+  <script src="./scripts/seed-data.js"></script>
+  <script src="./scripts/data-store.js"></script>
+  <script src="./scripts/i18n.js"></script>
+  <script src="./scripts/toast.js"></script>
+  <script src="./scripts/officer.js"></script>
+  <script src="./scripts/nav-tabs.js"></script>
+</body>
+
+</html>

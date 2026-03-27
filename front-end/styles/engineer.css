@@ -1,0 +1,165 @@
+/* ============================================================
+   engineer.css — Field Engineer Workspace
+   Extends base.css + dashboard.css
+   ============================================================ */
+
+/* ── Severity indicators on table rows ── */
+.data-table tbody tr[data-severity="HIGH"] td:first-child,
+.data-table tbody tr[data-severity="CRITICAL"] td:first-child {
+  border-left: 3px solid #ef4444;
+}
+
+.data-table tbody tr[data-severity="MEDIUM"] td:first-child {
+  border-left: 3px solid #f59e0b;
+}
+
+.data-table tbody tr[data-severity="LOW"] td:first-child {
+  border-left: 3px solid #22c55e;
+}
+
+/* ── Assigned work cards ── */
+.work-card {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(22, 101, 52, 0.07);
+  margin-bottom: 8px;
+  transition: transform 0.18s var(--ease);
+}
+
+.work-card:hover {
+  transform: translateY(-1px);
+}
+
+.work-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.work-card-head strong {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.work-card p {
+  margin: 2px 0 0;
+  font-size: 0.83rem;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+/* ── Notifications ── */
+.notification-item {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(22, 101, 52, 0.07);
+  margin-bottom: 8px;
+}
+
+.notification-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.notification-item-head strong {
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: "Sora", sans-serif;
+}
+
+.notification-item p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+/* ── Quick action cards ── */
+.quick-card {
+  padding: 18px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.05), rgba(22, 163, 74, 0.02));
+  border: 1px solid rgba(22, 163, 74, 0.12);
+  transition: transform 0.18s var(--ease), border-color 0.18s var(--ease), box-shadow 0.18s var(--ease);
+  cursor: pointer;
+}
+
+.quick-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(22, 163, 74, 0.24);
+  box-shadow: 0 6px 18px rgba(22, 163, 74, 0.08);
+}
+
+.quick-card span {
+  display: block;
+  font-size: 0.70rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: var(--primary-darker);
+  margin-bottom: 6px;
+}
+
+.quick-card strong {
+  display: block;
+  font-family: "Sora", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.quick-card p {
+  margin: 0;
+  font-size: 0.83rem;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+/* ── Emergency/alert card ── */
+.emergency-item {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(254, 242, 242, 0.7);
+  border: 1px solid rgba(220, 38, 38, 0.12);
+  margin-top: 16px;
+}
+
+.emergency-item span {
+  display: block;
+  font-size: 0.70rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: var(--accent-red);
+  margin-bottom: 4px;
+}
+
+.emergency-item strong {
+  display: block;
+  font-family: "Sora", sans-serif;
+  font-size: 0.90rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.emergency-item p {
+  margin: 0;
+  font-size: 0.83rem;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+/* ── Quick grid layout ── */
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InfraLynx | Field Engineer Workspace</title>
+  <meta name="description"
+    content="Field Engineer workspace for InfraLynx CRIMS with inspections, issues, resources, and progress reporting.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="./styles/base.css">
+  <link rel="stylesheet" href="./styles/dashboard.css">
+  <link rel="stylesheet" href="./styles/engineer.css">
+</head>
+
+<body class="engineer-page">
+  <div class="page-shell">
+    <div class="ambient-orb left" aria-hidden="true"></div>
+    <div class="ambient-orb right" aria-hidden="true"></div>
+    <div class="grid-sheen" aria-hidden="true"></div>
+
+    <div class="dashboard-shell content-wrap">
+      <!-- Sidebar -->
+      <aside class="dashboard-sidebar glass-card" aria-label="Engineer navigation">
+        <a class="sidebar-brand" href="./index.html" aria-label="InfraLynx home">
+          <img src="./assets/CRIMS_logo.png" alt="CRIMS logo">
+          <div class="sidebar-brand-copy">
+            <span class="sidebar-brand-title">InfraLynx</span>
+            <span class="sidebar-brand-role">Field Engineer</span>
+          </div>
+        </a>
+
+        <div class="sidebar-session">
+          <div class="sidebar-avatar" aria-hidden="true">E</div>
+          <div class="sidebar-session-copy">
+            <span class="sidebar-session-name" id="engineer-greeting">Engineer</span>
+            <span class="sidebar-session-role">Field operations active</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Engineer sections">
+          <a class="sidebar-nav-link is-active" href="#overview" data-engineer-nav aria-current="page">
+            <div class="sidebar-nav-icon">📊</div>
+            <div class="sidebar-nav-label">
+              <span>Overview</span>
+              <strong>Field posture</strong>
+            </div>
+          </a>
+          <a class="sidebar-nav-link" href="#inspections" data-engineer-nav>
+            <div class="sidebar-nav-icon">🔍</div>
+            <div class="sidebar-nav-label">
+              <span>Inspections</span>
+              <strong>Site verification</strong>
+            </div>
+          </a>
+          <a class="sidebar-nav-link" href="#issues" data-engineer-nav>
+            <div class="sidebar-nav-icon">⚠️</div>
+            <div class="sidebar-nav-label">
+              <span>Issue Reports</span>
+              <strong>Log field problems</strong>
+            </div>
+          </a>
+          <a class="sidebar-nav-link" href="#resources" data-engineer-nav>
+            <div class="sidebar-nav-icon">📦</div>
+            <div class="sidebar-nav-label">
+              <span>Resources</span>
+              <strong>Request materials</strong>
+            </div>
+          </a>
+          <a class="sidebar-nav-link" href="#reports" data-engineer-nav>
+            <div class="sidebar-nav-icon">📝</div>
+            <div class="sidebar-nav-label">
+              <span>Progress Reports</span>
+              <strong>Submit field updates</strong>
+            </div>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <label class="language-control" for="engineer-language-select">
+            <span>Language</span>
+            <select id="engineer-language-select" aria-label="Language"></select>
+          </label>
+          <a class="button button-secondary small-button" href="./auth.html?mode=official">Official portal</a>
+          <button class="button button-primary small-button" id="engineer-sign-out" type="button">Sign out</button>
+        </div>
+      </aside>
+
+      <!-- Workspace -->
+      <div class="dashboard-workspace engineer-workspace">
+        <header class="workspace-topbar glass-card">
+          <div class="workspace-topbar-left">
+            <div class="workspace-topbar-eyebrow">Field operations</div>
+            <h1 class="workspace-topbar-title" id="engineer-subcopy">On-ground execution workspace</h1>
+          </div>
+          <div class="workspace-topbar-right">
+            <span class="status-pill">Engineer</span>
+            <span class="status-pill neutral" id="engineer-clock">--:--</span>
+          </div>
+        </header>
+
+        <main class="workspace-main engineer-main">
+
+          <!-- ── Overview ── -->
+          <section id="overview">
+            <div class="hero-panel">
+              <article class="glass-card hero-copy-card">
+                <div class="section-kicker">Field readiness</div>
+                <h2>Execute assigned work and send clean updates back upstream</h2>
+                <p>Manage your inspection schedule, report site issues, request materials, and keep the officer workflow
+                  updated with structured field information.</p>
+                <div class="hero-actions">
+                  <a class="button button-primary" href="#inspections" data-engineer-nav>Open inspection queue</a>
+                  <a class="button button-secondary" href="#reports" data-engineer-nav>Submit progress</a>
+                </div>
+                <article class="hero-alert-card" id="engineer-emergency-card"></article>
+              </article>
+
+              <div class="hero-side">
+                <article class="glass-card kpi-card">
+                  <div class="kpi-card-head">
+                    <div>
+                      <span class="field-label">Field dashboard</span>
+                      <h3>Operational overview</h3>
+                    </div>
+                    <span class="status-pill">Engineer</span>
+                  </div>
+                  <div class="kpi-grid" id="engineer-kpi-grid"></div>
+                </article>
+
+                <article class="glass-card panel-card">
+                  <div class="section-kicker">Assigned work orders</div>
+                  <h3 style="margin:8px 0 12px;font-family:'Sora',sans-serif;font-size:1rem;">Currently mapped to you
+                  </h3>
+                  <div class="work-card-list" id="assigned-work-list"></div>
+                </article>
+
+                <article class="glass-card panel-card">
+                  <div class="section-kicker">Recent notifications</div>
+                  <h3 style="margin:8px 0 12px;font-family:'Sora',sans-serif;font-size:1rem;">Latest field signals</h3>
+                  <div id="engineer-notification-list"></div>
+                </article>
+              </div>
+            </div>
+
+            <div style="margin-top:20px;">
+              <article class="glass-card panel-card">
+                <div class="section-kicker">Quick actions</div>
+                <h3 style="margin:8px 0 12px;font-family:'Sora',sans-serif;font-size:1rem;">Field-ready shortcuts</h3>
+                <div class="quick-grid" id="engineer-quick-grid"></div>
+              </article>
+            </div>
+          </section>
+
+          <!-- ── Inspections ── -->
+          <section id="inspections" class="nav-panel-hidden control-section">
+            <div class="section-heading">
+              <div class="section-kicker">Inspections</div>
+              <h2>Track and update field inspection records</h2>
+              <p>Log site verification outcomes, severity findings, and inspection status. High-severity findings
+                surface to the officer workflow automatically.</p>
+            </div>
+            <div class="control-grid">
+              <article class="glass-card table-card">
+                <div class="table-shell">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Inspection</th>
+                        <th>Location</th>
+                        <th>Severity</th>
+                        <th>Status</th>
+                        <th>Due</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="inspection-table-body"></tbody>
+                  </table>
+                </div>
+              </article>
+              <article class="glass-card form-card">
+                <div class="panel-heading compact">
+                  <div>
+                    <div class="section-kicker">Inspection Editor</div>
+                    <h3 id="inspection-form-title">Add inspection</h3>
+                  </div>
+                  <button class="button button-secondary small-button" id="inspection-reset"
+                    type="button">Reset</button>
+                </div>
+                <form class="form-grid" id="inspection-form" novalidate>
+                  <input type="hidden" name="id">
+                  <input type="hidden" name="departmentId">
+                  <input type="hidden" name="engineerId">
+                  <label class="field">
+                    <span class="field-label">Inspection title</span>
+                    <input type="text" name="title" placeholder="Inspection subject">
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Location</span>
+                    <input type="text" name="locationText" placeholder="Road, structure, zone, or asset">
+                  </label>
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Severity</span>
+                      <select name="severity" id="inspection-severity-select"></select>
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Status</span>
+                      <select name="status" id="inspection-status-select"></select>
+                    </label>
+                  </div>
+                  <label class="field">
+                    <span class="field-label">Due date</span>
+                    <input type="date" name="dueDate">
+                  </label>
+                  <div class="auth-actions">
+                    <button class="button button-primary" type="submit">Save inspection</button>
+                  </div>
+                  <div class="error-text hidden" id="inspection-error"></div>
+                </form>
+              </article>
+            </div>
+          </section>
+
+          <!-- ── Issues ── -->
+          <section id="issues" class="nav-panel-hidden control-section">
+            <div class="section-heading">
+              <div class="section-kicker">Issue Reports</div>
+              <h2>Log newly discovered infrastructure problems</h2>
+              <p>Issue reports capture field hazards, road damage, or operational failures with clear severity markers
+                for officer follow-up.</p>
+            </div>
+            <div class="control-grid">
+              <article class="glass-card table-card">
+                <div class="table-shell">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Issue</th>
+                        <th>Category</th>
+                        <th>Location</th>
+                        <th>Severity</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="issue-table-body"></tbody>
+                  </table>
+                </div>
+              </article>
+              <article class="glass-card form-card">
+                <div class="panel-heading compact">
+                  <div>
+                    <div class="section-kicker">Issue Editor</div>
+                    <h3 id="issue-form-title">Add issue report</h3>
+                  </div>
+                  <button class="button button-secondary small-button" id="issue-reset" type="button">Reset</button>
+                </div>
+                <form class="form-grid" id="issue-form" novalidate>
+                  <input type="hidden" name="id">
+                  <input type="hidden" name="departmentId">
+                  <input type="hidden" name="engineerId">
+                  <label class="field">
+                    <span class="field-label">Issue title</span>
+                    <input type="text" name="title" placeholder="Short field issue title">
+                  </label>
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Category</span>
+                      <input type="text" name="category" placeholder="Safety hazard, road damage, leakage">
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Location</span>
+                      <input type="text" name="locationText" placeholder="Exact field location">
+                    </label>
+                  </div>
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Severity</span>
+                      <select name="severity" id="issue-severity-select"></select>
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Status</span>
+                      <select name="status" id="issue-status-select"></select>
+                    </label>
+                  </div>
+                  <div class="auth-actions">
+                    <button class="button button-primary" type="submit">Save issue report</button>
+                  </div>
+                  <div class="error-text hidden" id="issue-error"></div>
+                </form>
+              </article>
+            </div>
+          </section>
+
+          <!-- ── Resources ── -->
+          <section id="resources" class="nav-panel-hidden control-section">
+            <div class="section-heading">
+              <div class="section-kicker">Resource Requests</div>
+              <h2>Request field equipment and materials</h2>
+              <p>Raise equipment, barricade, or material needs. Approved requests are fulfilled by the department before
+                work order execution.</p>
+            </div>
+            <div class="control-grid">
+              <article class="glass-card table-card">
+                <div class="table-shell">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Quantity</th>
+                        <th>Urgency</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="resource-table-body"></tbody>
+                  </table>
+                </div>
+              </article>
+              <article class="glass-card form-card">
+                <div class="panel-heading compact">
+                  <div>
+                    <div class="section-kicker">Resource Editor</div>
+                    <h3 id="resource-form-title">Add resource request</h3>
+                  </div>
+                  <button class="button button-secondary small-button" id="resource-reset" type="button">Reset</button>
+                </div>
+                <form class="form-grid" id="resource-form" novalidate>
+                  <input type="hidden" name="id">
+                  <input type="hidden" name="departmentId">
+                  <input type="hidden" name="engineerId">
+                  <label class="field">
+                    <span class="field-label">Requested item</span>
+                    <input type="text" name="item" placeholder="Tool, material, or support item">
+                  </label>
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Quantity</span>
+                      <input type="text" name="quantity" placeholder="Units, kit count">
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Urgency</span>
+                      <select name="urgency" id="resource-urgency-select"></select>
+                    </label>
+                  </div>
+                  <label class="field">
+                    <span class="field-label">Status</span>
+                    <select name="status" id="resource-status-select"></select>
+                  </label>
+                  <div class="auth-actions">
+                    <button class="button button-primary" type="submit">Save resource request</button>
+                  </div>
+                  <div class="error-text hidden" id="resource-error"></div>
+                </form>
+              </article>
+            </div>
+          </section>
+
+          <!-- ── Progress Reports ── -->
+          <section id="reports" class="nav-panel-hidden control-section">
+            <div class="section-heading">
+              <div class="section-kicker">Progress Reports</div>
+              <h2>Submit and maintain field progress updates</h2>
+              <p>Send structured execution notes to the Department Officer. Reports are linked to work orders and
+                tracked by status.</p>
+            </div>
+            <div class="control-grid">
+              <article class="glass-card table-card">
+                <div class="table-shell">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Report</th>
+                        <th>Work order</th>
+                        <th>Status</th>
+                        <th>Submitted</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="report-table-body"></tbody>
+                  </table>
+                </div>
+              </article>
+              <article class="glass-card form-card">
+                <div class="panel-heading compact">
+                  <div>
+                    <div class="section-kicker">Report Editor</div>
+                    <h3 id="report-form-title">Add progress report</h3>
+                  </div>
+                  <button class="button button-secondary small-button" id="report-reset" type="button">Reset</button>
+                </div>
+                <form class="form-grid" id="report-form" novalidate>
+                  <input type="hidden" name="id">
+                  <input type="hidden" name="departmentId">
+                  <input type="hidden" name="engineerId">
+                  <input type="hidden" name="submittedAt">
+                  <label class="field">
+                    <span class="field-label">Linked work order</span>
+                    <select name="workOrderId" id="report-work-order-select"></select>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Report title</span>
+                    <input type="text" name="title" placeholder="Field progress title">
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Summary</span>
+                    <textarea name="summary" placeholder="Execution progress, blockers, and field notes"></textarea>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Status</span>
+                    <select name="status" id="report-status-select"></select>
+                  </label>
+                  <div class="auth-actions">
+                    <button class="button button-primary" type="submit">Save progress report</button>
+                  </div>
+                  <div class="error-text hidden" id="report-error"></div>
+                </form>
+              </article>
+            </div>
+          </section>
+
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+  <script src="./scripts/seed-data.js"></script>
+  <script src="./scripts/data-store.js"></script>
+  <script src="./scripts/i18n.js"></script>
+  <script src="./scripts/toast.js"></script>
+  <script src="./scripts/engineer.js"></script>
+  <script src="./scripts/nav-tabs.js"></script>
+</body>
+
+</html>

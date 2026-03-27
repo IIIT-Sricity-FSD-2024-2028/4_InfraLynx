@@ -1,0 +1,202 @@
+/* ============================================================
+   admin.css — City Administrator Console
+   Extends base.css + dashboard.css
+   ============================================================ */
+
+/* ── Overview KPI summary items (rendered by admin.js) ── */
+.summary-item {
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--surface-muted);
+  border: 1px solid rgba(22, 101, 52, 0.07);
+  transition: transform 0.2s var(--ease);
+}
+
+.summary-item:hover {
+  transform: translateY(-2px);
+}
+
+.summary-item span {
+  display: block;
+  font-size: 0.695rem;
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.summary-item strong {
+  display: block;
+  font-family: "Sora", sans-serif;
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin: 4px 0 2px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.summary-item strong.mono {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1.2rem;
+}
+
+.summary-item p {
+  margin: 0;
+  font-size: 0.79rem;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+/* ── Budget bar rows ── */
+.budget-row {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(22, 101, 52, 0.07);
+}
+
+.budget-row+.budget-row {
+  margin-top: 8px;
+}
+
+.budget-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.budget-row-head strong {
+  font-family: "Sora", sans-serif;
+  font-size: 0.90rem;
+  font-weight: 700;
+}
+
+.budget-meta {
+  font-size: 0.83rem;
+  color: var(--text-soft);
+  margin-bottom: 8px;
+}
+
+.budget-bar {
+  height: 6px;
+  border-radius: 10px;
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+
+.budget-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Activity feed ── */
+.feed-item {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(22, 101, 52, 0.07);
+}
+
+.feed-item+.feed-item {
+  margin-top: 8px;
+}
+
+.feed-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.feed-item-head strong {
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-family: "Sora", sans-serif;
+}
+
+.feed-item p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+/* ── Alert strip (inline in hero) ── */
+.admin-alert-section {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alert-item {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(254, 242, 242, 0.7);
+  border: 1px solid rgba(220, 38, 38, 0.12);
+}
+
+.alert-item.warning {
+  background: rgba(254, 249, 195, 0.7);
+  border-color: rgba(161, 98, 7, 0.14);
+}
+
+.alert-item span {
+  display: block;
+  font-size: 0.70rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: var(--accent-red);
+  margin-bottom: 4px;
+}
+
+.alert-item.warning span {
+  color: #92400e;
+}
+
+.alert-item strong {
+  display: block;
+  font-family: "Sora", sans-serif;
+  font-size: 0.93rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.alert-item p {
+  margin: 0;
+  font-size: 0.83rem;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+/* ── Access guard (rendered by admin.js when unauthenticated) ── */
+.hero-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+/* ── Toolbar filter inside panel heading ── */
+.toolbar-field .field {
+  margin: 0;
+}
+
+.toolbar-field select {
+  min-width: 160px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

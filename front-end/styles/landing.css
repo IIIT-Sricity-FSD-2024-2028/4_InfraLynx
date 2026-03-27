@@ -1,0 +1,464 @@
+.landing-page .hero {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 32px;
+  padding-top: 56px;
+  align-items: start;
+}
+
+.hero-copy h1 {
+  margin: 20px 0 0;
+  max-width: 14ch;
+  font-family: "Sora", sans-serif;
+  font-size: clamp(2.6rem, 5.5vw, 4.2rem);
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  color: var(--text);
+}
+
+.hero-copy h1 span:last-child {
+  color: var(--primary-dark);
+}
+
+.hero-copy p {
+  max-width: 56ch;
+  margin: 18px 0 0;
+  color: var(--text-soft);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+/* ── Promise panel ── */
+.promise-panel {
+  margin-top: 28px;
+  padding: 22px 24px;
+}
+
+.promise-panel ul {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.promise-panel li {
+  position: relative;
+  padding-left: 22px;
+  color: var(--text-soft);
+  line-height: 1.7;
+  font-size: 0.92rem;
+}
+
+.promise-panel li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--primary);
+  opacity: 0.7;
+}
+
+/* ── Hero aside ── */
+.hero-aside {
+  display: grid;
+  gap: 16px;
+  padding-top: 12px;
+}
+
+.hero-panel {
+  overflow: hidden;
+  padding: 24px;
+}
+
+.hero-panel-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hero-panel-top h3 {
+  margin: 0;
+  font-family: "Sora", sans-serif;
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+
+.hero-panel p {
+  margin: 10px 0 0;
+  color: var(--text-soft);
+  line-height: 1.7;
+  font-size: 0.92rem;
+}
+
+/* ── Trust grid ── */
+.trust-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.trust-card {
+  padding: 18px;
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+.trust-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.trust-card strong {
+  display: block;
+  margin-top: 10px;
+  font-family: "Sora", sans-serif;
+  font-size: 1.5rem;
+  color: var(--primary-dark);
+}
+
+.trust-card span {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-soft);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.hero-side-card {
+  padding: 20px 22px;
+}
+
+.hero-side-card p {
+  margin: 0 0 10px;
+}
+
+/* ── Stat grid ── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.stat-card {
+  padding: 22px 20px;
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-card strong {
+  display: block;
+  margin-top: 10px;
+  font-family: "Sora", sans-serif;
+  font-size: 1.7rem;
+  color: var(--primary-dark);
+}
+
+.stat-card p {
+  margin: 8px 0 0;
+  color: var(--text-soft);
+  font-size: 0.88rem;
+  line-height: 1.65;
+}
+
+/* ── Workflow strip ── */
+.workflow-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.workflow-card {
+  padding: 20px;
+  position: relative;
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+.workflow-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.workflow-card::before {
+  content: "";
+  position: absolute;
+  top: 42px;
+  left: -7px;
+  width: 14px;
+  height: 2px;
+  background: var(--line-strong);
+}
+
+.workflow-card:first-child::before {
+  display: none;
+}
+
+.workflow-card .step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-subtle);
+  color: var(--primary-darker);
+  font-weight: 800;
+  font-size: 0.88rem;
+}
+
+.workflow-card h3 {
+  margin: 14px 0 8px;
+  font-family: "Sora", sans-serif;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.workflow-card p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.88rem;
+  line-height: 1.65;
+}
+
+/* ── Request layout ── */
+.request-layout {
+  display: grid;
+  grid-template-columns: 1.06fr 0.94fr;
+  gap: 20px;
+  margin-top: 28px;
+}
+
+.request-form-card,
+.tracking-card,
+.impact-card,
+.role-card,
+.auth-callout {
+  padding: 28px;
+}
+
+.request-form-card .form-grid {
+  margin-top: 20px;
+}
+
+.inline-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* ── Ack card ── */
+.ack-card {
+  margin-top: 20px;
+  border: 1px solid rgba(22, 163, 74, 0.12);
+  background: linear-gradient(180deg, rgba(220, 252, 231, 0.5), rgba(255, 255, 255, 0.8));
+}
+
+.ack-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.ack-item {
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
+}
+
+.ack-item span {
+  display: block;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+
+.ack-item strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.95rem;
+}
+
+/* ── Tracking ── */
+.tracking-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.tracking-result {
+  margin-top: 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.tracking-result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.tracking-meta {
+  display: grid;
+  gap: 10px;
+}
+
+.tracking-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.92rem;
+}
+
+.tracking-meta-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.status-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-step {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(26, 46, 34, 0.05);
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.status-step.current {
+  background: var(--primary-subtle);
+  color: var(--primary-darker);
+}
+
+/* ── Impact grid ── */
+.impact-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.impact-card h3,
+.role-card h3,
+.auth-callout h3 {
+  margin: 0;
+  font-family: "Sora", sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.impact-card p,
+.role-card p,
+.auth-callout p {
+  margin: 10px 0 0;
+  color: var(--text-soft);
+  font-size: 0.90rem;
+  line-height: 1.65;
+}
+
+/* ── Role grid ── */
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.role-card .status-pill {
+  margin-top: 14px;
+}
+
+/* ── Auth callout ── */
+.auth-callout {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.08), rgba(255, 255, 255, 0.9));
+  border: 1px solid rgba(22, 163, 74, 0.12);
+}
+
+.auth-callout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1120px) {
+
+  .landing-page .hero,
+  .request-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-grid,
+  .impact-grid,
+  .role-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workflow-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workflow-card::before {
+    display: none;
+  }
+}
+
+@media (max-width: 740px) {
+  .hero-copy h1 {
+    max-width: none;
+    font-size: clamp(2.2rem, 10vw, 3.4rem);
+  }
+
+  .trust-grid,
+  .stat-grid,
+  .workflow-strip,
+  .inline-grid,
+  .ack-grid,
+  .impact-grid,
+  .role-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tracking-result-head,
+  .tracking-meta-row,
+  .auth-callout {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

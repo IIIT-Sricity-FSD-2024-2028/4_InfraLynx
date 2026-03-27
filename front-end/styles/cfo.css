@@ -1,0 +1,193 @@
+/* ============================================================
+   cfo.css — Chief Financial Officer Workspace
+   Extends base.css + dashboard.css
+   ============================================================ */
+
+/* ── CFO KPI items rendered by cfo.js ── */
+.cfo-kpi-item {
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--surface-muted);
+  border: 1px solid rgba(22, 101, 52, 0.07);
+  transition: transform 0.18s var(--ease);
+}
+
+.cfo-kpi-item:hover {
+  transform: translateY(-2px);
+}
+
+.cfo-kpi-item span {
+  display: block;
+  font-size: 0.70rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.cfo-kpi-item strong {
+  display: block;
+  font-family: "Sora", sans-serif;
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin: 4px 0 2px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.cfo-kpi-item strong.mono {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1.1rem;
+}
+
+.cfo-kpi-item p {
+  margin: 0;
+  font-size: 0.79rem;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+/* ── Budget department list ── */
+.budget-dept-item {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(22, 101, 52, 0.07);
+  margin-bottom: 8px;
+}
+
+.budget-dept-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.budget-dept-head strong {
+  font-family: "Sora", sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.budget-bar {
+  height: 6px;
+  border-radius: 10px;
+  background: var(--surface-muted);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.budget-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Finance feed ── */
+.finance-feed-item {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(22, 101, 52, 0.07);
+  margin-bottom: 8px;
+}
+
+.finance-feed-item .feed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.finance-feed-item .feed-head strong {
+  font-family: "Sora", sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.finance-feed-item p {
+  margin: 0;
+  font-size: 0.83rem;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+/* ── Focus / watch card ── */
+.cfo-watch-inner,
+.qc-watch-inner {
+  padding: 18px;
+}
+
+.cfo-watch-inner h3,
+.qc-watch-inner h3 {
+  font-family: "Sora", sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+
+.cfo-watch-inner p,
+.qc-watch-inner p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+  line-height: 1.65;
+}
+
+/* ── Stage pills on table rows ── */
+.stage-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stage-pill.draft {
+  background: rgba(148, 163, 184, 0.15);
+  color: #475569;
+}
+
+.stage-pill.pending {
+  background: rgba(245, 158, 11, 0.12);
+  color: #92400e;
+}
+
+.stage-pill.approved {
+  background: rgba(34, 197, 94, 0.12);
+  color: #166534;
+}
+
+.stage-pill.rejected {
+  background: rgba(239, 68, 68, 0.1);
+  color: #991b1b;
+}
+
+/* ── GST verified badge ── */
+.gst-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--primary-darker);
+}
+
+.gst-badge.unverified {
+  color: #9ca3af;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -37,6 +37,12 @@ Middle management responsible for operational planning, budget verification, tas
 ### 3. Field Engineer
 Technical personnel responsible for on-ground execution, infrastructure inspection, data collection, and maintenance activities.
 
+### 4. Chief Financial Officer (CFO)
+Financial authority responsible for reviewing quotations, approving budget allocations, validating bills, and ensuring controlled release of project funds.
+
+### 5. QC Reviewer
+Independent quality control authority responsible for inspecting completed work, verifying standards compliance, and certifying project closure.
+
 ---
 
 ## Planned Features for Each Actor
@@ -122,6 +128,44 @@ Provide regular status updates with milestone reporting, issue communication, an
 
 ---
 
+### Chief Financial Officer (CFO)
+
+#### 1. Review Budget Proposals
+Assess forwarded budget allocations with cost justification, funding impact, and compliance checks before financial approval.
+
+#### 2. Review Vendor Quotations
+Evaluate submitted vendor quotations with pricing comparison, GST validation, and procurement suitability review.
+
+#### 3. Approve Budget Allocations
+Authorize or reject budget requests after financial analysis with approval history and remarks tracking.
+
+#### 4. Verify Procurement Bills
+Review submitted bills against approved quotations, GST details, and sanctioned budget amounts before payment approval.
+
+#### 5. Monitor Financial Utilization
+Track approved spending, staged releases, and department-wise utilization trends with audit visibility.
+
+---
+
+### QC Reviewer
+
+#### 1. Review Completed Work
+Access completed work orders awaiting quality verification with execution evidence, validation notes, and supporting documents.
+
+#### 2. Inspect Quality Standards
+Perform independent quality checks against technical standards, workmanship expectations, and reported outcomes.
+
+#### 3. Approve or Reject QC Certification
+Certify successful work completion or reject submissions with mandatory comments and rework instructions.
+
+#### 4. Record QC Findings
+Document inspection outcomes, observations, and approval status with timestamped quality review records.
+
+#### 5. Support Project Closure
+Enable final closure only after quality certification is completed and recorded in the system.
+
+---
+
 ## Core System Workflows
 
 ### Workflow 1: Infrastructure Project Approval
@@ -136,19 +180,3 @@ Provide regular status updates with milestone reporting, issue communication, an
 ---
 
 ## System Constraints and Rules
-
-**Mandatory Rules:**
-- All purchases require technical and financial justification
-- GST number mandatory for bill approval
-- Multi-stage approval process for budget allocations
-- QC department certification required for project closure
-
-**System Constraints:**
-- Fixed annual budget per department
-- Quarterly fund releases
-- Role-based access control enforced
-
----
-
-
-**Project Status:** In Development | **Version:** 1.0.0 | **Last Updated:** January 2026

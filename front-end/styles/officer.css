@@ -1,0 +1,157 @@
+/* ============================================================
+   officer.css — Department Officer Workspace
+   Extends base.css + dashboard.css
+   ============================================================ */
+
+/* ── Work order status row highlight ── */
+.data-table tbody tr[data-status="IN_PROGRESS"] td:first-child {
+  border-left: 3px solid var(--primary);
+}
+
+.data-table tbody tr[data-status="PENDING"] td:first-child {
+  border-left: 3px solid #f59e0b;
+}
+
+.data-table tbody tr[data-status="COMPLETED"] td:first-child {
+  border-left: 3px solid #22c55e;
+}
+
+.data-table tbody tr[data-status="ON_HOLD"] td:first-child {
+  border-left: 3px solid #ef4444;
+}
+
+/* ── Officer KPI items rendered by officer.js ── */
+.officer-kpi-item {
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--surface-muted);
+  border: 1px solid rgba(22, 101, 52, 0.07);
+  transition: transform 0.18s var(--ease);
+}
+
+.officer-kpi-item:hover {
+  transform: translateY(-2px);
+}
+
+.officer-kpi-item span {
+  display: block;
+  font-size: 0.70rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.officer-kpi-item strong {
+  display: block;
+  font-family: "Sora", sans-serif;
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin: 4px 0 2px;
+  letter-spacing: -0.02em;
+}
+
+.officer-kpi-item p {
+  margin: 0;
+  font-size: 0.79rem;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+/* ── Planning queue items ── */
+.queue-item {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(22, 101, 52, 0.07);
+  margin-bottom: 8px;
+  transition: transform 0.18s var(--ease);
+}
+
+.queue-item:hover {
+  transform: translateY(-1px);
+}
+
+.queue-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.queue-item-head strong {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.queue-item p {
+  margin: 2px 0 0;
+  font-size: 0.83rem;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+/* ── Engineer list (sidebar panel) ── */
+.engineer-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--surface-muted);
+  border: 1px solid rgba(22, 101, 52, 0.08);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.engineer-tag-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+  color: #fff;
+  font-size: 0.70rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Alert card (hero) ── */
+.officer-alert-item {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(254, 242, 242, 0.7);
+  border: 1px solid rgba(220, 38, 38, 0.12);
+}
+
+.officer-alert-item span {
+  display: block;
+  font-size: 0.70rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: var(--accent-red);
+  margin-bottom: 4px;
+}
+
+.officer-alert-item strong {
+  display: block;
+  font-size: 0.90rem;
+  font-weight: 700;
+  font-family: "Sora", sans-serif;
+  margin-bottom: 4px;
+}
+
+.officer-alert-item p {
+  margin: 0;
+  font-size: 0.83rem;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
