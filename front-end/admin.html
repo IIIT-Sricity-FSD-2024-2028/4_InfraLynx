@@ -42,8 +42,6 @@
             <span class="sidebar-session-role" id="session-role-label">Super user · Full access</span>
           </div>
         </div>
-        <!-- session-meta is read by admin.js but shown as tooltip only -->
-        <span class="sr-only" id="session-meta" aria-live="polite"></span>
 
         <nav class="sidebar-nav" aria-label="Console sections">
           <a class="sidebar-nav-link is-active" href="#overview" data-admin-nav aria-current="page">
@@ -101,7 +99,7 @@
             <h1 class="workspace-topbar-title">City-wide infrastructure control</h1>
           </div>
           <div class="workspace-topbar-right">
-            <span class="status-pill neutral" id="admin-clock">--:--</span>
+            <span class="status-pill neutral" id="session-meta">Signed in</span>
           </div>
         </header>
 
@@ -445,7 +443,6 @@
   <script src="./scripts/seed-data.js"></script>
   <script src="./scripts/data-store.js"></script>
   <script src="./scripts/i18n.js"></script>
-  <script src="./scripts/toast.js"></script>
   <script src="./scripts/admin.js"></script>
   <script src="./scripts/nav-tabs.js"></script>
 </body>
