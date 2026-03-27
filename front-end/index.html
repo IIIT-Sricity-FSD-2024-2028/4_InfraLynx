@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InfraLynx | CRIMS Citizen Portal</title>
+  <meta name="description"
+    content="Citizen-facing InfraLynx CRIMS portal for civic complaints, infrastructure improvements, acknowledgment tracking, and secure official access.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="./styles/base.css">
+  <link rel="stylesheet" href="./styles/landing.css">
+</head>
+
+<body class="landing-page">
+  <div class="page-shell">
+    <div class="ambient-orb left" aria-hidden="true"></div>
+    <div class="ambient-orb right" aria-hidden="true"></div>
+    <div class="grid-sheen" aria-hidden="true"></div>
+
+    <header class="site-header content-wrap">
+      <a class="brand" href="#top" aria-label="InfraLynx home">
+        <img src="./assets/CRIMS_logo.png" alt="CRIMS logo">
+        <span class="brand-copy">
+          <span class="brand-title">InfraLynx</span>
+          <span class="brand-subtitle">CRIMS public service portal</span>
+        </span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#services" data-i18n="nav.features">Services</a>
+        <a href="#workflow" data-i18n="nav.workflow">Workflow</a>
+        <a href="#official-roles" data-i18n="nav.roles">Official Roles</a>
+      </nav>
+
+      <div class="header-actions">
+        <label class="language-control" for="language-select">
+          <span>Language</span>
+          <select id="language-select" aria-label="Language"></select>
+        </label>
+        <a class="button button-secondary" href="#track-request" data-i18n="nav.track">Track Request</a>
+        <a class="button button-primary" href="./auth.html?mode=official" data-i18n="nav.officialAccess">Official Sign
+          In</a>
+      </div>
+    </header>
+
+    <main class="content-wrap" id="top">
+      <section class="hero section">
+        <div class="hero-copy">
+          <div class="eyebrow" data-i18n="landing.eyebrow">Citizen-first infrastructure service portal</div>
+          <h1>
+            <span data-i18n="landing.titleLineOne">CRIMS keeps public infrastructure</span><br>
+            <span data-i18n="landing.titleLineTwo">transparent, responsive, and human.</span>
+          </h1>
+          <p data-i18n="landing.lead">
+            Citizens can raise civic complaints or improvement requests, receive a reference number immediately, and
+            track progress through a workflow aligned to the CRIMS schema.
+          </p>
+
+          <div class="hero-actions">
+            <a class="button button-primary" href="#submit-request" data-i18n="landing.primaryCta">Submit a request</a>
+            <a class="button button-ghost" href="./auth.html?mode=citizen" data-i18n="nav.citizenAccess">Citizen
+              Access</a>
+            <a class="button button-secondary" href="./auth.html?mode=official" data-i18n="landing.secondaryCta">Go to
+              secure access</a>
+          </div>
+
+          <article class="glass-card promise-panel">
+            <span class="mini-label field-label" data-i18n="landing.publicPromiseLabel">What citizens can expect</span>
+            <ul>
+              <li data-i18n="landing.publicPromiseOne">Instant acknowledgement with a public reference number</li>
+              <li data-i18n="landing.publicPromiseTwo">Only concise public-safe service information on the landing page
+              </li>
+              <li data-i18n="landing.publicPromiseThree">Clear separation between citizen access and official government
+                access</li>
+            </ul>
+          </article>
+        </div>
+
+        <aside class="hero-aside">
+          <article class="glass-card hero-panel">
+            <div class="hero-panel-top">
+              <h3 data-i18n="landing.heroPanelTitle">Public trust panel</h3>
+              <span class="status-pill" data-i18n="landing.heroBadge">Light theme default</span>
+            </div>
+            <p data-i18n="landing.heroPanelCopy">
+              Built for civic pride, development visibility, service responsiveness, and accountable delivery.
+            </p>
+
+            <div class="trust-grid" id="public-stat-cards"></div>
+          </article>
+
+          <article class="glass-card hero-side-card">
+            <p class="field-label">Schema-backed public workflow</p>
+            <p class="muted">
+              New submissions enter the <span class="mono">RECEIVED</span> stage, generate a public reference number,
+              and move through administrative review before planning and work-order conversion.
+            </p>
+          </article>
+        </aside>
+      </section>
+
+      <section class="section" id="services">
+        <div class="section-heading">
+          <div class="section-kicker" data-i18n="landing.statsHeading">Visible progress citizens can feel proud of</div>
+          <p data-i18n="landing.statsCopy">
+            CRIMS presents public-facing development outcomes in a concise way while keeping deeper operational
+            workflows inside secure role-based spaces.
+          </p>
+        </div>
+        <div class="stat-grid" id="public-stats-grid"></div>
+      </section>
+
+      <section class="section" id="workflow">
+        <div class="section-heading">
+          <div class="section-kicker" data-i18n="landing.workflowKicker">Workflow aligned to schema</div>
+          <h2 data-i18n="landing.workflowHeading">From citizen request to accountable infrastructure action</h2>
+          <p data-i18n="landing.workflowIntro">
+            The public journey mirrors the schema: request intake, administrative review, planning, work-order
+            conversion, execution, and closure.
+          </p>
+        </div>
+
+        <div class="workflow-strip">
+          <article class="glass-card workflow-card">
+            <span class="step">01</span>
+            <h3>Submit</h3>
+            <p>Citizens file a complaint or improvement request with contact details, Aadhaar-linked identity, and
+              location text.</p>
+          </article>
+          <article class="glass-card workflow-card">
+            <span class="step">02</span>
+            <h3>Acknowledge</h3>
+            <p>CRIMS issues a public reference number immediately and stores the request in the <span
+                class="mono">RECEIVED</span> state.</p>
+          </article>
+          <article class="glass-card workflow-card">
+            <span class="step">03</span>
+            <h3>Review</h3>
+            <p>City administrators evaluate feasibility and move eligible requests toward planning and work-order
+              creation.</p>
+          </article>
+          <article class="glass-card workflow-card">
+            <span class="step">04</span>
+            <h3>Execute</h3>
+            <p>Department officers and field engineers coordinate planning, assignments, and on-ground execution.</p>
+          </article>
+          <article class="glass-card workflow-card">
+            <span class="step">05</span>
+            <h3>Close</h3>
+            <p>Validation, QC review, and project accountability make the service outcome transparent and auditable.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="submit-request">
+        <div class="section-heading">
+          <div class="section-kicker" data-i18n="landing.requestKicker">Raise a request</div>
+          <h2 data-i18n="landing.requestHeading">Submit a complaint or infrastructure improvement request</h2>
+          <p data-i18n="landing.requestIntro">
+            This form is citizen-facing and creates an immediate acknowledgement using the `RECEIVED` state from the
+            schema.
+          </p>
+        </div>
+
+        <div class="request-layout">
+          <article class="glass-card request-form-card">
+            <form id="request-form" class="form-grid" novalidate>
+              <div class="inline-grid">
+                <label class="field">
+                  <span class="field-label" data-i18n="request.nameLabel">Citizen name</span>
+                  <input type="text" name="name" autocomplete="name" placeholder="Full name">
+                </label>
+                <label class="field">
+                  <span class="field-label" data-i18n="request.phoneLabel">Phone number</span>
+                  <input type="tel" name="phone" autocomplete="tel" placeholder="10-digit mobile number">
+                </label>
+              </div>
+
+              <div class="inline-grid">
+                <label class="field">
+                  <span class="field-label" data-i18n="request.emailLabel">Email address</span>
+                  <input type="email" name="email" autocomplete="email" placeholder="name@example.com">
+                </label>
+                <label class="field">
+                  <span class="field-label" data-i18n="request.aadhaarLabel">Aadhaar number</span>
+                  <input type="text" name="aadhaar" inputmode="numeric" maxlength="12" placeholder="12-digit Aadhaar">
+                </label>
+              </div>
+
+              <div class="inline-grid">
+                <label class="field">
+                  <span class="field-label" data-i18n="request.typeLabel">Request type</span>
+                  <select name="requestType" id="request-type-select"></select>
+                </label>
+                <label class="field">
+                  <span class="field-label" data-i18n="request.categoryLabel">Service area</span>
+                  <select name="categoryId" id="category-select"></select>
+                </label>
+              </div>
+
+              <label class="field">
+                <span class="field-label" data-i18n="request.titleLabel">Request title</span>
+                <input type="text" name="title" placeholder="Short title for the issue or improvement">
+              </label>
+
+              <label class="field">
+                <span class="field-label" data-i18n="request.descriptionLabel">Describe the issue or improvement</span>
+                <textarea name="description"
+                  placeholder="Explain what is happening, what should improve, and any nearby landmark."></textarea>
+              </label>
+
+              <div class="inline-grid">
+                <label class="field">
+                  <span class="field-label" data-i18n="request.locationLabel">Location text</span>
+                  <input type="text" name="locationText" placeholder="Street, zone, landmark, or neighbourhood">
+                </label>
+                <label class="field">
+                  <span class="field-label" data-i18n="request.urgencyLabel">Urgency</span>
+                  <select name="urgency" id="urgency-select"></select>
+                </label>
+              </div>
+
+              <div class="field-help">
+                One citizen profile is allowed per Aadhaar number in this prototype. If your Aadhaar already exists, use
+                the same contact details or sign in through Citizen Access.
+              </div>
+
+              <div class="auth-actions">
+                <button class="button button-primary" type="submit" data-i18n="request.submit">Submit request</button>
+                <a class="button button-secondary" href="./auth.html?mode=citizen" data-i18n="nav.citizenAccess">Citizen
+                  Access</a>
+              </div>
+
+              <div class="error-text hidden" id="request-error"></div>
+            </form>
+
+            <article class="glass-card ack-card hidden" id="request-ack-card">
+              <h3 data-i18n="request.ackLabel">Acknowledgement generated</h3>
+              <p data-i18n="request.ackCopy">Your request has been received and logged for review.</p>
+              <div class="ack-grid">
+                <div class="ack-item">
+                  <span>Reference number</span>
+                  <strong class="mono" id="ack-reference"></strong>
+                </div>
+                <div class="ack-item">
+                  <span data-i18n="request.lookupStatus">Current status</span>
+                  <strong id="ack-status"></strong>
+                </div>
+                <div class="ack-item">
+                  <span data-i18n="request.nextStep">Next public step</span>
+                  <strong id="ack-next-step"></strong>
+                </div>
+              </div>
+            </article>
+          </article>
+
+          <article class="glass-card tracking-card" id="track-request">
+            <div class="section-kicker" data-i18n="landing.trackKicker">Track by reference number</div>
+            <h2 data-i18n="landing.trackHeading">Check the current status of your submitted request</h2>
+            <p class="muted" data-i18n="landing.trackIntro">
+              Tracking is reference-based, keeping the public flow simple and aligned with the `public_reference_no` in
+              the schema.
+            </p>
+
+            <form id="tracking-form" class="tracking-form" novalidate>
+              <label class="field">
+                <span class="field-label" data-i18n="request.lookupLabel">Reference number</span>
+                <input type="text" name="reference" class="mono" id="reference-input"
+                  data-i18n-placeholder="request.lookupHint" placeholder="Example: CRIMS-2026-0042">
+              </label>
+              <button class="button button-primary" type="submit" data-i18n="request.lookupButton">Track
+                request</button>
+            </form>
+
+            <div class="error-text hidden" id="tracking-error"></div>
+
+            <article class="glass-card result-card hidden" id="tracking-result">
+              <div class="tracking-result-head">
+                <div>
+                  <h3 id="tracking-title">Request title</h3>
+                  <p class="mono" id="tracking-reference"></p>
+                </div>
+                <span class="status-pill" id="tracking-status-pill">Received</span>
+              </div>
+
+              <div class="tracking-meta">
+                <div class="tracking-meta-row">
+                  <span data-i18n="request.lookupDepartment">Responsible department</span>
+                  <strong id="tracking-department"></strong>
+                </div>
+                <div class="tracking-meta-row">
+                  <span data-i18n="request.lookupLocation">Location</span>
+                  <strong id="tracking-location"></strong>
+                </div>
+                <div class="tracking-meta-row">
+                  <span data-i18n="request.lookupReceived">Submitted on</span>
+                  <strong id="tracking-date"></strong>
+                </div>
+              </div>
+
+              <div class="status-steps" id="tracking-steps"></div>
+            </article>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-heading">
+          <div class="section-kicker" data-i18n="landing.prideKicker">Why this matters</div>
+          <h2 data-i18n="landing.prideHeading">A public portal that signals development, trust, and city pride</h2>
+        </div>
+        <div class="impact-grid" id="impact-grid"></div>
+      </section>
+
+      <section class="section" id="official-roles">
+        <div class="section-heading">
+          <div class="section-kicker" data-i18n="landing.rolesKicker">Official roles</div>
+          <h2 data-i18n="landing.rolesHeading">Secure government workflows begin after sign-in</h2>
+          <p data-i18n="landing.rolesIntro">
+            Internal actors are invite-only in this prototype, which is the more professional and real-world approach
+            for government systems.
+          </p>
+        </div>
+        <div class="role-grid" id="official-role-grid"></div>
+
+        <article class="glass-card auth-callout">
+          <div>
+            <h3 data-i18n="landing.authCtaTitle">Need secure access?</h3>
+            <p data-i18n="landing.authCtaCopy">
+              Citizens can create an access profile, while officials use role-based government sign-in.
+            </p>
+          </div>
+          <div class="auth-callout-actions">
+            <a class="button button-secondary" href="./auth.html?mode=citizen" data-i18n="nav.citizenAccess">Citizen
+              Access</a>
+            <a class="button button-primary" href="./auth.html?mode=official" data-i18n="landing.authCtaButton">Open
+              auth portal</a>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <footer class="footer content-wrap">
+      <div class="glass-card footer-card">
+        <span>InfraLynx / CRIMS public service portal</span>
+        <span>Citizen request intake, acknowledgement, and role-based auth handoff</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="./scripts/seed-data.js"></script>
+  <script src="./scripts/data-store.js"></script>
+  <script src="./scripts/i18n.js"></script>
+  <script src="./scripts/validators.js"></script>
+  <script src="./scripts/landing.js"></script>
+</body>
+
+</html>

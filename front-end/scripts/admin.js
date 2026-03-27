@@ -1,0 +1,668 @@
+(function bootstrapAdmin(globalScope) {
+  const {
+    REQUEST_STATUS_STEPS,
+    clearSession,
+    deleteAdminRequest,
+    deleteDepartment,
+    deleteOfficialAccount,
+    formatStatus,
+    getDepartmentById,
+    getLanguage,
+    getRoleByCode,
+    getSession,
+    getState,
+    initializeStore,
+    upsertAdminRequest,
+    upsertDepartment,
+    upsertOfficialAccount
+  } = globalScope.CRIMS.store;
+  const { bindLanguageSelector } = globalScope.CRIMS.i18n;
+
+  const elements = {
+    shell: document.querySelector("#admin-shell"),
+    sideLinks: Array.from(document.querySelectorAll("[data-admin-nav]")),
+    languageSelect: document.querySelector("#admin-language-select"),
+    signOutButton: document.querySelector("#sign-out-button"),
+    adminGreeting: document.querySelector("#admin-greeting"),
+    sessionRoleLabel: document.querySelector("#session-role-label"),
+    sessionMeta: document.querySelector("#session-meta"),
+    summaryGrid: document.querySelector("#summary-grid"),
+    alertStrip: document.querySelector("#admin-alert-strip"),
+    budgetStack: document.querySelector("#budget-stack"),
+    activityFeed: document.querySelector("#activity-feed"),
+    requestFilterSelect: document.querySelector("#request-filter-select"),
+    requestTableBody: document.querySelector("#request-table-body"),
+    requestForm: document.querySelector("#admin-request-form"),
+    requestFormTitle: document.querySelector("#request-form-title"),
+    requestResetButton: document.querySelector("#request-reset-button"),
+    requestFormError: document.querySelector("#request-form-error"),
+    requestTypeSelect: document.querySelector("#admin-request-type"),
+    requestCategorySelect: document.querySelector("#admin-request-category"),
+    requestUrgencySelect: document.querySelector("#admin-request-urgency"),
+    requestStatusSelect: document.querySelector("#admin-request-status"),
+    officialTableBody: document.querySelector("#official-table-body"),
+    officialForm: document.querySelector("#official-account-form"),
+    officialFormTitle: document.querySelector("#official-form-title"),
+    officialResetButton: document.querySelector("#official-reset-button"),
+    officialFormError: document.querySelector("#official-form-error"),
+    officialRoleSelect: document.querySelector("#official-role-select"),
+    officialDepartmentSelect: document.querySelector("#official-department-select"),
+    departmentTableBody: document.querySelector("#department-table-body"),
+    departmentForm: document.querySelector("#department-form"),
+    departmentFormTitle: document.querySelector("#department-form-title"),
+    departmentResetButton: document.querySelector("#department-reset-button"),
+    departmentFormError: document.querySelector("#department-form-error")
+  };
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function showError(element, message) {
+    if (!message) {
+      element.textContent = "";
+      element.classList.add("hidden");
+      return;
+    }
+
+    element.textContent = message;
+    element.classList.remove("hidden");
+  }
+
+  function getAuthorizedSession() {
+    const session = getSession();
+    return session && session.type === "official" && session.role === "ADMINISTRATOR" ? session : null;
+  }
+
+  function renderAccessGuard() {
+    document.querySelector(".admin-main").innerHTML = `
+      <section class="section">
+        <article class="glass-card access-guard">
+          <div class="section-kicker">Restricted workspace</div>
+          <h2>City Administrator access is required</h2>
+          <p>
+            This page is reserved for the schema-aligned super user. Sign in through the official access portal with the City Administrator role to continue.
+          </p>
+          <div class="hero-admin-actions">
+            <a class="button button-primary" href="./auth.html?mode=official">Go to official sign in</a>
+            <a class="button button-secondary" href="./index.html">Return to public portal</a>
+          </div>
+        </article>
+      </section>
+    `;
+  }
+
+  function bindSectionNavigation() {
+    if (!elements.sideLinks.length || !("IntersectionObserver" in globalScope)) {
+      return;
+    }
+
+    const sectionMap = elements.sideLinks
+      .map((link) => {
+        const sectionId = link.getAttribute("href");
+        return {
+          link,
+          section: sectionId ? document.querySelector(sectionId) : null
+        };
+      })
+      .filter((entry) => entry.section);
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntry = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((left, right) => right.intersectionRatio - left.intersectionRatio)[0];
+
+        if (!visibleEntry) {
+          return;
+        }
+
+        sectionMap.forEach(({ link, section }) => {
+          link.classList.toggle("is-active", section === visibleEntry.target);
+        });
+      },
+      {
+        rootMargin: "-20% 0px -55% 0px",
+        threshold: [0.15, 0.3, 0.6]
+      }
+    );
+
+    sectionMap.forEach(({ section }) => observer.observe(section));
+  }
+
+  function getOverviewMetrics() {
+    const state = getState();
+    const requests = state.requests;
+    const officialCount = state.officialAccounts.length;
+    const activeRequests = requests.filter((request) => request.status !== "CLOSED" && request.status !== "REJECTED").length;
+    const receivedCount = requests.filter((request) => request.status === "RECEIVED").length;
+    const planningCount = requests.filter((request) => request.status === "APPROVED_FOR_PLANNING").length;
+    const totalBudget = state.departments.reduce((sum, department) => sum + Number(department.budgetCr || 0), 0);
+
+    return [
+      { label: "Open requests", value: activeRequests, detail: "Citizen requests still moving through the intake pipeline" },
+      { label: "Awaiting review", value: receivedCount, detail: "Fresh requests currently in the RECEIVED state" },
+      { label: "Planning-ready", value: planningCount, detail: "Requests cleared for planning and work-order conversion" },
+      { label: "Official accounts", value: officialCount, detail: `Invite-only actors across ${state.officialRoles.length} schema roles` },
+      { label: "Departments", value: state.departments.length, detail: "Operational city divisions tracked by the administrator" },
+      {
+        label: "Budget cap",
+        value: `INR ${totalBudget.toFixed(1)} Cr`,
+        detail: "Current departmental budget envelope in the prototype",
+        mono: true
+      }
+    ];
+  }
+
+  function renderOverview() {
+    const state = getState();
+    const metrics = getOverviewMetrics();
+    elements.summaryGrid.innerHTML = metrics
+      .map((item) => {
+        return `
+          <article class="summary-item">
+            <span>${escapeHtml(item.label)}</span>
+            <strong class="${item.mono ? "mono" : ""}">${escapeHtml(item.value)}</strong>
+            <p>${escapeHtml(item.detail)}</p>
+          </article>
+        `;
+      })
+      .join("");
+
+    elements.alertStrip.innerHTML = (state.adminAlerts || [])
+      .map((alert) => {
+        return `
+          <article class="alert-item ${escapeHtml(alert.tone)}">
+            <span>${escapeHtml(alert.label)}</span>
+            <strong>${escapeHtml(alert.title)}</strong>
+            <p>${escapeHtml(alert.detail)}</p>
+          </article>
+        `;
+      })
+      .join("");
+
+    elements.budgetStack.innerHTML = state.departments
+      .map((department) => {
+        return `
+          <article class="budget-row">
+            <div class="budget-row-head">
+              <strong>${escapeHtml(department.name)}</strong>
+              <span class="status-pill neutral">${escapeHtml(department.utilization)}% utilized</span>
+            </div>
+            <div class="budget-meta">
+              Lead: ${escapeHtml(department.lead)}
+              <span class="mono"> / INR ${escapeHtml(Number(department.budgetCr).toFixed(1))} Cr</span>
+            </div>
+            <div class="budget-bar"><span style="width: ${Math.max(0, Math.min(100, Number(department.utilization)))}%"></span></div>
+          </article>
+        `;
+      })
+      .join("");
+
+    elements.activityFeed.innerHTML = (state.activityFeed || [])
+      .map((item) => {
+        return `
+          <article class="feed-item">
+            <div class="feed-item-head">
+              <strong>${escapeHtml(item.title)}</strong>
+              <span class="status-pill neutral">${escapeHtml(item.meta)}</span>
+            </div>
+            <p>${escapeHtml(item.detail)}</p>
+          </article>
+        `;
+      })
+      .join("");
+  }
+
+  function statusTone(status) {
+    if (status === "RECEIVED") {
+      return "neutral";
+    }
+
+    if (status === "UNDER_REVIEW" || status === "APPROVED_FOR_PLANNING") {
+      return "warning";
+    }
+
+    if (status === "REJECTED") {
+      return "alert";
+    }
+
+    return "";
+  }
+
+  function populateSelects() {
+    const state = getState();
+    const currentFilter = elements.requestFilterSelect.value;
+    const currentRequestType = elements.requestTypeSelect.value;
+    const currentCategory = elements.requestCategorySelect.value;
+    const currentUrgency = elements.requestUrgencySelect.value;
+    const currentStatus = elements.requestStatusSelect.value;
+    const currentOfficialRole = elements.officialRoleSelect.value;
+    const currentOfficialDepartment = elements.officialDepartmentSelect.value;
+
+    elements.requestFilterSelect.innerHTML = [
+      '<option value="ALL">All statuses</option>',
+      ...REQUEST_STATUS_STEPS.map((status) => `<option value="${status}">${formatStatus(status)}</option>`),
+      '<option value="REJECTED">Rejected</option>'
+    ].join("");
+
+    elements.requestTypeSelect.innerHTML = [
+      '<option value="">Select request type</option>',
+      '<option value="Complaint">Complaint</option>',
+      '<option value="Improvement">Improvement</option>'
+    ].join("");
+
+    elements.requestCategorySelect.innerHTML = [
+      '<option value="">Select category</option>',
+      ...state.serviceCategories.map((category) => `<option value="${category.id}">${escapeHtml(category.label)}</option>`)
+    ].join("");
+
+    elements.requestUrgencySelect.innerHTML = [
+      '<option value="">Select urgency</option>',
+      '<option value="LOW">Low</option>',
+      '<option value="MEDIUM">Medium</option>',
+      '<option value="HIGH">High</option>',
+      '<option value="EMERGENCY">Emergency</option>'
+    ].join("");
+
+    elements.requestStatusSelect.innerHTML = [
+      '<option value="">Select status</option>',
+      ...REQUEST_STATUS_STEPS.map((status) => `<option value="${status}">${formatStatus(status)}</option>`),
+      '<option value="REJECTED">Rejected</option>'
+    ].join("");
+
+    elements.officialRoleSelect.innerHTML = [
+      '<option value="">Select role</option>',
+      ...state.officialRoles.map((role) => `<option value="${role.code}">${escapeHtml(role.name)}</option>`)
+    ].join("");
+
+    elements.officialDepartmentSelect.innerHTML = [
+      '<option value="">No department mapping</option>',
+      ...state.departments.map((department) => `<option value="${department.id}">${escapeHtml(department.name)}</option>`)
+    ].join("");
+
+    elements.requestFilterSelect.value = currentFilter || "ALL";
+    elements.requestTypeSelect.value = currentRequestType;
+    elements.requestCategorySelect.value = currentCategory;
+    elements.requestUrgencySelect.value = currentUrgency;
+    elements.requestStatusSelect.value = currentStatus;
+    elements.officialRoleSelect.value = currentOfficialRole;
+    elements.officialDepartmentSelect.value = currentOfficialDepartment;
+  }
+
+  function renderRequestTable() {
+    const state = getState();
+    const filterValue = elements.requestFilterSelect.value || "ALL";
+    const filteredRequests = state.requests.filter((request) => {
+      return filterValue === "ALL" ? true : request.status === filterValue;
+    });
+
+    if (!filteredRequests.length) {
+      elements.requestTableBody.innerHTML = '<tr><td colspan="6"><div class="empty-state">No requests match the selected filter.</div></td></tr>';
+      return;
+    }
+
+    elements.requestTableBody.innerHTML = filteredRequests
+      .map((request) => {
+        const department = getDepartmentById(request.departmentId);
+        return `
+          <tr>
+            <td>
+              <strong class="mono">${escapeHtml(request.publicReferenceNo)}</strong>
+              <span>${escapeHtml(request.title)}</span>
+            </td>
+            <td>${escapeHtml(request.requesterName)}</td>
+            <td>${escapeHtml((department && department.name) || "Unassigned")}</td>
+            <td><span class="status-pill ${statusTone(request.status)}">${escapeHtml(formatStatus(request.status))}</span></td>
+            <td>${escapeHtml(formatStatus(request.urgency))}</td>
+            <td>
+              <div class="row-actions">
+                <button class="text-button" type="button" data-request-edit="${request.requestId}">Edit</button>
+                <button class="text-button danger" type="button" data-request-delete="${request.requestId}">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      })
+      .join("");
+  }
+
+  function renderOfficialTable() {
+    const state = getState();
+
+    elements.officialTableBody.innerHTML = state.officialAccounts
+      .map((account) => {
+        const role = getRoleByCode(account.role);
+        const department = account.departmentId ? getDepartmentById(account.departmentId) : null;
+        return `
+          <tr>
+            <td>${escapeHtml(account.name)}</td>
+            <td>${escapeHtml((role && role.name) || account.role)}</td>
+            <td>${escapeHtml((department && department.name) || "System-wide")}</td>
+            <td class="mono">${escapeHtml(account.email)}</td>
+            <td>
+              <div class="row-actions">
+                <button class="text-button" type="button" data-official-edit="${account.id}">Edit</button>
+                <button class="text-button danger" type="button" data-official-delete="${account.id}">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      })
+      .join("");
+  }
+
+  function renderDepartmentTable() {
+    const state = getState();
+
+    elements.departmentTableBody.innerHTML = state.departments
+      .map((department) => {
+        return `
+          <tr>
+            <td>
+              <strong>${escapeHtml(department.name)}</strong>
+              <span>${escapeHtml(department.publicLabel)}</span>
+            </td>
+            <td>${escapeHtml(department.lead)}</td>
+            <td><span class="mono">INR ${escapeHtml(Number(department.budgetCr).toFixed(1))} Cr</span></td>
+            <td>${escapeHtml(String(department.utilization))}%</td>
+            <td>
+              <div class="row-actions">
+                <button class="text-button" type="button" data-department-edit="${department.id}">Edit</button>
+                <button class="text-button danger" type="button" data-department-delete="${department.id}">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      })
+      .join("");
+  }
+
+  function renderAll() {
+    renderOverview();
+    populateSelects();
+    renderRequestTable();
+    renderOfficialTable();
+    renderDepartmentTable();
+  }
+
+  function resetRequestForm() {
+    elements.requestForm.reset();
+    elements.requestForm.elements.requestId.value = "";
+    elements.requestForm.elements.publicReferenceNo.value = "";
+    elements.requestForm.elements.receivedAt.value = "";
+    elements.requestFormTitle.textContent = "Add request";
+    showError(elements.requestFormError, "");
+  }
+
+  function resetOfficialForm() {
+    elements.officialForm.reset();
+    elements.officialForm.elements.id.value = "";
+    elements.officialFormTitle.textContent = "Add official";
+    showError(elements.officialFormError, "");
+  }
+
+  function resetDepartmentForm() {
+    elements.departmentForm.reset();
+    elements.departmentForm.elements.id.value = "";
+    elements.departmentFormTitle.textContent = "Add department";
+    showError(elements.departmentFormError, "");
+  }
+
+  function validateRequest(payload) {
+    if (payload.requesterName.trim().length < 3) {
+      return "Enter a citizen name with at least 3 characters.";
+    }
+    if (!/^[6-9]\d{9}$/.test(payload.requesterContact.trim())) {
+      return "Enter a valid 10-digit Indian mobile number.";
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.requesterEmail.trim())) {
+      return "Enter a valid citizen email address.";
+    }
+    if (!/^\d{12}$/.test(payload.citizenAadhaar.trim())) {
+      return "Enter a valid 12-digit Aadhaar number.";
+    }
+    if (!payload.requestType || !payload.categoryId || !payload.urgency || !payload.status) {
+      return "Complete the request type, category, urgency, and status fields.";
+    }
+    if (payload.title.trim().length < 6 || payload.description.trim().length < 20 || payload.locationText.trim().length < 6) {
+      return "Title, description, and location need fuller detail before saving.";
+    }
+    return "";
+  }
+
+  function validateOfficial(payload) {
+    if (payload.name.trim().length < 3) {
+      return "Enter the official's full name.";
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email.trim())) {
+      return "Enter a valid official email address.";
+    }
+    if (!payload.role) {
+      return "Select the official role.";
+    }
+    if (payload.password.trim().length < 8) {
+      return "Provide a password with at least 8 characters.";
+    }
+    return "";
+  }
+
+  function validateDepartment(payload) {
+    if (payload.name.trim().length < 3 || payload.publicLabel.trim().length < 3 || payload.lead.trim().length < 3) {
+      return "Department name, public label, and lead must all be completed.";
+    }
+    if (Number(payload.budgetCr) <= 0) {
+      return "Budget cap must be greater than zero.";
+    }
+    if (Number(payload.utilization) < 0 || Number(payload.utilization) > 100) {
+      return "Utilization must stay between 0 and 100 percent.";
+    }
+    return "";
+  }
+
+  function bindRequestControls() {
+    elements.requestFilterSelect.addEventListener("change", renderRequestTable);
+    elements.requestResetButton.addEventListener("click", resetRequestForm);
+
+    elements.requestForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const payload = Object.fromEntries(new FormData(elements.requestForm).entries());
+      const validationMessage = validateRequest(payload);
+      showError(elements.requestFormError, "");
+
+      if (validationMessage) {
+        showError(elements.requestFormError, validationMessage);
+        return;
+      }
+
+      try {
+        upsertAdminRequest(payload);
+        resetRequestForm();
+        renderAll();
+      } catch (error) {
+        showError(elements.requestFormError, error.message);
+      }
+    });
+
+    elements.requestTableBody.addEventListener("click", (event) => {
+      const editButton = event.target.closest("[data-request-edit]");
+      const deleteButton = event.target.closest("[data-request-delete]");
+
+      if (editButton) {
+        const request = getState().requests.find((item) => item.requestId === editButton.dataset.requestEdit);
+        if (!request) {
+          return;
+        }
+
+        Object.entries(request).forEach(([key, value]) => {
+          if (elements.requestForm.elements[key]) {
+            elements.requestForm.elements[key].value = value || "";
+          }
+        });
+        elements.requestFormTitle.textContent = `Edit ${request.publicReferenceNo}`;
+        showError(elements.requestFormError, "");
+        return;
+      }
+
+      if (deleteButton) {
+        try {
+          deleteAdminRequest(deleteButton.dataset.requestDelete);
+          resetRequestForm();
+          renderAll();
+        } catch (error) {
+          showError(elements.requestFormError, error.message);
+        }
+      }
+    });
+  }
+
+  function bindOfficialControls() {
+    elements.officialResetButton.addEventListener("click", resetOfficialForm);
+
+    elements.officialForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const payload = Object.fromEntries(new FormData(elements.officialForm).entries());
+      const validationMessage = validateOfficial(payload);
+      showError(elements.officialFormError, "");
+
+      if (validationMessage) {
+        showError(elements.officialFormError, validationMessage);
+        return;
+      }
+
+      try {
+        upsertOfficialAccount(payload);
+        resetOfficialForm();
+        renderAll();
+      } catch (error) {
+        showError(elements.officialFormError, error.message);
+      }
+    });
+
+    elements.officialTableBody.addEventListener("click", (event) => {
+      const editButton = event.target.closest("[data-official-edit]");
+      const deleteButton = event.target.closest("[data-official-delete]");
+
+      if (editButton) {
+        const account = getState().officialAccounts.find((item) => item.id === editButton.dataset.officialEdit);
+        if (!account) {
+          return;
+        }
+
+        Object.entries(account).forEach(([key, value]) => {
+          if (elements.officialForm.elements[key]) {
+            elements.officialForm.elements[key].value = value || "";
+          }
+        });
+        elements.officialFormTitle.textContent = `Edit ${account.name}`;
+        showError(elements.officialFormError, "");
+        return;
+      }
+
+      if (deleteButton) {
+        try {
+          deleteOfficialAccount(deleteButton.dataset.officialDelete);
+          resetOfficialForm();
+          renderAll();
+        } catch (error) {
+          showError(elements.officialFormError, error.message);
+        }
+      }
+    });
+  }
+
+  function bindDepartmentControls() {
+    elements.departmentResetButton.addEventListener("click", resetDepartmentForm);
+
+    elements.departmentForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const payload = Object.fromEntries(new FormData(elements.departmentForm).entries());
+      const validationMessage = validateDepartment(payload);
+      showError(elements.departmentFormError, "");
+
+      if (validationMessage) {
+        showError(elements.departmentFormError, validationMessage);
+        return;
+      }
+
+      try {
+        upsertDepartment(payload);
+        resetDepartmentForm();
+        renderAll();
+      } catch (error) {
+        showError(elements.departmentFormError, error.message);
+      }
+    });
+
+    elements.departmentTableBody.addEventListener("click", (event) => {
+      const editButton = event.target.closest("[data-department-edit]");
+      const deleteButton = event.target.closest("[data-department-delete]");
+
+      if (editButton) {
+        const department = getState().departments.find((item) => item.id === editButton.dataset.departmentEdit);
+        if (!department) {
+          return;
+        }
+
+        Object.entries(department).forEach(([key, value]) => {
+          if (elements.departmentForm.elements[key]) {
+            elements.departmentForm.elements[key].value = value || "";
+          }
+        });
+        elements.departmentFormTitle.textContent = `Edit ${department.name}`;
+        showError(elements.departmentFormError, "");
+        return;
+      }
+
+      if (deleteButton) {
+        try {
+          deleteDepartment(deleteButton.dataset.departmentDelete);
+          resetDepartmentForm();
+          renderAll();
+        } catch (error) {
+          showError(elements.departmentFormError, error.message);
+        }
+      }
+    });
+  }
+
+  function bindSessionControls(session) {
+    const role = getRoleByCode(session.role);
+    elements.adminGreeting.textContent = `City-wide control for ${session.name}`;
+    elements.sessionRoleLabel.textContent = (role && role.name) || "Administrator authenticated";
+    elements.sessionMeta.textContent = `Signed in as ${session.name}. Role-aware rendering and local state updates are active.`;
+
+    elements.signOutButton.addEventListener("click", () => {
+      clearSession();
+      globalScope.location.href = "./auth.html?mode=official";
+    });
+  }
+
+  function init() {
+    initializeStore();
+    const session = getAuthorizedSession();
+
+    if (!session) {
+      renderAccessGuard();
+      return;
+    }
+
+    bindLanguageSelector(elements.languageSelect);
+    bindSessionControls(session);
+    renderAll();
+    resetRequestForm();
+    resetOfficialForm();
+    resetDepartmentForm();
+    bindSectionNavigation();
+    bindRequestControls();
+    bindOfficialControls();
+    bindDepartmentControls();
+  }
+
+  init();
+})(window);

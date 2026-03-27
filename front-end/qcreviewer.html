@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InfraLynx | QC Reviewer Workspace</title>
+  <meta name="description" content="QC Reviewer workspace for quality validation and closure support in CRIMS.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="./styles/base.css">
+  <link rel="stylesheet" href="./styles/dashboard.css">
+  <link rel="stylesheet" href="./styles/qc.css">
+</head>
+
+<body class="qc-page">
+  <div class="page-shell">
+    <div class="ambient-orb left" aria-hidden="true"></div>
+    <div class="ambient-orb right" aria-hidden="true"></div>
+    <div class="grid-sheen" aria-hidden="true"></div>
+
+    <div class="dashboard-shell content-wrap">
+
+      <!-- ── Sidebar ── -->
+      <aside class="dashboard-sidebar glass-card" aria-label="QC Reviewer navigation">
+        <a class="sidebar-brand" href="./index.html" aria-label="InfraLynx home">
+          <img src="./assets/CRIMS_logo.png" alt="CRIMS logo">
+          <div class="sidebar-brand-copy">
+            <span class="sidebar-brand-title">InfraLynx</span>
+            <span class="sidebar-brand-role">QC Reviewer</span>
+          </div>
+        </a>
+
+        <div class="sidebar-session">
+          <div class="sidebar-avatar" aria-hidden="true">Q</div>
+          <div class="sidebar-session-copy">
+            <span class="sidebar-session-name" id="qc-greeting">QC Reviewer</span>
+            <span class="sidebar-session-role">Quality assurance active</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="QC sections">
+          <a class="sidebar-nav-link is-active" href="#overview" data-qc-nav aria-current="page">
+            <div class="sidebar-nav-icon">📊</div>
+            <div class="sidebar-nav-label">
+              <span>Overview</span>
+              <strong>Quality posture</strong>
+            </div>
+          </a>
+          <a class="sidebar-nav-link" href="#reviews" data-qc-nav>
+            <div class="sidebar-nav-icon">✅</div>
+            <div class="sidebar-nav-label">
+              <span>QC Reviews</span>
+              <strong>Findings &amp; certification</strong>
+            </div>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <label class="language-control" for="qc-language-select">
+            <span>Language</span>
+            <select id="qc-language-select" aria-label="Language"></select>
+          </label>
+          <a class="button button-secondary small-button" href="./auth.html?mode=official">Official portal</a>
+          <button class="button button-primary small-button" id="qc-sign-out" type="button">Sign out</button>
+        </div>
+      </aside>
+
+      <!-- ── Workspace ── -->
+      <div class="dashboard-workspace qc-workspace">
+        <header class="workspace-topbar glass-card">
+          <div class="workspace-topbar-left">
+            <div class="workspace-topbar-eyebrow">Quality assurance</div>
+            <h1 class="workspace-topbar-title" id="qc-copy">Independent validation before project closure</h1>
+          </div>
+          <div class="workspace-topbar-right">
+            <span class="status-pill">QC Reviewer</span>
+            <span class="status-pill neutral" id="qc-clock"></span>
+          </div>
+        </header>
+
+        <main class="workspace-main qc-main">
+
+          <!-- ── Overview ── -->
+          <section id="overview">
+            <div class="hero-panel">
+              <article class="glass-card hero-copy-card">
+                <div class="section-kicker">Quality overview</div>
+                <h2>Certify closure readiness and keep findings separate from execution teams</h2>
+                <p>Review completed work for quality standards, capture non-compliance findings, and issue final
+                  approval or rework decisions before project closure.</p>
+                <div class="hero-actions">
+                  <a class="button button-primary" href="#reviews" data-qc-nav>Open QC reviews</a>
+                  <a class="button button-secondary" href="#overview" data-qc-nav>Closure watch</a>
+                </div>
+                <article class="hero-alert-card" id="qc-focus-card"></article>
+              </article>
+
+              <div class="hero-side">
+                <article class="glass-card kpi-card">
+                  <div class="kpi-card-head">
+                    <div>
+                      <span class="field-label">QC metrics</span>
+                      <h3>Quality score snapshot</h3>
+                    </div>
+                    <span class="status-pill">QC</span>
+                  </div>
+                  <div class="kpi-grid" id="qc-kpis"></div>
+                </article>
+
+                <article class="glass-card panel-card" id="qc-watch-card">
+                  <!-- Rendered by qc.js -->
+                </article>
+              </div>
+            </div>
+
+            <div class="overview-grid" style="margin-top:20px;">
+              <article class="glass-card panel-card">
+                <div class="panel-heading">
+                  <div>
+                    <div class="section-kicker">Closure watch</div>
+                    <h3>Work orders nearing QC decision</h3>
+                  </div>
+                </div>
+                <div class="stack-list" id="qc-work-list"></div>
+              </article>
+              <article class="glass-card panel-card">
+                <div class="panel-heading">
+                  <div>
+                    <div class="section-kicker">Review feed</div>
+                    <h3>Recent quality activity</h3>
+                  </div>
+                </div>
+                <div class="stack-list" id="qc-feed-list"></div>
+              </article>
+            </div>
+          </section>
+
+          <!-- ── QC Reviews ── -->
+          <section id="reviews" class="nav-panel-hidden">
+            <div class="section-heading">
+              <div class="section-kicker">QC Reviews</div>
+              <h2>Record findings, scores, and certification decisions</h2>
+              <p>Each review links to a work order and department. Score between 0–100 and record your quality finding.
+                Status determines closure readiness.</p>
+            </div>
+            <div class="control-grid">
+              <article class="glass-card table-card">
+                <div class="table-shell">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Review title</th>
+                        <th>Work order</th>
+                        <th>Status</th>
+                        <th>Score</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="qc-table-body"></tbody>
+                  </table>
+                </div>
+              </article>
+
+              <article class="glass-card form-card">
+                <div class="panel-heading compact">
+                  <div>
+                    <div class="section-kicker">QC Editor</div>
+                    <h3 id="qc-form-title">Add QC review</h3>
+                  </div>
+                  <button class="button button-secondary small-button" id="qc-reset" type="button">Reset</button>
+                </div>
+                <form class="form-grid" id="qc-form" novalidate>
+                  <input type="hidden" name="id">
+                  <input type="hidden" name="reviewer">
+                  <label class="field">
+                    <span class="field-label">Department</span>
+                    <select name="departmentId" id="qc-department-select"></select>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Linked work order</span>
+                    <select name="workOrderId" id="qc-work-order-select"></select>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Review title</span>
+                    <input type="text" name="title" placeholder="Inspection or certification title">
+                  </label>
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Status</span>
+                      <select name="status" id="qc-status-select"></select>
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Quality score (0–100)</span>
+                      <input type="number" name="score" min="0" max="100" step="1" placeholder="0">
+                    </label>
+                  </div>
+                  <label class="field">
+                    <span class="field-label">Finding</span>
+                    <textarea name="finding"
+                      placeholder="Quality observations, rework notes, or approval rationale"></textarea>
+                  </label>
+                  <div class="auth-actions">
+                    <button class="button button-primary" type="submit">Save QC review</button>
+                  </div>
+                  <div class="error-text hidden" id="qc-error"></div>
+                </form>
+              </article>
+            </div>
+          </section>
+
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <script src="./scripts/seed-data.js"></script>
+  <script src="./scripts/data-store.js"></script>
+  <script src="./scripts/i18n.js"></script>
+  <script src="./scripts/toast.js"></script>
+  <script src="./scripts/qc.js"></script>
+  <script src="./scripts/nav-tabs.js"></script>
+</body>
+
+</html>
