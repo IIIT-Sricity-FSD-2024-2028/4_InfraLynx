@@ -180,3 +180,19 @@ Enable final closure only after quality certification is completed and recorded 
 ---
 
 ## System Constraints and Rules
+
+**Mandatory Rules:**
+- All purchases require technical and financial justification
+- GST number mandatory for bill approval
+- Multi-stage approval process for budget allocations
+- QC department certification required for project closure
+
+**System Constraints:**
+- Fixed annual budget per department
+- Quarterly fund releases
+- Role-based access control enforced
+
+---
+
+
+**Project Status:** In Development | **Version:** 1.0.1 | **Last Updated:** MARCH 2026
