@@ -38,6 +38,7 @@
     requestFormError: document.querySelector("#request-form-error"),
     requestTypeSelect: document.querySelector("#admin-request-type"),
     requestCategorySelect: document.querySelector("#admin-request-category"),
+    requestDepartmentSelect: document.querySelector("#request-filter-dept-select"),
     requestUrgencySelect: document.querySelector("#admin-request-urgency"),
     requestStatusSelect: document.querySelector("#admin-request-status"),
     officialTableBody: document.querySelector("#official-table-body"),
@@ -240,6 +241,7 @@
     const currentFilter = elements.requestFilterSelect.value;
     const currentRequestType = elements.requestTypeSelect.value;
     const currentCategory = elements.requestCategorySelect.value;
+    const currentDepartment = elements.requestDepartmentSelect.value;
     const currentUrgency = elements.requestUrgencySelect.value;
     const currentStatus = elements.requestStatusSelect.value;
     const currentOfficialRole = elements.officialRoleSelect.value;
@@ -270,6 +272,13 @@
       '<option value="EMERGENCY">Emergency</option>'
     ].join("");
 
+    elements.requestDepartmentSelect.innerHTML = [
+      '<option value="">Select department</option>',
+      ...state.departments.length
+        ? state.departments.map((department) => `<option value="${department.id}">${escapeHtml(department.name)}</option>`)
+        : ['<option value="" disabled>No departments available</option>']
+    ].join("");
+
     elements.requestStatusSelect.innerHTML = [
       '<option value="">Select status</option>',
       ...REQUEST_STATUS_STEPS.map((status) => `<option value="${status}">${formatStatus(status)}</option>`),
@@ -289,6 +298,7 @@
     elements.requestFilterSelect.value = currentFilter || "ALL";
     elements.requestTypeSelect.value = currentRequestType;
     elements.requestCategorySelect.value = currentCategory;
+    elements.requestDepartmentSelect.value = currentDepartment;
     elements.requestUrgencySelect.value = currentUrgency;
     elements.requestStatusSelect.value = currentStatus;
     elements.officialRoleSelect.value = currentOfficialRole;
