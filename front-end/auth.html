@@ -41,74 +41,6 @@
     </header>
 
     <main class="content-wrap auth-main">
-      <aside class="glass-card auth-intro">
-        <div class="auth-intro-top">
-          <div class="eyebrow">Citizen and official access</div>
-          <h1 data-i18n="auth.title">Secure access for citizens and officials</h1>
-          <p data-i18n="auth.copy">
-            Citizens can create or use an access profile. Officials sign in through role-based government access only.
-          </p>
-
-          <div class="auth-badge-row">
-            <span class="status-pill">Role-based access</span>
-            <span class="status-pill neutral">Real-time tracking</span>
-            <span class="status-pill neutral">Workflow automation</span>
-          </div>
-        </div>
-
-        <div class="auth-stat-strip">
-          <article class="auth-stat-card">
-            <span>Citizen requests</span>
-            <strong>Track and manage public service requests efficiently</strong>
-          </article>
-          <article class="auth-stat-card">
-            <span>Work order management</span>
-            <strong>Convert requests into actionable work orders</strong>
-          </article>
-          <article class="auth-stat-card">
-            <span>Department workflow</span>
-            <strong>Seamless coordination between departments and officials</strong>
-          </article>
-        </div>
-
-        <div class="auth-impact-list">
-          <article class="auth-impact-item">
-            <strong>Citizen access</strong>
-            <p>Create one citizen identity per Aadhaar number, sign in later, and quickly track your submitted
-              references.</p>
-          </article>
-          <article class="auth-impact-item">
-            <strong>Official access</strong>
-            <p>City Administrator, Department Officer, Field Engineer, CFO, and QC Reviewer sign in using their
-              registered email and password.</p>
-          </article>
-          <article class="auth-impact-item">
-            <strong>Secure and role-aware</strong>
-            <p>Officials are automatically routed to their workspace based on the registered email — no manual role
-              selection required.</p>
-          </article>
-        </div>
-
-        <article class="glass-card auth-spotlight">
-          <div class="section-kicker">Civic-ready access</div>
-          <h2>Modern for citizens, structured for government teams</h2>
-          <p>
-            The public side stays welcoming and simple, while official access uses email-based role recognition for a
-            fast, clean government sign-in experience.
-          </p>
-          <div class="auth-spotlight-grid">
-            <div>
-              <span>Citizen flow</span>
-              <strong>Submit, track, return</strong>
-            </div>
-            <div>
-              <span>Official flow</span>
-              <strong>Email-based role routing</strong>
-            </div>
-          </div>
-        </article>
-      </aside>
-
       <section class="glass-card auth-shell">
         <div class="auth-shell-top">
           <div>
@@ -171,6 +103,7 @@
                 </label>
                 <div class="auth-actions">
                   <button class="button button-primary" type="submit" data-i18n="auth.signInButton">Sign in</button>
+                  <a class="button button-secondary" href="./forgot-password.html?lane=citizen">Forgot password?</a>
                 </div>
                 <div class="error-text hidden" id="citizen-signin-error"></div>
               </form>
@@ -220,27 +153,6 @@
                 <div class="result-meta" id="citizen-result-meta"></div>
               </article>
             </article>
-
-            <aside class="glass-card note-card auth-side-card">
-              <h3 data-i18n="auth.profileCardTitle">Citizen account policy</h3>
-              <p data-i18n="auth.profileCardCopy">
-                One citizen identity is allowed per Aadhaar number in this prototype. Officials are sign-in only.
-              </p>
-              <div class="note-list">
-                <div>
-                  <span>Direct public submission</span>
-                  <strong>Still available on landing</strong>
-                </div>
-                <div>
-                  <span>Returning citizen</span>
-                  <strong>Use Aadhaar or email</strong>
-                </div>
-                <div>
-                  <span>Sample citizen login</span>
-                  <strong class="mono">ananya.rao@example.com</strong>
-                </div>
-              </div>
-            </aside>
           </div>
         </section>
 
@@ -263,6 +175,7 @@
                 </label>
                 <div class="auth-actions">
                   <button class="button button-primary" type="submit" data-i18n="auth.signInButton">Sign in</button>
+                  <a class="button button-secondary" href="./forgot-password.html?lane=official">Forgot password?</a>
                 </div>
                 <div class="error-text hidden" id="official-error"></div>
               </form>
@@ -273,33 +186,6 @@
                 <div class="result-meta" id="official-result-meta"></div>
               </article>
             </article>
-
-            <aside class="glass-card note-card auth-side-card auth-role-guide">
-              <h3>Government access policy</h3>
-              <p data-i18n="auth.noteOfficial">For account creation, contact the CRIMS system administrator.</p>
-              <div class="note-list">
-                <div>
-                  <span>City Administrator</span>
-                  <strong class="mono">administrator@crims.gov.in</strong>
-                </div>
-                <div>
-                  <span>Department Officer</span>
-                  <strong class="mono">officer@crims.gov.in</strong>
-                </div>
-                <div>
-                  <span>Field Engineer</span>
-                  <strong class="mono">engineer@crims.gov.in</strong>
-                </div>
-                <div>
-                  <span>CFO</span>
-                  <strong class="mono">cfo@crims.gov.in</strong>
-                </div>
-                <div>
-                  <span>QC Reviewer</span>
-                  <strong class="mono">qc@crims.gov.in</strong>
-                </div>
-              </div>
-            </aside>
           </div>
         </section>
       </section>

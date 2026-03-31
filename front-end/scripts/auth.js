@@ -111,20 +111,6 @@
     elements.citizenResultPanel.classList.remove("hidden");
   }
 
-  function renderOfficialResult(account) {
-    const role = getRoleByCode(account.role);
-    const workspaceLabel = ROLE_WORKSPACE_LABELS[account.role] || "Role workspace";
-    const workspaceNotice = `<div class="result-meta-row"><span>Workspace</span><strong>Redirecting to ${workspaceLabel}...</strong></div>`;
-
-    elements.officialResultMeta.innerHTML = `
-      <div class="result-meta-row"><span>Authenticated official</span><strong>${account.name}</strong></div>
-      <div class="result-meta-row"><span>Role</span><strong>${(role && role.name) || account.role}</strong></div>
-      <div class="result-meta-row"><span>Email</span><strong class="mono">${account.email}</strong></div>
-      ${workspaceNotice}
-    `;
-    elements.officialResultPanel.classList.remove("hidden");
-  }
-
   function bindCitizenForms() {
     elements.citizenSigninForm.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -193,13 +179,9 @@
 
       try {
         const account = authenticateOfficial(payload.email, payload.password);
-        renderOfficialResult(account);
-        elements.officialForm.reset();
         const nextWorkspace = ROLE_WORKSPACE_MAP[account.role];
         if (nextWorkspace) {
-          globalScope.setTimeout(() => {
-            globalScope.location.href = nextWorkspace;
-          }, 900);
+          globalScope.location.href = nextWorkspace;
         }
       } catch (error) {
         showError(elements.officialError, error.message);

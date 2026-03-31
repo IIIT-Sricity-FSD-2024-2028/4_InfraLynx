@@ -31,12 +31,10 @@
     languageSelect: document.querySelector("#engineer-language-select"),
     signOutButton: document.querySelector("#engineer-sign-out"),
     engineerGreeting: document.querySelector("#engineer-greeting"),
-    engineerSubcopy: document.querySelector("#engineer-subcopy"),
     engineerEmergencyCard: document.querySelector("#engineer-emergency-card"),
     engineerKpiGrid: document.querySelector("#engineer-kpi-grid"),
     engineerNotificationList: document.querySelector("#engineer-notification-list"),
     assignedWorkList: document.querySelector("#assigned-work-list"),
-    quickGrid: document.querySelector("#engineer-quick-grid"),
     inspectionTableBody: document.querySelector("#inspection-table-body"),
     inspectionForm: document.querySelector("#inspection-form"),
     inspectionFormTitle: document.querySelector("#inspection-form-title"),
@@ -201,8 +199,6 @@
     const pendingResources = data.resources.filter((item) => item.status === "PENDING").length;
 
     elements.engineerGreeting.textContent = `Good morning, ${context.account.name}`;
-    elements.engineerSubcopy.textContent = `${context.department.name} field operations are active.`;
-
     const urgentOrder = data.workOrders.find((item) => item.priority === "EMERGENCY") || data.workOrders[0];
     elements.engineerEmergencyCard.innerHTML = urgentOrder
       ? `
@@ -272,27 +268,6 @@
             </div>
             <p>${escapeHtml(item.title)}</p>
             <p>${escapeHtml(item.locationText)} / Due ${escapeHtml(item.dueDate)} / ${escapeHtml(formatStatus(item.status))}</p>
-          </article>
-        `;
-      })
-      .join("");
-  }
-
-  function renderQuickActions() {
-    const quickItems = [
-      { title: "Inspect infrastructure", detail: "Complete field inspection tasks due today." },
-      { title: "Report new issue", detail: "Log hazards, damage, and operational failures from site." },
-      { title: "Request resources", detail: "Raise equipment, barricade, or material needs for approval." },
-      { title: "Submit progress", detail: "Send officer-ready updates from active execution work." }
-    ];
-
-    elements.quickGrid.innerHTML = quickItems
-      .map((item) => {
-        return `
-          <article class="quick-card">
-            <span class="field-label">Quick action</span>
-            <strong>${escapeHtml(item.title)}</strong>
-            <p>${escapeHtml(item.detail)}</p>
           </article>
         `;
       })
@@ -475,7 +450,6 @@
     renderHero(context);
     renderNotifications(context);
     renderAssignedWork(context);
-    renderQuickActions();
     populateSelects(context);
     renderInspectionTable(context);
     renderIssueTable(context);
