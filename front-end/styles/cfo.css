@@ -373,3 +373,42 @@
     min-width: 120px;
   }
 }
+
+/* ── Sidebar layout fixes ── */
+.cfo-page .dashboard-shell {
+  align-items: stretch;
+}
+
+.cfo-page .dashboard-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: stretch;
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+  width: 280px;
+}
+
+.cfo-page .dashboard-workspace {
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
+}
+
+.cfo-page .workspace-main {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .cfo-page .dashboard-sidebar {
+    position: static;
+    min-height: auto;
+    max-height: none;
+    overflow-y: visible;
+    width: auto;
+  }
+
+  .cfo-page .dashboard-workspace {
+    max-height: none;
+    overflow-y: visible;
+  }
+}

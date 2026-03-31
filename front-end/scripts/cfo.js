@@ -156,7 +156,7 @@
 
     elements.greeting.textContent = `Financial control for ${session.name}`;
     elements.copy.textContent =
-      "Use this workspace to review budget exposure, validate procurement discipline, and keep every release decision traceable.";
+      "Monitor budgets, validate procurement, and track decisions.";
 
     elements.focusCard.innerHTML = pendingProposal
       ? `

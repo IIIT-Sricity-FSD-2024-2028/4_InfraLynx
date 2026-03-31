@@ -601,3 +601,42 @@
     padding: 18px;
   }
 }
+
+/* ── Sidebar layout fixes ── */
+.officer-page .dashboard-shell {
+  align-items: stretch;
+}
+
+.officer-page .dashboard-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: stretch;
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+  width: 280px;
+}
+
+.officer-page .dashboard-workspace {
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
+}
+
+.officer-page .workspace-main {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .officer-page .dashboard-sidebar {
+    position: static;
+    min-height: auto;
+    max-height: none;
+    overflow-y: visible;
+    width: auto;
+  }
+
+  .officer-page .dashboard-workspace {
+    max-height: none;
+    overflow-y: visible;
+  }
+}

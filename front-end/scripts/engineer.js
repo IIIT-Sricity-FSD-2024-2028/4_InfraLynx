@@ -201,7 +201,7 @@
     const pendingResources = data.resources.filter((item) => item.status === "PENDING").length;
 
     elements.engineerGreeting.textContent = `Good morning, ${context.account.name}`;
-    elements.engineerSubcopy.textContent = `${context.department.name} field operations are active. This workspace keeps your assigned work, inspections, resource requests, and reports in one operational view.`;
+    elements.engineerSubcopy.textContent = `${context.department.name} field operations are active.`;
 
     const urgentOrder = data.workOrders.find((item) => item.priority === "EMERGENCY") || data.workOrders[0];
     elements.engineerEmergencyCard.innerHTML = urgentOrder
