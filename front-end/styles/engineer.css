@@ -595,3 +595,42 @@
     padding: 18px;
   }
 }
+
+/* ── Sidebar layout fixes ── */
+.engineer-page .dashboard-shell {
+  align-items: stretch;
+}
+
+.engineer-page .dashboard-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: stretch;
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+  width: 280px;
+}
+
+.engineer-page .dashboard-workspace {
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
+}
+
+.engineer-page .workspace-main {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .engineer-page .dashboard-sidebar {
+    position: static;
+    min-height: auto;
+    max-height: none;
+    overflow-y: visible;
+    width: auto;
+  }
+
+  .engineer-page .dashboard-workspace {
+    max-height: none;
+    overflow-y: visible;
+  }
+}

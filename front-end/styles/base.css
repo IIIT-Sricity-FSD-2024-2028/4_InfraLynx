@@ -530,6 +530,10 @@ button {
   color: var(--text-soft);
 }
 
+.status-pill:empty {
+  display: none;
+}
+
 /* ── Layout helpers ── */
 .split-grid {
   display: grid;

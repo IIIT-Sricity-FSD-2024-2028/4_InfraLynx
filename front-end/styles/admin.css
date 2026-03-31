@@ -577,6 +577,30 @@
   font-size: 0.94rem;
 }
 
+/* ── Admin dashboard sidebar layout fixes ── */
+.dashboard-shell {
+  align-items: stretch;
+}
+
+.dashboard-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: stretch;
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+.dashboard-workspace {
+  min-height: 100vh;
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
+}
+
+.workspace-main {
+  min-width: 0;
+}
+
 /* ── Responsive ── */
 @media (max-width: 1240px) {
   .admin-app {

@@ -13,6 +13,7 @@
     getState,
     initializeStore,
     upsertAdminRequest,
+    upsertWorkOrder,
     upsertDepartment,
     upsertOfficialAccount
   } = globalScope.CRIMS.store;
@@ -160,9 +161,32 @@
     ];
   }
 
+  function getWorkOrderActions(order) {
+    if (order.status === "PENDING_OFFICER_APPROVAL") {
+      return `
+        <button class="text-button" type="button" data-workorder-approve="${order.id}">Approve</button>
+        <button class="text-button danger" type="button" data-workorder-reject="${order.id}">Reject</button>
+      `;
+    }
+
+    if (order.status === "APPROVED") {
+      return `<button class="text-button" type="button" data-workorder-validate="${order.id}">Validate</button>`;
+    }
+
+    if (order.status === "COMPLETED") {
+      return `<span class="mono">Validated</span>`;
+    }
+
+    return `<span class="mono">${escapeHtml(order.status || "No action")}</span>`;
+  }
+
   function renderOverview() {
     const state = getState();
     const metrics = getOverviewMetrics();
+    const averageUtilization = state.departments.length
+      ? state.departments.reduce((sum, department) => sum + Number(department.utilization || 0), 0) / state.departments.length
+      : 0;
+
     elements.summaryGrid.innerHTML = metrics
       .map((item) => {
         return `
@@ -173,7 +197,16 @@
           </article>
         `;
       })
-      .join("");
+      .join("") + `
+        <article class="summary-item">
+          <span>Administrative report</span>
+          <strong>Generate a quick overview</strong>
+          <button class="button button-secondary small-button" type="button" data-generate-report="true">Generate Report</button>
+          <div class="report-summary" id="admin-report-summary">
+            <p class="mono">No report generated yet.</p>
+          </div>
+        </article>
+      `;
 
     elements.alertStrip.innerHTML = (state.adminAlerts || [])
       .map((alert) => {
@@ -189,35 +222,83 @@
 
     elements.budgetStack.innerHTML = state.departments
       .map((department) => {
+        const utilization = Number(department.utilization || 0);
+        const comparison = utilization >= averageUtilization ? "Above average utilization" : "Below average utilization";
+
         return `
           <article class="budget-row">
             <div class="budget-row-head">
               <strong>${escapeHtml(department.name)}</strong>
-              <span class="status-pill neutral">${escapeHtml(department.utilization)}% utilized</span>
+              <span class="status-pill neutral">${escapeHtml(String(utilization))}% utilized</span>
             </div>
             <div class="budget-meta">
               Lead: ${escapeHtml(department.lead)}
               <span class="mono"> / INR ${escapeHtml(Number(department.budgetCr).toFixed(1))} Cr</span>
             </div>
-            <div class="budget-bar"><span style="width: ${Math.max(0, Math.min(100, Number(department.utilization)))}%"></span></div>
+            <div class="budget-bar"><span style="width: ${Math.max(0, Math.min(100, utilization))}%"></span></div>
+            <p class="budget-comparison">${escapeHtml(comparison)}</p>
           </article>
         `;
       })
       .join("");
 
-    elements.activityFeed.innerHTML = (state.activityFeed || [])
-      .map((item) => {
+    const workOrders = state.workOrders || [];
+    const workOrderRows = workOrders
+      .map((order) => {
+        const department = getDepartmentById(order.departmentId);
         return `
-          <article class="feed-item">
-            <div class="feed-item-head">
-              <strong>${escapeHtml(item.title)}</strong>
-              <span class="status-pill neutral">${escapeHtml(item.meta)}</span>
-            </div>
-            <p>${escapeHtml(item.detail)}</p>
-          </article>
+          <tr>
+            <td>${escapeHtml(order.title)}</td>
+            <td>${escapeHtml((department && department.name) || "Unassigned")}</td>
+            <td>${escapeHtml(order.status)}</td>
+            <td>${getWorkOrderActions(order)}</td>
+          </tr>
         `;
       })
       .join("");
+
+    elements.activityFeed.innerHTML = `
+      <article class="glass-card panel-card">
+        <div class="panel-heading compact">
+          <div>
+            <div class="section-kicker">Work order approvals</div>
+            <h3>Review operational work orders</h3>
+          </div>
+        </div>
+        ${workOrders.length ? `
+          <div class="table-shell">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Department</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${workOrderRows}
+              </tbody>
+            </table>
+          </div>
+        ` : '<div class="empty-state">No work orders are currently available.</div>'}
+      </article>
+      ${
+        (state.activityFeed || [])
+          .map((item) => {
+            return `
+              <article class="feed-item">
+                <div class="feed-item-head">
+                  <strong>${escapeHtml(item.title)}</strong>
+                  <span class="status-pill neutral">${escapeHtml(item.meta)}</span>
+                </div>
+                <p>${escapeHtml(item.detail)}</p>
+              </article>
+            `;
+          })
+          .join("")
+      }
+    `;
   }
 
   function statusTone(status) {
@@ -391,6 +472,76 @@
         `;
       })
       .join("");
+  }
+
+  function generateAdminReport() {
+    const state = getState();
+    const totalRequests = state.requests.length;
+    const totalWorkOrders = (state.workOrders || []).length;
+    const totalBudget = state.departments.reduce((sum, department) => sum + Number(department.budgetCr || 0), 0);
+    const totalUsage = state.departments.reduce((sum, department) => {
+      return sum + (Number(department.budgetCr || 0) * Number(department.utilization || 0) / 100);
+    }, 0);
+    const usageText = totalBudget > 0 ? `${Math.round((totalUsage / totalBudget) * 100)}%` : "0%";
+    const reportSummary = elements.summaryGrid.querySelector("#admin-report-summary");
+
+    if (!reportSummary) {
+      return;
+    }
+
+    reportSummary.innerHTML = `
+      <div class="report-line">Total requests: <strong>${escapeHtml(String(totalRequests))}</strong></div>
+      <div class="report-line">Total work orders: <strong>${escapeHtml(String(totalWorkOrders))}</strong></div>
+      <div class="report-line">Budget usage: <strong>INR ${escapeHtml(totalUsage.toFixed(1))} Cr</strong> (${escapeHtml(usageText)})</div>
+    `;
+  }
+
+  function updateWorkOrderStatus(workOrderId, nextStatus) {
+    const state = getState();
+    const workOrder = (state.workOrders || []).find((item) => item.id === workOrderId);
+    if (!workOrder) {
+      return;
+    }
+
+    upsertWorkOrder({
+      ...workOrder,
+      status: nextStatus
+    });
+  }
+
+  function bindWorkOrderControls() {
+    elements.activityFeed.addEventListener("click", (event) => {
+      const approveButton = event.target.closest("[data-workorder-approve]");
+      const rejectButton = event.target.closest("[data-workorder-reject]");
+      const validateButton = event.target.closest("[data-workorder-validate]");
+
+      if (approveButton) {
+        updateWorkOrderStatus(approveButton.dataset.workorderApprove, "APPROVED");
+        renderAll();
+        return;
+      }
+
+      if (rejectButton) {
+        updateWorkOrderStatus(rejectButton.dataset.workorderReject, "REJECTED");
+        renderAll();
+        return;
+      }
+
+      if (validateButton) {
+        updateWorkOrderStatus(validateButton.dataset.workorderValidate, "COMPLETED");
+        renderAll();
+      }
+    });
+  }
+
+  function bindReportControls() {
+    elements.summaryGrid.addEventListener("click", (event) => {
+      if (!event.target.closest("[data-generate-report]")) {
+        return;
+      }
+
+      generateAdminReport();
+    });
   }
 
   function renderAll() {
@@ -645,7 +796,7 @@
     const role = getRoleByCode(session.role);
     elements.adminGreeting.textContent = `City-wide control for ${session.name}`;
     elements.sessionRoleLabel.textContent = (role && role.name) || "Administrator authenticated";
-    elements.sessionMeta.textContent = `Signed in as ${session.name}. Role-aware rendering and local state updates are active.`;
+    elements.sessionMeta.textContent = "";
 
     elements.signOutButton.addEventListener("click", () => {
       clearSession();
@@ -672,6 +823,8 @@
     bindRequestControls();
     bindOfficialControls();
     bindDepartmentControls();
+    bindWorkOrderControls();
+    bindReportControls();
   }
 
   init();
