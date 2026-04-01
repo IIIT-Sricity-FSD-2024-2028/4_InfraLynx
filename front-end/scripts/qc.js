@@ -17,7 +17,6 @@
     languageSelect: document.querySelector("#qc-language-select"),
     signOutButton: document.querySelector("#qc-sign-out"),
     greeting: document.querySelector("#qc-greeting"),
-    copy: document.querySelector("#qc-copy"),
     focusCard: document.querySelector("#qc-focus-card"),
     watchCard: document.querySelector("#qc-watch-card"),
     kpiGrid: document.querySelector("#qc-kpis"),
@@ -116,8 +115,6 @@
       (state.workOrders || [])[0];
 
     elements.greeting.textContent = `Quality control for ${session.name}`;
-    elements.copy.textContent =
-      "Use this workspace to certify closure readiness, capture non-compliance findings, and keep the final quality decision separate from execution teams.";
 
     elements.focusCard.innerHTML = pendingReview
       ? `

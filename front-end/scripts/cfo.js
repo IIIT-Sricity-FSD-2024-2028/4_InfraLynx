@@ -32,7 +32,6 @@
     languageSelect: document.querySelector("#cfo-language-select"),
     signOutButton: document.querySelector("#cfo-sign-out"),
     greeting: document.querySelector("#cfo-greeting"),
-    copy: document.querySelector("#cfo-copy"),
     focusCard: document.querySelector("#cfo-focus-card"),
     watchCard: document.querySelector("#cfo-watch-card"),
     kpiGrid: document.querySelector("#cfo-kpis"),
@@ -172,8 +171,6 @@
       (state.procurementBills || [])[0];
 
     elements.greeting.textContent = `Financial control for ${session.name}`;
-    elements.copy.textContent =
-      "Monitor budgets, validate procurement, and track decisions.";
 
     elements.focusCard.innerHTML = pendingProposal
       ? `
