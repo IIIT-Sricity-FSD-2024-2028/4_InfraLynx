@@ -25,7 +25,12 @@
     "progressReports",
     "budgetProposals",
     "procurementBills",
-    "qcReviews"
+    "qcReviews",
+    "fundReleases",
+    "maintenanceLogs",
+    "sensorDeployments",
+    "taskMaterialLogs",
+    "outcomeReports"
   ];
   const REQUEST_STATUS_STEPS = [
     "RECEIVED",
@@ -886,6 +891,180 @@
     saveState(state);
   }
 
+  /* ── Fund Releases ── */
+  function upsertFundRelease(payload) {
+    const state = getState();
+    const record = {
+      id: payload.id || createId("release"),
+      departmentId: payload.departmentId,
+      proposalId: payload.proposalId || "",
+      title: payload.title.trim(),
+      amountCr: Number(payload.amountCr),
+      quarter: payload.quarter || "",
+      status: payload.status,
+      releasedAt: payload.status === "RELEASED" ? (payload.releasedAt || new Date().toISOString()) : null,
+      notes: (payload.notes || "").trim()
+    };
+    if (payload.id) {
+      state.fundReleases = (state.fundReleases || []).map((item) => (item.id === payload.id ? record : item));
+      prependActivity(state, "Fund release updated", `${record.title} was updated by CFO.`);
+    } else {
+      state.fundReleases = [record].concat(state.fundReleases || []);
+      prependActivity(state, "Fund release created", `${record.title} entered the release queue.`);
+    }
+    saveState(state);
+    return record;
+  }
+
+  function deleteFundRelease(releaseId) {
+    const state = getState();
+    const release = (state.fundReleases || []).find((item) => item.id === releaseId);
+    if (!release) throw new Error("Fund release not found.");
+    state.fundReleases = (state.fundReleases || []).filter((item) => item.id !== releaseId);
+    prependActivity(state, "Fund release removed", `${release.title} was removed from the release schedule.`);
+    saveState(state);
+  }
+
+  /* ── Maintenance Logs ── */
+  function upsertMaintenanceLog(payload) {
+    const state = getState();
+    const record = {
+      id: payload.id || createId("mlog"),
+      departmentId: payload.departmentId,
+      engineerId: payload.engineerId,
+      scheduleId: payload.scheduleId || "",
+      workOrderId: payload.workOrderId || "",
+      title: payload.title.trim(),
+      activity: (payload.activity || "").trim(),
+      hoursSpent: Number(payload.hoursSpent) || 0,
+      date: payload.date,
+      status: payload.status
+    };
+    if (payload.id) {
+      state.maintenanceLogs = (state.maintenanceLogs || []).map((item) => (item.id === payload.id ? record : item));
+      prependActivity(state, "Maintenance log updated", `${record.title} was updated by field engineer.`);
+    } else {
+      state.maintenanceLogs = [record].concat(state.maintenanceLogs || []);
+      prependActivity(state, "Maintenance log added", `${record.title} was logged from the field.`);
+    }
+    saveState(state);
+    return record;
+  }
+
+  function deleteMaintenanceLog(logId) {
+    const state = getState();
+    const log = (state.maintenanceLogs || []).find((item) => item.id === logId);
+    if (!log) throw new Error("Maintenance log not found.");
+    state.maintenanceLogs = (state.maintenanceLogs || []).filter((item) => item.id !== logId);
+    prependActivity(state, "Maintenance log removed", `${log.title} was removed from field records.`);
+    saveState(state);
+  }
+
+  /* ── Sensor Deployments ── */
+  function upsertSensorDeployment(payload) {
+    const state = getState();
+    const record = {
+      id: payload.id || createId("sensor"),
+      departmentId: payload.departmentId,
+      engineerId: payload.engineerId,
+      workOrderId: payload.workOrderId || "",
+      sensorType: payload.sensorType.trim(),
+      assetLocation: payload.assetLocation.trim(),
+      serialNo: (payload.serialNo || "").trim(),
+      installedAt: payload.installedAt || new Date().toISOString(),
+      status: payload.status,
+      notes: (payload.notes || "").trim()
+    };
+    if (payload.id) {
+      state.sensorDeployments = (state.sensorDeployments || []).map((item) => (item.id === payload.id ? record : item));
+      prependActivity(state, "Sensor deployment updated", `${record.sensorType} at ${record.assetLocation} was updated.`);
+    } else {
+      state.sensorDeployments = [record].concat(state.sensorDeployments || []);
+      prependActivity(state, "Sensor deployed", `${record.sensorType} installed at ${record.assetLocation}.`);
+    }
+    saveState(state);
+    return record;
+  }
+
+  function deleteSensorDeployment(sensorId) {
+    const state = getState();
+    const sensor = (state.sensorDeployments || []).find((item) => item.id === sensorId);
+    if (!sensor) throw new Error("Sensor deployment not found.");
+    state.sensorDeployments = (state.sensorDeployments || []).filter((item) => item.id !== sensorId);
+    prependActivity(state, "Sensor removed", `${sensor.sensorType} deployment record was removed.`);
+    saveState(state);
+  }
+
+  /* ── Task Material Logs ── */
+  function upsertTaskMaterialLog(payload) {
+    const state = getState();
+    const record = {
+      id: payload.id || createId("matlog"),
+      departmentId: payload.departmentId,
+      engineerId: payload.engineerId,
+      workOrderId: payload.workOrderId || "",
+      material: payload.material.trim(),
+      quantity: payload.quantity.trim(),
+      unit: (payload.unit || "").trim(),
+      usedOn: payload.usedOn,
+      notes: (payload.notes || "").trim()
+    };
+    if (payload.id) {
+      state.taskMaterialLogs = (state.taskMaterialLogs || []).map((item) => (item.id === payload.id ? record : item));
+      prependActivity(state, "Material log updated", `${record.material} log was updated.`);
+    } else {
+      state.taskMaterialLogs = [record].concat(state.taskMaterialLogs || []);
+      prependActivity(state, "Material logged", `${record.material} usage was recorded by field engineer.`);
+    }
+    saveState(state);
+    return record;
+  }
+
+  function deleteTaskMaterialLog(logId) {
+    const state = getState();
+    const log = (state.taskMaterialLogs || []).find((item) => item.id === logId);
+    if (!log) throw new Error("Material log not found.");
+    state.taskMaterialLogs = (state.taskMaterialLogs || []).filter((item) => item.id !== logId);
+    prependActivity(state, "Material log removed", `${log.material} log was removed.`);
+    saveState(state);
+  }
+
+  /* ── Outcome / Accountability Reports ── */
+  function upsertOutcomeReport(payload) {
+    const state = getState();
+    const record = {
+      id: payload.id || createId("outcome"),
+      departmentId: payload.departmentId,
+      workOrderId: payload.workOrderId || "",
+      preparedBy: payload.preparedBy || "",
+      title: payload.title.trim(),
+      summary: (payload.summary || "").trim(),
+      budgetSanctioned: Number(payload.budgetSanctioned) || 0,
+      budgetUsed: Number(payload.budgetUsed) || 0,
+      outcome: payload.outcome || "PENDING",
+      lessonsLearned: (payload.lessonsLearned || "").trim(),
+      submittedAt: payload.submittedAt || new Date().toISOString()
+    };
+    if (payload.id) {
+      state.outcomeReports = (state.outcomeReports || []).map((item) => (item.id === payload.id ? record : item));
+      prependActivity(state, "Outcome report updated", `${record.title} was updated by the officer.`);
+    } else {
+      state.outcomeReports = [record].concat(state.outcomeReports || []);
+      prependActivity(state, "Outcome report submitted", `${record.title} was submitted for review.`);
+    }
+    saveState(state);
+    return record;
+  }
+
+  function deleteOutcomeReport(reportId) {
+    const state = getState();
+    const report = (state.outcomeReports || []).find((item) => item.id === reportId);
+    if (!report) throw new Error("Outcome report not found.");
+    state.outcomeReports = (state.outcomeReports || []).filter((item) => item.id !== reportId);
+    prependActivity(state, "Outcome report removed", `${report.title} was removed from records.`);
+    saveState(state);
+  }
+
   crims.store = {
     REQUEST_STATUS_STEPS,
     initializeStore,
@@ -929,6 +1108,16 @@
     deleteProcurementBill,
     upsertQcReview,
     deleteQcReview,
+    upsertFundRelease,
+    deleteFundRelease,
+    upsertMaintenanceLog,
+    deleteMaintenanceLog,
+    upsertSensorDeployment,
+    deleteSensorDeployment,
+    upsertTaskMaterialLog,
+    deleteTaskMaterialLog,
+    upsertOutcomeReport,
+    deleteOutcomeReport,
     findRequestByReference,
     getCitizenRequests,
     formatDisplayDate,

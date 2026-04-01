@@ -3,6 +3,7 @@
     clearSession,
     deleteBudgetProposal,
     deleteProcurementBill,
+    deleteFundRelease,
     formatStatus,
     getDepartmentById,
     getRoleByCode,
@@ -10,7 +11,8 @@
     getState,
     initializeStore,
     upsertBudgetProposal,
-    upsertProcurementBill
+    upsertProcurementBill,
+    upsertFundRelease
   } = globalScope.CRIMS.store;
   const { bindLanguageSelector } = globalScope.CRIMS.i18n;
 
@@ -50,7 +52,13 @@
     billError: document.querySelector("#bill-error"),
     billDepartmentSelect: document.querySelector("#bill-department-select"),
     billWorkOrderSelect: document.querySelector("#bill-work-order-select"),
-    billStatusSelect: document.querySelector("#bill-status-select")
+    billStatusSelect: document.querySelector("#bill-status-select"),
+    releaseTableBody: document.querySelector("#release-table-body"),
+    releaseForm: document.querySelector("#release-form"),
+    releaseFormTitle: document.querySelector("#release-form-title"),
+    releaseResetButton: document.querySelector("#release-reset"),
+    releaseError: document.querySelector("#release-error"),
+    releaseDepartmentSelect: document.querySelector("#release-department-select")
   };
 
   function escapeHtml(value) {
@@ -144,6 +152,15 @@
     elements.billDepartmentSelect.value = currentBillDepartment;
     elements.billWorkOrderSelect.value = currentBillWorkOrder;
     elements.billStatusSelect.value = currentBillStatus;
+
+    if (elements.releaseDepartmentSelect) {
+      const curReleaseDept = elements.releaseDepartmentSelect.value;
+      elements.releaseDepartmentSelect.innerHTML = [
+        '<option value="">Select department</option>',
+        ...state.departments.map((d) => `<option value="${d.id}">${escapeHtml(d.name)}</option>`)
+      ].join("");
+      elements.releaseDepartmentSelect.value = curReleaseDept;
+    }
   }
 
   function renderHero(session) {
@@ -315,6 +332,7 @@
     renderOverview();
     renderProposalTable();
     renderBillTable();
+    renderReleaseTable();
   }
 
   function resetProposalForm() {
@@ -329,6 +347,38 @@
     elements.billForm.elements.id.value = "";
     elements.billFormTitle.textContent = "Add bill";
     showError(elements.billError, "");
+  }
+
+  function renderReleaseTable() {
+    if (!elements.releaseTableBody) return;
+    const releases = getState().fundReleases || [];
+    if (!releases.length) {
+      elements.releaseTableBody.innerHTML = '<tr><td colspan="6"><div class="empty-state">No fund releases are recorded yet.</div></td></tr>';
+      return;
+    }
+    elements.releaseTableBody.innerHTML = releases.map((item) => {
+      const dept = getDepartmentById(item.departmentId);
+      return `
+        <tr>
+          <td><strong>${escapeHtml(item.title)}</strong></td>
+          <td>${escapeHtml((dept && dept.name) || 'Unknown')}</td>
+          <td class="mono">INR ${escapeHtml(Number(item.amountCr).toFixed(2))} Cr</td>
+          <td>${escapeHtml(item.quarter || '—')}</td>
+          <td><span class="status-pill ${item.status === 'RELEASED' ? '' : item.status === 'WITHHELD' ? 'alert' : 'warning'}">${escapeHtml(formatStatus(item.status))}</span></td>
+          <td><div class="row-actions">
+            <button class="text-button" type="button" data-release-edit="${item.id}">Edit</button>
+            <button class="text-button danger" type="button" data-release-delete="${item.id}">Delete</button>
+          </div></td>
+        </tr>`;
+    }).join("");
+  }
+
+  function resetReleaseForm() {
+    if (!elements.releaseForm) return;
+    elements.releaseForm.reset();
+    elements.releaseForm.elements.id.value = "";
+    elements.releaseFormTitle.textContent = "Add fund release";
+    showError(elements.releaseError, "");
   }
 
   function bind(session) {
@@ -451,6 +501,50 @@
         }
       }
     });
+
+    /* ── Fund Releases ── */
+    if (elements.releaseForm) {
+      elements.releaseResetButton.addEventListener("click", resetReleaseForm);
+      elements.releaseForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const payload = Object.fromEntries(new FormData(elements.releaseForm).entries());
+        if (!payload.departmentId) { showError(elements.releaseError, "Select the target department."); return; }
+        if (!payload.title.trim() || payload.title.trim().length < 6) { showError(elements.releaseError, "Enter a descriptive release title."); return; }
+        if (Number(payload.amountCr) <= 0) { showError(elements.releaseError, "Enter a valid release amount greater than zero."); return; }
+        if (!payload.status) { showError(elements.releaseError, "Select the release status."); return; }
+        try {
+          upsertFundRelease(payload);
+          populateSelects();
+          renderAll(session);
+          resetReleaseForm();
+        } catch (error) {
+          showError(elements.releaseError, error.message);
+        }
+      });
+
+      elements.releaseTableBody.addEventListener("click", (event) => {
+        const editButton = event.target.closest("[data-release-edit]");
+        const deleteButton = event.target.closest("[data-release-delete]");
+        if (editButton) {
+          const release = (getState().fundReleases || []).find((item) => item.id === editButton.dataset.releaseEdit);
+          if (!release) return;
+          Object.entries(release).forEach(([key, value]) => {
+            if (elements.releaseForm.elements[key]) elements.releaseForm.elements[key].value = value == null ? "" : value;
+          });
+          elements.releaseFormTitle.textContent = `Edit: ${release.title}`;
+        }
+        if (deleteButton) {
+          try {
+            deleteFundRelease(deleteButton.dataset.releaseDelete);
+            populateSelects();
+            renderAll(session);
+            resetReleaseForm();
+          } catch (error) {
+            showError(elements.releaseError, error.message);
+          }
+        }
+      });
+    }
   }
 
   function init() {
@@ -464,6 +558,7 @@
 
     bindLanguageSelector(elements.languageSelect);
     bind(session);
+    resetReleaseForm();
   }
 
   init();

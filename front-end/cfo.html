@@ -65,6 +65,13 @@
               <strong>GST &amp; bill verification</strong>
             </div>
           </a>
+          <a class="sidebar-nav-link" href="#fund-releases" data-cfo-nav>
+            <div class="sidebar-nav-icon">💸</div>
+            <div class="sidebar-nav-label">
+              <span>Fund Releases</span>
+              <strong>Staged disbursement</strong>
+            </div>
+          </a>
         </nav>
 
         <div class="sidebar-footer">
@@ -285,6 +292,82 @@
             </div>
           </section>
 
+          <!-- ── Fund Releases ── -->
+          <section id="fund-releases" class="nav-panel-hidden">
+            <div class="section-heading">
+              <div class="section-kicker">Fund Releases</div>
+              <h2>Schedule and record staged fund disbursements</h2>
+              <p>Each release is linked to an approved budget proposal and marks the actual movement of funds to the operational department. Maintain a full audit trail here.</p>
+            </div>
+            <div class="control-grid">
+              <article class="glass-card table-card">
+                <div class="table-shell">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Department</th>
+                        <th>Amount (Cr)</th>
+                        <th>Quarter</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="release-table-body"></tbody>
+                  </table>
+                </div>
+              </article>
+
+              <article class="glass-card form-card">
+                <div class="panel-heading compact">
+                  <div>
+                    <div class="section-kicker">Release Editor</div>
+                    <h3 id="release-form-title">Add fund release</h3>
+                  </div>
+                  <button class="button button-secondary small-button" id="release-reset" type="button">Reset</button>
+                </div>
+                <form class="form-grid" id="release-form" novalidate>
+                  <input type="hidden" name="id">
+                  <label class="field">
+                    <span class="field-label">Department</span>
+                    <select name="departmentId" id="release-department-select"></select>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Release title</span>
+                    <input type="text" name="title" placeholder="e.g. Q1 bridge repair — first tranche">
+                  </label>
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Amount (Cr)</span>
+                      <input type="number" name="amountCr" min="0" step="0.01" placeholder="0.00">
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Quarter</span>
+                      <input type="text" name="quarter" placeholder="e.g. Q1-2026">
+                    </label>
+                  </div>
+                  <label class="field">
+                    <span class="field-label">Release status</span>
+                    <select name="status" id="release-status-select">
+                      <option value="">Select status</option>
+                      <option value="PENDING">Pending</option>
+                      <option value="RELEASED">Released</option>
+                      <option value="WITHHELD">Withheld</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Notes</span>
+                    <textarea name="notes" placeholder="Conditions, tranche details, or audit comments"></textarea>
+                  </label>
+                  <div class="auth-actions">
+                    <button class="button button-primary" type="submit">Save release</button>
+                  </div>
+                  <div class="error-text hidden" id="release-error"></div>
+                </form>
+              </article>
+            </div>
+          </section>
+
         </main>
       </div>
     </div>
@@ -295,6 +378,7 @@
 
   <script src="./scripts/seed-data.js"></script>
   <script src="./scripts/data-store.js"></script>
+  <script src="./scripts/utils.js"></script>
   <script src="./scripts/i18n.js"></script>
   <script src="./scripts/toast.js"></script>
   <script src="./scripts/cfo.js"></script>

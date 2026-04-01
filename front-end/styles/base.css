@@ -656,3 +656,120 @@ button {
     padding: 36px 0 16px;
   }
 }
+
+/* ── Toast notifications ── */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  min-width: 260px;
+  max-width: 380px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10), 0 2px 6px rgba(0, 0, 0, 0.06);
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateY(12px) scale(0.97);
+  transition: opacity 0.28s var(--ease), transform 0.28s var(--ease);
+  background: var(--surface-contrast);
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+}
+
+.toast-item.toast-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.toast-item.toast-hiding {
+  opacity: 0;
+  transform: translateY(8px) scale(0.97);
+}
+
+.toast-item.toast-success {
+  background: #f0fdf4;
+  border-color: rgba(22, 163, 74, 0.20);
+  color: var(--primary-darker);
+}
+
+.toast-item.toast-error {
+  background: #fef2f2;
+  border-color: rgba(220, 38, 38, 0.20);
+  color: #991b1b;
+}
+
+.toast-item.toast-warning {
+  background: #fffbeb;
+  border-color: rgba(245, 158, 11, 0.22);
+  color: #92400e;
+}
+
+.toast-item.toast-info {
+  background: #eff6ff;
+  border-color: rgba(37, 99, 235, 0.18);
+  color: #1e40af;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+  padding: 0 0 0 4px;
+  flex-shrink: 0;
+}
+
+.toast-close:hover {
+  opacity: 1;
+}
+
+/* ── Empty state ── */
+.empty-state {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-style: italic;
+}
+
+/* ── Access guard ── */
+.access-guard {
+  padding: 48px 40px;
+  max-width: 560px;
+  margin: 48px auto;
+  text-align: center;
+}
+
+.access-guard h2 {
+  font-family: "Sora", sans-serif;
+  font-size: 1.5rem;
+  margin: 14px 0 10px;
+}
+
+.access-guard p {
+  color: var(--text-soft);
+  line-height: 1.7;
+  margin: 0 0 24px;
+}
+
+/* ── Compact panel heading ── */
+.panel-heading.compact {
+  margin-bottom: 14px;
+}
