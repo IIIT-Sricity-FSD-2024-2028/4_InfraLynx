@@ -845,7 +845,18 @@
         const wo = (state.workOrders || []).find((item) => item.id === approveBtn.dataset.woApprove);
         if (!wo) return;
         try {
-          upsertWorkOrder({ ...wo, approvedBy: session.officialId, status: wo.status === 'DRAFT' ? 'IN_PROGRESS' : wo.status });
+          const nextStatus =
+            wo.status === "DRAFT" || wo.status === "PENDING_OFFICER_APPROVAL" || wo.status === "PENDING_ADMIN_APPROVAL"
+              ? "APPROVED"
+              : wo.status;
+          upsertWorkOrder({
+            ...wo,
+            approvedBy: session.officialId,
+            approvedAt: new Date().toISOString(),
+            rejectedBy: null,
+            rejectedAt: null,
+            status: nextStatus
+          });
           renderAll();
           if (globalScope.CRIMS && globalScope.CRIMS.toast) globalScope.CRIMS.toast('Work order approved successfully.', 'success');
         } catch (err) {
@@ -858,7 +869,15 @@
         const wo = (state.workOrders || []).find((item) => item.id === rejectBtn.dataset.woReject);
         if (!wo) return;
         try {
-          upsertWorkOrder({ ...wo, approvedBy: null, status: 'CANCELLED', notes: reason || 'Rejected by administrator.' });
+          upsertWorkOrder({
+            ...wo,
+            approvedBy: null,
+            approvedAt: null,
+            rejectedBy: session.officialId,
+            rejectedAt: new Date().toISOString(),
+            status: 'CANCELLED',
+            notes: reason || 'Rejected by administrator.'
+          });
           renderAll();
           if (globalScope.CRIMS && globalScope.CRIMS.toast) globalScope.CRIMS.toast('Work order rejected.', 'warning');
         } catch (err) {

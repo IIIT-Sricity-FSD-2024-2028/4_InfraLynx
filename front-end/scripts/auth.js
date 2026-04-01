@@ -52,9 +52,22 @@
     CFO: "CFO workspace",
     QC_REVIEWER: "QC Reviewer workspace"
   };
+  const CITIZEN_WORKSPACE = "./citizen.html";
 
   let citizenMode = "signin";
   let accessMode = "citizen";
+
+  function renderStaticText() {
+    const languageLabel = document.querySelector('label[for="auth-language-select"] span');
+    if (languageLabel) {
+      languageLabel.textContent = t("common.language");
+    }
+
+    const officialRedirectCopy = document.querySelector("#official-result-panel p");
+    if (officialRedirectCopy) {
+      officialRedirectCopy.textContent = t("auth.redirectingOfficial");
+    }
+  }
 
   function showError(element, message) {
     if (!message) {
@@ -99,14 +112,16 @@
     elements.officialResultPanel.classList.add("hidden");
   }
 
-
+  function redirectCitizenWorkspace() {
+    globalScope.location.href = CITIZEN_WORKSPACE;
+  }
 
   function renderCitizenResult(citizenRecord) {
     const requests = getCitizenRequests(citizenRecord.email);
     elements.citizenResultMeta.innerHTML = `
-      <div class="result-meta-row"><span>Name</span><strong>${citizenRecord.name}</strong></div>
-      <div class="result-meta-row"><span>Aadhaar</span><strong class="mono">XXXX-XXXX-${citizenRecord.aadhaar.slice(-4)}</strong></div>
-      <div class="result-meta-row"><span>Linked requests</span><strong>${requests.length}</strong></div>
+      <div class="result-meta-row"><span>${t("auth.resultName")}</span><strong>${citizenRecord.name}</strong></div>
+      <div class="result-meta-row"><span>${t("auth.resultAadhaar")}</span><strong class="mono">XXXX-XXXX-${citizenRecord.aadhaar.slice(-4)}</strong></div>
+      <div class="result-meta-row"><span>${t("auth.resultLinkedRequests")}</span><strong>${requests.length}</strong></div>
     `;
     elements.citizenResultPanel.classList.remove("hidden");
   }
@@ -125,9 +140,9 @@
       }
 
       try {
-        const citizen = authenticateCitizen(payload.identifier, payload.password);
-        renderCitizenResult(citizen);
+        authenticateCitizen(payload.identifier, payload.password);
         elements.citizenSigninForm.reset();
+        redirectCitizenWorkspace();
       } catch (error) {
         showError(elements.citizenSigninError, error.message);
       }
@@ -152,9 +167,8 @@
         });
 
         authenticateCitizen(citizen.email, payload.password);
-        renderCitizenResult(citizen);
         elements.citizenSignupForm.reset();
-        setCitizenMode("signin");
+        redirectCitizenWorkspace();
       } catch (error) {
         showError(elements.citizenSignupError, error.message);
       }
@@ -222,6 +236,7 @@
     initializeStore();
     bindLanguageSelector(elements.languageSelect);
     applyTranslations(document, getLanguage());
+    renderStaticText();
     bindTabs();
     setCitizenMode("signin");
     applyInitialModeFromUrl();
@@ -229,6 +244,7 @@
     bindOfficialForm();
 
     document.addEventListener("crims:language-change", () => {
+      renderStaticText();
       setCitizenMode(citizenMode);
     });
   }

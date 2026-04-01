@@ -27,7 +27,7 @@
         <img src="./assets/CRIMS_logo.png" alt="CRIMS logo">
         <span class="brand-copy">
           <span class="brand-title">InfraLynx</span>
-          <span class="brand-subtitle">CRIMS secure access</span>
+          <span class="brand-subtitle" data-i18n="auth.brandSubtitle">CRIMS secure access</span>
         </span>
       </a>
 
@@ -44,10 +44,10 @@
       <section class="glass-card auth-shell">
         <div class="auth-shell-top">
           <div>
-            <div class="section-kicker">Access portal</div>
-            <h2>Choose your path into CRIMS</h2>
+            <div class="section-kicker" data-i18n="auth.portalKicker">Access portal</div>
+            <h2 data-i18n="auth.portalHeading">Choose your path into CRIMS</h2>
           </div>
-          <p>
+          <p data-i18n="auth.portalCopy">
             Citizens can create an optional profile for easier repeat tracking. Officials use controlled sign-in linked
             to the schema roles in the system design.
           </p>
@@ -55,15 +55,15 @@
 
         <div class="auth-lane-strip">
           <article class="auth-lane-card">
-            <span class="field-label">Citizen lane</span>
-            <strong>Fast public access with Aadhaar uniqueness</strong>
-            <p>Citizens can sign in, create one profile per Aadhaar number, and return later to track requests more
+            <span class="field-label" data-i18n="auth.citizenLaneLabel">Citizen lane</span>
+            <strong data-i18n="auth.citizenLaneTitle">Fast public access with Aadhaar uniqueness</strong>
+            <p data-i18n="auth.citizenLaneCopy">Citizens can sign in, create one profile per Aadhaar number, and return later to track requests more
               easily.</p>
           </article>
           <article class="auth-lane-card">
-            <span class="field-label">Official lane</span>
-            <strong>Controlled municipal access with role routing</strong>
-            <p>Officials authenticate through invite-only access and move directly into the right workspace for their
+            <span class="field-label" data-i18n="auth.officialLaneLabel">Official lane</span>
+            <strong data-i18n="auth.officialLaneTitle">Controlled municipal access with role routing</strong>
+            <p data-i18n="auth.officialLaneCopy">Officials authenticate through invite-only access and move directly into the right workspace for their
               role.</p>
           </article>
         </div>
@@ -95,15 +95,15 @@
               <form id="citizen-signin-form" class="form-grid" novalidate>
                 <label class="field">
                   <span class="field-label" data-i18n="auth.identifierLabel">Aadhaar number or email</span>
-                  <input type="text" name="identifier" placeholder="Aadhaar number or email">
+                  <input type="text" name="identifier" data-i18n-placeholder="auth.identifierPlaceholder" placeholder="Aadhaar number or email">
                 </label>
                 <label class="field">
                   <span class="field-label" data-i18n="auth.passwordLabel">Password</span>
-                  <input type="password" name="password" placeholder="Enter password">
+                  <input type="password" name="password" data-i18n-placeholder="auth.passwordPlaceholder" placeholder="Enter password">
                 </label>
                 <div class="auth-actions">
                   <button class="button button-primary" type="submit" data-i18n="auth.signInButton">Sign in</button>
-                  <a class="button button-secondary" href="./forgot-password.html?lane=citizen">Forgot password?</a>
+                  <a class="button button-secondary" href="./forgot-password.html?lane=citizen" data-i18n="auth.forgotPassword">Forgot password?</a>
                 </div>
                 <div class="error-text hidden" id="citizen-signin-error"></div>
               </form>
@@ -112,31 +112,31 @@
                 <div class="inline-grid">
                   <label class="field">
                     <span class="field-label" data-i18n="request.nameLabel">Citizen name</span>
-                    <input type="text" name="name" autocomplete="name" placeholder="Full name">
+                    <input type="text" name="name" autocomplete="name" data-i18n-placeholder="request.namePlaceholder" placeholder="Full name">
                   </label>
                   <label class="field">
                     <span class="field-label" data-i18n="request.phoneLabel">Phone number</span>
-                    <input type="tel" name="phone" autocomplete="tel" placeholder="10-digit mobile number">
+                    <input type="tel" name="phone" autocomplete="tel" data-i18n-placeholder="request.phonePlaceholder" placeholder="10-digit mobile number">
                   </label>
                 </div>
                 <div class="inline-grid">
                   <label class="field">
                     <span class="field-label" data-i18n="request.emailLabel">Email address</span>
-                    <input type="email" name="email" autocomplete="email" placeholder="name@example.com">
+                    <input type="email" name="email" autocomplete="email" data-i18n-placeholder="request.emailPlaceholder" placeholder="name@example.com">
                   </label>
                   <label class="field">
                     <span class="field-label" data-i18n="request.aadhaarLabel">Aadhaar number</span>
-                    <input type="text" name="aadhaar" maxlength="12" inputmode="numeric" placeholder="12-digit Aadhaar">
+                    <input type="text" name="aadhaar" maxlength="12" inputmode="numeric" data-i18n-placeholder="request.aadhaarPlaceholder" placeholder="12-digit Aadhaar">
                   </label>
                 </div>
                 <div class="inline-grid">
                   <label class="field">
                     <span class="field-label" data-i18n="auth.passwordLabel">Password</span>
-                    <input type="password" name="password" placeholder="Create password">
+                    <input type="password" name="password" data-i18n-placeholder="auth.createPasswordPlaceholder" placeholder="Create password">
                   </label>
                   <label class="field">
                     <span class="field-label" data-i18n="auth.confirmPasswordLabel">Confirm password</span>
-                    <input type="password" name="confirmPassword" placeholder="Confirm password">
+                    <input type="password" name="confirmPassword" data-i18n-placeholder="auth.confirmPasswordPlaceholder" placeholder="Confirm password">
                   </label>
                 </div>
                 <div class="auth-actions">
@@ -159,7 +159,7 @@
         <section class="auth-panel hidden" id="official-panel">
           <div class="auth-panel-header">
             <h2 data-i18n="auth.officialHeading">Official government sign in</h2>
-            <p>Enter your official email and password. Your role and workspace will be determined automatically.</p>
+            <p data-i18n="auth.officialPanelCopy">Enter your official email and password. Your role and workspace will be determined automatically.</p>
           </div>
 
           <div class="auth-form-grid">
@@ -167,15 +167,15 @@
               <form id="official-form" class="form-grid" novalidate>
                 <label class="field">
                   <span class="field-label" data-i18n="auth.emailLabel">Official email address</span>
-                  <input type="email" name="email" autocomplete="username" placeholder="name@crims.gov.in">
+                  <input type="email" name="email" autocomplete="username" data-i18n-placeholder="auth.officialEmailPlaceholder" placeholder="name@crims.gov.in">
                 </label>
                 <label class="field">
                   <span class="field-label" data-i18n="auth.passwordLabel">Password</span>
-                  <input type="password" name="password" autocomplete="current-password" placeholder="Enter password">
+                  <input type="password" name="password" autocomplete="current-password" data-i18n-placeholder="auth.passwordPlaceholder" placeholder="Enter password">
                 </label>
                 <div class="auth-actions">
                   <button class="button button-primary" type="submit" data-i18n="auth.signInButton">Sign in</button>
-                  <a class="button button-secondary" href="./forgot-password.html?lane=official">Forgot password?</a>
+                  <a class="button button-secondary" href="./forgot-password.html?lane=official" data-i18n="auth.forgotPassword">Forgot password?</a>
                 </div>
                 <div class="error-text hidden" id="official-error"></div>
               </form>
