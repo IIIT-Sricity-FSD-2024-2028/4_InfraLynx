@@ -327,10 +327,15 @@
   padding: 0;
 }
 
-.overview-grid,
-.control-grid {
+.overview-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr);
+  gap: 20px;
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 20px;
 }
 
