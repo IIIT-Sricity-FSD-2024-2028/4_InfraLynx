@@ -16,10 +16,17 @@
   const { getRequestFormError } = globalScope.CRIMS.validators;
 
   const heroTrustData = [
+<<<<<<< Updated upstream
     { value: "24/7", labelKey: "landing.heroTrustIntakeLabel", detailKey: "landing.heroTrustIntakeDetail" },
     { value: "3-stage", labelKey: "landing.heroTrustBudgetLabel", detailKey: "landing.heroTrustBudgetDetail" },
     { value: "GST + quotes", labelKey: "landing.heroTrustProcurementLabel", detailKey: "landing.heroTrustProcurementDetail" },
     { value: "QC required", labelKey: "landing.heroTrustClosureLabel", detailKey: "landing.heroTrustClosureDetail" }
+=======
+    { value: "24/7", label: "reference tracking", detail: "Public lookup with a simple reference number" },
+    { value: "5", label: "official roles", detail: "Schema-backed internal roles protected behind sign-in" },
+    { value: "1", label: "citizen identity", detail: "One profile per Aadhaar number in this prototype" },
+    { value: "99.9%", label: "System Uptime", detail: "Real-time infrastructure monitoring and service availability" }
+>>>>>>> Stashed changes
   ];
 
   const WORKFLOW_CARD_COPY = {

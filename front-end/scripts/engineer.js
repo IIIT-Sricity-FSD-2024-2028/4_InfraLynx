@@ -228,6 +228,10 @@
     const pendingResources = data.resources.filter((item) => item.status === "PENDING").length;
 
     elements.engineerGreeting.textContent = `Good morning, ${context.account.name}`;
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
     const urgentOrder = data.workOrders.find((item) => item.priority === "EMERGENCY") || data.workOrders[0];
     elements.engineerEmergencyCard.innerHTML = urgentOrder
       ? `
