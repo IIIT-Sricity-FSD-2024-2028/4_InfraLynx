@@ -29,6 +29,7 @@
       "nav.citizenAccess": "Citizen Access",
       "nav.officialAccess": "Official Sign In",
       "landing.eyebrow": "Citizen-first infrastructure service portal",
+      "landing.brandSubtitle": "CRIMS public service portal",
       "landing.titleLineOne": "InfraLynx helps citizens see",
       "landing.titleLineTwo": "real work, real accountability, and real progress.",
       "landing.lead":
@@ -50,6 +51,7 @@
       "landing.workflowHeading": "From citizen request to accountable infrastructure action",
       "landing.workflowIntro":
         "The public journey mirrors the schema: request intake, administrative review, planning, work-order conversion, execution, and closure.",
+      "landing.workflowMiniLabel": "Request status",
       "landing.accountabilityKicker": "Accountability by design",
       "landing.accountabilityHeading": "Why this portal strengthens trust and reduces corruption risk",
       "landing.accountabilityIntro":
@@ -58,6 +60,8 @@
       "landing.requestHeading": "Submit a complaint or infrastructure improvement request",
       "landing.requestIntro":
         "This form is citizen-facing and creates an immediate acknowledgement.",
+      "landing.requestHelp":
+        "One citizen profile is allowed per Aadhaar number in this prototype. If your Aadhaar already exists, use the same contact details or sign in through Citizen Access.",
       "landing.trackKicker": "Track by reference number",
       "landing.trackHeading": "Check the current status of your submitted request",
       "landing.trackIntro":
@@ -88,9 +92,18 @@
       "request.phoneLabel": "Phone number",
       "request.emailLabel": "Email address",
       "request.aadhaarLabel": "Aadhaar number",
+      "request.namePlaceholder": "Full name",
+      "request.phonePlaceholder": "10-digit mobile number",
+      "request.emailPlaceholder": "name@example.com",
+      "request.aadhaarPlaceholder": "12-digit Aadhaar",
+      "request.titlePlaceholder": "Short title for the issue or improvement",
+      "request.descriptionPlaceholder": "Explain what is happening, what should improve, and any nearby landmark.",
+      "request.locationPlaceholder": "Street, zone, landmark, or neighbourhood",
       "request.submit": "Submit request",
       "request.ackLabel": "Acknowledgement generated",
       "request.ackCopy": "Your request has been received and logged for review.",
+      "request.referenceLabel": "Reference number",
+      "request.descriptionCitizenPlaceholder": "Explain what is happening, the impact on the public, and any nearby landmark.",
       "request.nextStep": "Next public step",
       "request.nextStepValue": "Administrative review and departmental routing",
       "request.lookupLabel": "Reference number",
@@ -137,6 +150,7 @@
       "auth.sampleCitizens": "Citizen profile summary",
       "auth.sampleOfficials": "Official access summary",
       "auth.officialPanelCopy": "Enter your official email and password. Your role and workspace will be determined automatically.",
+      "auth.redirectingOfficial": "Official access verified. Redirecting to your workspace…",
       "nav.accountability": "Accountability",
       "auth.roleGuideTitle": "Official access guidance",
       "auth.roleGuideEmpty": "Select a role to see its purpose and workspace handoff.",
@@ -211,7 +225,9 @@
       "citizen.guardTitle": "Citizen sign-in is required",
       "citizen.guardCopy": "This page is available after a citizen signs in or creates an account. Use the secure citizen access flow to continue.",
       "citizen.guardPrimary": "Go to citizen sign in",
-      "citizen.guardSecondary": "Return to public portal"
+      "citizen.guardSecondary": "Return to public portal",
+      "landing.footerTitle": "InfraLynx / CRIMS public service portal",
+      "landing.footerCopy": "Citizen service visibility, accountable approvals, and disciplined public infrastructure delivery"
     },
     te: {
       "common.language": "\u0c2d\u0c3e\u0c37",
