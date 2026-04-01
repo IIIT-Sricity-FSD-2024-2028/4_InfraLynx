@@ -1,0 +1,215 @@
+.citizen-main {
+    padding: 40px 0 56px;
+  }
+  
+  .citizen-hero {
+    display: grid;
+    gap: 20px;
+  }
+  
+  .hero-copy-card {
+    padding: 30px;
+  }
+  
+  .hero-copy-card h1 {
+    margin: 14px 0 0;
+    max-width: 14ch;
+    font-family: "Sora", sans-serif;
+    font-size: clamp(2.2rem, 4.5vw, 3.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+  }
+  
+  .hero-copy-card p {
+    margin: 14px 0 0;
+    max-width: 64ch;
+    color: var(--text-soft);
+    line-height: 1.75;
+  }
+  
+  .citizen-summary-card,
+  .request-form-card,
+  .request-card,
+  .ack-card {
+    padding: 24px;
+  }
+  
+  .summary-head,
+  .request-card-head,
+  .request-card-footer,
+  .linked-order-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: start;
+  }
+  
+  .summary-head h2 {
+    margin: 8px 0 0;
+    font-family: "Sora", sans-serif;
+    font-size: 1.45rem;
+  }
+  
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+  }
+  
+  .summary-stat {
+    padding: 16px;
+    border-radius: var(--radius-md);
+    background: var(--surface-muted);
+    border: 1px solid var(--line);
+  }
+  
+  .summary-stat span,
+  .meta-chip span,
+  .linked-order span {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  
+  .summary-stat strong {
+    display: block;
+    margin-top: 8px;
+    font-family: "Sora", sans-serif;
+    font-size: 1.45rem;
+    color: var(--primary-dark);
+  }
+  
+  .summary-stat p,
+  .meta-chip strong,
+  .request-card p,
+  .linked-order p {
+    margin: 6px 0 0;
+    color: var(--text-soft);
+    line-height: 1.6;
+  }
+  
+  .panel-heading {
+    margin-bottom: 20px;
+  }
+  
+  .panel-heading h2 {
+    margin: 10px 0 0;
+    font-family: "Sora", sans-serif;
+    font-size: 1.65rem;
+    line-height: 1.12;
+  }
+  
+  .ack-card,
+  .result-card {
+    margin-top: 18px;
+    border: 1px solid rgba(22, 163, 74, 0.12);
+    background: linear-gradient(180deg, rgba(220, 252, 231, 0.45), rgba(255, 255, 255, 0.88));
+  }
+  
+  .ack-grid {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  
+  .ack-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  
+  .ack-item,
+  .meta-chip,
+  .linked-order {
+    padding: 14px 16px;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid var(--line);
+  }
+  
+  .ack-item span,
+  .tracking-meta-row span {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+  }
+  
+  .ack-item strong {
+    display: block;
+    margin-top: 6px;
+    color: var(--text);
+  }
+  
+  .request-card-head h3 {
+    margin: 0;
+    font-family: "Sora", sans-serif;
+    font-size: 1.05rem;
+  }
+  
+  .request-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 24px;
+  }
+  
+  .request-card {
+    display: grid;
+    gap: 18px;
+  }
+  
+  .request-card-head h3 {
+    margin-top: 8px;
+  }
+  
+  .request-card-body {
+    display: grid;
+    gap: 12px;
+  }
+  
+  .request-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  
+  .meta-chip strong,
+  .linked-order strong {
+    display: block;
+    margin-top: 6px;
+    color: var(--text);
+    font-size: 0.9rem;
+  }
+  
+  .linked-order {
+    background: linear-gradient(180deg, rgba(37, 99, 235, 0.05), rgba(255, 255, 255, 0.92));
+  }
+  
+  .empty-state {
+    grid-column: 1 / -1;
+  }
+  
+  @media (max-width: 1080px) {
+    .citizen-hero {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  @media (max-width: 760px) {
+    .summary-grid,
+    .ack-grid,
+    .request-card-grid,
+    .request-meta-grid {
+      grid-template-columns: 1fr;
+    }
+  
+    .summary-head,
+    .request-card-head,
+    .request-card-footer,
+    .linked-order-head {
+      flex-direction: column;
+    }
+  }
+  

@@ -27,14 +27,14 @@
         <img src="./assets/CRIMS_logo.png" alt="CRIMS logo">
         <span class="brand-copy">
           <span class="brand-title">InfraLynx</span>
-          <span class="brand-subtitle">CRIMS public service portal</span>
+          <span class="brand-subtitle" data-i18n="landing.brandSubtitle">CRIMS public service portal</span>
         </span>
       </a>
 
       <nav class="nav-links" aria-label="Primary">
         <a href="#services" data-i18n="nav.features">Services</a>
         <a href="#workflow" data-i18n="nav.workflow">Workflow</a>
-        <a href="#official-roles" data-i18n="nav.roles">Official Roles</a>
+        <a href="#accountability" data-i18n="nav.accountability">Accountability</a>
       </nav>
 
       <div class="header-actions">
@@ -51,14 +51,14 @@
     <main class="content-wrap" id="top">
       <section class="hero section">
         <div class="hero-copy">
-          <div class="eyebrow" data-i18n="landing.eyebrow">Citizen-first infrastructure service portal</div>
+          <div class="eyebrow" data-i18n="landing.eyebrow">Citizen-first infrastructure governance portal</div>
           <h1>
-            <span data-i18n="landing.titleLineOne">CRIMS keeps public infrastructure</span><br>
-            <span data-i18n="landing.titleLineTwo">transparent, responsive, and human.</span>
+            <span data-i18n="landing.titleLineOne">InfraLynx helps citizens see</span><br>
+            <span data-i18n="landing.titleLineTwo">real work, real accountability, and real progress.</span>
           </h1>
           <p data-i18n="landing.lead">
-            Citizens can raise civic complaints or improvement requests, receive a reference number immediately, and
-            track progress.
+            Citizens can report issues, suggest improvements, receive an instant public reference number, and follow
+            each request through review, planning, execution, and closure.
           </p>
 
           <div class="hero-actions">
@@ -73,10 +73,10 @@
             <span class="mini-label field-label" data-i18n="landing.publicPromiseLabel">What citizens can expect</span>
             <ul>
               <li data-i18n="landing.publicPromiseOne">Instant acknowledgement with a public reference number</li>
-              <li data-i18n="landing.publicPromiseTwo">Only concise public-safe service information on the landing page
+              <li data-i18n="landing.publicPromiseTwo">Traceable processing instead of verbal follow-up and hidden files
               </li>
-              <li data-i18n="landing.publicPromiseThree">Clear separation between citizen access and official government
-                access</li>
+              <li data-i18n="landing.publicPromiseThree">Clear separation between citizen services and secure official
+                approvals</li>
             </ul>
           </article>
         </div>
@@ -84,20 +84,21 @@
         <aside class="hero-aside">
           <article class="glass-card hero-panel">
             <div class="hero-panel-top">
-              <h3 data-i18n="landing.heroPanelTitle">Public trust panel</h3> 
+              <h3 data-i18n="landing.heroPanelTitle">Public trust panel</h3>
             </div>
             <p data-i18n="landing.heroPanelCopy">
-              Built for civic pride, development visibility, service responsiveness, and accountable delivery.
+              Designed to show that complaints are not ignored, budgets are reviewed carefully, and completed work is
+              verified before closure.
             </p>
 
             <div class="trust-grid" id="public-stat-cards"></div>
           </article>
 
           <article class="glass-card hero-side-card">
-            <p class="field-label">Public workflow</p>
+            <p class="field-label" data-i18n="landing.workflowMiniLabel">Public workflow</p>
             <p class="muted">
-              New submissions enter the <span class="mono">RECEIVED</span> stage, generate a public reference number,
-              and move through administrative review before planning and work-order conversion.
+              Every citizen request enters the <span class="mono">RECEIVED</span> stage, becomes visible through a
+              reference number, and then moves through review, budgeting, field execution, and quality certification.
             </p>
           </article>
         </aside>
@@ -107,8 +108,8 @@
         <div class="section-heading">
           <div class="section-kicker" data-i18n="landing.statsHeading">Visible progress citizens can feel proud of</div>
           <p data-i18n="landing.statsCopy">
-            CRIMS presents public-facing development outcomes in a concise way while keeping deeper operational
-            workflows inside secure role-based spaces.
+            The landing page highlights what matters publicly: city services covered, visible development outcomes, and
+            the checks that help keep public work efficient and honest.
           </p>
         </div>
         <div class="stat-grid" id="public-stats-grid"></div>
@@ -119,39 +120,79 @@
           <div class="section-kicker" data-i18n="landing.workflowKicker">Workflow</div>
           <h2 data-i18n="landing.workflowHeading">From citizen request to accountable infrastructure action</h2>
           <p data-i18n="landing.workflowIntro">
-            The public journey mirrors the schema: request intake, administrative review, planning, work-order
-            conversion, execution, and closure.
+            The workflow follows the domain expert guidance: public demand is captured, feasibility is reviewed,
+            budgets are checked, officers assign work, engineers execute on-site, and QC validates closure.
           </p>
         </div>
 
         <div class="workflow-strip">
           <article class="glass-card workflow-card">
             <span class="step">01</span>
-            <h3>Submit</h3>
-            <p>Citizens file a complaint or improvement request with contact details, Aadhaar-linked identity, and
-              location text.</p>
+            <h3>Raise</h3>
+            <p>Citizens or community representatives flag a public issue or improvement need with location and contact
+              details.</p>
           </article>
           <article class="glass-card workflow-card">
             <span class="step">02</span>
             <h3>Acknowledge</h3>
-            <p>CRIMS issues a public reference number immediately and stores the request in the <span
-                class="mono">RECEIVED</span> state.</p>
+            <p>InfraLynx generates a reference number immediately, creating a visible starting point for tracking and
+              follow-up.</p>
           </article>
           <article class="glass-card workflow-card">
             <span class="step">03</span>
-            <h3>Review</h3>
-            <p>City administrators evaluate feasibility and move eligible requests toward planning and work-order
-              creation.</p>
+            <h3>Review & plan</h3>
+            <p>Administrators and department officers evaluate feasibility, urgency, field requirements, and planning
+              readiness.</p>
           </article>
           <article class="glass-card workflow-card">
             <span class="step">04</span>
-            <h3>Execute</h3>
-            <p>Department officers and field engineers coordinate planning, assignments, and on-ground execution.</p>
+            <h3>Approve & execute</h3>
+            <p>Budgets, quotations, and procurement checks happen before officers and engineers carry out the work on
+              the ground.</p>
           </article>
           <article class="glass-card workflow-card">
             <span class="step">05</span>
-            <h3>Close</h3>
-            <p>Validation, QC review, and project accountability make the service outcome transparent and auditable.</p>
+            <h3>Verify & close</h3>
+            <p>QC certification and administrative validation are required before a project is marked complete for the
+              public record.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="accountability">
+        <div class="section-heading">
+          <div class="section-kicker" data-i18n="landing.accountabilityKicker">Accountability by design</div>
+          <h2 data-i18n="landing.accountabilityHeading">Why this portal strengthens trust and reduces corruption risk</h2>
+          <p data-i18n="landing.accountabilityIntro">
+            The system is built around traceable approvals, controlled spending, and independent verification, so
+            public work is harder to hide, delay without reason, or close without proof.
+          </p>
+        </div>
+
+        <div class="assurance-grid">
+          <article class="glass-card assurance-card">
+            <span class="field-label">Traceable requests</span>
+            <h3>Each issue gets a public reference number</h3>
+            <p>Citizens do not need to rely on informal calls or personal influence. Every submission enters the system
+              with a trackable identity.</p>
+          </article>
+          <article class="glass-card assurance-card">
+            <span class="field-label">Budget scrutiny</span>
+            <h3>Funds move through multi-stage review</h3>
+            <p>Field estimates, officer verification, quotation comparison, and finance approval create a stronger
+              record before money is released.</p>
+          </article>
+          <article class="glass-card assurance-card">
+            <span class="field-label">Procurement checks</span>
+            <h3>Vendor quotations and GST validation are required</h3>
+            <p>Technical and financial justification reduce arbitrary purchases and make bill approval more disciplined
+              and auditable.</p>
+          </article>
+          <article class="glass-card assurance-card">
+            <span class="field-label">Independent closure</span>
+            <h3>QC certification comes before completion</h3>
+            <p>Work cannot be casually marked done. A separate quality review helps ensure that closure reflects actual
+              field performance.</p>
           </article>
         </div>
       </section>
@@ -161,7 +202,7 @@
           <div class="section-kicker" data-i18n="landing.requestKicker">Raise a request</div>
           <h2 data-i18n="landing.requestHeading">Submit a complaint or infrastructure improvement request</h2>
           <p data-i18n="landing.requestIntro">
-            This form is citizen-facing and creates an immediate acknowledgement.
+            This citizen form creates an immediate acknowledgement and starts a traceable service record.
           </p>
         </div>
 
@@ -171,22 +212,22 @@
               <div class="inline-grid">
                 <label class="field">
                   <span class="field-label" data-i18n="request.nameLabel">Citizen name</span>
-                  <input type="text" name="name" autocomplete="name" placeholder="Full name">
+                  <input type="text" name="name" autocomplete="name" data-i18n-placeholder="request.namePlaceholder" placeholder="Full name">
                 </label>
                 <label class="field">
                   <span class="field-label" data-i18n="request.phoneLabel">Phone number</span>
-                  <input type="tel" name="phone" autocomplete="tel" placeholder="10-digit mobile number">
+                  <input type="tel" name="phone" autocomplete="tel" data-i18n-placeholder="request.phonePlaceholder" placeholder="10-digit mobile number">
                 </label>
               </div>
 
               <div class="inline-grid">
                 <label class="field">
                   <span class="field-label" data-i18n="request.emailLabel">Email address</span>
-                  <input type="email" name="email" autocomplete="email" placeholder="name@example.com">
+                  <input type="email" name="email" autocomplete="email" data-i18n-placeholder="request.emailPlaceholder" placeholder="name@example.com">
                 </label>
                 <label class="field">
                   <span class="field-label" data-i18n="request.aadhaarLabel">Aadhaar number</span>
-                  <input type="text" name="aadhaar" inputmode="numeric" maxlength="12" placeholder="12-digit Aadhaar">
+                  <input type="text" name="aadhaar" inputmode="numeric" maxlength="12" data-i18n-placeholder="request.aadhaarPlaceholder" placeholder="12-digit Aadhaar">
                 </label>
               </div>
 
@@ -203,19 +244,19 @@
 
               <label class="field">
                 <span class="field-label" data-i18n="request.titleLabel">Request title</span>
-                <input type="text" name="title" placeholder="Short title for the issue or improvement">
+                <input type="text" name="title" data-i18n-placeholder="request.titlePlaceholder" placeholder="Short title for the issue or improvement">
               </label>
 
               <label class="field">
                 <span class="field-label" data-i18n="request.descriptionLabel">Describe the issue or improvement</span>
-                <textarea name="description"
+                <textarea name="description" data-i18n-placeholder="request.descriptionPlaceholder"
                   placeholder="Explain what is happening, what should improve, and any nearby landmark."></textarea>
               </label>
 
               <div class="inline-grid">
                 <label class="field">
                   <span class="field-label" data-i18n="request.locationLabel">Location text</span>
-                  <input type="text" name="locationText" placeholder="Street, zone, landmark, or neighbourhood">
+                  <input type="text" name="locationText" data-i18n-placeholder="request.locationPlaceholder" placeholder="Street, zone, landmark, or neighbourhood">
                 </label>
                 <label class="field">
                   <span class="field-label" data-i18n="request.urgencyLabel">Urgency</span>
@@ -223,7 +264,7 @@
                 </label>
               </div>
 
-              <div class="field-help">
+              <div class="field-help" data-i18n="landing.requestHelp">
                 One citizen profile is allowed per Aadhaar number in this prototype. If your Aadhaar already exists, use
                 the same contact details or sign in through Citizen Access.
               </div>
@@ -242,7 +283,7 @@
               <p data-i18n="request.ackCopy">Your request has been received and logged for review.</p>
               <div class="ack-grid">
                 <div class="ack-item">
-                  <span>Reference number</span>
+                  <span data-i18n="request.referenceLabel">Reference number</span>
                   <strong class="mono" id="ack-reference"></strong>
                 </div>
                 <div class="ack-item">
@@ -261,7 +302,7 @@
             <div class="section-kicker" data-i18n="landing.trackKicker">Track by reference number</div>
             <h2 data-i18n="landing.trackHeading">Check the current status of your submitted request</h2>
             <p class="muted" data-i18n="landing.trackIntro">
-              Tracking is reference-based, keeping the public flow simple.
+              Tracking stays simple for citizens while still reflecting disciplined internal processing.
             </p>
 
             <form id="tracking-form" class="tracking-form" novalidate>
@@ -309,43 +350,17 @@
       <section class="section">
         <div class="section-heading">
           <div class="section-kicker" data-i18n="landing.prideKicker">Why this matters</div>
-          <h2 data-i18n="landing.prideHeading">A public portal that signals development, trust, and city pride</h2>
+          <h2 data-i18n="landing.prideHeading">A city feels stronger when public work is visible, disciplined, and fair</h2>
         </div>
         <div class="impact-grid" id="impact-grid"></div>
       </section>
 
-      <section class="section" id="official-roles">
-        <div class="section-heading">
-          <div class="section-kicker" data-i18n="landing.rolesKicker">Official roles</div>
-          <h2 data-i18n="landing.rolesHeading">Secure government workflows begin after sign-in</h2>
-          <p data-i18n="landing.rolesIntro">
-            Internal actors are invite-only in this prototype, which is the more professional and real-world approach
-            for government systems.
-          </p>
-        </div>
-        <div class="role-grid" id="official-role-grid"></div>
-
-        <article class="glass-card auth-callout">
-          <div>
-            <h3 data-i18n="landing.authCtaTitle">Need secure access?</h3>
-            <p data-i18n="landing.authCtaCopy">
-              Citizens can create an access profile, while officials use role-based government sign-in.
-            </p>
-          </div>
-          <div class="auth-callout-actions">
-            <a class="button button-secondary" href="./auth.html?mode=citizen" data-i18n="nav.citizenAccess">Citizen
-              Access</a>
-            <a class="button button-primary" href="./auth.html?mode=official" data-i18n="landing.authCtaButton">Open
-              auth portal</a>
-          </div>
-        </article>
-      </section>
     </main>
 
     <footer class="footer content-wrap">
       <div class="glass-card footer-card">
-        <span>InfraLynx / CRIMS public service portal</span>
-        <span>Citizen request intake, acknowledgement, and role-based auth handoff</span>
+        <span data-i18n="landing.footerTitle">InfraLynx / CRIMS public service portal</span>
+        <span data-i18n="landing.footerCopy">Citizen service visibility, accountable approvals, and disciplined public infrastructure delivery</span>
       </div>
     </footer>
   </div>

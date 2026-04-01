@@ -1,7 +1,7 @@
 (function attachDataStore(globalScope) {
   const crims = (globalScope.CRIMS = globalScope.CRIMS || {});
   const FALLBACK_SEED_DATA = crims.seedData;
-  const STORE_KEY = "crims-front-end-state-v2";
+  const STORE_KEY = "crims-front-end-state";
   const SESSION_KEY = "crims-front-end-session";
   const LANGUAGE_KEY = "crims-front-end-language";
   const COLLECTION_KEYS = [
@@ -44,6 +44,15 @@
     return JSON.parse(JSON.stringify(data));
   }
 
+  function translate(key, fallback) {
+    const i18n = globalScope.CRIMS && globalScope.CRIMS.i18n;
+    if (!i18n || typeof i18n.t !== "function") {
+      return fallback;
+    }
+
+    return i18n.t(key) || fallback;
+  }
+
   function storageAvailable(type) {
     try {
       const storage = globalScope[type];
@@ -83,32 +92,19 @@
 
   function normalizeState(candidateState) {
     const seededState = clone(FALLBACK_SEED_DATA);
-    const currentVersion = seededState.meta.seedVersion;
     const sourceState = candidateState && typeof candidateState === "object" ? candidateState : {};
-
-    // If the stored seed version doesn't match the current one, discard all
-    // stale collections and re-seed from scratch. This prevents login failures
-    // caused by outdated localStorage across different browsers.
-    const storedVersion = sourceState.meta && sourceState.meta.seedVersion;
-    const isStale = storedVersion !== currentVersion;
-
     const normalizedState = {
       ...seededState,
       ...sourceState,
       meta: {
         ...seededState.meta,
         ...(sourceState.meta || {}),
-        seedVersion: currentVersion
+        seedVersion: seededState.meta.seedVersion
       }
     };
 
     COLLECTION_KEYS.forEach((key) => {
-      if (isStale) {
-        // Stale version — always use fresh seed data so accounts are correct
-        normalizedState[key] = clone(seededState[key] || []);
-      } else {
-        normalizedState[key] = Array.isArray(sourceState[key]) ? sourceState[key] : clone(seededState[key] || []);
-      }
+      normalizedState[key] = Array.isArray(sourceState[key]) ? sourceState[key] : clone(seededState[key] || []);
     });
 
     return normalizedState;
@@ -211,12 +207,12 @@
     const aadhaarMatch = state.citizenUsers.find((user) => user.aadhaar === payload.aadhaar);
 
     if (aadhaarMatch) {
-      throw new Error("An account already exists for this Aadhaar number.");
+      throw new Error(translate("error.accountExistsAadhaar", "An account already exists for this Aadhaar number."));
     }
 
     const emailMatch = state.citizenUsers.find((user) => user.email.toLowerCase() === payload.email.toLowerCase());
     if (emailMatch) {
-      throw new Error("This email is already linked to an existing citizen account.");
+      throw new Error(translate("error.accountExistsEmail", "This email is already linked to an existing citizen account."));
     }
 
     const citizenRecord = {
@@ -243,7 +239,7 @@
     });
 
     if (!citizen || citizen.password !== password) {
-      throw new Error("Citizen sign-in failed. Check the Aadhaar or email and password.");
+      throw new Error(translate("error.citizenSignInFailed", "Citizen sign-in failed. Check the Aadhaar or email and password."));
     }
 
     const session = {
@@ -264,7 +260,7 @@
     });
 
     if (!account || account.password !== password) {
-      throw new Error("Sign-in failed. Check your email and password.");
+      throw new Error(translate("error.officialSignInFailed", "Sign-in failed. Check your email and password."));
     }
 
     const session = {
@@ -305,7 +301,10 @@
 
     if (!matchesKnownIdentity) {
       throw new Error(
-        "This Aadhaar number is already linked to another citizen identity. Use matching contact details or sign in first."
+        translate(
+          "error.aadhaarLinkedConflict",
+          "This Aadhaar number is already linked to another citizen identity. Use matching contact details or sign in first."
+        )
       );
     }
 
@@ -318,7 +317,7 @@
     const category = getCategoryById(payload.categoryId);
 
     if (!category) {
-      throw new Error("Select a valid service category before submitting the request.");
+      throw new Error(translate("error.invalidServiceCategory", "Select a valid service category before submitting the request."));
     }
 
     const requestRecord = {
@@ -560,7 +559,11 @@
       priority: payload.priority,
       status: payload.status,
       dueDate: payload.dueDate,
-      notes: payload.notes.trim()
+      notes: String(payload.notes || "").trim(),
+      approvedBy: payload.approvedBy || null,
+      approvedAt: payload.approvedAt || null,
+      rejectedBy: payload.rejectedBy || null,
+      rejectedAt: payload.rejectedAt || null
     };
 
     if (payload.id) {
@@ -1045,10 +1048,11 @@
   /* ── Outcome / Accountability Reports ── */
   function upsertOutcomeReport(payload) {
     const state = getState();
+    const linkedWorkOrderId = payload.workOrderId || "";
     const record = {
       id: payload.id || createId("outcome"),
       departmentId: payload.departmentId,
-      workOrderId: payload.workOrderId || "",
+      workOrderId: linkedWorkOrderId,
       preparedBy: payload.preparedBy || "",
       title: payload.title.trim(),
       summary: (payload.summary || "").trim(),
@@ -1065,6 +1069,28 @@
       state.outcomeReports = [record].concat(state.outcomeReports || []);
       prependActivity(state, "Outcome report submitted", `${record.title} was submitted for review.`);
     }
+
+    if (linkedWorkOrderId) {
+      state.workOrders = (state.workOrders || []).map((workOrder) => {
+        if (workOrder.id !== linkedWorkOrderId) {
+          return workOrder;
+        }
+
+        return {
+          ...workOrder,
+          status: "COMPLETED"
+        };
+      });
+      const linkedWorkOrder = (state.workOrders || []).find((item) => item.id === linkedWorkOrderId);
+      if (linkedWorkOrder) {
+        prependActivity(
+          state,
+          "Work order completed",
+          `${linkedWorkOrder.referenceNo} was marked completed after the outcome report was submitted.`
+        );
+      }
+    }
+
     saveState(state);
     return record;
   }
