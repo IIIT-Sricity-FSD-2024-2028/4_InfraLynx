@@ -78,6 +78,27 @@
               <strong>Submit field updates</strong>
             </div>
           </a>
+          <a class="sidebar-nav-link" href="#maintenance-logs" data-engineer-nav>
+            <div class="sidebar-nav-icon">🔩</div>
+            <div class="sidebar-nav-label">
+              <span>Maintenance Logs</span>
+              <strong>Log work done</strong>
+            </div>
+          </a>
+          <a class="sidebar-nav-link" href="#material-logs" data-engineer-nav>
+            <div class="sidebar-nav-icon">📦</div>
+            <div class="sidebar-nav-label">
+              <span>Material Usage</span>
+              <strong>Log materials used</strong>
+            </div>
+          </a>
+          <a class="sidebar-nav-link" href="#sensor-deploy" data-engineer-nav>
+            <div class="sidebar-nav-icon">📡</div>
+            <div class="sidebar-nav-label">
+              <span>Sensor Deployment</span>
+              <strong>Install &amp; record</strong>
+            </div>
+          </a>
         </nav>
 
         <div class="sidebar-footer">
@@ -411,14 +432,224 @@
             </div>
           </section>
 
+          <!-- ── Maintenance Logs ── -->
+          <section id="maintenance-logs" class="nav-panel-hidden control-section">
+            <div class="section-heading">
+              <div class="section-kicker">Maintenance Logs</div>
+              <h2>Log maintenance activities performed on site</h2>
+              <p>Record hours spent, tasks completed, and link each log to a maintenance schedule or work order for officer visibility.</p>
+            </div>
+            <div class="control-grid">
+              <article class="glass-card table-card">
+                <div class="table-shell">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Date</th>
+                        <th>Hours</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="mlog-table-body"></tbody>
+                  </table>
+                </div>
+              </article>
+              <article class="glass-card form-card">
+                <div class="panel-heading compact">
+                  <div>
+                    <div class="section-kicker">Log Editor</div>
+                    <h3 id="mlog-form-title">Add maintenance log</h3>
+                  </div>
+                  <button class="button button-secondary small-button" id="mlog-reset" type="button">Reset</button>
+                </div>
+                <form class="form-grid" id="mlog-form" novalidate>
+                  <input type="hidden" name="id">
+                  <input type="hidden" name="departmentId">
+                  <input type="hidden" name="engineerId">
+                  <label class="field">
+                    <span class="field-label">Log title</span>
+                    <input type="text" name="title" placeholder="What maintenance was done">
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Activity description</span>
+                    <textarea name="activity" placeholder="Detail the work performed, observations, and outcomes"></textarea>
+                  </label>
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Date</span>
+                      <input type="date" name="date">
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Hours spent</span>
+                      <input type="number" name="hoursSpent" min="0" step="0.5" placeholder="0.0">
+                    </label>
+                  </div>
+                  <label class="field">
+                    <span class="field-label">Status</span>
+                    <select name="status" id="mlog-status-select"></select>
+                  </label>
+                  <div class="auth-actions">
+                    <button class="button button-primary" type="submit">Save log</button>
+                  </div>
+                  <div class="error-text hidden" id="mlog-error"></div>
+                </form>
+              </article>
+            </div>
+          </section>
+
+          <!-- ── Material Usage Logs ── -->
+          <section id="material-logs" class="nav-panel-hidden control-section">
+            <div class="section-heading">
+              <div class="section-kicker">Material Usage</div>
+              <h2>Record materials and consumables used on site</h2>
+              <p>Each material log is linked to a work order and provides the Department Officer with an accurate spend audit trail.</p>
+            </div>
+            <div class="control-grid">
+              <article class="glass-card table-card">
+                <div class="table-shell">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Material</th>
+                        <th>Quantity</th>
+                        <th>Unit</th>
+                        <th>Used on</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="matlog-table-body"></tbody>
+                  </table>
+                </div>
+              </article>
+              <article class="glass-card form-card">
+                <div class="panel-heading compact">
+                  <div>
+                    <div class="section-kicker">Material Editor</div>
+                    <h3 id="matlog-form-title">Add material usage</h3>
+                  </div>
+                  <button class="button button-secondary small-button" id="matlog-reset" type="button">Reset</button>
+                </div>
+                <form class="form-grid" id="matlog-form" novalidate>
+                  <input type="hidden" name="id">
+                  <input type="hidden" name="departmentId">
+                  <input type="hidden" name="engineerId">
+                  <label class="field">
+                    <span class="field-label">Linked work order</span>
+                    <select name="workOrderId" id="matlog-work-order-select"></select>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Material / item name</span>
+                    <input type="text" name="material" placeholder="e.g. Guard rail section, Bitumen mix">
+                  </label>
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Quantity</span>
+                      <input type="text" name="quantity" placeholder="e.g. 12, 0.5">
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Unit</span>
+                      <input type="text" name="unit" placeholder="nos, kg, m²">
+                    </label>
+                  </div>
+                  <label class="field">
+                    <span class="field-label">Date used</span>
+                    <input type="date" name="usedOn">
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Notes</span>
+                    <textarea name="notes" placeholder="Optional: source, batch no., observations"></textarea>
+                  </label>
+                  <div class="auth-actions">
+                    <button class="button button-primary" type="submit">Save material log</button>
+                  </div>
+                  <div class="error-text hidden" id="matlog-error"></div>
+                </form>
+              </article>
+            </div>
+          </section>
+
+          <!-- ── Sensor Deployment ── -->
+          <section id="sensor-deploy" class="nav-panel-hidden control-section">
+            <div class="section-heading">
+              <div class="section-kicker">Sensor Deployment</div>
+              <h2>Install and record IoT sensors and field equipment</h2>
+              <p>Capture installation details including serial number, location, and commissioning status so the city's smart asset registry stays current.</p>
+            </div>
+            <div class="control-grid">
+              <article class="glass-card table-card">
+                <div class="table-shell">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Sensor type</th>
+                        <th>Location</th>
+                        <th>Serial no.</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="sensor-table-body"></tbody>
+                  </table>
+                </div>
+              </article>
+              <article class="glass-card form-card">
+                <div class="panel-heading compact">
+                  <div>
+                    <div class="section-kicker">Deployment Editor</div>
+                    <h3 id="sensor-form-title">Add deployment</h3>
+                  </div>
+                  <button class="button button-secondary small-button" id="sensor-reset" type="button">Reset</button>
+                </div>
+                <form class="form-grid" id="sensor-form" novalidate>
+                  <input type="hidden" name="id">
+                  <input type="hidden" name="departmentId">
+                  <input type="hidden" name="engineerId">
+                  <label class="field">
+                    <span class="field-label">Sensor / equipment type</span>
+                    <input type="text" name="sensorType" placeholder="e.g. Structural vibration monitor, Flow sensor">
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Asset location</span>
+                    <input type="text" name="assetLocation" placeholder="Bridge, road, pump station location">
+                  </label>
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Serial number</span>
+                      <input type="text" name="serialNo" placeholder="Manufacturer serial">
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Status</span>
+                      <select name="status" id="sensor-status-select"></select>
+                    </label>
+                  </div>
+                  <label class="field">
+                    <span class="field-label">Commissioning notes</span>
+                    <textarea name="notes" placeholder="Calibration, network connectivity, alert thresholds"></textarea>
+                  </label>
+                  <div class="auth-actions">
+                    <button class="button button-primary" type="submit">Save deployment</button>
+                  </div>
+                  <div class="error-text hidden" id="sensor-error"></div>
+                </form>
+              </article>
+            </div>
+          </section>
+
         </main>
       </div>
     </div>
   </div>
 
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
   <script src="./scripts/seed-data.js"></script>
   <script src="./scripts/data-store.js"></script>
+  <script src="./scripts/utils.js"></script>
   <script src="./scripts/i18n.js"></script>
+  <script src="./scripts/toast.js"></script>
   <script src="./scripts/engineer.js"></script>
   <script src="./scripts/nav-tabs.js"></script>
 </body>

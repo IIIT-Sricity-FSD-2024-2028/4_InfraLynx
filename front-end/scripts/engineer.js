@@ -5,6 +5,9 @@
     deleteIssueReport,
     deleteProgressReport,
     deleteResourceRequest,
+    deleteMaintenanceLog,
+    deleteTaskMaterialLog,
+    deleteSensorDeployment,
     formatDisplayDate,
     formatStatus,
     getDepartmentById,
@@ -15,7 +18,10 @@
     upsertInspection,
     upsertIssueReport,
     upsertProgressReport,
-    upsertResourceRequest
+    upsertResourceRequest,
+    upsertMaintenanceLog,
+    upsertTaskMaterialLog,
+    upsertSensorDeployment
   } = globalScope.CRIMS.store;
   const { bindLanguageSelector } = globalScope.CRIMS.i18n;
 
@@ -24,6 +30,8 @@
   const ISSUE_STATUSES = ["OPEN", "UNDER_REVIEW", "RESOLVED", "CLOSED", "REJECTED"];
   const RESOURCE_STATUSES = ["PENDING", "APPROVED", "REJECTED", "FULFILLED"];
   const REPORT_STATUSES = ["DRAFT", "SUBMITTED", "ACKNOWLEDGED"];
+  const MLOG_STATUSES = ["COMPLETED", "PARTIAL", "CANCELLED"];
+  const SENSOR_STATUSES = ["ACTIVE", "OFFLINE", "DECOMMISSIONED"];
   const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "EMERGENCY"];
 
   const elements = {
@@ -62,7 +70,25 @@
     reportReset: document.querySelector("#report-reset"),
     reportError: document.querySelector("#report-error"),
     reportWorkOrderSelect: document.querySelector("#report-work-order-select"),
-    reportStatusSelect: document.querySelector("#report-status-select")
+    reportStatusSelect: document.querySelector("#report-status-select"),
+    mlogTableBody: document.querySelector("#mlog-table-body"),
+    mlogForm: document.querySelector("#mlog-form"),
+    mlogFormTitle: document.querySelector("#mlog-form-title"),
+    mlogReset: document.querySelector("#mlog-reset"),
+    mlogError: document.querySelector("#mlog-error"),
+    mlogStatusSelect: document.querySelector("#mlog-status-select"),
+    matlogTableBody: document.querySelector("#matlog-table-body"),
+    matlogForm: document.querySelector("#matlog-form"),
+    matlogFormTitle: document.querySelector("#matlog-form-title"),
+    matlogReset: document.querySelector("#matlog-reset"),
+    matlogError: document.querySelector("#matlog-error"),
+    matlogWorkOrderSelect: document.querySelector("#matlog-work-order-select"),
+    sensorTableBody: document.querySelector("#sensor-table-body"),
+    sensorForm: document.querySelector("#sensor-form"),
+    sensorFormTitle: document.querySelector("#sensor-form-title"),
+    sensorReset: document.querySelector("#sensor-reset"),
+    sensorError: document.querySelector("#sensor-error"),
+    sensorStatusSelect: document.querySelector("#sensor-status-select")
   };
 
   function escapeHtml(value) {
@@ -187,6 +213,9 @@
       issues: (state.issueReports || []).filter((item) => item.engineerId === context.account.id),
       resources: (state.resourceRequests || []).filter((item) => item.engineerId === context.account.id),
       reports: (state.progressReports || []).filter((item) => item.engineerId === context.account.id),
+      maintenanceLogs: (state.maintenanceLogs || []).filter((item) => item.engineerId === context.account.id),
+      materialLogs: (state.taskMaterialLogs || []).filter((item) => item.engineerId === context.account.id),
+      sensorDeployments: (state.sensorDeployments || []).filter((item) => item.engineerId === context.account.id),
       notifications: (state.activityFeed || []).slice(0, 4)
     };
   }
@@ -325,6 +354,33 @@
       ...data.workOrders.map((item) => `<option value="${item.id}">${escapeHtml(item.referenceNo)} - ${escapeHtml(item.title)}</option>`)
     ].join("");
 
+    if (elements.mlogStatusSelect) {
+      const curMlogStatus = elements.mlogStatusSelect.value;
+      elements.mlogStatusSelect.innerHTML = [
+        '<option value="">Select status</option>',
+        ...MLOG_STATUSES.map((item) => `<option value="${item}">${formatStatus(item)}</option>`)
+      ].join("");
+      elements.mlogStatusSelect.value = curMlogStatus;
+    }
+
+    if (elements.matlogWorkOrderSelect) {
+      const curMatWO = elements.matlogWorkOrderSelect.value;
+      elements.matlogWorkOrderSelect.innerHTML = [
+        '<option value="">No linked work order</option>',
+        ...data.workOrders.map((item) => `<option value="${item.id}">${escapeHtml(item.referenceNo)} - ${escapeHtml(item.title)}</option>`)
+      ].join("");
+      elements.matlogWorkOrderSelect.value = curMatWO;
+    }
+
+    if (elements.sensorStatusSelect) {
+      const curSensorStatus = elements.sensorStatusSelect.value;
+      elements.sensorStatusSelect.innerHTML = [
+        '<option value="">Select status</option>',
+        ...SENSOR_STATUSES.map((item) => `<option value="${item}">${formatStatus(item)}</option>`)
+      ].join("");
+      elements.sensorStatusSelect.value = curSensorStatus;
+    }
+
     elements.inspectionSeveritySelect.value = currentInspectionSeverity;
     elements.inspectionStatusSelect.value = currentInspectionStatus;
     elements.issueSeveritySelect.value = currentIssueSeverity;
@@ -455,6 +511,9 @@
     renderIssueTable(context);
     renderResourceTable(context);
     renderReportTable(context);
+    renderMlogTable(context);
+    renderMatlogTable(context);
+    renderSensorTable(context);
   }
 
   function resetInspectionForm(context) {
@@ -709,6 +768,214 @@
     });
   }
 
+  /* ── Maintenance Log rendering ── */
+  function renderMlogTable(context) {
+    if (!elements.mlogTableBody) return;
+    const data = getEngineerData(context);
+    if (!data.maintenanceLogs.length) {
+      elements.mlogTableBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No maintenance logs recorded yet.</div></td></tr>';
+      return;
+    }
+    elements.mlogTableBody.innerHTML = data.maintenanceLogs.map((item) => `
+      <tr>
+        <td><strong>${escapeHtml(item.title)}</strong></td>
+        <td>${escapeHtml(item.date)}</td>
+        <td>${escapeHtml(String(item.hoursSpent || 0))} hr</td>
+        <td><span class="status-pill neutral">${escapeHtml(formatStatus(item.status))}</span></td>
+        <td><div class="row-actions">
+          <button class="text-button" type="button" data-mlog-edit="${item.id}">Edit</button>
+          <button class="text-button danger" type="button" data-mlog-delete="${item.id}">Delete</button>
+        </div></td>
+      </tr>`).join("");
+  }
+
+  function resetMlogForm(context) {
+    if (!elements.mlogForm) return;
+    elements.mlogForm.reset();
+    elements.mlogForm.elements.id.value = "";
+    elements.mlogForm.elements.departmentId.value = context.department.id;
+    elements.mlogForm.elements.engineerId.value = context.account.id;
+    elements.mlogFormTitle.textContent = "Add maintenance log";
+    globalScope.CRIMS.utils.showError(elements.mlogError, "");
+  }
+
+  function validateMlog(payload) {
+    if (!payload.title.trim() || !payload.activity.trim() || !payload.date || !payload.status) {
+      return "Title, description, date, and status are all required.";
+    }
+    if (payload.activity.trim().length < 12) return "Write a more detailed activity description.";
+    return "";
+  }
+
+  function bindMlogControls(context) {
+    if (!elements.mlogForm) return;
+    elements.mlogReset.addEventListener("click", () => resetMlogForm(context));
+    elements.mlogForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const payload = Object.fromEntries(new FormData(elements.mlogForm).entries());
+      const error = validateMlog(payload);
+      globalScope.CRIMS.utils.showError(elements.mlogError, "");
+      if (error) { globalScope.CRIMS.utils.showError(elements.mlogError, error); return; }
+      try {
+        upsertMaintenanceLog(payload);
+        resetMlogForm(context);
+        renderAll(context);
+      } catch (err) { globalScope.CRIMS.utils.showError(elements.mlogError, err.message); }
+    });
+    elements.mlogTableBody.addEventListener("click", (event) => {
+      const editBtn = event.target.closest("[data-mlog-edit]");
+      const delBtn = event.target.closest("[data-mlog-delete]");
+      if (editBtn) {
+        const record = getState().maintenanceLogs.find((item) => item.id === editBtn.dataset.mlogEdit);
+        if (!record) return;
+        Object.entries(record).forEach(([k, v]) => { if (elements.mlogForm.elements[k]) elements.mlogForm.elements[k].value = v || ""; });
+        elements.mlogFormTitle.textContent = `Edit: ${record.title}`;
+      }
+      if (delBtn) {
+        try { deleteMaintenanceLog(delBtn.dataset.mlogDelete); resetMlogForm(context); renderAll(context); }
+        catch (err) { globalScope.CRIMS.utils.showError(elements.mlogError, err.message); }
+      }
+    });
+  }
+
+  /* ── Material Log rendering ── */
+  function renderMatlogTable(context) {
+    if (!elements.matlogTableBody) return;
+    const data = getEngineerData(context);
+    if (!data.materialLogs.length) {
+      elements.matlogTableBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No material usage logged yet.</div></td></tr>';
+      return;
+    }
+    elements.matlogTableBody.innerHTML = data.materialLogs.map((item) => `
+      <tr>
+        <td><strong>${escapeHtml(item.material)}</strong></td>
+        <td>${escapeHtml(item.quantity)}</td>
+        <td>${escapeHtml(item.unit)}</td>
+        <td>${escapeHtml(item.usedOn)}</td>
+        <td><div class="row-actions">
+          <button class="text-button" type="button" data-matlog-edit="${item.id}">Edit</button>
+          <button class="text-button danger" type="button" data-matlog-delete="${item.id}">Delete</button>
+        </div></td>
+      </tr>`).join("");
+  }
+
+  function resetMatlogForm(context) {
+    if (!elements.matlogForm) return;
+    elements.matlogForm.reset();
+    elements.matlogForm.elements.id.value = "";
+    elements.matlogForm.elements.departmentId.value = context.department.id;
+    elements.matlogForm.elements.engineerId.value = context.account.id;
+    elements.matlogFormTitle.textContent = "Add material usage";
+    globalScope.CRIMS.utils.showError(elements.matlogError, "");
+  }
+
+  function validateMatlog(payload) {
+    if (!payload.material.trim() || payload.material.trim().length < 3) return "Enter a valid material name (min 3 characters).";
+    if (!payload.quantity.trim()) return "Quantity is required.";
+    if (!payload.usedOn) return "Enter the date the material was used.";
+    return "";
+  }
+
+  function bindMatlogControls(context) {
+    if (!elements.matlogForm) return;
+    elements.matlogReset.addEventListener("click", () => resetMatlogForm(context));
+    elements.matlogForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const payload = Object.fromEntries(new FormData(elements.matlogForm).entries());
+      const error = validateMatlog(payload);
+      globalScope.CRIMS.utils.showError(elements.matlogError, "");
+      if (error) { globalScope.CRIMS.utils.showError(elements.matlogError, error); return; }
+      try {
+        upsertTaskMaterialLog(payload);
+        resetMatlogForm(context);
+        renderAll(context);
+      } catch (err) { globalScope.CRIMS.utils.showError(elements.matlogError, err.message); }
+    });
+    elements.matlogTableBody.addEventListener("click", (event) => {
+      const editBtn = event.target.closest("[data-matlog-edit]");
+      const delBtn = event.target.closest("[data-matlog-delete]");
+      if (editBtn) {
+        const record = getState().taskMaterialLogs.find((item) => item.id === editBtn.dataset.matlogEdit);
+        if (!record) return;
+        Object.entries(record).forEach(([k, v]) => { if (elements.matlogForm.elements[k]) elements.matlogForm.elements[k].value = v || ""; });
+        elements.matlogFormTitle.textContent = `Edit: ${record.material}`;
+      }
+      if (delBtn) {
+        try { deleteTaskMaterialLog(delBtn.dataset.matlogDelete); resetMatlogForm(context); renderAll(context); }
+        catch (err) { globalScope.CRIMS.utils.showError(elements.matlogError, err.message); }
+      }
+    });
+  }
+
+  /* ── Sensor Deployment rendering ── */
+  function renderSensorTable(context) {
+    if (!elements.sensorTableBody) return;
+    const data = getEngineerData(context);
+    if (!data.sensorDeployments.length) {
+      elements.sensorTableBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No sensor deployments recorded yet.</div></td></tr>';
+      return;
+    }
+    elements.sensorTableBody.innerHTML = data.sensorDeployments.map((item) => `
+      <tr>
+        <td><strong>${escapeHtml(item.sensorType)}</strong></td>
+        <td>${escapeHtml(item.assetLocation)}</td>
+        <td class="mono">${escapeHtml(item.serialNo || '–')}</td>
+        <td><span class="status-pill ${item.status === 'ACTIVE' ? '' : 'alert'}">${escapeHtml(formatStatus(item.status))}</span></td>
+        <td><div class="row-actions">
+          <button class="text-button" type="button" data-sensor-edit="${item.id}">Edit</button>
+          <button class="text-button danger" type="button" data-sensor-delete="${item.id}">Delete</button>
+        </div></td>
+      </tr>`).join("");
+  }
+
+  function resetSensorForm(context) {
+    if (!elements.sensorForm) return;
+    elements.sensorForm.reset();
+    elements.sensorForm.elements.id.value = "";
+    elements.sensorForm.elements.departmentId.value = context.department.id;
+    elements.sensorForm.elements.engineerId.value = context.account.id;
+    elements.sensorFormTitle.textContent = "Add deployment";
+    globalScope.CRIMS.utils.showError(elements.sensorError, "");
+  }
+
+  function validateSensor(payload) {
+    if (!payload.sensorType.trim() || payload.sensorType.trim().length < 3) return "Enter a valid sensor/equipment type.";
+    if (!payload.assetLocation.trim() || payload.assetLocation.trim().length < 4) return "Enter the asset installation location.";
+    if (!payload.status) return "Select the current sensor status.";
+    return "";
+  }
+
+  function bindSensorControls(context) {
+    if (!elements.sensorForm) return;
+    elements.sensorReset.addEventListener("click", () => resetSensorForm(context));
+    elements.sensorForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const payload = Object.fromEntries(new FormData(elements.sensorForm).entries());
+      const error = validateSensor(payload);
+      globalScope.CRIMS.utils.showError(elements.sensorError, "");
+      if (error) { globalScope.CRIMS.utils.showError(elements.sensorError, error); return; }
+      try {
+        upsertSensorDeployment(payload);
+        resetSensorForm(context);
+        renderAll(context);
+      } catch (err) { globalScope.CRIMS.utils.showError(elements.sensorError, err.message); }
+    });
+    elements.sensorTableBody.addEventListener("click", (event) => {
+      const editBtn = event.target.closest("[data-sensor-edit]");
+      const delBtn = event.target.closest("[data-sensor-delete]");
+      if (editBtn) {
+        const record = getState().sensorDeployments.find((item) => item.id === editBtn.dataset.sensorEdit);
+        if (!record) return;
+        Object.entries(record).forEach(([k, v]) => { if (elements.sensorForm.elements[k]) elements.sensorForm.elements[k].value = v || ""; });
+        elements.sensorFormTitle.textContent = `Edit: ${record.sensorType}`;
+      }
+      if (delBtn) {
+        try { deleteSensorDeployment(delBtn.dataset.sensorDelete); resetSensorForm(context); renderAll(context); }
+        catch (err) { globalScope.CRIMS.utils.showError(elements.sensorError, err.message); }
+      }
+    });
+  }
+
   function bindSession(context) {
     elements.signOutButton.addEventListener("click", () => {
       clearSession();
@@ -734,11 +1001,17 @@
     resetIssueForm(context);
     resetResourceForm(context);
     resetReportForm(context);
+    resetMlogForm(context);
+    resetMatlogForm(context);
+    resetSensorForm(context);
     bindSectionNavigation();
     bindInspectionControls(context);
     bindIssueControls(context);
     bindResourceControls(context);
     bindReportControls(context);
+    bindMlogControls(context);
+    bindMatlogControls(context);
+    bindSensorControls(context);
   }
 
   init();

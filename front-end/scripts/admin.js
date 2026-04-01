@@ -53,7 +53,8 @@
     departmentForm: document.querySelector("#department-form"),
     departmentFormTitle: document.querySelector("#department-form-title"),
     departmentResetButton: document.querySelector("#department-reset-button"),
-    departmentFormError: document.querySelector("#department-form-error")
+    departmentFormError: document.querySelector("#department-form-error"),
+    adminWorkOrderTableBody: document.querySelector("#admin-work-order-table-body")
   };
 
   function escapeHtml(value) {
@@ -550,6 +551,7 @@
     renderRequestTable();
     renderOfficialTable();
     renderDepartmentTable();
+    renderWorkOrderApprovalTable();
   }
 
   function resetRequestForm() {
@@ -804,6 +806,68 @@
     });
   }
 
+  /* ── Work Order Approval Table ── */
+  function renderWorkOrderApprovalTable() {
+    if (!elements.adminWorkOrderTableBody) return;
+    const state = getState();
+    const workOrders = state.workOrders || [];
+    if (!workOrders.length) {
+      elements.adminWorkOrderTableBody.innerHTML = '<tr><td colspan="7"><div class="empty-state">No work orders exist in the system yet.</div></td></tr>';
+      return;
+    }
+    elements.adminWorkOrderTableBody.innerHTML = workOrders.map((wo) => {
+      const dept = getDepartmentById(wo.departmentId);
+      const approvalLabel = wo.approvedBy ? 'Approved' : 'Pending';
+      const approvalTone = wo.approvedBy ? '' : 'warning';
+      return `
+        <tr>
+          <td class="mono"><strong>${escapeHtml(wo.referenceNo)}</strong></td>
+          <td>${escapeHtml(wo.title)}</td>
+          <td>${escapeHtml((dept && dept.name) || 'Unknown')}</td>
+          <td><span class="status-pill ${wo.priority === 'EMERGENCY' ? 'alert' : wo.priority === 'HIGH' ? 'warning' : 'neutral'}">${escapeHtml(formatStatus(wo.priority))}</span></td>
+          <td><span class="status-pill neutral">${escapeHtml(formatStatus(wo.status))}</span></td>
+          <td><span class="status-pill ${approvalTone}">${escapeHtml(approvalLabel)}</span></td>
+          <td><div class="row-actions">
+            ${!wo.approvedBy ? `<button class="text-button" type="button" data-wo-approve="${wo.id}">Approve</button>` : ''}
+            <button class="text-button danger" type="button" data-wo-reject="${wo.id}">Reject</button>
+          </div></td>
+        </tr>`;
+    }).join("");
+  }
+
+  function bindWorkOrderApprovalControls(session) {
+    if (!elements.adminWorkOrderTableBody) return;
+    elements.adminWorkOrderTableBody.addEventListener("click", (event) => {
+      const approveBtn = event.target.closest("[data-wo-approve]");
+      const rejectBtn = event.target.closest("[data-wo-reject]");
+      if (approveBtn) {
+        const state = getState();
+        const wo = (state.workOrders || []).find((item) => item.id === approveBtn.dataset.woApprove);
+        if (!wo) return;
+        try {
+          upsertWorkOrder({ ...wo, approvedBy: session.officialId, status: wo.status === 'DRAFT' ? 'IN_PROGRESS' : wo.status });
+          renderAll();
+          if (globalScope.CRIMS && globalScope.CRIMS.toast) globalScope.CRIMS.toast('Work order approved successfully.', 'success');
+        } catch (err) {
+          if (globalScope.CRIMS && globalScope.CRIMS.toast) globalScope.CRIMS.toast(err.message, 'error');
+        }
+      }
+      if (rejectBtn) {
+        const reason = globalScope.prompt('Enter rejection reason (optional):');
+        const state = getState();
+        const wo = (state.workOrders || []).find((item) => item.id === rejectBtn.dataset.woReject);
+        if (!wo) return;
+        try {
+          upsertWorkOrder({ ...wo, approvedBy: null, status: 'CANCELLED', notes: reason || 'Rejected by administrator.' });
+          renderAll();
+          if (globalScope.CRIMS && globalScope.CRIMS.toast) globalScope.CRIMS.toast('Work order rejected.', 'warning');
+        } catch (err) {
+          if (globalScope.CRIMS && globalScope.CRIMS.toast) globalScope.CRIMS.toast(err.message, 'error');
+        }
+      }
+    });
+  }
+
   function init() {
     initializeStore();
     const session = getAuthorizedSession();
@@ -825,6 +889,7 @@
     bindDepartmentControls();
     bindWorkOrderControls();
     bindReportControls();
+    bindWorkOrderApprovalControls(session);
   }
 
   init();

@@ -71,6 +71,20 @@
               <strong>Preventive schedules</strong>
             </div>
           </a>
+          <a class="sidebar-nav-link" href="#progress-inbox" data-officer-nav>
+            <div class="sidebar-nav-icon">📬</div>
+            <div class="sidebar-nav-label">
+              <span>Progress Inbox</span>
+              <strong>Acknowledge reports</strong>
+            </div>
+          </a>
+          <a class="sidebar-nav-link" href="#outcome-reports" data-officer-nav>
+            <div class="sidebar-nav-icon">📊</div>
+            <div class="sidebar-nav-label">
+              <span>Outcome Reports</span>
+              <strong>Project closure</strong>
+            </div>
+          </a>
         </nav>
 
         <div class="sidebar-footer">
@@ -354,13 +368,123 @@
             </div>
           </section>
 
+          <!-- ── Progress Report Inbox ── -->
+          <section id="progress-inbox" class="nav-panel-hidden control-section">
+            <div class="section-heading">
+              <div class="section-kicker">Progress Inbox</div>
+              <h2>Review and acknowledge field engineer progress reports</h2>
+              <p>Each engineer-submitted report appears below. Acknowledge confirmed reports to close the loop and update project records.</p>
+            </div>
+            <article class="glass-card panel-card">
+              <div class="table-shell">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Report title</th>
+                      <th>Submitted</th>
+                      <th>Summary</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="progress-inbox-body"></tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
+          <!-- ── Outcome Reports ── -->
+          <section id="outcome-reports" class="nav-panel-hidden control-section">
+            <div class="section-heading">
+              <div class="section-kicker">Outcome Reports</div>
+              <h2>Prepare and submit project accountability reports</h2>
+              <p>Document the final outcome, budget variance, and lessons learned for each completed work order before it is archived.</p>
+            </div>
+            <div class="control-grid">
+              <article class="glass-card table-card">
+                <div class="table-shell">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Report title</th>
+                        <th>Work order</th>
+                        <th>Outcome</th>
+                        <th>Budget used</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="outcome-table-body"></tbody>
+                  </table>
+                </div>
+              </article>
+              <article class="glass-card form-card">
+                <div class="panel-heading compact">
+                  <div>
+                    <div class="section-kicker">Report Editor</div>
+                    <h3 id="outcome-form-title">Add outcome report</h3>
+                  </div>
+                  <button class="button button-secondary small-button" id="outcome-reset" type="button">Reset</button>
+                </div>
+                <form class="form-grid" id="outcome-form" novalidate>
+                  <input type="hidden" name="id">
+                  <input type="hidden" name="departmentId">
+                  <input type="hidden" name="preparedBy">
+                  <label class="field">
+                    <span class="field-label">Linked work order</span>
+                    <select name="workOrderId" id="outcome-work-order-select"></select>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Report title</span>
+                    <input type="text" name="title" placeholder="e.g. Road repair — Project closure report">
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Executive summary</span>
+                    <textarea name="summary" placeholder="Describe what was completed, outcomes, and citizen impact"></textarea>
+                  </label>
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Budget sanctioned (Cr)</span>
+                      <input type="number" name="budgetSanctioned" min="0" step="0.01" placeholder="0.00">
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Budget used (Cr)</span>
+                      <input type="number" name="budgetUsed" min="0" step="0.01" placeholder="0.00">
+                    </label>
+                  </div>
+                  <label class="field">
+                    <span class="field-label">Outcome</span>
+                    <select name="outcome" id="outcome-status-select">
+                      <option value="">Select outcome</option>
+                      <option value="SUCCESSFUL">Successful</option>
+                      <option value="PARTIALLY_SUCCESSFUL">Partially successful</option>
+                      <option value="UNSUCCESSFUL">Unsuccessful</option>
+                      <option value="PENDING">Pending review</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Lessons learned</span>
+                    <textarea name="lessonsLearned" placeholder="What could be improved in future projects?"></textarea>
+                  </label>
+                  <div class="auth-actions">
+                    <button class="button button-primary" type="submit">Submit report</button>
+                  </div>
+                  <div class="error-text hidden" id="outcome-error"></div>
+                </form>
+              </article>
+            </div>
+          </section>
+
         </main>
       </div>
     </div>
   </div>
 
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
   <script src="./scripts/seed-data.js"></script>
   <script src="./scripts/data-store.js"></script>
+  <script src="./scripts/utils.js"></script>
   <script src="./scripts/i18n.js"></script>
   <script src="./scripts/officer.js"></script>
   <script src="./scripts/nav-tabs.js"></script>

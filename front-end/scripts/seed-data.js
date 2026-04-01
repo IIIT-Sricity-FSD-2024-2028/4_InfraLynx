@@ -434,6 +434,97 @@
         status: "APPROVED",
         score: 92
       }
+    ],
+    fundReleases: [
+      {
+        id: "release-001",
+        departmentId: "dept-roads",
+        proposalId: "proposal-001",
+        title: "Q1 Bridge Repair Release",
+        amountCr: 0.9,
+        quarter: "Q1-2026",
+        status: "RELEASED",
+        releasedAt: "2026-03-10T10:00:00.000Z",
+        notes: "First tranche released after site mobilisation confirmed."
+      },
+      {
+        id: "release-002",
+        departmentId: "dept-water",
+        proposalId: "proposal-002",
+        title: "Q1 Water Point Installation",
+        amountCr: 0.45,
+        quarter: "Q1-2026",
+        status: "PENDING",
+        releasedAt: null,
+        notes: "Pending CFO sign-off on contractor invoices before release."
+      }
+    ],
+    maintenanceLogs: [
+      {
+        id: "mlog-001",
+        departmentId: "dept-roads",
+        engineerId: "official-03",
+        scheduleId: "schedule-001",
+        workOrderId: "wo-001",
+        title: "Weekly arterial road scan — Zone 2",
+        activity: "Walked 2.1 km of Central Avenue. Found 3 new surface cracks near median edge. Photographed and flagged for pothole repair.',",
+        hoursSpent: 2.5,
+        date: "2026-03-26",
+        status: "COMPLETED"
+      }
+    ],
+    sensorDeployments: [
+      {
+        id: "sensor-001",
+        departmentId: "dept-roads",
+        engineerId: "official-03",
+        workOrderId: "wo-001",
+        sensorType: "Structural vibration monitor",
+        assetLocation: "Central Park Bridge, Sector 7",
+        serialNo: "SVS-2026-0042",
+        installedAt: "2026-03-25T08:30:00.000Z",
+        status: "ACTIVE",
+        notes: "Sensor calibrated and streaming to city IoT hub. Alert threshold set at 3.2 mm/s."
+      }
+    ],
+    taskMaterialLogs: [
+      {
+        id: "matlog-001",
+        departmentId: "dept-roads",
+        engineerId: "official-03",
+        workOrderId: "wo-001",
+        material: "M.S. Guard rail sections",
+        quantity: "14 units",
+        unit: "nos",
+        usedOn: "2026-03-26",
+        notes: "Used for bridge approach railing replacement. 2 units held in reserve."
+      },
+      {
+        id: "matlog-002",
+        departmentId: "dept-roads",
+        engineerId: "official-03",
+        workOrderId: "wo-001",
+        material: "Epoxy anchor bolts",
+        quantity: "48",
+        unit: "nos",
+        usedOn: "2026-03-26",
+        notes: "All bolts torqued to spec per structural drawing SD-BR-07."
+      }
+    ],
+    outcomeReports: [
+      {
+        id: "outcome-001",
+        departmentId: "dept-water",
+        workOrderId: "wo-003",
+        preparedBy: "official-02",
+        title: "Public Water Point — Project Closure Report",
+        summary: "Drinking water point installed and commissioned at Central Interchange. Tested at rated flow. Citizen feedback positive. Budget utilisation within sanctioned amount.",
+        budgetSanctioned: 0.9,
+        budgetUsed: 0.84,
+        outcome: "SUCCESSFUL",
+        lessonsLearned: "Coordinate with BESCOM earlier for power connection to reduce commissioning delay.",
+        submittedAt: "2026-03-28T14:00:00.000Z"
+      }
     ]
   };
 })(window);

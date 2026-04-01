@@ -4,6 +4,9 @@
     deleteMaintenanceSchedule,
     deleteQuotation,
     deleteWorkOrder,
+    deleteOutcomeReport,
+    deleteProgressReport,
+    formatDisplayDate,
     formatStatus,
     getDepartmentById,
     getRoleByCode,
@@ -11,6 +14,8 @@
     getState,
     initializeStore,
     upsertMaintenanceSchedule,
+    upsertOutcomeReport,
+    upsertProgressReport,
     upsertQuotation,
     upsertWorkOrder
   } = globalScope.CRIMS.store;
@@ -62,7 +67,14 @@
     scheduleReset: document.querySelector("#schedule-reset"),
     scheduleError: document.querySelector("#schedule-error"),
     scheduleFrequencySelect: document.querySelector("#schedule-frequency-select"),
-    scheduleAssigneeSelect: document.querySelector("#schedule-assignee-select")
+    scheduleAssigneeSelect: document.querySelector("#schedule-assignee-select"),
+    progressInboxBody: document.querySelector("#progress-inbox-body"),
+    outcomeTableBody: document.querySelector("#outcome-table-body"),
+    outcomeForm: document.querySelector("#outcome-form"),
+    outcomeFormTitle: document.querySelector("#outcome-form-title"),
+    outcomeReset: document.querySelector("#outcome-reset"),
+    outcomeError: document.querySelector("#outcome-error"),
+    outcomeWorkOrderSelect: document.querySelector("#outcome-work-order-select")
   };
 
   function escapeHtml(value) {
@@ -185,7 +197,9 @@
       workOrders: (state.workOrders || []).filter((item) => item.departmentId === departmentId),
       quotations: (state.quotations || []).filter((item) => item.departmentId === departmentId),
       schedules: (state.maintenanceSchedules || []).filter((item) => item.departmentId === departmentId),
-      engineers: state.officialAccounts.filter((item) => item.role === "ENGINEER" && item.departmentId === departmentId)
+      engineers: state.officialAccounts.filter((item) => item.role === "ENGINEER" && item.departmentId === departmentId),
+      progressReports: (state.progressReports || []).filter((item) => item.departmentId === departmentId),
+      outcomeReports: (state.outcomeReports || []).filter((item) => item.departmentId === departmentId)
     };
   }
 
@@ -311,6 +325,8 @@
     const currentScheduleFrequency = elements.scheduleFrequencySelect.value;
     const currentScheduleAssignee = elements.scheduleAssigneeSelect.value;
 
+    const currentOutcomeWorkOrder = elements.outcomeWorkOrderSelect ? elements.outcomeWorkOrderSelect.value : "";
+
     elements.workOrderRequestSelect.innerHTML = [
       '<option value="">No linked request</option>',
       ...data.requests.map((item) => `<option value="${item.requestId}">${escapeHtml(item.publicReferenceNo)} - ${escapeHtml(item.title)}</option>`)
@@ -356,6 +372,14 @@
     elements.quotationStatusSelect.value = currentQuotationStatus;
     elements.scheduleFrequencySelect.value = currentScheduleFrequency;
     elements.scheduleAssigneeSelect.value = currentScheduleAssignee;
+
+    if (elements.outcomeWorkOrderSelect) {
+      elements.outcomeWorkOrderSelect.innerHTML = [
+        '<option value="">No linked work order</option>',
+        ...data.workOrders.map((item) => `<option value="${item.id}">${escapeHtml(item.referenceNo)} — ${escapeHtml(item.title)}</option>`)
+      ].join("");
+      elements.outcomeWorkOrderSelect.value = currentOutcomeWorkOrder;
+    }
   }
 
   function renderWorkOrders(context) {
@@ -457,6 +481,8 @@
     renderWorkOrders(context);
     renderQuotations(context);
     renderSchedules(context);
+    renderProgressInbox(context);
+    renderOutcomeTable(context);
   }
 
   function resetWorkOrderForm(context) {
@@ -680,6 +706,117 @@
     });
   }
 
+  /* ── Progress inbox ── */
+  function renderProgressInbox(context) {
+    if (!elements.progressInboxBody) return;
+    const data = getDepartmentData(context.department.id);
+    if (!data.progressReports.length) {
+      elements.progressInboxBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No progress reports in the inbox yet.</div></td></tr>';
+      return;
+    }
+    elements.progressInboxBody.innerHTML = data.progressReports.map((item) => {
+      const dt = item.submittedAt ? new Date(item.submittedAt).toLocaleDateString("en-IN") : "";
+      const isAcknowledged = item.status === "ACKNOWLEDGED";
+      return `
+        <tr>
+          <td><strong>${escapeHtml(item.title)}</strong></td>
+          <td>${escapeHtml(dt)}</td>
+          <td>${escapeHtml(item.summary ? item.summary.slice(0, 60) + (item.summary.length > 60 ? '…' : '') : '')}</td>
+          <td><span class="status-pill ${isAcknowledged ? 'neutral' : 'warning'}">${escapeHtml(formatStatus(item.status))}</span></td>
+          <td><div class="row-actions">
+            ${!isAcknowledged ? `<button class="text-button" type="button" data-report-ack="${item.id}">Acknowledge</button>` : '<span class="mono">Done</span>'}
+          </div></td>
+        </tr>`;
+    }).join("");
+  }
+
+  /* ── Outcome reports ── */
+  function renderOutcomeTable(context) {
+    if (!elements.outcomeTableBody) return;
+    const data = getDepartmentData(context.department.id);
+    if (!data.outcomeReports.length) {
+      elements.outcomeTableBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No outcome reports submitted yet for this department.</div></td></tr>';
+      return;
+    }
+    elements.outcomeTableBody.innerHTML = data.outcomeReports.map((item) => {
+      const wo = item.workOrderId ? getState().workOrders.find((w) => w.id === item.workOrderId) : null;
+      return `
+        <tr>
+          <td><strong>${escapeHtml(item.title)}</strong></td>
+          <td>${escapeHtml(wo ? wo.referenceNo : 'Unlinked')}</td>
+          <td><span class="status-pill ${item.outcome === 'SUCCESSFUL' ? '' : 'warning'}">${escapeHtml(formatStatus(item.outcome))}</span></td>
+          <td class="mono">INR ${escapeHtml(Number(item.budgetUsed).toFixed(2))} Cr</td>
+          <td><div class="row-actions">
+            <button class="text-button" type="button" data-outcome-edit="${item.id}">Edit</button>
+            <button class="text-button danger" type="button" data-outcome-delete="${item.id}">Delete</button>
+          </div></td>
+        </tr>`;
+    }).join("");
+  }
+
+  function resetOutcomeForm(context) {
+    if (!elements.outcomeForm) return;
+    elements.outcomeForm.reset();
+    elements.outcomeForm.elements.id.value = "";
+    elements.outcomeForm.elements.departmentId.value = context.department.id;
+    elements.outcomeForm.elements.preparedBy.value = context.account.id;
+    elements.outcomeFormTitle.textContent = "Add outcome report";
+    globalScope.CRIMS.utils.showError(elements.outcomeError, "");
+  }
+
+  function validateOutcomeReport(payload) {
+    if (!payload.title.trim() || payload.title.trim().length < 6) return "Enter a descriptive report title.";
+    if (!payload.summary.trim() || payload.summary.trim().length < 20) return "Write a summary of at least 20 characters.";
+    if (!payload.outcome) return "Select the project outcome.";
+    if (Number(payload.budgetSanctioned) <= 0) return "Enter the sanctioned budget amount.";
+    return "";
+  }
+
+  function bindProgressInboxControls(context) {
+    if (!elements.progressInboxBody) return;
+    elements.progressInboxBody.addEventListener("click", (event) => {
+      const ackButton = event.target.closest("[data-report-ack]");
+      if (!ackButton) return;
+      const state = getState();
+      const report = state.progressReports.find((item) => item.id === ackButton.dataset.reportAck);
+      if (!report) return;
+      upsertProgressReport({ ...report, status: "ACKNOWLEDGED" });
+      renderAll(context);
+    });
+  }
+
+  function bindOutcomeControls(context) {
+    if (!elements.outcomeForm) return;
+    elements.outcomeReset.addEventListener("click", () => resetOutcomeForm(context));
+    elements.outcomeForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const payload = Object.fromEntries(new FormData(elements.outcomeForm).entries());
+      const error = validateOutcomeReport(payload);
+      globalScope.CRIMS.utils.showError(elements.outcomeError, "");
+      if (error) { globalScope.CRIMS.utils.showError(elements.outcomeError, error); return; }
+      try {
+        upsertOutcomeReport(payload);
+        resetOutcomeForm(context);
+        renderAll(context);
+      } catch (err) { globalScope.CRIMS.utils.showError(elements.outcomeError, err.message); }
+    });
+    elements.outcomeTableBody.addEventListener("click", (event) => {
+      const editBtn = event.target.closest("[data-outcome-edit]");
+      const delBtn = event.target.closest("[data-outcome-delete]");
+      if (editBtn) {
+        const record = getState().outcomeReports.find((item) => item.id === editBtn.dataset.outcomeEdit);
+        if (!record) return;
+        Object.entries(record).forEach(([k, v]) => { if (elements.outcomeForm.elements[k]) elements.outcomeForm.elements[k].value = v == null ? "" : v; });
+        elements.outcomeFormTitle.textContent = `Edit: ${record.title}`;
+        return;
+      }
+      if (delBtn) {
+        try { deleteOutcomeReport(delBtn.dataset.outcomeDelete); resetOutcomeForm(context); renderAll(context); }
+        catch (err) { globalScope.CRIMS.utils.showError(elements.outcomeError, err.message); }
+      }
+    });
+  }
+
   function bindSession(context) {
     elements.signOutButton.addEventListener("click", () => {
       clearSession();
@@ -705,10 +842,13 @@
     resetWorkOrderForm(context);
     resetQuotationForm(context);
     resetScheduleForm(context);
+    resetOutcomeForm(context);
     bindSectionNavigation();
     bindWorkOrderControls(context);
     bindQuotationControls(context);
     bindScheduleControls(context);
+    bindProgressInboxControls(context);
+    bindOutcomeControls(context);
   }
 
   init();

@@ -58,6 +58,13 @@
               <strong>Intake &amp; status control</strong>
             </div>
           </a>
+          <a class="sidebar-nav-link" href="#work-orders" data-admin-nav>
+            <div class="sidebar-nav-icon">✅</div>
+            <div class="sidebar-nav-label">
+              <span>Work Orders</span>
+              <strong>Approval queue</strong>
+            </div>
+          </a>
           <a class="sidebar-nav-link" href="#official-control" data-admin-nav>
             <div class="sidebar-nav-icon">👥</div>
             <div class="sidebar-nav-label">
@@ -421,6 +428,39 @@
             </div>
           </section>
 
+          <!-- ── Work Orders — Approval Queue ── -->
+          <section id="work-orders" class="nav-panel-hidden">
+            <div class="section-heading">
+              <div class="section-kicker">Work Orders</div>
+              <h2>Review and approve, reject, or validate work orders</h2>
+              <p>All work orders across every department are visible here. As the Super User, you can approve pending orders, reject with reason, or validate a completed order. Actions are logged in the activity feed.</p>
+            </div>
+            <article class="glass-card table-card" style="min-height:320px;">
+              <div class="panel-heading">
+                <div>
+                  <div class="section-kicker">All work orders</div>
+                  <h3>City-wide work order registry</h3>
+                </div>
+              </div>
+              <div class="table-shell">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Reference</th>
+                      <th>Title</th>
+                      <th>Department</th>
+                      <th>Priority</th>
+                      <th>Status</th>
+                      <th>Approval</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-work-order-table-body"></tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
           <!-- ── System Info ── -->
           <section id="system-info" class="nav-panel-hidden">
             <article class="glass-card closing-note">
@@ -441,7 +481,9 @@
 
   <script src="./scripts/seed-data.js"></script>
   <script src="./scripts/data-store.js"></script>
+  <script src="./scripts/utils.js"></script>
   <script src="./scripts/i18n.js"></script>
+  <script src="./scripts/toast.js"></script>
   <script src="./scripts/admin.js"></script>
   <script src="./scripts/nav-tabs.js"></script>
 </body>
