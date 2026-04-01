@@ -182,10 +182,14 @@
   gap: 20px;
 }
 
-.admin-hero-copy,
-.admin-hero-side {
+.admin-hero-copy {
   display: grid;
   gap: 16px;
+}
+
+.admin-hero-side {
+  display: grid;
+  gap: 20px;
 }
 
 .admin-hero-copy,
@@ -346,10 +350,29 @@
   padding: 0;
 }
 
-.overview-grid,
+.overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr);
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.hero-panel {
+  display: grid;
+  grid-template-columns: 1.04fr 0.96fr;
+  gap: 20px;
+}
+
+.hero-copy-card {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+
 .control-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.88fr);
+  grid-template-columns: 1fr;
   gap: 20px;
 }
 

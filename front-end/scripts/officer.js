@@ -41,7 +41,6 @@
     signOutButton: document.querySelector("#officer-sign-out"),
     officerGreeting: document.querySelector("#officer-greeting"),
     officerDepartmentName: document.querySelector("#officer-department-name"),
-    officerDepartmentCopy: document.querySelector("#officer-department-copy"),
     officerKpiGrid: document.querySelector("#officer-kpi-grid"),
     officerAlertCard: document.querySelector("#officer-alert-card"),
     planningQueue: document.querySelector("#planning-queue"),
@@ -212,7 +211,6 @@
 
     elements.officerGreeting.textContent = `Operational control for ${account.name}`;
     elements.officerDepartmentName.textContent = department.name;
-    elements.officerDepartmentCopy.textContent = `${department.publicLabel} is running at ${department.utilization}% utilization with ${data.engineers.length} mapped field engineers in this prototype.`;
 
     elements.officerKpiGrid.innerHTML = [
       {

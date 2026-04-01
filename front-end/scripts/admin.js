@@ -26,7 +26,7 @@
     signOutButton: document.querySelector("#sign-out-button"),
     adminGreeting: document.querySelector("#admin-greeting"),
     sessionRoleLabel: document.querySelector("#session-role-label"),
-    sessionMeta: document.querySelector("#session-meta"),
+
     summaryGrid: document.querySelector("#summary-grid"),
     alertStrip: document.querySelector("#admin-alert-strip"),
     budgetStack: document.querySelector("#budget-stack"),
@@ -798,7 +798,7 @@
     const role = getRoleByCode(session.role);
     elements.adminGreeting.textContent = `City-wide control for ${session.name}`;
     elements.sessionRoleLabel.textContent = (role && role.name) || "Administrator authenticated";
-    elements.sessionMeta.textContent = "";
+
 
     elements.signOutButton.addEventListener("click", () => {
       clearSession();

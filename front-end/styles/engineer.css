@@ -365,13 +365,7 @@
 }
 
 .table-shell {
-  max-height: 420px;
   overflow: auto;
-}
-
-.form-card {
-  max-height: 520px;
-  overflow-y: auto;
 }
 
 .data-table {
