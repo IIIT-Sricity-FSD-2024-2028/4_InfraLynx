@@ -24,7 +24,7 @@
     <div class="grid-sheen" aria-hidden="true"></div>
 
     <div class="dashboard-shell content-wrap">
-      <!-- Sidebar -->
+
       <aside class="dashboard-sidebar glass-card" aria-label="Engineer navigation">
         <a class="sidebar-brand" href="./index.html" aria-label="InfraLynx home">
           <img src="./assets/CRIMS_logo.png" alt="CRIMS logo">
@@ -92,43 +92,25 @@
 
       <!-- Workspace -->
       <div class="dashboard-workspace engineer-workspace">
-        <header class="workspace-topbar glass-card">
-          <div class="workspace-topbar-left">
-            <div class="workspace-topbar-eyebrow">Field operations</div>
-            <h1 class="workspace-topbar-title" id="engineer-subcopy">On-ground execution workspace</h1>
-          </div>
-          <div class="workspace-topbar-right">
-            <span class="status-pill">Engineer</span>
-          </div>
-        </header>
 
         <main class="workspace-main engineer-main">
 
           <!-- ── Overview ── -->
           <section id="overview">
             <div class="hero-panel">
-              <article class="glass-card hero-copy-card">
-                <div class="section-kicker">Field readiness</div>
-                <h2>Execute assigned work and send clean updates back upstream</h2>
-                <p>Manage your inspection schedule, report site issues, request materials, and keep the officer workflow
-                  updated with structured field information.</p>
-                <div class="hero-actions">
-                  <a class="button button-primary" href="#inspections" data-engineer-nav>Open inspection queue</a>
-                  <a class="button button-secondary" href="#reports" data-engineer-nav>Submit progress</a>
-                </div>
-                <article class="hero-alert-card" id="engineer-emergency-card"></article>
-              </article>
 
-              <div class="hero-side">
-                <article class="glass-card kpi-card">
-                  <div class="kpi-card-head">
-                    <div>
-                      <span class="field-label">Field dashboard</span>
-                      <h3>Operational overview</h3>
-                    </div>
-                    <span class="status-pill">Engineer</span>
+              <!-- Left: Field readiness + Work orders -->
+              <div class="hero-left">
+                <article class="glass-card hero-copy-card">
+                  <div class="section-kicker">Field readiness</div>
+                  <h2>Execute assigned work and send clean updates back upstream</h2>
+                  <p>Manage your inspection schedule, report site issues, request materials, and keep the officer workflow
+                    updated with structured field information.</p>
+                  <div class="hero-actions">
+                    <a class="button button-primary" href="#inspections" data-engineer-nav>Open inspection queue</a>
+                    <a class="button button-secondary" href="#reports" data-engineer-nav>Submit progress</a>
                   </div>
-                  <div class="kpi-grid" id="engineer-kpi-grid"></div>
+                  <article class="hero-alert-card" id="engineer-emergency-card"></article>
                 </article>
 
                 <article class="glass-card panel-card">
@@ -137,6 +119,19 @@
                   </h3>
                   <div class="work-card-list" id="assigned-work-list"></div>
                 </article>
+              </div>
+
+              <!-- Right: KPI + Notifications -->
+              <div class="hero-side">
+                <article class="glass-card kpi-card">
+                  <div class="kpi-card-head">
+                    <div>
+                      <span class="field-label">Field dashboard</span>
+                      <h3>Operational overview</h3>
+                    </div>
+                  </div>
+                  <div class="kpi-grid" id="engineer-kpi-grid"></div>
+                </article>
 
                 <article class="glass-card panel-card">
                   <div class="section-kicker">Recent notifications</div>
@@ -144,14 +139,7 @@
                   <div id="engineer-notification-list"></div>
                 </article>
               </div>
-            </div>
 
-            <div style="margin-top:20px;">
-              <article class="glass-card panel-card">
-                <div class="section-kicker">Quick actions</div>
-                <h3 style="margin:8px 0 12px;font-family:'Sora',sans-serif;font-size:1rem;">Field-ready shortcuts</h3>
-                <div class="quick-grid" id="engineer-quick-grid"></div>
-              </article>
             </div>
           </section>
 

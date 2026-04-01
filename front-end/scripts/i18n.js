@@ -20,7 +20,7 @@
       "landing.titleLineOne": "CRIMS keeps public infrastructure",
       "landing.titleLineTwo": "transparent, responsive, and human.",
       "landing.lead":
-        "Citizens can raise civic complaints or improvement requests, receive a reference number immediately, and track progress through a workflow aligned to the CRIMS schema.",
+        "Citizens can raise civic complaints or improvement requests, receive a reference number immediately, and track progress.",
       "landing.primaryCta": "Submit a request",
       "landing.secondaryCta": "Go to secure access",
       "landing.heroBadge": "Light theme default",
@@ -34,18 +34,18 @@
       "landing.statsHeading": "Visible progress citizens can feel proud of",
       "landing.statsCopy":
         "CRIMS presents public-facing development outcomes in a concise way while keeping deeper operational workflows inside secure role-based spaces.",
-      "landing.workflowKicker": "Workflow aligned to schema",
+      "landing.workflowKicker": "Workflow",
       "landing.workflowHeading": "From citizen request to accountable infrastructure action",
       "landing.workflowIntro":
         "The public journey mirrors the schema: request intake, administrative review, planning, work-order conversion, execution, and closure.",
       "landing.requestKicker": "Raise a request",
       "landing.requestHeading": "Submit a complaint or infrastructure improvement request",
       "landing.requestIntro":
-        "This form is citizen-facing and creates an immediate acknowledgement using the `RECEIVED` state from the schema.",
+        "This form is citizen-facing and creates an immediate acknowledgement.",
       "landing.trackKicker": "Track by reference number",
       "landing.trackHeading": "Check the current status of your submitted request",
       "landing.trackIntro":
-        "Tracking is reference-based, keeping the public flow simple and aligned with the `public_reference_no` in the schema.",
+        "Tracking is reference-based, keeping the public flow simple.",
       "landing.rolesKicker": "Official roles",
       "landing.rolesHeading": "Secure government workflows begin after sign-in",
       "landing.rolesIntro":

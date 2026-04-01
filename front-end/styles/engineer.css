@@ -115,45 +115,6 @@
   gap: 20px;
 }
 
-.engineer-topbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 20px;
-  padding: 24px;
-  position: sticky;
-  top: 24px;
-  z-index: 3;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(12px);
-}
-
-.engineer-topbar-copy h1 {
-  margin: 10px 0 0;
-  font-family: "Sora", sans-serif;
-  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
-  line-height: 1.06;
-  letter-spacing: -0.02em;
-  max-width: 18ch;
-}
-
-.engineer-topbar-copy p {
-  margin: 10px 0 0;
-  color: var(--text-soft);
-  font-size: 0.92rem;
-  line-height: 1.65;
-}
-
-.engineer-topbar-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
 .engineer-session-pill {
   display: grid;
   gap: 4px;
@@ -348,10 +309,15 @@
   padding: 0;
 }
 
-.overview-grid,
-.control-grid {
+.overview-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr);
+  gap: 20px;
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 20px;
 }
 
@@ -378,40 +344,7 @@
   font-weight: 700;
 }
 
-/* ── Quick grid ── */
-.quick-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 20px;
-}
 
-.quick-card {
-  padding: 18px;
-  border-radius: var(--radius-md);
-  background: var(--surface-muted);
-  border: 1px solid var(--line);
-  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
-}
-
-.quick-card:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-
-.quick-card strong {
-  display: block;
-  margin-top: 8px;
-  font-family: "Sora", sans-serif;
-  font-weight: 700;
-}
-
-.quick-card p {
-  margin: 6px 0 0;
-  color: var(--text-soft);
-  font-size: 0.88rem;
-  line-height: 1.6;
-}
 
 /* ── Shared card styles ── */
 .table-card,
@@ -423,8 +356,22 @@
   box-shadow: var(--shadow-sm);
 }
 
+/* Scrollable containers */
+.work-card-list,
+#engineer-notification-list {
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
 .table-shell {
+  max-height: 420px;
   overflow: auto;
+}
+
+.form-card {
+  max-height: 520px;
+  overflow-y: auto;
 }
 
 .data-table {
@@ -597,6 +544,12 @@
 }
 
 /* ── Sidebar layout fixes ── */
+.engineer-page .hero-left {
+  display: grid;
+  gap: 20px;
+}
+
+
 .engineer-page .dashboard-shell {
   align-items: stretch;
 }

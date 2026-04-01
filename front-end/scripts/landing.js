@@ -18,7 +18,7 @@
     { value: "24/7", label: "reference tracking", detail: "Public lookup with a simple reference number" },
     { value: "5", label: "official roles", detail: "Schema-backed internal roles protected behind sign-in" },
     { value: "1", label: "citizen identity", detail: "One profile per Aadhaar number in this prototype" },
-    { value: "Light", label: "default theme", detail: "Citizen-first interface with clear public information" }
+    { value: "99.9%", label: "System Uptime", detail: "Real-time infrastructure monitoring and service availability" }
   ];
 
   let currentAcknowledgement = null;
