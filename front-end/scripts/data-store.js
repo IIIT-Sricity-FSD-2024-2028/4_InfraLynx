@@ -1,7 +1,7 @@
 (function attachDataStore(globalScope) {
   const crims = (globalScope.CRIMS = globalScope.CRIMS || {});
   const FALLBACK_SEED_DATA = crims.seedData;
-  const STORE_KEY = "crims-front-end-state";
+  const STORE_KEY = "crims-front-end-state-v2";
   const SESSION_KEY = "crims-front-end-session";
   const LANGUAGE_KEY = "crims-front-end-language";
   const COLLECTION_KEYS = [
@@ -83,19 +83,32 @@
 
   function normalizeState(candidateState) {
     const seededState = clone(FALLBACK_SEED_DATA);
+    const currentVersion = seededState.meta.seedVersion;
     const sourceState = candidateState && typeof candidateState === "object" ? candidateState : {};
+
+    // If the stored seed version doesn't match the current one, discard all
+    // stale collections and re-seed from scratch. This prevents login failures
+    // caused by outdated localStorage across different browsers.
+    const storedVersion = sourceState.meta && sourceState.meta.seedVersion;
+    const isStale = storedVersion !== currentVersion;
+
     const normalizedState = {
       ...seededState,
       ...sourceState,
       meta: {
         ...seededState.meta,
         ...(sourceState.meta || {}),
-        seedVersion: seededState.meta.seedVersion
+        seedVersion: currentVersion
       }
     };
 
     COLLECTION_KEYS.forEach((key) => {
-      normalizedState[key] = Array.isArray(sourceState[key]) ? sourceState[key] : clone(seededState[key] || []);
+      if (isStale) {
+        // Stale version — always use fresh seed data so accounts are correct
+        normalizedState[key] = clone(seededState[key] || []);
+      } else {
+        normalizedState[key] = Array.isArray(sourceState[key]) ? sourceState[key] : clone(seededState[key] || []);
+      }
     });
 
     return normalizedState;
