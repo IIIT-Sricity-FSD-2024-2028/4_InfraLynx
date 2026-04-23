@@ -222,20 +222,67 @@
       elements.summaryGrid.innerHTML = `
         <article class="summary-stat">
           <span>${t("citizen.summaryRaised")}</span>
-          <strong>${requests.length}</strong>
+          <strong data-count-value="${requests.length}">0</strong>
           <p>${t("citizen.summaryRaisedCopy")}</p>
         </article>
         <article class="summary-stat">
           <span>${t("citizen.summaryActive")}</span>
-          <strong>${active}</strong>
+          <strong data-count-value="${active}">0</strong>
           <p>${t("citizen.summaryActiveCopy")}</p>
         </article>
         <article class="summary-stat">
           <span>${t("citizen.summaryPlanning")}</span>
-          <strong>${planningReady + converted}</strong>
+          <strong data-count-value="${planningReady + converted}">0</strong>
           <p>${t("citizen.summaryPlanningCopy")}</p>
         </article>
       `;
+      animateCountUp(elements.summaryGrid);
+    }
+
+    function getCountParts(value) {
+      const match = String(value).trim().match(/^(\d+(?:\.\d+)?)(.*)$/);
+      if (!match) {
+        return null;
+      }
+
+      return {
+        target: Number(match[1]),
+        decimals: match[1].includes(".") ? match[1].split(".")[1].length : 0,
+        suffix: match[2]
+      };
+    }
+
+    function animateCountUp(root) {
+      const counters = root.querySelectorAll("[data-count-value]");
+      const reduceMotion = globalScope.matchMedia && globalScope.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      counters.forEach((counter) => {
+        const finalValue = counter.dataset.countValue;
+        const parts = getCountParts(finalValue);
+
+        if (!parts || reduceMotion) {
+          counter.textContent = finalValue;
+          return;
+        }
+
+        const start = performance.now();
+        const duration = 1700;
+
+        function tick(now) {
+          const progress = Math.min((now - start) / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const current = parts.target * eased;
+          counter.textContent = `${current.toFixed(parts.decimals)}${parts.suffix}`;
+
+          if (progress < 1) {
+            requestAnimationFrame(tick);
+          } else {
+            counter.textContent = finalValue;
+          }
+        }
+
+        requestAnimationFrame(tick);
+      });
     }
   
     function renderRequestHistory(citizen) {

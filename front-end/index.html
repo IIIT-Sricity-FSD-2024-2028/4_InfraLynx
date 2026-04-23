@@ -57,8 +57,7 @@
             <span data-i18n="landing.titleLineTwo">real work, real accountability, and real progress.</span>
           </h1>
           <p data-i18n="landing.lead">
-            Citizens can report issues, suggest improvements, receive an instant public reference number, and follow
-            each request through review, planning, execution, and closure.
+            Raise a request, get a reference number, and see progress without repeated follow-up.
           </p>
 
           <div class="hero-actions">
@@ -69,38 +68,52 @@
               secure access</a>
           </div>
 
-          <article class="glass-card promise-panel">
-            <span class="mini-label field-label" data-i18n="landing.publicPromiseLabel">What citizens can expect</span>
-            <ul>
-              <li data-i18n="landing.publicPromiseOne">Instant acknowledgement with a public reference number</li>
-              <li data-i18n="landing.publicPromiseTwo">Traceable processing instead of verbal follow-up and hidden files
-              </li>
-              <li data-i18n="landing.publicPromiseThree">Clear separation between citizen services and secure official
-                approvals</li>
-            </ul>
+          <article class="glass-card hero-status-card">
+            <p class="field-label" data-i18n="landing.workflowMiniLabel">Request status</p>
+            <p class="muted" data-i18n="landing.workflowMiniCopy">
+              Every citizen request enters the received stage, becomes visible through a reference number, and then
+              moves through review, budgeting, field execution, and quality certification.
+            </p>
           </article>
+
         </div>
 
         <aside class="hero-aside">
           <article class="glass-card hero-panel">
             <div class="hero-panel-top">
-              <h3 data-i18n="landing.heroPanelTitle">Public trust panel</h3>
+              <h3 data-i18n="landing.heroPanelTitle">Sri City functioning snapshot</h3>
             </div>
-            <p data-i18n="landing.heroPanelCopy">
-              Designed to show that complaints are not ignored, budgets are reviewed carefully, and completed work is
-              verified before closure.
-            </p>
+            <figure class="sricity-showcase">
+              <img src="https://sricity.in/wp-content/uploads/2017/05/infrastructure.jpg" alt="Sri City infrastructure">
+              <figcaption>
+                <span data-i18n="landing.showcaseLabel">Sri City civic pulse</span>
+                <strong data-i18n="landing.showcaseTitle">Infrastructure that works visibly</strong>
+              </figcaption>
+            </figure>
+            <div class="city-function-card" aria-label="Sri City functioning summary">
+              <div>
+                <span data-i18n="landing.highlightFast">Fast acknowledgement</span>
+                <strong data-count-value="24/7">0</strong>
+              </div>
+              <div>
+                <span data-i18n="landing.highlightDepartments">Visible departments</span>
+                <strong data-count-value="6">0</strong>
+              </div>
+              <div>
+                <span data-i18n="landing.highlightGreen">Green civic upgrades</span>
+                <strong data-count-value="41">0</strong>
+              </div>
+            </div>
 
-            <div class="trust-grid" id="public-stat-cards"></div>
           </article>
 
-          <article class="glass-card hero-side-card">
-            <p class="field-label" data-i18n="landing.workflowMiniLabel">Public workflow</p>
-            <p class="muted">
-              Every citizen request enters the <span class="mono">RECEIVED</span> stage, becomes visible through a
-              reference number, and then moves through review, budgeting, field execution, and quality certification.
-            </p>
+          <article class="glass-card hero-trust-panel">
+            <h3 data-i18n="landing.trustPanelTitle">Public trust panel</h3>
+            <p class="muted" data-i18n="landing.trustPanelSubtitle">Built for civic pride, development visibility,
+              service responsiveness, and accountable delivery.</p>
+            <div class="hero-trust-grid" id="hero-trust-grid"></div>
           </article>
+
         </aside>
       </section>
 
@@ -108,8 +121,7 @@
         <div class="section-heading">
           <div class="section-kicker" data-i18n="landing.statsHeading">Visible progress citizens can feel proud of</div>
           <p data-i18n="landing.statsCopy">
-            The landing page highlights what matters publicly: city services covered, visible development outcomes, and
-            the checks that help keep public work efficient and honest.
+            Public outcomes stay visible while detailed approvals remain secure.
           </p>
         </div>
         <div class="stat-grid" id="public-stats-grid"></div>
@@ -162,7 +174,8 @@
       <section class="section" id="accountability">
         <div class="section-heading">
           <div class="section-kicker" data-i18n="landing.accountabilityKicker">Accountability by design</div>
-          <h2 data-i18n="landing.accountabilityHeading">Why this portal strengthens trust and reduces corruption risk</h2>
+          <h2 data-i18n="landing.accountabilityHeading">Why this portal strengthens trust and reduces corruption risk
+          </h2>
           <p data-i18n="landing.accountabilityIntro">
             The system is built around traceable approvals, controlled spending, and independent verification, so
             public work is harder to hide, delay without reason, or close without proof.
@@ -212,22 +225,26 @@
               <div class="inline-grid">
                 <label class="field">
                   <span class="field-label" data-i18n="request.nameLabel">Citizen name</span>
-                  <input type="text" name="name" autocomplete="name" data-i18n-placeholder="request.namePlaceholder" placeholder="Full name">
+                  <input type="text" name="name" autocomplete="name" data-i18n-placeholder="request.namePlaceholder"
+                    placeholder="Full name">
                 </label>
                 <label class="field">
                   <span class="field-label" data-i18n="request.phoneLabel">Phone number</span>
-                  <input type="tel" name="phone" autocomplete="tel" data-i18n-placeholder="request.phonePlaceholder" placeholder="10-digit mobile number">
+                  <input type="tel" name="phone" autocomplete="tel" data-i18n-placeholder="request.phonePlaceholder"
+                    placeholder="10-digit mobile number">
                 </label>
               </div>
 
               <div class="inline-grid">
                 <label class="field">
                   <span class="field-label" data-i18n="request.emailLabel">Email address</span>
-                  <input type="email" name="email" autocomplete="email" data-i18n-placeholder="request.emailPlaceholder" placeholder="name@example.com">
+                  <input type="email" name="email" autocomplete="email" data-i18n-placeholder="request.emailPlaceholder"
+                    placeholder="name@example.com">
                 </label>
                 <label class="field">
                   <span class="field-label" data-i18n="request.aadhaarLabel">Aadhaar number</span>
-                  <input type="text" name="aadhaar" inputmode="numeric" maxlength="12" data-i18n-placeholder="request.aadhaarPlaceholder" placeholder="12-digit Aadhaar">
+                  <input type="text" name="aadhaar" inputmode="numeric" maxlength="12"
+                    data-i18n-placeholder="request.aadhaarPlaceholder" placeholder="12-digit Aadhaar">
                 </label>
               </div>
 
@@ -244,7 +261,8 @@
 
               <label class="field">
                 <span class="field-label" data-i18n="request.titleLabel">Request title</span>
-                <input type="text" name="title" data-i18n-placeholder="request.titlePlaceholder" placeholder="Short title for the issue or improvement">
+                <input type="text" name="title" data-i18n-placeholder="request.titlePlaceholder"
+                  placeholder="Short title for the issue or improvement">
               </label>
 
               <label class="field">
@@ -256,7 +274,8 @@
               <div class="inline-grid">
                 <label class="field">
                   <span class="field-label" data-i18n="request.locationLabel">Location text</span>
-                  <input type="text" name="locationText" data-i18n-placeholder="request.locationPlaceholder" placeholder="Street, zone, landmark, or neighbourhood">
+                  <input type="text" name="locationText" data-i18n-placeholder="request.locationPlaceholder"
+                    placeholder="Street, zone, landmark, or neighbourhood">
                 </label>
                 <label class="field">
                   <span class="field-label" data-i18n="request.urgencyLabel">Urgency</span>
@@ -350,7 +369,8 @@
       <section class="section">
         <div class="section-heading">
           <div class="section-kicker" data-i18n="landing.prideKicker">Why this matters</div>
-          <h2 data-i18n="landing.prideHeading">A city feels stronger when public work is visible, disciplined, and fair</h2>
+          <h2 data-i18n="landing.prideHeading">A city feels stronger when public work is visible, disciplined, and fair
+          </h2>
         </div>
         <div class="impact-grid" id="impact-grid"></div>
       </section>
@@ -360,7 +380,8 @@
     <footer class="footer content-wrap">
       <div class="glass-card footer-card">
         <span data-i18n="landing.footerTitle">InfraLynx / CRIMS public service portal</span>
-        <span data-i18n="landing.footerCopy">Citizen service visibility, accountable approvals, and disciplined public infrastructure delivery</span>
+        <span data-i18n="landing.footerCopy">Citizen service visibility, accountable approvals, and disciplined public
+          infrastructure delivery</span>
       </div>
     </footer>
   </div>

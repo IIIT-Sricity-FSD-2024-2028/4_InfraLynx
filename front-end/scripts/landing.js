@@ -4,6 +4,7 @@
     findRequestByReference,
     formatDisplayDate,
     formatStatus,
+    getCategoryById,
     getDepartmentById,
     getLanguage,
     getSession,
@@ -198,7 +199,8 @@
 
   const elements = {
     languageSelect: document.querySelector("#language-select"),
-    heroStats: document.querySelector("#public-stat-cards"),
+    heroPrideCards: document.querySelector("#city-pride-cards"),
+    heroTrustGrid: document.querySelector("#hero-trust-grid"),
     statsGrid: document.querySelector("#public-stats-grid"),
     impactGrid: document.querySelector("#impact-grid"),
     requestForm: document.querySelector("#request-form"),
@@ -236,16 +238,89 @@
     }
   }
 
-  function renderHeroTrustGrid() {
-    const language = getLanguage();
-    elements.heroStats.innerHTML = heroTrustData
-      .map((item) => {
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function getNextPublicStep(status) {
+    if (status === "UNDER_REVIEW") {
+      return "Feasibility review";
+    }
+
+    if (status === "APPROVED_FOR_PLANNING") {
+      return "Department planning";
+    }
+
+    if (status === "CONVERTED_TO_WORK_ORDER") {
+      return "Field execution";
+    }
+
+    if (status === "CLOSED") {
+      return "Public closure";
+    }
+
+    if (status === "REJECTED") {
+      return "Review complete";
+    }
+
+    return "Department routing";
+  }
+
+  function renderHeroPrideCards() {
+    const requests = getState()
+      .requests
+      .slice()
+      .sort((left, right) => new Date(right.receivedAt) - new Date(left.receivedAt))
+      .slice(0, 2);
+
+    elements.heroPrideCards.innerHTML = requests
+      .map((request) => {
+        const department = getDepartmentById(request.departmentId);
+        const category = getCategoryById(request.categoryId);
+        const statusClass = statusTone(request.status);
+
         return `
-          <article class="trust-card">
-            <span class="field-label">${t(item.labelKey, language)}</span>
-            <strong>${item.value}</strong>
-            <span>${t(item.detailKey, language)}</span>
+          <article class="city-pride-card">
+            <div class="city-pride-head">
+              <span class="field-label">${escapeHtml(request.requestType)}</span>
+              <span class="status-pill ${statusClass}">${escapeHtml(localizeStatus(request.status))}</span>
+            </div>
+            <h4>${escapeHtml(request.title)}</h4>
+            <p class="mono">${escapeHtml(request.publicReferenceNo)}</p>
+            <div class="city-pride-meta">
+              <span>${escapeHtml((department && localizeDepartmentPublicLabel(department)) || "Routing")}</span>
+              <span>${escapeHtml((category && localizeCategory(category)) || "Civic service")}</span>
+            </div>
+            <div class="city-pride-next">
+              <span>${escapeHtml(t("request.nextStep"))}</span>
+              <strong>${escapeHtml(getNextPublicStep(request.status))}</strong>
+            </div>
           </article>
+        `;
+      })
+      .join("");
+  }
+
+  function renderHeroTrustPanel() {
+    if (!elements.heroTrustGrid) {
+      return;
+    }
+
+    elements.heroTrustGrid.innerHTML = heroTrustData
+      .map((item) => {
+        const label = t(item.labelKey);
+        const detail = t(item.detailKey);
+        return `
+          <div class="hero-trust-box">
+            <span class="field-label">${escapeHtml(label)}</span>
+            <strong>${escapeHtml(item.value)}</strong>
+            <p>${escapeHtml(detail)}</p>
+          </div>
         `;
       })
       .join("");
@@ -293,12 +368,63 @@
         return `
           <article class="glass-card stat-card">
             <span class="field-label">${localizeDynamicText(item.label, language)}</span>
-            <strong>${item.value}</strong>
+            <strong data-count-value="${item.value}">0</strong>
             <p>${localizeDynamicText(item.detail, language)}</p>
           </article>
         `;
       })
       .join("");
+    animateCountUp(elements.statsGrid);
+  }
+
+  function getCountParts(value) {
+    const match = String(value).trim().match(/^(\d+(?:\.\d+)?)(.*)$/);
+    if (!match) {
+      return null;
+    }
+
+    return {
+      target: Number(match[1]),
+      decimals: match[1].includes(".") ? match[1].split(".")[1].length : 0,
+      suffix: match[2]
+    };
+  }
+
+  function animateCountUp(root) {
+    if (!root) {
+      return;
+    }
+
+    const counters = root.querySelectorAll("[data-count-value]");
+    const reduceMotion = globalScope.matchMedia && globalScope.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    counters.forEach((counter) => {
+      const finalValue = counter.dataset.countValue;
+      const parts = getCountParts(finalValue);
+
+      if (!parts || reduceMotion) {
+        counter.textContent = finalValue;
+        return;
+      }
+
+      const start = performance.now();
+      const duration = 1800;
+
+      function tick(now) {
+        const progress = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = parts.target * eased;
+        counter.textContent = `${current.toFixed(parts.decimals)}${parts.suffix}`;
+
+        if (progress < 1) {
+          requestAnimationFrame(tick);
+        } else {
+          counter.textContent = finalValue;
+        }
+      }
+
+      requestAnimationFrame(tick);
+    });
   }
 
   function renderImpactGrid() {
@@ -488,11 +614,13 @@
   function rerenderDynamicContent() {
     renderStaticText();
     renderLocalizedOptions();
-    renderHeroTrustGrid();
+
+    renderHeroTrustPanel();
     renderWorkflowCards();
     renderAssuranceCards();
     renderStatsGrid();
     renderImpactGrid();
+    animateCountUp(document.querySelector(".city-function-card"));
 
     if (currentAcknowledgement) {
       renderAcknowledgement(currentAcknowledgement);
@@ -508,11 +636,13 @@
     bindLanguageSelector(elements.languageSelect);
     applyTranslations(document, getLanguage());
     renderStaticText();
-    renderHeroTrustGrid();
+
+    renderHeroTrustPanel();
     renderWorkflowCards();
     renderAssuranceCards();
     renderStatsGrid();
     renderImpactGrid();
+    animateCountUp(document.querySelector(".city-function-card"));
     renderLocalizedOptions();
     prefillCitizenSession();
     bindRequestForm();
