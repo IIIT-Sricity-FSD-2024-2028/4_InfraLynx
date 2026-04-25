@@ -1,6 +1,5 @@
 # ── Node / npm ────────────────────────────────────────
 node_modules/
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
 .pnp
@@ -13,8 +12,6 @@ yarn-error.log*
 dist/
 build/
 *.tsbuildinfo
-tsconfig.build.json
-tsconfig.json
 
 # ── NestJS CLI & config boilerplate ───────────────────
 nest-cli.json
@@ -25,8 +22,7 @@ eslint.config.js
 .eslintrc*
 .eslintignore
 
-# ── Package lock (auto-generated, not needed) ─────────
-back-end/package-lock.json
+
 
 # ── Environment & secrets ─────────────────────────────
 .env
