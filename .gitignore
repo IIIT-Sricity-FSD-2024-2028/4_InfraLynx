@@ -1,0 +1,59 @@
+# ── Node / npm ────────────────────────────────────────
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.pnp
+.pnp.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── NestJS / TypeScript build outputs ─────────────────
+dist/
+build/
+*.tsbuildinfo
+tsconfig.build.json
+tsconfig.json
+
+# ── NestJS CLI & config boilerplate ───────────────────
+nest-cli.json
+.prettierrc
+.prettierignore
+eslint.config.mjs
+eslint.config.js
+.eslintrc*
+.eslintignore
+
+# ── Package lock (auto-generated, not needed) ─────────
+back-end/package-lock.json
+
+# ── Environment & secrets ─────────────────────────────
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# ── Logs ──────────────────────────────────────────────
+*.log
+logs/
+
+# ── Test coverage ─────────────────────────────────────
+coverage/
+.nyc_output/
+test/
+
+# ── OS & editor ───────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Misc cache ────────────────────────────────────────
+.cache/
+.turbo/

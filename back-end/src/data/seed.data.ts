@@ -1,0 +1,113 @@
+// ============================================================
+//  CRIMS In-Memory Seed Data — mirrors front-end/scripts/seed-data.js
+// ============================================================
+
+export const departments = [
+  { id: 'dept-roads', name: 'Roads and Mobility', publicLabel: 'Roads and footpaths', lead: 'Hassan Raza', budgetCr: 9.8, utilization: 72 },
+  { id: 'dept-water', name: 'Water Services', publicLabel: 'Water reliability', lead: 'Priya Dutta', budgetCr: 8.4, utilization: 64 },
+  { id: 'dept-drainage', name: 'Stormwater and Drainage', publicLabel: 'Drainage and flood resilience', lead: 'Kiran Babu', budgetCr: 6.7, utilization: 58 },
+  { id: 'dept-lighting', name: 'Electrical and Street Lighting', publicLabel: 'Street lighting', lead: 'Naveen Joseph', budgetCr: 4.1, utilization: 81 },
+  { id: 'dept-sanitation', name: 'Solid Waste and Sanitation', publicLabel: 'Clean streets and waste services', lead: 'Farah Khan', budgetCr: 5.9, utilization: 69 },
+  { id: 'dept-green', name: 'Green Infrastructure and Parks', publicLabel: 'Green infrastructure', lead: 'Divya Reddy', budgetCr: 3.8, utilization: 61 },
+];
+
+export const serviceCategories = [
+  { id: 'roads', label: 'Road damage or safer footpaths', departmentId: 'dept-roads' },
+  { id: 'water', label: 'Water supply or leakage', departmentId: 'dept-water' },
+  { id: 'drainage', label: 'Drainage, flooding, or stormwater', departmentId: 'dept-drainage' },
+  { id: 'lighting', label: 'Streetlight outage or electrical safety', departmentId: 'dept-lighting' },
+  { id: 'sanitation', label: 'Waste, cleaning, or public hygiene', departmentId: 'dept-sanitation' },
+  { id: 'green', label: 'Trees, parks, and green upgrades', departmentId: 'dept-green' },
+];
+
+export const officialAccounts = [
+  { id: 'official-01', role: 'ADMINISTRATOR', name: 'Asha Menon', email: 'administrator@crims.gov.in', password: 'Admin@2026', departmentId: null },
+  { id: 'official-02', role: 'OFFICER', name: 'Hassan Raza', email: 'officer@crims.gov.in', password: 'Officer@2026', departmentId: 'dept-roads' },
+  { id: 'official-03', role: 'ENGINEER', name: 'Rajesh Kumar', email: 'engineer@crims.gov.in', password: 'Engineer@2026', departmentId: 'dept-roads' },
+  { id: 'official-04', role: 'CFO', name: 'Nidhi Varma', email: 'cfo@crims.gov.in', password: 'CFO@2026', departmentId: null },
+  { id: 'official-05', role: 'QC_REVIEWER', name: 'Meera Jacob', email: 'qc@crims.gov.in', password: 'QC@2026', departmentId: null },
+];
+
+export const citizenUsers = [
+  { id: 'citizen-001', aadhaar: '512345678901', name: 'Ananya Rao', phone: '9876543210', email: 'ananya.rao@example.com', password: 'Citizen@2026', preferredLanguage: 'en', createdAt: '2026-03-18T09:10:00.000Z' },
+];
+
+export const requests = [
+  { requestId: 'request-001', publicReferenceNo: 'CRIMS-2026-0042', citizenAadhaar: '512345678901', requestType: 'Complaint', categoryId: 'roads', departmentId: 'dept-roads', requesterName: 'Ananya Rao', requesterContact: '9876543210', requesterEmail: 'ananya.rao@example.com', title: 'Damaged carriageway near Central Avenue', description: 'The outer lane has cracked near the median and becomes unsafe during evening traffic.', locationText: 'Central Avenue, Zone 2, Sri City', urgency: 'HIGH', status: 'UNDER_REVIEW', receivedAt: '2026-03-19T10:15:00.000Z' },
+  { requestId: 'request-002', publicReferenceNo: 'CRIMS-2026-0058', citizenAadhaar: '512345678901', requestType: 'Improvement', categoryId: 'green', departmentId: 'dept-green', requesterName: 'Ananya Rao', requesterContact: '9876543210', requesterEmail: 'ananya.rao@example.com', title: 'Add shaded seating and native planting near lakefront', description: 'The walkway is active in the morning but needs shaded seating and more native planting for comfort.', locationText: 'Lakefront civic edge, Sri City', urgency: 'MEDIUM', status: 'APPROVED_FOR_PLANNING', receivedAt: '2026-03-21T07:30:00.000Z' },
+  { requestId: 'request-003', publicReferenceNo: 'CRIMS-2026-0064', citizenAadhaar: '598765432101', requestType: 'Complaint', categoryId: 'lighting', departmentId: 'dept-lighting', requesterName: 'Sandeep Varma', requesterContact: '9866001122', requesterEmail: 'sandeep.varma@example.com', title: 'Streetlights out on freight corridor', description: 'A row of streetlights has been non-functional for three nights near the logistics gate.', locationText: 'North Freight Corridor, Sri City', urgency: 'HIGH', status: 'RECEIVED', receivedAt: '2026-03-25T18:45:00.000Z' },
+  { requestId: 'request-004', publicReferenceNo: 'CRIMS-2026-0069', citizenAadhaar: '576543210987', requestType: 'Improvement', categoryId: 'water', departmentId: 'dept-water', requesterName: 'Lakshmi Devi', requesterContact: '9849001188', requesterEmail: 'lakshmi.devi@example.com', title: 'Install public drinking water point near bus stop', description: 'A drinking water point is needed near the bus interchange because students and workers wait there for long periods.', locationText: 'Central Interchange Bus Stop, Sri City', urgency: 'MEDIUM', status: 'CONVERTED_TO_WORK_ORDER', receivedAt: '2026-03-22T08:20:00.000Z' },
+];
+
+export const workOrders = [
+  { id: 'wo-001', referenceNo: 'WO-2041', departmentId: 'dept-roads', requestId: 'request-001', title: 'Bridge railing repair near Sector 7', locationText: 'Central Park Bridge, Sector 7', engineerId: 'official-03', priority: 'EMERGENCY', status: 'IN_PROGRESS', dueDate: '2026-03-27', notes: 'Temporary barricading completed. Repair steel delivery expected before noon.', approvedBy: null, approvedAt: null, rejectedBy: null, rejectedAt: null },
+  { id: 'wo-002', referenceNo: 'WO-2053', departmentId: 'dept-roads', requestId: 'request-001', title: 'Central Avenue carriageway resurfacing patch', locationText: 'Central Avenue, Zone 2', engineerId: '', priority: 'HIGH', status: 'PENDING_OFFICER_APPROVAL', dueDate: '2026-03-29', notes: 'Awaiting final assignment and asphalt batch confirmation.', approvedBy: null, approvedAt: null, rejectedBy: null, rejectedAt: null },
+  { id: 'wo-003', referenceNo: 'WO-2061', departmentId: 'dept-water', requestId: 'request-004', title: 'Install drinking water point near interchange', locationText: 'Central Interchange Bus Stop', engineerId: '', priority: 'MEDIUM', status: 'APPROVED', dueDate: '2026-04-02', notes: 'Cross-department work order visible for administrative coordination.', approvedBy: null, approvedAt: null, rejectedBy: null, rejectedAt: null },
+];
+
+export const quotations = [
+  { id: 'quote-001', departmentId: 'dept-roads', vendor: 'Sri Infra Works', item: 'Guard rail replacement and safety fittings', amountLakhs: 12.4, gstValid: true, status: 'UNDER_REVIEW' },
+  { id: 'quote-002', departmentId: 'dept-roads', vendor: 'Rapid Surface Tech', item: 'Bitumen patching material for carriageway repair', amountLakhs: 8.1, gstValid: true, status: 'SUBMITTED' },
+  { id: 'quote-003', departmentId: 'dept-lighting', vendor: 'Luma Grid Systems', item: 'Streetlight driver replacement batch', amountLakhs: 5.2, gstValid: false, status: 'UNDER_REVIEW' },
+];
+
+export const maintenanceSchedules = [
+  { id: 'schedule-001', departmentId: 'dept-roads', title: 'Weekly arterial road inspection', frequency: 'WEEKLY', nextDate: '2026-03-28', assignee: 'official-03' },
+  { id: 'schedule-002', departmentId: 'dept-roads', title: 'Median drainage spot check', frequency: 'MONTHLY', nextDate: '2026-03-31', assignee: '' },
+];
+
+export const inspections = [
+  { id: 'inspection-001', departmentId: 'dept-roads', engineerId: 'official-03', title: 'Bridge sector safety inspection', locationText: 'Central Park Bridge, Sector 7', severity: 'CRITICAL', dueDate: '2026-03-26', status: 'PENDING' },
+  { id: 'inspection-002', departmentId: 'dept-roads', engineerId: 'official-03', title: 'Median crack and pothole assessment', locationText: 'Central Avenue, Zone 2', severity: 'MODERATE', dueDate: '2026-03-27', status: 'ASSIGNED' },
+];
+
+export const issueReports = [
+  { id: 'issue-001', departmentId: 'dept-roads', engineerId: 'official-03', title: 'Loose railing anchors near bridge approach', category: 'Safety hazard', locationText: 'Central Park Bridge', severity: 'CRITICAL', status: 'OPEN' },
+  { id: 'issue-002', departmentId: 'dept-roads', engineerId: 'official-03', title: 'Surface edge breakup after rain', category: 'Road damage', locationText: 'Central Avenue, Zone 2', severity: 'MODERATE', status: 'UNDER_REVIEW' },
+];
+
+export const resourceRequests = [
+  { id: 'resource-001', departmentId: 'dept-roads', engineerId: 'official-03', item: 'Safety barricades and reflective tape', quantity: '12 units', urgency: 'HIGH', status: 'APPROVED' },
+  { id: 'resource-002', departmentId: 'dept-roads', engineerId: 'official-03', item: 'Portable welding kit', quantity: '1 kit', urgency: 'MEDIUM', status: 'PENDING' },
+];
+
+export const progressReports = [
+  { id: 'report-001', departmentId: 'dept-roads', engineerId: 'official-03', workOrderId: 'wo-001', title: 'Bridge repair morning update', summary: 'Barricading complete and material unloading coordinated with contractor support.', status: 'ACKNOWLEDGED', submittedAt: '2026-03-26T09:20:00.000Z' },
+];
+
+export const budgetProposals = [
+  { id: 'proposal-001', departmentId: 'dept-roads', title: 'Bridge railing repair release', amountCr: 1.8, stage: 'PENDING_CFO_REVIEW', justification: 'Emergency safety repair and steel replacement for bridge approach.', requestedBy: 'official-02' },
+  { id: 'proposal-002', departmentId: 'dept-water', title: 'Public water point installation', amountCr: 0.9, stage: 'APPROVED', justification: 'Citizen-facing drinking water point with civil and pipework setup.', requestedBy: 'official-02' },
+];
+
+export const procurementBills = [
+  { id: 'bill-001', departmentId: 'dept-roads', vendor: 'Sri Infra Works', workOrderId: 'wo-001', amountLakhs: 11.7, gstValid: true, status: 'UNDER_VERIFICATION' },
+  { id: 'bill-002', departmentId: 'dept-water', workOrderId: 'wo-003', vendor: 'Aqua Civic Systems', amountLakhs: 8.4, gstValid: true, status: 'APPROVED' },
+];
+
+export const qcReviews = [
+  { id: 'qc-001', departmentId: 'dept-roads', workOrderId: 'wo-001', title: 'Bridge repair quality inspection', reviewer: 'official-05', finding: 'Railing alignment and anchor fit must be rechecked before closure.', status: 'UNDER_REVIEW', score: 78 },
+  { id: 'qc-002', departmentId: 'dept-water', workOrderId: 'wo-003', title: 'Water point installation validation', reviewer: 'official-05', finding: 'Pipe support and public access safety meet expected standard.', status: 'APPROVED', score: 92 },
+];
+
+export const fundReleases = [
+  { id: 'release-001', departmentId: 'dept-roads', proposalId: 'proposal-001', title: 'Q1 Bridge Repair Release', amountCr: 0.9, quarter: 'Q1-2026', status: 'RELEASED', releasedAt: '2026-03-10T10:00:00.000Z', notes: 'First tranche released after site mobilisation confirmed.' },
+  { id: 'release-002', departmentId: 'dept-water', proposalId: 'proposal-002', title: 'Q1 Water Point Installation', amountCr: 0.45, quarter: 'Q1-2026', status: 'PENDING', releasedAt: null, notes: 'Pending CFO sign-off on contractor invoices before release.' },
+];
+
+export const maintenanceLogs = [
+  { id: 'mlog-001', departmentId: 'dept-roads', engineerId: 'official-03', scheduleId: 'schedule-001', workOrderId: 'wo-001', title: 'Weekly arterial road scan — Zone 2', activity: 'Walked 2.1 km of Central Avenue. Found 3 new surface cracks near median edge. Photographed and flagged for pothole repair.', hoursSpent: 2.5, date: '2026-03-26', status: 'COMPLETED' },
+];
+
+export const sensorDeployments = [
+  { id: 'sensor-001', departmentId: 'dept-roads', engineerId: 'official-03', workOrderId: 'wo-001', sensorType: 'Structural vibration monitor', assetLocation: 'Central Park Bridge, Sector 7', serialNo: 'SVS-2026-0042', installedAt: '2026-03-25T08:30:00.000Z', status: 'ACTIVE', notes: 'Sensor calibrated and streaming to city IoT hub. Alert threshold set at 3.2 mm/s.' },
+];
+
+export const taskMaterialLogs = [
+  { id: 'matlog-001', departmentId: 'dept-roads', engineerId: 'official-03', workOrderId: 'wo-001', material: 'M.S. Guard rail sections', quantity: '14 units', unit: 'nos', usedOn: '2026-03-26', notes: 'Used for bridge approach railing replacement. 2 units held in reserve.' },
+  { id: 'matlog-002', departmentId: 'dept-roads', engineerId: 'official-03', workOrderId: 'wo-001', material: 'Epoxy anchor bolts', quantity: '48', unit: 'nos', usedOn: '2026-03-26', notes: 'All bolts torqued to spec per structural drawing SD-BR-07.' },
+];
+
+export const outcomeReports = [
+  { id: 'outcome-001', departmentId: 'dept-water', workOrderId: 'wo-003', preparedBy: 'official-02', title: 'Public Water Point — Project Closure Report', summary: 'Drinking water point installed and commissioned at Central Interchange. Tested at rated flow. Citizen feedback positive. Budget utilisation within sanctioned amount.', budgetSanctioned: 0.9, budgetUsed: 0.84, outcome: 'SUCCESSFUL', lessonsLearned: 'Coordinate with BESCOM earlier for power connection to reduce commissioning delay.', submittedAt: '2026-03-28T14:00:00.000Z' },
+];
