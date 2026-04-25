@@ -648,15 +648,26 @@
 
     const currentStatusIndex = REQUEST_STATUS_STEPS.indexOf(request.status);
 
+    // Use short UI aliases to prevent flex-container overflow
+    const shortLabels = {
+      "RECEIVED": "Received",
+      "UNDER_REVIEW": "Under Review",
+      "APPROVED_FOR_PLANNING": "Approved",
+      "CONVERTED_TO_WORK_ORDER": "Executing",
+      "CLOSED": "QC Certified"
+    };
+
     liveStages.innerHTML = REQUEST_STATUS_STEPS.map((step, index) => {
       let cssClass = "hero-stage-pill";
       if (index < currentStatusIndex) cssClass += " done";
       if (index === currentStatusIndex) cssClass += " active";
 
+      const shortText = shortLabels[step] || step;
+
       const pill = `
         <div class="${cssClass}">
           <span class="stage-dot"></span>
-          <span>${escapeHtml(localizeStatus(step, getLanguage()))}</span>
+          <span>${escapeHtml(shortText)}</span>
         </div>
       `;
 
