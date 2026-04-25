@@ -615,6 +615,9 @@
     const liveCard = document.querySelector("#hero-live-card");
     const liveBadge = document.querySelector("#hero-live-badge");
     const liveDesc = document.querySelector("#hero-live-desc");
+    const liveInfo = document.querySelector("#hero-live-info");
+    const liveTitle = document.querySelector("#hero-live-title");
+    const liveLocation = document.querySelector("#hero-live-location");
     const liveStages = document.querySelector("#hero-live-stages");
     const liveFooter = document.querySelector("#hero-live-footer");
     const liveRef = document.querySelector("#hero-live-ref");
@@ -622,23 +625,43 @@
 
     if (!liveCard || !liveStages) return;
 
-    // Get newest request from store
+    const urgencyScore = {
+      "EMERGENCY": 4,
+      "HIGH": 3,
+      "MEDIUM": 2,
+      "LOW": 1
+    };
+
+    // Get newest request, but prioritize by Urgency
     const request = getState().requests
       .slice()
-      .sort((a, b) => new Date(b.receivedAt) - new Date(a.receivedAt))[0];
+      .sort((a, b) => {
+        const scoreA = urgencyScore[a.urgency] || 0;
+        const scoreB = urgencyScore[b.urgency] || 0;
+        if (scoreA !== scoreB) {
+          return scoreB - scoreA;
+        }
+        return new Date(b.receivedAt) - new Date(a.receivedAt);
+      })[0];
 
     // If no data, hide the dynamic parts
     if (!request) {
       liveBadge.style.display = "none";
       liveStages.style.display = "none";
       liveFooter.style.display = "none";
+      if (liveInfo) liveInfo.style.display = "none";
       liveDesc.style.display = "block";
       return;
     }
 
-    // Hide generic description, show dynamic tracking
+    // Hide generic description, show dynamic tracking and info
     liveDesc.style.display = "none";
     liveBadge.style.display = "inline-flex";
+    if (liveInfo) liveInfo.style.display = "block";
+
+    if (liveTitle) liveTitle.textContent = request.title;
+    if (liveLocation) liveLocation.textContent = "📍 " + request.locationText;
+
     liveFooter.style.display = "block";
     liveStages.style.display = "flex";
 
