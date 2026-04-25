@@ -611,6 +611,62 @@
     });
   }
 
+  function renderHeroStatusCard() {
+    const liveCard = document.querySelector("#hero-live-card");
+    const liveBadge = document.querySelector("#hero-live-badge");
+    const liveDesc = document.querySelector("#hero-live-desc");
+    const liveStages = document.querySelector("#hero-live-stages");
+    const liveFooter = document.querySelector("#hero-live-footer");
+    const liveRef = document.querySelector("#hero-live-ref");
+    const liveDept = document.querySelector("#hero-live-dept");
+
+    if (!liveCard || !liveStages) return;
+
+    // Get newest request from store
+    const request = getState().requests
+      .slice()
+      .sort((a, b) => new Date(b.receivedAt) - new Date(a.receivedAt))[0];
+
+    // If no data, hide the dynamic parts
+    if (!request) {
+      liveBadge.style.display = "none";
+      liveStages.style.display = "none";
+      liveFooter.style.display = "none";
+      liveDesc.style.display = "block";
+      return;
+    }
+
+    // Hide generic description, show dynamic tracking
+    liveDesc.style.display = "none";
+    liveBadge.style.display = "inline-flex";
+    liveFooter.style.display = "block";
+    liveStages.style.display = "flex";
+
+    liveRef.textContent = request.publicReferenceNo;
+    const dept = getDepartmentById(request.departmentId);
+    liveDept.textContent = (dept && localizeDepartmentPublicLabel(dept, getLanguage())) || "Routing";
+
+    const currentStatusIndex = REQUEST_STATUS_STEPS.indexOf(request.status);
+
+    liveStages.innerHTML = REQUEST_STATUS_STEPS.map((step, index) => {
+      let cssClass = "hero-stage-pill";
+      if (index < currentStatusIndex) cssClass += " done";
+      if (index === currentStatusIndex) cssClass += " active";
+
+      const pill = `
+        <div class="${cssClass}">
+          <span class="stage-dot"></span>
+          <span>${escapeHtml(localizeStatus(step, getLanguage()))}</span>
+        </div>
+      `;
+
+      const isLast = index === REQUEST_STATUS_STEPS.length - 1;
+      const connector = isLast ? "" : `<div class="hero-stage-connector"></div>`;
+
+      return pill + connector;
+    }).join("");
+  }
+
   function rerenderDynamicContent() {
     renderStaticText();
     renderLocalizedOptions();
@@ -620,6 +676,7 @@
     renderAssuranceCards();
     renderStatsGrid();
     renderImpactGrid();
+    renderHeroStatusCard();
     animateCountUp(document.querySelector(".city-function-card"));
 
     if (currentAcknowledgement) {
@@ -642,6 +699,7 @@
     renderAssuranceCards();
     renderStatsGrid();
     renderImpactGrid();
+    renderHeroStatusCard();
     animateCountUp(document.querySelector(".city-function-card"));
     renderLocalizedOptions();
     prefillCitizenSession();

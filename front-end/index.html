@@ -70,43 +70,20 @@
               secure access</a>
           </div>
 
-          <article class="hero-status-card">
+          <article class="hero-status-card" id="hero-live-card">
             <div class="hero-status-card-header">
-              <span class="hero-status-badge">LIVE TRACKING</span>
+              <span class="hero-status-badge" id="hero-live-badge" style="display: none;">LIVE TRACKING</span>
               <p class="field-label" data-i18n="landing.workflowMiniLabel">Request status</p>
             </div>
-            <p class="hero-status-desc" data-i18n="landing.workflowMiniCopy">
+            <p class="hero-status-desc" data-i18n="landing.workflowMiniCopy" id="hero-live-desc">
               Every request enters the system, gets a reference number, and moves through review, budgeting, field
               execution, and quality certification.
             </p>
-            <div class="hero-status-stages">
-              <div class="hero-stage-pill done">
-                <span class="stage-dot"></span>
-                <span>Received</span>
-              </div>
-              <div class="hero-stage-connector"></div>
-              <div class="hero-stage-pill done">
-                <span class="stage-dot"></span>
-                <span>Under Review</span>
-              </div>
-              <div class="hero-stage-connector"></div>
-              <div class="hero-stage-pill active">
-                <span class="stage-dot"></span>
-                <span>Approved</span>
-              </div>
-              <div class="hero-stage-connector"></div>
-              <div class="hero-stage-pill">
-                <span class="stage-dot"></span>
-                <span>Executing</span>
-              </div>
-              <div class="hero-stage-connector"></div>
-              <div class="hero-stage-pill">
-                <span class="stage-dot"></span>
-                <span>QC Certified</span>
-              </div>
+            <div class="hero-status-stages" id="hero-live-stages" style="display: none;">
+              <!-- Javascript injects pills here -->
             </div>
-            <p class="hero-status-ref">Ref: <strong class="mono">CRIMS-2026-0042</strong> &nbsp;·&nbsp; Roads &amp;
-              Mobility</p>
+            <p class="hero-status-ref" id="hero-live-footer" style="display: none;">Ref: <strong class="mono"
+                id="hero-live-ref"></strong> &nbsp;·&nbsp; <span id="hero-live-dept"></span></p>
           </article>
 
         </div>
