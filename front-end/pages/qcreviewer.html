@@ -24,7 +24,7 @@
 
     <div class="dashboard-shell content-wrap">
 
-      <!-- â”€â”€ Sidebar â”€â”€ -->
+      <!-- Sidebar -->
       <aside class="dashboard-sidebar glass-card" aria-label="QC Reviewer navigation">
         <a class="sidebar-brand" href="../index.html" aria-label="InfraLynx home">
           <img src="../assets/CRIMS_logo.png" alt="CRIMS logo">
@@ -44,14 +44,14 @@
 
         <nav class="sidebar-nav" aria-label="QC sections">
           <a class="sidebar-nav-link is-active" href="#overview" data-qc-nav aria-current="page">
-            <div class="sidebar-nav-icon">ðŸ“Š</div>
+            <div class="sidebar-nav-icon">📊</div>
             <div class="sidebar-nav-label">
               <span>Overview</span>
               <strong>Quality posture</strong>
             </div>
           </a>
           <a class="sidebar-nav-link" href="#reviews" data-qc-nav>
-            <div class="sidebar-nav-icon">âœ…</div>
+            <div class="sidebar-nav-icon">✅</div>
             <div class="sidebar-nav-label">
               <span>QC Reviews</span>
               <strong>Findings &amp; certification</strong>
@@ -65,12 +65,12 @@
         </div>
       </aside>
 
-      <!-- â”€â”€ Workspace â”€â”€ -->
+      <!--  Workspace -->
       <div class="dashboard-workspace qc-workspace">
 
         <main class="workspace-main qc-main">
 
-          <!-- â”€â”€ Overview â”€â”€ -->
+          <!--  Overview -->
           <section id="overview">
             <div class="hero-panel">
               <article class="glass-card hero-copy-card">
@@ -125,13 +125,12 @@
             </div>
           </section>
 
-          <!-- â”€â”€ QC Reviews â”€â”€ -->
+          <!--  QC Reviews -->
           <section id="reviews" class="nav-panel-hidden">
             <div class="section-heading">
               <div class="section-kicker">QC Reviews</div>
               <h2>Record findings, scores, and certification decisions</h2>
-              <p>Each review links to a work order and department. Score between 0â€“100 and record your quality finding.
-                Status determines closure readiness.</p>
+              <p>Each review links to a work order and department. Score between 0–100 and record your quality finding. Status determines closure readiness.</p>
             </div>
             <div class="control-grid">
               <article class="glass-card table-card">
@@ -180,7 +179,7 @@
                       <select name="status" id="qc-status-select"></select>
                     </label>
                     <label class="field">
-                      <span class="field-label">Quality score (0â€“100)</span>
+                      <span class="field-label">Quality score (0–100)</span>
                       <input type="number" name="score" min="0" max="100" step="1" placeholder="0">
                     </label>
                   </div>

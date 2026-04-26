@@ -416,7 +416,9 @@
 }
 
 .table-shell {
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 500px;
 }
 
 .data-table {
@@ -623,8 +625,7 @@
 }
 
 .officer-page .dashboard-workspace {
-  max-height: calc(100vh - 56px);
-  overflow-y: auto;
+  /* Workspace expands natively */
 }
 
 .officer-page .workspace-main {

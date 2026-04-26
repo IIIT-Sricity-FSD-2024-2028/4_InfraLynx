@@ -99,7 +99,12 @@
                 </label>
                 <label class="field">
                   <span class="field-label" data-i18n="auth.passwordLabel">Password</span>
-                  <input type="password" name="password" data-i18n-placeholder="auth.passwordPlaceholder" placeholder="Enter password">
+                  <div class="password-wrapper">
+                    <input type="password" name="password" data-i18n-placeholder="auth.passwordPlaceholder" placeholder="Enter password">
+                    <button type="button" class="password-toggle" aria-label="Toggle password visibility">
+                      <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="eye-icon"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                  </div>
                 </label>
                 <div class="auth-actions">
                   <button class="button button-primary" type="submit" data-i18n="auth.signInButton">Sign in</button>
@@ -132,11 +137,21 @@
                 <div class="inline-grid">
                   <label class="field">
                     <span class="field-label" data-i18n="auth.passwordLabel">Password</span>
-                    <input type="password" name="password" data-i18n-placeholder="auth.createPasswordPlaceholder" placeholder="Create password">
+                    <div class="password-wrapper">
+                      <input type="password" name="password" data-i18n-placeholder="auth.createPasswordPlaceholder" placeholder="Create password">
+                      <button type="button" class="password-toggle" aria-label="Toggle password visibility">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="eye-icon"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                      </button>
+                    </div>
                   </label>
                   <label class="field">
                     <span class="field-label" data-i18n="auth.confirmPasswordLabel">Confirm password</span>
-                    <input type="password" name="confirmPassword" data-i18n-placeholder="auth.confirmPasswordPlaceholder" placeholder="Confirm password">
+                    <div class="password-wrapper">
+                      <input type="password" name="confirmPassword" data-i18n-placeholder="auth.confirmPasswordPlaceholder" placeholder="Confirm password">
+                      <button type="button" class="password-toggle" aria-label="Toggle password visibility">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="eye-icon"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                      </button>
+                    </div>
                   </label>
                 </div>
                 <div class="auth-actions">
@@ -171,7 +186,12 @@
                 </label>
                 <label class="field">
                   <span class="field-label" data-i18n="auth.passwordLabel">Password</span>
-                  <input type="password" name="password" autocomplete="current-password" data-i18n-placeholder="auth.passwordPlaceholder" placeholder="Enter password">
+                  <div class="password-wrapper">
+                    <input type="password" name="password" autocomplete="current-password" data-i18n-placeholder="auth.passwordPlaceholder" placeholder="Enter password">
+                    <button type="button" class="password-toggle" aria-label="Toggle password visibility">
+                      <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="eye-icon"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                  </div>
                 </label>
                 <div class="auth-actions">
                   <button class="button button-primary" type="submit" data-i18n="auth.signInButton">Sign in</button>
