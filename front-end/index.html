@@ -43,7 +43,8 @@
           <select id="language-select" aria-label="Language"></select>
         </label>
         <a class="button button-secondary" href="#track-request" data-i18n="nav.track">Track Request</a>
-        <a class="button button-primary" href="./auth.html?mode=official" data-i18n="nav.officialAccess">Official Sign
+        <a class="button button-primary" href="./pages/auth.html?mode=official" data-i18n="nav.officialAccess">Official
+          Sign
           In</a>
       </div>
     </header>
@@ -62,18 +63,33 @@
 
           <div class="hero-actions">
             <a class="button button-primary" href="#submit-request" data-i18n="landing.primaryCta">Submit a request</a>
-            <a class="button button-ghost" href="./auth.html?mode=citizen" data-i18n="nav.citizenAccess">Citizen
+            <a class="button button-ghost" href="./pages/auth.html?mode=citizen" data-i18n="nav.citizenAccess">Citizen
               Access</a>
-            <a class="button button-secondary" href="./auth.html?mode=official" data-i18n="landing.secondaryCta">Go to
+            <a class="button button-secondary" href="./pages/auth.html?mode=official"
+              data-i18n="landing.secondaryCta">Go to
               secure access</a>
           </div>
 
-          <article class="glass-card hero-status-card">
-            <p class="field-label" data-i18n="landing.workflowMiniLabel">Request status</p>
-            <p class="muted" data-i18n="landing.workflowMiniCopy">
-              Every citizen request enters the received stage, becomes visible through a reference number, and then
-              moves through review, budgeting, field execution, and quality certification.
+          <article class="hero-status-card" id="hero-live-card">
+            <div class="hero-status-card-header">
+              <span class="hero-status-badge" id="hero-live-badge" style="display: none;">LIVE TRACKING</span>
+              <p class="field-label" data-i18n="landing.workflowMiniLabel">Request status</p>
+            </div>
+            <p class="hero-status-desc" data-i18n="landing.workflowMiniCopy" id="hero-live-desc">
+              Every request enters the system, gets a reference number, and moves through review, budgeting, field
+              execution, and quality certification.
             </p>
+            <div id="hero-live-info" style="display: none; margin-bottom: 24px;">
+              <h3 id="hero-live-title"
+                style="margin: 0 0 4px 0; font-size: 1.05rem; font-weight: 600; color: var(--text-base); line-height: 1.4;">
+              </h3>
+              <p id="hero-live-location" style="margin: 0; font-size: 0.85rem; color: var(--text-muted);"></p>
+            </div>
+            <div class="hero-status-stages" id="hero-live-stages" style="display: none;">
+              <!-- Javascript injects pills here -->
+            </div>
+            <p class="hero-status-ref" id="hero-live-footer" style="display: none;">Ref: <strong class="mono"
+                id="hero-live-ref"></strong> &nbsp;·&nbsp; <span id="hero-live-dept"></span></p>
           </article>
 
         </div>
@@ -290,7 +306,8 @@
 
               <div class="auth-actions">
                 <button class="button button-primary" type="submit" data-i18n="request.submit">Submit request</button>
-                <a class="button button-secondary" href="./auth.html?mode=citizen" data-i18n="nav.citizenAccess">Citizen
+                <a class="button button-secondary" href="./pages/auth.html?mode=citizen"
+                  data-i18n="nav.citizenAccess">Citizen
                   Access</a>
               </div>
 

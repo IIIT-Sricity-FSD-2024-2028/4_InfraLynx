@@ -611,6 +611,96 @@
     });
   }
 
+  function renderHeroStatusCard() {
+    const liveCard = document.querySelector("#hero-live-card");
+    const liveBadge = document.querySelector("#hero-live-badge");
+    const liveDesc = document.querySelector("#hero-live-desc");
+    const liveInfo = document.querySelector("#hero-live-info");
+    const liveTitle = document.querySelector("#hero-live-title");
+    const liveLocation = document.querySelector("#hero-live-location");
+    const liveStages = document.querySelector("#hero-live-stages");
+    const liveFooter = document.querySelector("#hero-live-footer");
+    const liveRef = document.querySelector("#hero-live-ref");
+    const liveDept = document.querySelector("#hero-live-dept");
+
+    if (!liveCard || !liveStages) return;
+
+    const urgencyScore = {
+      "EMERGENCY": 4,
+      "HIGH": 3,
+      "MEDIUM": 2,
+      "LOW": 1
+    };
+
+    // Get newest request, but prioritize by Urgency
+    const request = getState().requests
+      .slice()
+      .sort((a, b) => {
+        const scoreA = urgencyScore[a.urgency] || 0;
+        const scoreB = urgencyScore[b.urgency] || 0;
+        if (scoreA !== scoreB) {
+          return scoreB - scoreA;
+        }
+        return new Date(b.receivedAt) - new Date(a.receivedAt);
+      })[0];
+
+    // If no data, hide the dynamic parts
+    if (!request) {
+      liveBadge.style.display = "none";
+      liveStages.style.display = "none";
+      liveFooter.style.display = "none";
+      if (liveInfo) liveInfo.style.display = "none";
+      liveDesc.style.display = "block";
+      return;
+    }
+
+    // Hide generic description, show dynamic tracking and info
+    liveDesc.style.display = "none";
+    liveBadge.style.display = "inline-flex";
+    if (liveInfo) liveInfo.style.display = "block";
+
+    if (liveTitle) liveTitle.textContent = request.title;
+    if (liveLocation) liveLocation.textContent = "📍 " + request.locationText;
+
+    liveFooter.style.display = "block";
+    liveStages.style.display = "flex";
+
+    liveRef.textContent = request.publicReferenceNo;
+    const dept = getDepartmentById(request.departmentId);
+    liveDept.textContent = (dept && localizeDepartmentPublicLabel(dept, getLanguage())) || "Routing";
+
+    const currentStatusIndex = REQUEST_STATUS_STEPS.indexOf(request.status);
+
+    // Use short UI aliases to prevent flex-container overflow
+    const shortLabels = {
+      "RECEIVED": "Received",
+      "UNDER_REVIEW": "Under Review",
+      "APPROVED_FOR_PLANNING": "Approved",
+      "CONVERTED_TO_WORK_ORDER": "Executing",
+      "CLOSED": "QC Certified"
+    };
+
+    liveStages.innerHTML = REQUEST_STATUS_STEPS.map((step, index) => {
+      let cssClass = "hero-stage-pill";
+      if (index < currentStatusIndex) cssClass += " done";
+      if (index === currentStatusIndex) cssClass += " active";
+
+      const shortText = shortLabels[step] || step;
+
+      const pill = `
+        <div class="${cssClass}">
+          <span class="stage-dot"></span>
+          <span>${escapeHtml(shortText)}</span>
+        </div>
+      `;
+
+      const isLast = index === REQUEST_STATUS_STEPS.length - 1;
+      const connector = isLast ? "" : `<div class="hero-stage-connector"></div>`;
+
+      return pill + connector;
+    }).join("");
+  }
+
   function rerenderDynamicContent() {
     renderStaticText();
     renderLocalizedOptions();
@@ -620,6 +710,7 @@
     renderAssuranceCards();
     renderStatsGrid();
     renderImpactGrid();
+    renderHeroStatusCard();
     animateCountUp(document.querySelector(".city-function-card"));
 
     if (currentAcknowledgement) {
@@ -642,6 +733,7 @@
     renderAssuranceCards();
     renderStatsGrid();
     renderImpactGrid();
+    renderHeroStatusCard();
     animateCountUp(document.querySelector(".city-function-card"));
     renderLocalizedOptions();
     prefillCitizenSession();

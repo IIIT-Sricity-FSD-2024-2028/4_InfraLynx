@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InfraLynx | CFO Workspace</title>
+  <meta name="description"
+    content="CFO workspace for finance review, budget proposals, and procurement bill verification in CRIMS.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/dashboard.css">
+  <link rel="stylesheet" href="../styles/cfo.css">
+</head>
+
+<body class="cfo-page">
+  <div class="page-shell">
+    <div class="ambient-orb left" aria-hidden="true"></div>
+    <div class="ambient-orb right" aria-hidden="true"></div>
+    <div class="grid-sheen" aria-hidden="true"></div>
+
+    <div class="dashboard-shell content-wrap">
+
+      <!-- â”€â”€ Sidebar â”€â”€ -->
+      <aside class="dashboard-sidebar glass-card" aria-label="CFO navigation">
+        <a class="sidebar-brand" href="../index.html" aria-label="InfraLynx home">
+          <img src="../assets/CRIMS_logo.png" alt="CRIMS logo">
+          <div class="sidebar-brand-copy">
+            <span class="sidebar-brand-title">InfraLynx</span>
+            <span class="sidebar-brand-role">Chief Financial Officer</span>
+          </div>
+        </a>
+
+        <div class="sidebar-session">
+          <div class="sidebar-avatar" aria-hidden="true">F</div>
+          <div class="sidebar-session-copy">
+            <span class="sidebar-session-name" id="cfo-greeting">CFO</span>
+            <span class="sidebar-session-role">Finance control active</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="CFO sections">
+          <a class="sidebar-nav-link is-active" href="#overview" data-cfo-nav aria-current="page">
+            <div class="sidebar-nav-icon">ðŸ“Š</div>
+            <div class="sidebar-nav-label">
+              <span>Overview</span>
+              <strong>Finance posture</strong>
+            </div>
+          </a>
+          <a class="sidebar-nav-link" href="#proposals" data-cfo-nav>
+            <div class="sidebar-nav-icon">ðŸ“‘</div>
+            <div class="sidebar-nav-label">
+              <span>Budget Proposals</span>
+              <strong>Allocation review</strong>
+            </div>
+          </a>
+          <a class="sidebar-nav-link" href="#bills" data-cfo-nav>
+            <div class="sidebar-nav-icon">ðŸ§¾</div>
+            <div class="sidebar-nav-label">
+              <span>Procurement Bills</span>
+              <strong>GST &amp; bill verification</strong>
+            </div>
+          </a>
+          <a class="sidebar-nav-link" href="#fund-releases" data-cfo-nav>
+            <div class="sidebar-nav-icon">ðŸ’¸</div>
+            <div class="sidebar-nav-label">
+              <span>Fund Releases</span>
+              <strong>Staged disbursement</strong>
+            </div>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <a class="button button-secondary small-button" href="./auth.html?mode=official">Official portal</a>
+          <button class="button button-primary small-button" id="cfo-sign-out" type="button">Sign out</button>
+        </div>
+      </aside>
+
+      <!-- â”€â”€ Workspace â”€â”€ -->
+      <div class="dashboard-workspace cfo-workspace">
+
+        <main class="workspace-main cfo-main">
+
+          <!-- â”€â”€ Overview â”€â”€ -->
+          <section id="overview">
+            <div class="hero-panel">
+              <article class="glass-card hero-copy-card">
+                <div class="section-kicker">Finance overview</div>
+                <h2>Review allocations, approve bills, and keep city finances auditable</h2>
+                <p>The CFO workspace covers budget proposal review, procurement bill verification with GST compliance
+                  checks, and department-wise utilization tracking.</p>
+                <div class="hero-actions">
+                  <a class="button button-primary" href="#proposals" data-cfo-nav>Review proposals</a>
+                  <a class="button button-secondary" href="#bills" data-cfo-nav>Verify bills</a>
+                </div>
+                <article class="hero-alert-card" id="cfo-focus-card"></article>
+              </article>
+
+              <div class="hero-side">
+                <article class="glass-card kpi-card">
+                  <div class="kpi-card-head">
+                    <div>
+                      <span class="field-label">Finance KPIs</span>
+                      <h3>Budget &amp; bill snapshot</h3>
+                    </div>
+                    <span class="status-pill">CFO</span>
+                  </div>
+                  <div class="kpi-grid" id="cfo-kpis"></div>
+                </article>
+
+                <article class="glass-card panel-card" id="cfo-watch-card">
+                  <!-- Rendered by cfo.js -->
+                </article>
+              </div>
+            </div>
+
+            <div class="overview-grid" style="margin-top:20px;">
+              <article class="glass-card panel-card">
+                <div class="panel-heading">
+                  <div>
+                    <div class="section-kicker">Department budget posture</div>
+                    <h3>Utilization by department</h3>
+                  </div>
+                </div>
+                <div class="stack-list" id="cfo-budget-list"></div>
+              </article>
+              <article class="glass-card panel-card">
+                <div class="panel-heading">
+                  <div>
+                    <div class="section-kicker">Finance feed</div>
+                    <h3>Recent financial activity</h3>
+                  </div>
+                </div>
+                <div class="stack-list" id="cfo-feed-list"></div>
+              </article>
+            </div>
+          </section>
+
+          <!-- â”€â”€ Budget Proposals â”€â”€ -->
+          <section id="proposals" class="nav-panel-hidden">
+            <div class="section-heading">
+              <div class="section-kicker">Budget Proposals</div>
+              <h2>Review and manage allocation proposals</h2>
+              <p>Proposals map to the <code class="mono">budget_allocations</code> table. Each proposal has a
+                department, amount, justification, and life-cycle stage.</p>
+            </div>
+            <div class="control-grid">
+              <article class="glass-card table-card">
+                <div class="table-shell">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Proposal</th>
+                        <th>Department</th>
+                        <th>Amount (Cr)</th>
+                        <th>Stage</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="proposal-table-body"></tbody>
+                  </table>
+                </div>
+              </article>
+
+              <article class="glass-card form-card">
+                <div class="panel-heading compact">
+                  <div>
+                    <div class="section-kicker">Proposal Editor</div>
+                    <h3 id="proposal-form-title">Add proposal</h3>
+                  </div>
+                  <button class="button button-secondary small-button" id="proposal-reset" type="button">Reset</button>
+                </div>
+                <form class="form-grid" id="proposal-form" novalidate>
+                  <input type="hidden" name="id">
+                  <label class="field">
+                    <span class="field-label">Department</span>
+                    <select name="departmentId" id="proposal-department-select"></select>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Proposal title</span>
+                    <input type="text" name="title" placeholder="Allocation purpose">
+                  </label>
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Amount (Cr)</span>
+                      <input type="number" name="amountCr" min="0" step="0.1" placeholder="0.0">
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Stage</span>
+                      <select name="stage" id="proposal-stage-select"></select>
+                    </label>
+                  </div>
+                  <label class="field">
+                    <span class="field-label">Justification</span>
+                    <textarea name="justification" placeholder="Finance justification or decision note"></textarea>
+                  </label>
+                  <div class="auth-actions">
+                    <button class="button button-primary" type="submit">Save proposal</button>
+                  </div>
+                  <div class="error-text hidden" id="proposal-error"></div>
+                </form>
+              </article>
+            </div>
+          </section>
+
+          <!-- â”€â”€ Procurement Bills â”€â”€ -->
+          <section id="bills" class="nav-panel-hidden">
+            <div class="section-heading">
+              <div class="section-kicker">Procurement Bills</div>
+              <h2>Verify bills against work orders and GST compliance</h2>
+              <p>Bills map to the <code class="mono">procurement_bills</code> table. Each bill must be linked to a work
+                order and have GST verification recorded.</p>
+            </div>
+            <div class="control-grid">
+              <article class="glass-card table-card">
+                <div class="table-shell">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Vendor</th>
+                        <th>Work order</th>
+                        <th>Amount (L)</th>
+                        <th>GST</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="bill-table-body"></tbody>
+                  </table>
+                </div>
+              </article>
+
+              <article class="glass-card form-card">
+                <div class="panel-heading compact">
+                  <div>
+                    <div class="section-kicker">Bill Editor</div>
+                    <h3 id="bill-form-title">Add bill</h3>
+                  </div>
+                  <button class="button button-secondary small-button" id="bill-reset" type="button">Reset</button>
+                </div>
+                <form class="form-grid" id="bill-form" novalidate>
+                  <input type="hidden" name="id">
+                  <label class="field">
+                    <span class="field-label">Department</span>
+                    <select name="departmentId" id="bill-department-select"></select>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Vendor</span>
+                    <input type="text" name="vendor" placeholder="Vendor or supplier name">
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Linked work order</span>
+                    <select name="workOrderId" id="bill-work-order-select"></select>
+                  </label>
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Amount (Lakhs)</span>
+                      <input type="number" name="amountLakhs" min="0" step="0.1" placeholder="0.0">
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Status</span>
+                      <select name="status" id="bill-status-select"></select>
+                    </label>
+                  </div>
+                  <label class="toggle-field">
+                    <input type="checkbox" name="gstValid" value="true">
+                    <span>GST details verified</span>
+                  </label>
+                  <div class="auth-actions">
+                    <button class="button button-primary" type="submit">Save bill</button>
+                  </div>
+                  <div class="error-text hidden" id="bill-error"></div>
+                </form>
+              </article>
+            </div>
+          </section>
+
+          <!-- â”€â”€ Fund Releases â”€â”€ -->
+          <section id="fund-releases" class="nav-panel-hidden">
+            <div class="section-heading">
+              <div class="section-kicker">Fund Releases</div>
+              <h2>Schedule and record staged fund disbursements</h2>
+              <p>Each release is linked to an approved budget proposal and marks the actual movement of funds to the operational department. Maintain a full audit trail here.</p>
+            </div>
+            <div class="control-grid">
+              <article class="glass-card table-card">
+                <div class="table-shell">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Department</th>
+                        <th>Amount (Cr)</th>
+                        <th>Quarter</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="release-table-body"></tbody>
+                  </table>
+                </div>
+              </article>
+
+              <article class="glass-card form-card">
+                <div class="panel-heading compact">
+                  <div>
+                    <div class="section-kicker">Release Editor</div>
+                    <h3 id="release-form-title">Add fund release</h3>
+                  </div>
+                  <button class="button button-secondary small-button" id="release-reset" type="button">Reset</button>
+                </div>
+                <form class="form-grid" id="release-form" novalidate>
+                  <input type="hidden" name="id">
+                  <label class="field">
+                    <span class="field-label">Department</span>
+                    <select name="departmentId" id="release-department-select"></select>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Release title</span>
+                    <input type="text" name="title" placeholder="e.g. Q1 bridge repair â€” first tranche">
+                  </label>
+                  <div class="inline-grid">
+                    <label class="field">
+                      <span class="field-label">Amount (Cr)</span>
+                      <input type="number" name="amountCr" min="0" step="0.01" placeholder="0.00">
+                    </label>
+                    <label class="field">
+                      <span class="field-label">Quarter</span>
+                      <input type="text" name="quarter" placeholder="e.g. Q1-2026">
+                    </label>
+                  </div>
+                  <label class="field">
+                    <span class="field-label">Release status</span>
+                    <select name="status" id="release-status-select">
+                      <option value="">Select status</option>
+                      <option value="PENDING">Pending</option>
+                      <option value="RELEASED">Released</option>
+                      <option value="WITHHELD">Withheld</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Notes</span>
+                    <textarea name="notes" placeholder="Conditions, tranche details, or audit comments"></textarea>
+                  </label>
+                  <div class="auth-actions">
+                    <button class="button button-primary" type="submit">Save release</button>
+                  </div>
+                  <div class="error-text hidden" id="release-error"></div>
+                </form>
+              </article>
+            </div>
+          </section>
+
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <script src="../scripts/seed-data.js"></script>
+  <script src="../scripts/data-store.js"></script>
+  <script src="../scripts/utils.js"></script>
+  <script src="../scripts/i18n.js"></script>
+  <script src="../scripts/toast.js"></script>
+  <script src="../scripts/cfo.js"></script>
+  <script src="../scripts/nav-tabs.js"></script>
+</body>
+
+</html>
