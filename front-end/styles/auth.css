@@ -262,6 +262,37 @@
   background: rgba(255, 255, 255, 0.92);
 }
 
+/* ── Password Toggle ── */
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrapper input {
+  padding-right: 44px; /* Space for the icon */
+}
+
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: color 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+.password-toggle:hover {
+  color: var(--primary-darker);
+  background: rgba(22, 163, 74, 0.08);
+}
+
 /* ── Role picker ── */
 .role-picker {
   display: grid;

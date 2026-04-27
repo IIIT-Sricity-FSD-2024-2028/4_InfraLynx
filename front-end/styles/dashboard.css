@@ -23,7 +23,10 @@
     min-width: 0;
 }
 
-.workspace-main > section {
+.workspace-main>section {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
     margin-bottom: 24px;
     min-width: 0;
 }
@@ -35,6 +38,7 @@
 .stack-item {
     overflow: visible;
     min-height: 0;
+    min-width: 0;
 }
 
 .workspace-topbar,
@@ -45,7 +49,8 @@
 
 .table-shell {
     min-width: 0;
-    overflow: auto;
+    overflow-x: auto;
+    overflow-y: visible;
 }
 
 .data-table {
@@ -355,23 +360,22 @@
 .hero-copy-card {
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: 16px;
     padding: 28px;
     min-height: 320px;
 }
 
 .hero-copy-card h2 {
     max-width: 22ch;
-    margin: 10px 0 0;
+    margin: 0;
     font-family: "Sora", sans-serif;
     font-size: clamp(1.05rem, 1.7vw, 1.38rem);
     line-height: 1.25;
     letter-spacing: -0.02em;
 }
 
-
 .hero-copy-card p {
-    margin: 12px 0 0;
+    margin: 0;
     color: var(--text-soft);
     font-size: 0.93rem;
     line-height: 1.75;
@@ -381,7 +385,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    margin-top: 20px;
+    margin-top: 8px;
 }
 
 .hero-alert-card {
@@ -549,7 +553,8 @@
 
 /* ── Data table ── */
 .table-shell {
-    overflow: auto;
+    overflow-x: auto;
+    overflow-y: visible;
     border-radius: 12px;
     border: 1px solid rgba(22, 101, 52, 0.07);
 }

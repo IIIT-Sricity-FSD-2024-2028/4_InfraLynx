@@ -283,10 +283,9 @@
           </div>
         ` : '<div class="empty-state">No work orders are currently available.</div>'}
       </article>
-      ${
-        (state.activityFeed || [])
-          .map((item) => {
-            return `
+      ${(state.activityFeed || [])
+        .map((item) => {
+          return `
               <article class="feed-item">
                 <div class="feed-item-head">
                   <strong>${escapeHtml(item.title)}</strong>
@@ -295,8 +294,8 @@
                 <p>${escapeHtml(item.detail)}</p>
               </article>
             `;
-          })
-          .join("")
+        })
+        .join("")
       }
     `;
   }

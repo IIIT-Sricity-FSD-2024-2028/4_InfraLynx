@@ -356,22 +356,20 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* Scrollable containers */
+/* Scrollable containers removed to let blocks expand */
 .work-card-list,
 #engineer-notification-list {
-  max-height: 280px;
-  overflow-y: auto;
   padding-right: 4px;
 }
 
 .table-shell {
-  max-height: 420px;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 500px;
 }
 
 .form-card {
-  max-height: 520px;
-  overflow-y: auto;
+  /* Expanding natively */
 }
 
 .data-table {
@@ -565,8 +563,7 @@
 }
 
 .engineer-page .dashboard-workspace {
-  max-height: calc(100vh - 56px);
-  overflow-y: auto;
+  /* Workspace expands natively */
 }
 
 .engineer-page .workspace-main {

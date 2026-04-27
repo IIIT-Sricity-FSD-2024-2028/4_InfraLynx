@@ -221,7 +221,9 @@
 }
 
 .table-shell {
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 500px;
 }
 
 .data-table {
@@ -371,8 +373,7 @@
 }
 
 .qc-page .dashboard-workspace {
-  max-height: calc(100vh - 56px);
-  overflow-y: auto;
+  /* Workspace expands natively */
 }
 
 .qc-page .workspace-main {

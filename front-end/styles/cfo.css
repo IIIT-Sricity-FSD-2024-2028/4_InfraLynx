@@ -221,7 +221,9 @@
 }
 
 .table-shell {
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 500px;
 }
 
 .data-table {
@@ -387,11 +389,6 @@
   max-height: 100vh;
   overflow-y: auto;
   width: 280px;
-}
-
-.cfo-page .dashboard-workspace {
-  max-height: calc(100vh - 56px);
-  overflow-y: auto;
 }
 
 .cfo-page .workspace-main {

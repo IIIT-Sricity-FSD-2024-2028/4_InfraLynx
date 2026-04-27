@@ -230,8 +230,7 @@
 }
 
 /* ── Alert strip ── */
-.admin-alert-strip {
-  padding: 22px;
+.admin-alert-section {
   display: grid;
   gap: 12px;
 }
@@ -383,11 +382,12 @@
 }
 
 /* ── Budget & feed ── */
-.budget-stack,
-.activity-feed {
+#budget-stack,
+#activity-feed {
   display: grid;
   gap: 12px;
   margin-top: 20px;
+  min-width: 0;
 }
 
 .budget-row,
@@ -464,7 +464,9 @@
 }
 
 .table-shell {
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 500px;
 }
 
 .data-table {
@@ -598,8 +600,7 @@
 
 .dashboard-workspace {
   min-height: 100vh;
-  max-height: calc(100vh - 56px);
-  overflow-y: auto;
+  /* Workspace expands natively */
 }
 
 .workspace-main {
