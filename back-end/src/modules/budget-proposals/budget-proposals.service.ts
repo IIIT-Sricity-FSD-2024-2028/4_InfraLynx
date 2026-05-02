@@ -4,7 +4,7 @@ import { CreateBudgetProposalDto, UpdateBudgetProposalDto } from './budget-propo
 
 @Injectable()
 export class BudgetProposalsService {
-  private store = seed.map((p) => ({ ...p }));
+  private store: any[] = seed.map((p) => ({ ...p }));
   findAll() { return this.store; }
   findByDepartment(deptId: string) { return this.store.filter((p) => p.departmentId === deptId); }
   findOne(id: string) {
@@ -20,7 +20,14 @@ export class BudgetProposalsService {
   update(id: string, dto: UpdateBudgetProposalDto) {
     const idx = this.store.findIndex((p) => p.id === id);
     if (idx === -1) throw new NotFoundException(`Budget proposal "${id}" not found`);
-    this.store[idx] = { ...this.store[idx], ...dto };
+    this.store[idx] = {
+      ...this.store[idx],
+      ...dto,
+      cfoReviewNote: dto.stage
+        ? `CFO demo action moved this budget allocation to ${dto.stage}.`
+        : this.store[idx].cfoReviewNote,
+      cfoReviewedAt: dto.stage ? new Date().toISOString() : this.store[idx].cfoReviewedAt,
+    };
     return this.store[idx];
   }
   remove(id: string) {

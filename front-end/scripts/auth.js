@@ -37,14 +37,6 @@
     officialResultMeta: document.querySelector("#official-result-meta")
   };
 
-  const ROLE_WORKSPACE_MAP = {
-    ADMINISTRATOR: "./admin.html",
-    OFFICER: "./officer.html",
-    ENGINEER: "./engineer.html",
-    CFO: "./cfo.html",
-    QC_REVIEWER: "./qcreviewer.html"
-  };
-
   const ROLE_WORKSPACE_LABELS = {
     ADMINISTRATOR: "City Administrator console",
     OFFICER: "Department Officer workspace",
@@ -52,7 +44,8 @@
     CFO: "CFO workspace",
     QC_REVIEWER: "QC Reviewer workspace"
   };
-  const CITIZEN_WORKSPACE = "./citizen.html";
+  const routes = globalScope.CRIMS.routes;
+  const CITIZEN_WORKSPACE = routes ? routes.routes.citizen : "./citizen.html";
 
   let citizenMode = "signin";
   let accessMode = "citizen";
@@ -193,7 +186,7 @@
 
       try {
         const account = authenticateOfficial(payload.email, payload.password);
-        const nextWorkspace = ROLE_WORKSPACE_MAP[account.role];
+        const nextWorkspace = routes ? routes.workspaceForRole(account.role) : `./${account.role.toLowerCase()}.html`;
         if (nextWorkspace) {
           globalScope.location.href = nextWorkspace;
         }

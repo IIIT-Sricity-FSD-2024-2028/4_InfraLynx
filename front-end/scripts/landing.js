@@ -408,7 +408,7 @@
       }
 
       const start = performance.now();
-      const duration = 1800;
+      const duration = 3200;
 
       function tick(now) {
         const progress = Math.min((now - start) / duration, 1);
@@ -611,6 +611,37 @@
     });
   }
 
+  function bindCityPrideModal() {
+    const modal = document.querySelector("#city-pride-modal");
+    const closeButton = document.querySelector("#city-pride-close");
+    const hint = document.querySelector("#city-pride-close-hint");
+
+    if (!modal || !closeButton) {
+      return;
+    }
+
+    animateCountUp(modal);
+
+    function closeModal() {
+      modal.classList.add("is-hidden");
+    }
+
+    setTimeout(() => {
+      closeButton.disabled = false;
+      closeButton.classList.add("is-ready");
+      if (hint) {
+        hint.textContent = "You can close this update now";
+      }
+    }, 3000);
+
+    closeButton.addEventListener("click", closeModal);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !closeButton.disabled) {
+        closeModal();
+      }
+    });
+  }
+
   function renderHeroStatusCard() {
     const liveCard = document.querySelector("#hero-live-card");
     const liveBadge = document.querySelector("#hero-live-badge");
@@ -739,6 +770,7 @@
     prefillCitizenSession();
     bindRequestForm();
     bindTrackingForm();
+    bindCityPrideModal();
 
     document.addEventListener("crims:language-change", () => {
       rerenderDynamicContent();
