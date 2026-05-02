@@ -13,14 +13,31 @@ export class FundReleasesService {
     return item;
   }
   create(dto: CreateFundReleaseDto) {
-    const record = { id: `release-${Date.now()}`, status: dto.status || 'PENDING', releasedAt: null, ...dto };
+    const status = dto.status || 'PENDING';
+    const record = {
+      id: `release-${Date.now()}`,
+      status,
+      releasedAt: status === 'RELEASED' ? new Date().toISOString() : null,
+      ...dto,
+    };
     this.store.unshift(record);
     return record;
   }
   update(id: string, dto: UpdateFundReleaseDto) {
     const idx = this.store.findIndex((r) => r.id === id);
     if (idx === -1) throw new NotFoundException(`Fund release "${id}" not found`);
-    this.store[idx] = { ...this.store[idx], ...dto };
+    const nextStatus = dto.status || this.store[idx].status;
+    this.store[idx] = {
+      ...this.store[idx],
+      ...dto,
+      releasedAt:
+        nextStatus === 'RELEASED'
+          ? dto.releasedAt || this.store[idx].releasedAt || new Date().toISOString()
+          : dto.releasedAt ?? this.store[idx].releasedAt,
+      cfoReleaseNote: dto.status
+        ? `CFO demo action moved this fund release to ${dto.status}.`
+        : this.store[idx].cfoReleaseNote,
+    };
     return this.store[idx];
   }
   remove(id: string) {

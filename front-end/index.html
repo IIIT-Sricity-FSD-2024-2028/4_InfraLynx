@@ -17,6 +17,31 @@
 </head>
 
 <body class="landing-page">
+  <div class="city-pride-modal" id="city-pride-modal" role="dialog" aria-modal="true"
+    aria-labelledby="city-pride-modal-title">
+    <div class="city-pride-backdrop" aria-hidden="true"></div>
+    <article class="city-pride-dialog">
+      <button class="city-pride-close" id="city-pride-close" type="button" aria-label="Close city update" disabled>
+        x
+      </button>
+      <div class="city-pride-dialog-logo">
+        <img src="./assets/CRIMS_logo.png" alt="CRIMS logo">
+      </div>
+      <div class="section-kicker">Sri City civic update</div>
+      <h2 id="city-pride-modal-title">Public work is moving with better visibility</h2>
+      <p>
+        InfraLynx is tracking requests, green upgrades, water reliability, smart assets, and QC-backed closure through
+        one citizen-facing in-memory prototype.
+      </p>
+      <div class="city-pride-dialog-grid">
+        <span><strong data-count-value="182">0</strong> km road corridors</span>
+        <span><strong data-count-value="98.2">0</strong>% water reliability</span>
+        <span><strong data-count-value="41">0</strong> green sites</span>
+      </div>
+      <small id="city-pride-close-hint">Close button appears in 3 seconds</small>
+    </article>
+  </div>
+
   <div class="page-shell">
     <div class="ambient-orb left" aria-hidden="true"></div>
     <div class="ambient-orb right" aria-hidden="true"></div>
@@ -258,9 +283,9 @@
                     placeholder="name@example.com">
                 </label>
                 <label class="field">
-                  <span class="field-label" data-i18n="request.aadhaarLabel">Aadhaar number</span>
+                  <span class="field-label" data-i18n="request.aadhaarLabel">Demo citizen ID (optional)</span>
                   <input type="text" name="aadhaar" inputmode="numeric" maxlength="12"
-                    data-i18n-placeholder="request.aadhaarPlaceholder" placeholder="12-digit Aadhaar">
+                    data-i18n-placeholder="request.aadhaarPlaceholder" placeholder="Optional 12-digit demo ID">
                 </label>
               </div>
 
@@ -300,8 +325,8 @@
               </div>
 
               <div class="field-help" data-i18n="landing.requestHelp">
-                One citizen profile is allowed per Aadhaar number in this prototype. If your Aadhaar already exists, use
-                the same contact details or sign in through Citizen Access.
+                Public requests only need contact details. The demo ID field is optional and exists only to link repeat
+                submissions inside this in-memory prototype.
               </div>
 
               <div class="auth-actions">
@@ -405,6 +430,7 @@
 
   <script src="./scripts/seed-data.js"></script>
   <script src="./scripts/data-store.js"></script>
+  <script src="./scripts/routes.js"></script>
   <script src="./scripts/i18n.js"></script>
   <script src="./scripts/validators.js"></script>
   <script src="./scripts/landing.js"></script>

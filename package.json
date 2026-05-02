@@ -3,6 +3,7 @@
     "version": "1.0.0",
     "private": true,
     "scripts": {
-        "start": "npx concurrently \"npm run start:dev --prefix back-end\" \"npx serve front-end -p 3001\""
+        "postinstall": "npm install --prefix back-end",
+        "start": "node start.js"
     }
 }

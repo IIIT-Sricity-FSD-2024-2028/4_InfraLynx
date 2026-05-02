@@ -323,14 +323,14 @@ button {
 }
 
 .button-primary {
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+  background: linear-gradient(135deg, #159447 0%, var(--primary-light) 100%);
   color: #ffffff;
   box-shadow: 0 2px 8px rgba(22, 163, 74, 0.18);
 }
 
 .button-primary:hover {
   box-shadow: 0 4px 16px rgba(22, 163, 74, 0.24);
-  background: linear-gradient(135deg, var(--primary-darker) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, #65d331 100%);
 }
 
 .button-secondary {

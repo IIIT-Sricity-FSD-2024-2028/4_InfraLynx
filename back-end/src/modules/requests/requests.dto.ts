@@ -1,23 +1,34 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsEmail, IsIn, IsOptional, IsString } from 'class-validator';
+
+const requestTypeValues = ['Complaint', 'Improvement'] as const;
+const urgencyValues = ['LOW', 'MEDIUM', 'HIGH', 'EMERGENCY'] as const;
+const requestStatusValues = [
+  'RECEIVED',
+  'UNDER_REVIEW',
+  'APPROVED_FOR_PLANNING',
+  'CONVERTED_TO_WORK_ORDER',
+  'CLOSED',
+  'REJECTED',
+] as const;
 
 export class CreateRequestDto {
-  @IsString() citizenAadhaar: string;
-  @IsString() requestType: string;
+  @IsOptional() @IsString() citizenAadhaar?: string;
+  @IsIn(requestTypeValues) requestType: (typeof requestTypeValues)[number];
   @IsString() categoryId: string;
   @IsString() requesterName: string;
   @IsString() requesterContact: string;
-  @IsString() requesterEmail: string;
+  @IsEmail() requesterEmail: string;
   @IsString() title: string;
   @IsString() description: string;
   @IsString() locationText: string;
-  @IsString() urgency: string;
+  @IsIn(urgencyValues) urgency: (typeof urgencyValues)[number];
 }
 
 export class UpdateRequestDto {
-  @IsOptional() @IsString() status?: string;
+  @IsOptional() @IsIn(requestStatusValues) status?: (typeof requestStatusValues)[number];
   @IsOptional() @IsString() title?: string;
   @IsOptional() @IsString() description?: string;
-  @IsOptional() @IsString() urgency?: string;
+  @IsOptional() @IsIn(urgencyValues) urgency?: (typeof urgencyValues)[number];
 }
 
 export class TrackRequestDto {
