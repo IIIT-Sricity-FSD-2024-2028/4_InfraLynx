@@ -1,198 +1,140 @@
-# City Resource and Infrastructure Management System (CRIMS)
+# InfraLynx CRIMS
 
-## Problem Statement
+InfraLynx CRIMS is a civic request and infrastructure workflow prototype for Smart City and Urban Services. The current phase uses **in-memory seed data only** across the front-end and NestJS backend.
 
-Cities face significant challenges in managing infrastructure efficiently due to complex administrative processes and poor coordination. Key issues include:
+`Database/DBschema.sql` and the ER diagrams are showcase and future-persistence references. They are not connected to the running product in this phase.
 
-- Lengthy budget approval processes with multiple verification stages
-- Difficulty securing funds from senior authorities causing project delays
-- Poor coordination between city administrators, department officers, and field engineers
-- Limited transparency in budget utilization and project execution
-- Lack of accountability for project outcomes and quality verification
-- Manual intervention requirements even in automatable processes
+## Current Implementation Phase
 
-**Solution:** CRIMS provides a centralized digital platform that streamlines approval workflows, enables transparent budget monitoring, ensures accountability, and improves coordination between all stakeholders.
+- Storage: in-memory arrays from `back-end/src/data/seed.data.ts` and `front-end/scripts/seed-data.js`
+- Backend: NestJS demo API with role-guarded official actions and public request tracking
+- Frontend: static HTML, CSS, and JavaScript pages under `front-end/`
+- Database: not connected yet
+- Authentication: demo access only; not production identity management
 
----
+## Actor Reconciliation
 
-## Domain Context
+The highest-priority domain source is `Documentation/domainexpertinteraction.md`.
 
-**Domain:** Smart City and Urban Services Platforms
+Core operational actors:
 
-**Key Terms:**
-- **Budget Allocation:** Multi-stage approval process involving verification, vendor quotations, and finance authority review
-- **QC Department:** Independent department for quality verification and certification of completed work
-- **Work Order:** Authorized request to perform maintenance or infrastructure work
+- City Administrator
+- Department Officer
+- Field Engineer
 
----
+Specialized authority actors:
 
-## Identified Actors
+- CFO, for financial review, budget allocation, vendor quotation review, and fund release control
+- QC Reviewer, for independent quality verification and closure certification
 
-### 1. City Administrator
-Senior administrative authority responsible for city-wide infrastructure oversight, budget approvals, and strategic decision-making.
+Public participant:
 
-### 2. Department Officer
-Middle management responsible for operational planning, budget verification, task assignment, and project accountability.
+- Citizen/Public requester, who submits and tracks civic complaints or improvement requests
 
-### 3. Field Engineer
-Technical personnel responsible for on-ground execution, infrastructure inspection, data collection, and maintenance activities.
+Citizens are intentionally treated as public requesters in this phase. The citizen profile/sign-in flow is a demo convenience for repeat tracking, not a final production citizen identity model.
 
-### 4. Chief Financial Officer (CFO)
-Financial authority responsible for reviewing quotations, approving budget allocations, validating bills, and ensuring controlled release of project funds.
+## In-Memory Data Map
 
-### 5. QC Reviewer
-Independent quality control authority responsible for inspecting completed work, verifying standards compliance, and certifying project closure.
+| Seed collection | Current owner or usage |
+| --- | --- |
+| `departments` | Department module, dashboards, routing labels |
+| `serviceCategories` | Service category module and citizen request routing |
+| `officialRoles`, `officialAccounts` | Demo access and official workspace routing |
+| `citizenUsers` | Demo citizen profile convenience |
+| `requests` | Public request intake, tracking, admin review |
+| `workOrders` | Officer planning, engineer assignment, execution visibility |
+| `quotations` | Vendor quotation review |
+| `budgetProposals` | In-memory budget allocation/review workflow |
+| `fundReleases` | CFO-visible staged release workflow |
+| `procurementBills` | Procurement validation demo data |
+| `qcReviews`, `outcomeReports` | QC certification and closure visibility |
+| `maintenanceSchedules`, `maintenanceLogs` | Maintenance planning and execution logs |
+| `inspections`, `issueReports`, `progressReports` | Field engineer inspection/reporting flows |
+| `resourceRequests`, `sensorDeployments`, `taskMaterialLogs` | Field operations support data |
+| `publicStats`, `impactStories` | Public pride/landing-page insight cards |
+| `adminAlerts`, `budgetSnapshots`, `activityFeed` | Admin and dashboard insight feeds |
 
----
+## Backend Surfaces
 
-## Planned Features for Each Actor
+Key API groups:
 
-### City Administrator
+- `GET /service-categories`
+- `GET /requests`, `GET /requests/track?ref=CRIMS-2026-0042`, `POST /requests`
+- `GET /work-orders`
+- `GET /budget-proposals`
+- `GET /fund-releases`
+- `GET /qc-reviews`
+- `GET /public-insights`
+- `GET /public-insights/admin`
+- `POST /demo-access/official/sign-in`
+- `POST /demo-access/citizen/sign-in`
 
-#### 1. Monitor City Resource Usage
-View real-time dashboards showing electricity and water consumption across the city with historical trends and department-wise breakdowns.
+Official write routes use the demo `x-role` header guard. This is only a prototype shortcut.
 
-#### 2. Evaluate City Performance
-Access performance analytics with KPIs, comparative analysis, and department rankings to assess infrastructure health.
+## Workflow Model
 
-#### 3. Approve Work Orders
-Review and approve infrastructure work requests with detailed project information, impact assessment, and multi-level approval workflows.
+Citizen request lifecycle:
 
-#### 4. Allocate Budget
-Allocate departmental budgets for approved projects with fund tracking, revision capabilities, and approval history.
+`RECEIVED -> UNDER_REVIEW -> APPROVED_FOR_PLANNING -> CONVERTED_TO_WORK_ORDER -> CLOSED`
 
-#### 5. Generate Performance Reports
-Create comprehensive reports with automated generation, customizable parameters, and exports in multiple formats (PDF, Excel, CSV).
+Infrastructure delivery flow:
 
-#### 6. Monitor Department Performance
-Track department efficiency, budget utilization, and project completion rates with performance dashboards and comparisons.
+1. Citizen or public representative submits a request.
+2. City Administrator reviews feasibility and public impact.
+3. Department Officer plans work and assigns field execution.
+4. Field Engineer inspects, executes, reports progress, and records material usage.
+5. CFO reviews budget allocations, quotations, procurement bills, and fund releases.
+6. QC Reviewer certifies completed work before public closure.
 
-#### 7. Validate Completed Work
-Review and validate completed infrastructure projects with QC department integration and final certification.
+## Frontend Notes
 
----
+The front-end is intentionally built with only HTML, CSS, and JavaScript.
 
-### Department Officer
+- `front-end/index.html` is the landing/public request page.
+- `front-end/pages/auth.html` handles citizen demo access and official demo sign-in.
+- `front-end/pages/citizen.html` is the citizen request workspace.
+- Official workspaces live in `front-end/pages/admin.html`, `officer.html`, `engineer.html`, `cfo.html`, and `qcreviewer.html`.
+- `front-end/scripts/routes.js` centralizes page routing for the moved `pages/` structure.
 
-#### 1. Review Assigned Tasks
-View all department tasks with filtering, priority visibility, status tracking, and resource requirement overview.
+The current visual direction uses a light civic interface with green as the signature color.
 
-#### 2. Report Task Progress
-Update progress on assigned tasks with milestone tracking, issue reporting, and photo/document uploads.
+## Known Limitations
 
-#### 3. Schedule Periodic Maintenance Inspections
-Plan routine infrastructure inspections with calendar-based scheduling, inspector assignment, and automated reminders.
+- No real database connection exists in this phase.
+- `DBschema.sql` may contain future entities that are not active in the current in-memory product.
+- Demo sign-in and `x-role` headers are not secure production authentication.
+- Aadhaar/demo ID values in seed data are mock-only and should not be used as a production identity design.
+- Amount fields such as `amountCr` and `amountLakhs` are display-friendly demo units, not a final accounting schema.
+- The backend and frontend each keep their own seed copies until a later API-first integration phase.
 
-#### 4. Assign Tasks to Field Engineers
-Delegate work orders to field engineers with priority setting, resource allocation, and workload balancing.
+## Future Persistence Phase
 
-#### 5. Verify Budget and Quotations
-Review equipment requirements, compare vendor quotations, verify technical specifications, and validate GST compliance.
+When the project moves beyond the in-memory phase:
 
-#### 6. Release Funds in Stages
-Authorize staged fund releases based on milestone completion and utilization review with payment approval documentation.
+- Choose the final persistence layer and migration tool.
+- Promote `DBschema.sql` or a revised schema into the real source of truth.
+- Replace demo access with secure authentication, hashed passwords, sessions/JWTs, and production RBAC.
+- Replace duplicate front-end seed data with backend API calls.
+- Add schema/API parity tests so future drift is caught automatically.
 
-#### 7. Monitor Budget Utilization
-Track actual spending against allocated budgets with real-time dashboards, variance alerts, and expenditure breakdowns.
+## Local Commands
 
-#### 8. Take Accountability for Project Outcomes
-Document project outcomes with success/failure analysis, lessons learned, and accountability reports.
+Backend:
 
----
+```bash
+cd back-end
+npm install
+npm run build
+npm test
+npm run start:dev
+```
 
-### Field Engineer
+Frontend:
 
-#### 1. Inspect Infrastructure
-Conduct on-site inspections with mobile-friendly interface, photo capture, GPS tagging, and condition rating.
+Open `front-end/index.html` directly, or serve `front-end/` with any static server.
 
-#### 2. Request Required Resources
-Submit resource requests with specifications, justification, urgency level, and track approval status.
+## Project Status
 
-#### 3. Identify and Report New Issues
-Document infrastructure problems with issue categorization, photo evidence, location mapping, and severity assessment.
-
-#### 4. Execute Work Orders
-Perform assigned maintenance tasks with progress tracking, material logging, and before/after documentation.
-
-#### 5. Perform Maintenance Activities
-Carry out routine maintenance with activity logging, safety checklist compliance, and maintenance history recording.
-
-#### 6. Deploy Sensors and Equipment
-Install IoT sensors and equipment with configuration guidelines, location mapping, and commissioning reports.
-
-#### 7. Prepare Requirement and Data Reports
-Compile field data into structured reports with standardized templates, automatic calculations, and photo attachments.
-
-#### 8. Report Progress to Department Officer
-Provide regular status updates with milestone reporting, issue communication, and real-time notifications.
-
----
-
-### Chief Financial Officer (CFO)
-
-#### 1. Review Budget Proposals
-Assess forwarded budget allocations with cost justification, funding impact, and compliance checks before financial approval.
-
-#### 2. Review Vendor Quotations
-Evaluate submitted vendor quotations with pricing comparison, GST validation, and procurement suitability review.
-
-#### 3. Approve Budget Allocations
-Authorize or reject budget requests after financial analysis with approval history and remarks tracking.
-
-#### 4. Verify Procurement Bills
-Review submitted bills against approved quotations, GST details, and sanctioned budget amounts before payment approval.
-
-#### 5. Monitor Financial Utilization
-Track approved spending, staged releases, and department-wise utilization trends with audit visibility.
-
----
-
-### QC Reviewer
-
-#### 1. Review Completed Work
-Access completed work orders awaiting quality verification with execution evidence, validation notes, and supporting documents.
-
-#### 2. Inspect Quality Standards
-Perform independent quality checks against technical standards, workmanship expectations, and reported outcomes.
-
-#### 3. Approve or Reject QC Certification
-Certify successful work completion or reject submissions with mandatory comments and rework instructions.
-
-#### 4. Record QC Findings
-Document inspection outcomes, observations, and approval status with timestamped quality review records.
-
-#### 5. Support Project Closure
-Enable final closure only after quality certification is completed and recorded in the system.
-
----
-
-## Core System Workflows
-
-### Workflow 1: Infrastructure Project Approval
-**Steps:** Citizen request → City Administrator evaluation → Department Officer planning → Project approved
-
-### Workflow 2: Budget Allocation and Verification
-**Steps:** Field Engineer estimate → City Administrator forwards → Department Officer verifies → Vendor quotations → CFO review → Staged fund release
-
-### Workflow 3: Project Execution and Validation
-**Steps:** Work order issued → Department Officer assigns → Field Engineer executes → City Administrator validates → QC department certifies
-
----
-
-## System Constraints and Rules
-
-**Mandatory Rules:**
-- All purchases require technical and financial justification
-- GST number mandatory for bill approval
-- Multi-stage approval process for budget allocations
-- QC department certification required for project closure
-
-**System Constraints:**
-- Fixed annual budget per department
-- Quarterly fund releases
-- Role-based access control enforced
-
----
-
-
-**Project Status:** In Development | **Version:** 1.0.1 | **Last Updated:** MARCH 2026
+Current phase: in-memory functional prototype  
+Persistence phase: planned later  
+Last updated: May 2026

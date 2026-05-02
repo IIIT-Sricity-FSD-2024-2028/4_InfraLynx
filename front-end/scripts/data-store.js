@@ -276,6 +276,19 @@
   }
 
   function ensureCitizenIdentity(state, payload) {
+    if (!payload.aadhaar) {
+      return {
+        id: createId("public-requester"),
+        aadhaar: "",
+        name: payload.name,
+        phone: payload.phone,
+        email: payload.email,
+        password: null,
+        preferredLanguage: getLanguage(),
+        createdAt: new Date().toISOString()
+      };
+    }
+
     const aadhaarMatch = state.citizenUsers.find((user) => user.aadhaar === payload.aadhaar);
 
     if (!aadhaarMatch) {

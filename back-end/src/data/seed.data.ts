@@ -2,6 +2,14 @@
 //  CRIMS In-Memory Seed Data — mirrors front-end/scripts/seed-data.js
 // ============================================================
 
+export const meta = {
+  seedVersion: 'in-memory-phase-2026-05',
+  systemName: 'CRIMS',
+  productName: 'InfraLynx',
+  cityName: 'Sri City',
+  regionName: 'Andhra Pradesh',
+};
+
 export const departments = [
   { id: 'dept-roads', name: 'Roads and Mobility', publicLabel: 'Roads and footpaths', lead: 'Hassan Raza', budgetCr: 9.8, utilization: 72 },
   { id: 'dept-water', name: 'Water Services', publicLabel: 'Water reliability', lead: 'Priya Dutta', budgetCr: 8.4, utilization: 64 },
@@ -18,6 +26,40 @@ export const serviceCategories = [
   { id: 'lighting', label: 'Streetlight outage or electrical safety', departmentId: 'dept-lighting' },
   { id: 'sanitation', label: 'Waste, cleaning, or public hygiene', departmentId: 'dept-sanitation' },
   { id: 'green', label: 'Trees, parks, and green upgrades', departmentId: 'dept-green' },
+];
+
+export const publicStats = [
+  { value: '182 km', label: 'road corridors upgraded', detail: 'Road resurfacing and safer commuter stretches' },
+  { value: '98.2%', label: 'water reliability', detail: 'Service continuity across priority zones' },
+  { value: '214', label: 'smart assets monitored', detail: 'Sensors and connected field infrastructure' },
+  { value: '41', label: 'green infrastructure sites', detail: 'Parks, buffers, and resilient civic edges' },
+];
+
+export const impactStories = [
+  {
+    title: 'Completed road upgrades',
+    copy: 'High-use roads and access corridors have been resurfaced to improve safety, freight movement, and daily commute quality.',
+  },
+  {
+    title: 'Green infrastructure',
+    copy: 'Urban edges, shaded corridors, and stormwater-friendly landscapes are being expanded to support a healthier public realm.',
+  },
+  {
+    title: 'Water reliability',
+    copy: 'Teams monitor service continuity and act on leaks and pressure issues faster through coordinated field and administrative workflows.',
+  },
+  {
+    title: 'Smart monitoring',
+    copy: 'Sensors and structured reviews help the city detect risk early, prioritize work orders, and close issues with better accountability.',
+  },
+];
+
+export const officialRoles = [
+  { code: 'ADMINISTRATOR', name: 'City Administrator / Super User', summary: 'City-wide approvals, governance, analytics, and final strategic control.' },
+  { code: 'OFFICER', name: 'Department Officer', summary: 'Operational planning, assignments, budget verification, and handoff control.' },
+  { code: 'ENGINEER', name: 'Field Engineer', summary: 'Inspection, execution, reporting, and maintenance activity on the ground.' },
+  { code: 'CFO', name: 'Chief Financial Officer', summary: 'Budget review, quotation scrutiny, procurement validation, and release oversight.' },
+  { code: 'QC_REVIEWER', name: 'QC Reviewer', summary: 'Independent quality verification before closure and project sign-off.' },
 ];
 
 export const officialAccounts = [
@@ -37,6 +79,53 @@ export const requests = [
   { requestId: 'request-002', publicReferenceNo: 'CRIMS-2026-0058', citizenAadhaar: '512345678901', requestType: 'Improvement', categoryId: 'green', departmentId: 'dept-green', requesterName: 'Ananya Rao', requesterContact: '9876543210', requesterEmail: 'ananya.rao@example.com', title: 'Add shaded seating and native planting near lakefront', description: 'The walkway is active in the morning but needs shaded seating and more native planting for comfort.', locationText: 'Lakefront civic edge, Sri City', urgency: 'MEDIUM', status: 'APPROVED_FOR_PLANNING', receivedAt: '2026-03-21T07:30:00.000Z' },
   { requestId: 'request-003', publicReferenceNo: 'CRIMS-2026-0064', citizenAadhaar: '598765432101', requestType: 'Complaint', categoryId: 'lighting', departmentId: 'dept-lighting', requesterName: 'Sandeep Varma', requesterContact: '9866001122', requesterEmail: 'sandeep.varma@example.com', title: 'Streetlights out on freight corridor', description: 'A row of streetlights has been non-functional for three nights near the logistics gate.', locationText: 'North Freight Corridor, Sri City', urgency: 'HIGH', status: 'RECEIVED', receivedAt: '2026-03-25T18:45:00.000Z' },
   { requestId: 'request-004', publicReferenceNo: 'CRIMS-2026-0069', citizenAadhaar: '576543210987', requestType: 'Improvement', categoryId: 'water', departmentId: 'dept-water', requesterName: 'Lakshmi Devi', requesterContact: '9849001188', requesterEmail: 'lakshmi.devi@example.com', title: 'Install public drinking water point near bus stop', description: 'A drinking water point is needed near the bus interchange because students and workers wait there for long periods.', locationText: 'Central Interchange Bus Stop, Sri City', urgency: 'MEDIUM', status: 'CONVERTED_TO_WORK_ORDER', receivedAt: '2026-03-22T08:20:00.000Z' },
+];
+
+export const adminAlerts = [
+  {
+    id: 'alert-001',
+    tone: 'critical',
+    label: 'Urgent public issue',
+    title: 'Lighting complaint cluster rising in freight corridor',
+    detail: '6 citizen complaints were logged in the last 48 hours across Zone 3 logistics routes.',
+  },
+  {
+    id: 'alert-002',
+    tone: 'attention',
+    label: 'Budget watch',
+    title: 'Electrical and Street Lighting crossed 80% utilization',
+    detail: 'Administrator review is recommended before approving additional high-priority work.',
+  },
+];
+
+export const budgetSnapshots = [
+  { id: 'budget-01', departmentId: 'dept-roads', allocatedCr: 9.8, spentCr: 7.1, stage: 'APPROVED' },
+  { id: 'budget-02', departmentId: 'dept-water', allocatedCr: 8.4, spentCr: 5.4, stage: 'PARTIALLY_RELEASED' },
+  { id: 'budget-03', departmentId: 'dept-drainage', allocatedCr: 6.7, spentCr: 3.9, stage: 'PARTIALLY_RELEASED' },
+  { id: 'budget-04', departmentId: 'dept-lighting', allocatedCr: 4.1, spentCr: 3.3, stage: 'APPROVED' },
+  { id: 'budget-05', departmentId: 'dept-sanitation', allocatedCr: 5.9, spentCr: 4.1, stage: 'APPROVED' },
+  { id: 'budget-06', departmentId: 'dept-green', allocatedCr: 3.8, spentCr: 2.3, stage: 'PARTIALLY_RELEASED' },
+];
+
+export const activityFeed = [
+  {
+    id: 'feed-001',
+    title: 'Road request moved into planning',
+    detail: 'CRIMS-2026-0058 was reviewed by the City Administrator and routed for project planning.',
+    meta: '27 mins ago',
+  },
+  {
+    id: 'feed-002',
+    title: 'QC reviewer closed inspection backlog',
+    detail: 'Four completed work orders were certified for closure this morning.',
+    meta: '1 hr ago',
+  },
+  {
+    id: 'feed-003',
+    title: 'Water services raised procurement watch',
+    detail: 'A replacement valve request was flagged for faster quotation review.',
+    meta: '3 hrs ago',
+  },
 ];
 
 export const workOrders = [
