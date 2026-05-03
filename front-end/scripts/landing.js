@@ -1,4 +1,4 @@
-﻿(function bootstrapLanding(globalScope) {
+(function bootstrapLanding(globalScope) {
   const {
     REQUEST_STATUS_STEPS,
     findRequestByReference,
@@ -748,7 +748,7 @@
   }
 
   async function init() {
-    await initializeStore();
+    bindCityPrideModal();
     bindLanguageSelector(elements.languageSelect);
     applyTranslations(document, getLanguage());
     renderStaticText();
@@ -756,19 +756,25 @@
     renderHeroTrustPanel();
     renderWorkflowCards();
     renderAssuranceCards();
-    await renderStatsGrid();
-    await renderImpactGrid();
-    await renderHeroStatusCard();
     animateCountUp(document.querySelector(".city-function-card"));
-    await renderLocalizedOptions();
-    await prefillCitizenSession();
+    
     bindRequestForm();
     bindTrackingForm();
-    bindCityPrideModal();
 
     document.addEventListener("crims:language-change", () => {
       rerenderDynamicContent();
     });
+
+    try {
+      await initializeStore();
+      await renderStatsGrid();
+      await renderImpactGrid();
+      await renderHeroStatusCard();
+      await renderLocalizedOptions();
+      await prefillCitizenSession();
+    } catch (err) {
+      console.error("Backend integration failed or is unreachable:", err);
+    }
   }
 
   init();
