@@ -1,0 +1,4287 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/departments": {
+      "get": {
+        "operationId": "DepartmentsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Departments"
+        ]
+      },
+      "post": {
+        "operationId": "DepartmentsController_create",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDepartmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Departments"
+        ]
+      }
+    },
+    "/departments/{id}": {
+      "get": {
+        "operationId": "DepartmentsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Departments"
+        ]
+      },
+      "patch": {
+        "operationId": "DepartmentsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDepartmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Departments"
+        ]
+      },
+      "delete": {
+        "operationId": "DepartmentsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Departments"
+        ]
+      }
+    },
+    "/service-categories": {
+      "get": {
+        "operationId": "ServiceCategoriesController_findAll",
+        "parameters": [
+          {
+            "name": "departmentId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ServiceCategories"
+        ]
+      }
+    },
+    "/service-categories/{id}": {
+      "get": {
+        "operationId": "ServiceCategoriesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ServiceCategories"
+        ]
+      }
+    },
+    "/requests": {
+      "get": {
+        "operationId": "RequestsController_findAll",
+        "parameters": [
+          {
+            "name": "aadhaar",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Requests"
+        ]
+      },
+      "post": {
+        "operationId": "RequestsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Requests"
+        ]
+      }
+    },
+    "/requests/track": {
+      "get": {
+        "operationId": "RequestsController_track",
+        "parameters": [
+          {
+            "name": "ref",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Requests"
+        ]
+      }
+    },
+    "/requests/{id}": {
+      "get": {
+        "operationId": "RequestsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Requests"
+        ]
+      },
+      "patch": {
+        "operationId": "RequestsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR, OFFICER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Requests"
+        ]
+      },
+      "delete": {
+        "operationId": "RequestsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Requests"
+        ]
+      }
+    },
+    "/work-orders": {
+      "get": {
+        "operationId": "WorkOrdersController_findAll",
+        "parameters": [
+          {
+            "name": "departmentId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "engineerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "WorkOrders"
+        ]
+      },
+      "post": {
+        "operationId": "WorkOrdersController_create",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR, OFFICER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "WorkOrders"
+        ]
+      }
+    },
+    "/work-orders/{id}": {
+      "get": {
+        "operationId": "WorkOrdersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "WorkOrders"
+        ]
+      },
+      "patch": {
+        "operationId": "WorkOrdersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR, OFFICER, ENGINEER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "WorkOrders"
+        ]
+      },
+      "delete": {
+        "operationId": "WorkOrdersController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "WorkOrders"
+        ]
+      }
+    },
+    "/quotations": {
+      "get": {
+        "operationId": "QuotationsController_findAll",
+        "parameters": [
+          {
+            "name": "departmentId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Quotations"
+        ]
+      },
+      "post": {
+        "operationId": "QuotationsController_create",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: OFFICER, CFO",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateQuotationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Quotations"
+        ]
+      }
+    },
+    "/quotations/{id}": {
+      "get": {
+        "operationId": "QuotationsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Quotations"
+        ]
+      },
+      "patch": {
+        "operationId": "QuotationsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: OFFICER, CFO, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateQuotationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Quotations"
+        ]
+      },
+      "delete": {
+        "operationId": "QuotationsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR, OFFICER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Quotations"
+        ]
+      }
+    },
+    "/inspections": {
+      "get": {
+        "operationId": "InspectionsController_findAll",
+        "parameters": [
+          {
+            "name": "engineerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inspections"
+        ]
+      },
+      "post": {
+        "operationId": "InspectionsController_create",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: OFFICER, ENGINEER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInspectionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inspections"
+        ]
+      }
+    },
+    "/inspections/{id}": {
+      "get": {
+        "operationId": "InspectionsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inspections"
+        ]
+      },
+      "patch": {
+        "operationId": "InspectionsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: OFFICER, ENGINEER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInspectionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inspections"
+        ]
+      },
+      "delete": {
+        "operationId": "InspectionsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR, OFFICER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inspections"
+        ]
+      }
+    },
+    "/issue-reports": {
+      "get": {
+        "operationId": "IssueReportsController_findAll",
+        "parameters": [
+          {
+            "name": "engineerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "IssueReports"
+        ]
+      },
+      "post": {
+        "operationId": "IssueReportsController_create",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ENGINEER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIssueReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "IssueReports"
+        ]
+      }
+    },
+    "/issue-reports/{id}": {
+      "get": {
+        "operationId": "IssueReportsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "IssueReports"
+        ]
+      },
+      "patch": {
+        "operationId": "IssueReportsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ENGINEER, OFFICER, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIssueReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "IssueReports"
+        ]
+      },
+      "delete": {
+        "operationId": "IssueReportsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR, OFFICER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "IssueReports"
+        ]
+      }
+    },
+    "/resource-requests": {
+      "get": {
+        "operationId": "ResourceRequestsController_findAll",
+        "parameters": [
+          {
+            "name": "engineerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ResourceRequests"
+        ]
+      },
+      "post": {
+        "operationId": "ResourceRequestsController_create",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ENGINEER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateResourceRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ResourceRequests"
+        ]
+      }
+    },
+    "/resource-requests/{id}": {
+      "get": {
+        "operationId": "ResourceRequestsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ResourceRequests"
+        ]
+      },
+      "patch": {
+        "operationId": "ResourceRequestsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ENGINEER, OFFICER, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateResourceRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ResourceRequests"
+        ]
+      },
+      "delete": {
+        "operationId": "ResourceRequestsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR, OFFICER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ResourceRequests"
+        ]
+      }
+    },
+    "/progress-reports": {
+      "get": {
+        "operationId": "ProgressReportsController_findAll",
+        "parameters": [
+          {
+            "name": "engineerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "workOrderId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ProgressReports"
+        ]
+      },
+      "post": {
+        "operationId": "ProgressReportsController_create",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ENGINEER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProgressReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProgressReports"
+        ]
+      }
+    },
+    "/progress-reports/{id}": {
+      "get": {
+        "operationId": "ProgressReportsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ProgressReports"
+        ]
+      },
+      "patch": {
+        "operationId": "ProgressReportsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ENGINEER, OFFICER, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProgressReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ProgressReports"
+        ]
+      },
+      "delete": {
+        "operationId": "ProgressReportsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProgressReports"
+        ]
+      }
+    },
+    "/budget-proposals": {
+      "get": {
+        "operationId": "BudgetProposalsController_findAll",
+        "parameters": [
+          {
+            "name": "departmentId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BudgetProposals"
+        ]
+      },
+      "post": {
+        "operationId": "BudgetProposalsController_create",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: OFFICER, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBudgetProposalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BudgetProposals"
+        ]
+      }
+    },
+    "/budget-proposals/{id}": {
+      "get": {
+        "operationId": "BudgetProposalsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BudgetProposals"
+        ]
+      },
+      "patch": {
+        "operationId": "BudgetProposalsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: CFO, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBudgetProposalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BudgetProposals"
+        ]
+      },
+      "delete": {
+        "operationId": "BudgetProposalsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BudgetProposals"
+        ]
+      }
+    },
+    "/procurement-bills": {
+      "get": {
+        "operationId": "ProcurementBillsController_findAll",
+        "parameters": [
+          {
+            "name": "departmentId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProcurementBills"
+        ]
+      },
+      "post": {
+        "operationId": "ProcurementBillsController_create",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: OFFICER, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProcurementBillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProcurementBills"
+        ]
+      }
+    },
+    "/procurement-bills/{id}": {
+      "get": {
+        "operationId": "ProcurementBillsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProcurementBills"
+        ]
+      },
+      "patch": {
+        "operationId": "ProcurementBillsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: CFO, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProcurementBillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProcurementBills"
+        ]
+      },
+      "delete": {
+        "operationId": "ProcurementBillsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProcurementBills"
+        ]
+      }
+    },
+    "/qc-reviews": {
+      "get": {
+        "operationId": "QcReviewsController_findAll",
+        "parameters": [
+          {
+            "name": "workOrderId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "QcReviews"
+        ]
+      },
+      "post": {
+        "operationId": "QcReviewsController_create",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: QC_REVIEWER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateQcReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "QcReviews"
+        ]
+      }
+    },
+    "/qc-reviews/{id}": {
+      "get": {
+        "operationId": "QcReviewsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "QcReviews"
+        ]
+      },
+      "patch": {
+        "operationId": "QcReviewsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: QC_REVIEWER, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateQcReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "QcReviews"
+        ]
+      },
+      "delete": {
+        "operationId": "QcReviewsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "QcReviews"
+        ]
+      }
+    },
+    "/fund-releases": {
+      "get": {
+        "operationId": "FundReleasesController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "FundReleases"
+        ]
+      },
+      "post": {
+        "operationId": "FundReleasesController_create",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: CFO, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFundReleaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "FundReleases"
+        ]
+      }
+    },
+    "/fund-releases/{id}": {
+      "get": {
+        "operationId": "FundReleasesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "FundReleases"
+        ]
+      },
+      "patch": {
+        "operationId": "FundReleasesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: CFO, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFundReleaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "FundReleases"
+        ]
+      },
+      "delete": {
+        "operationId": "FundReleasesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "FundReleases"
+        ]
+      }
+    },
+    "/maintenance/schedules": {
+      "get": {
+        "operationId": "MaintenanceController_getSchedules",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Maintenance"
+        ]
+      },
+      "post": {
+        "operationId": "MaintenanceController_createSchedule",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: OFFICER, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMaintenanceScheduleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Maintenance"
+        ]
+      }
+    },
+    "/maintenance/schedules/{id}": {
+      "get": {
+        "operationId": "MaintenanceController_getSchedule",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Maintenance"
+        ]
+      },
+      "patch": {
+        "operationId": "MaintenanceController_updateSchedule",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: OFFICER, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMaintenanceScheduleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Maintenance"
+        ]
+      },
+      "delete": {
+        "operationId": "MaintenanceController_removeSchedule",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Maintenance"
+        ]
+      }
+    },
+    "/maintenance/logs": {
+      "get": {
+        "operationId": "MaintenanceController_getLogs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Maintenance"
+        ]
+      },
+      "post": {
+        "operationId": "MaintenanceController_createLog",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ENGINEER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMaintenanceLogDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Maintenance"
+        ]
+      }
+    },
+    "/maintenance/logs/{id}": {
+      "get": {
+        "operationId": "MaintenanceController_getLog",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Maintenance"
+        ]
+      },
+      "patch": {
+        "operationId": "MaintenanceController_updateLog",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ENGINEER, OFFICER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMaintenanceLogDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Maintenance"
+        ]
+      },
+      "delete": {
+        "operationId": "MaintenanceController_removeLog",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Maintenance"
+        ]
+      }
+    },
+    "/field-assets/sensors": {
+      "get": {
+        "operationId": "FieldAssetsController_getSensors",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "FieldAssets"
+        ]
+      },
+      "post": {
+        "operationId": "FieldAssetsController_createSensor",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ENGINEER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSensorDeploymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "FieldAssets"
+        ]
+      }
+    },
+    "/field-assets/sensors/{id}": {
+      "get": {
+        "operationId": "FieldAssetsController_getSensor",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "FieldAssets"
+        ]
+      },
+      "patch": {
+        "operationId": "FieldAssetsController_updateSensor",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ENGINEER, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSensorDeploymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "FieldAssets"
+        ]
+      },
+      "delete": {
+        "operationId": "FieldAssetsController_removeSensor",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ENGINEER, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "FieldAssets"
+        ]
+      }
+    },
+    "/field-assets/materials": {
+      "get": {
+        "operationId": "FieldAssetsController_getMaterials",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "FieldAssets"
+        ]
+      },
+      "post": {
+        "operationId": "FieldAssetsController_createMaterial",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ENGINEER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMaterialLogDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "FieldAssets"
+        ]
+      }
+    },
+    "/field-assets/materials/{id}": {
+      "get": {
+        "operationId": "FieldAssetsController_getMaterial",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "FieldAssets"
+        ]
+      },
+      "patch": {
+        "operationId": "FieldAssetsController_updateMaterial",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ENGINEER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMaterialLogDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "FieldAssets"
+        ]
+      },
+      "delete": {
+        "operationId": "FieldAssetsController_removeMaterial",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ENGINEER, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "FieldAssets"
+        ]
+      }
+    },
+    "/outcome-reports": {
+      "get": {
+        "operationId": "OutcomeReportsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "OutcomeReports"
+        ]
+      },
+      "post": {
+        "operationId": "OutcomeReportsController_create",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: OFFICER, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOutcomeReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "OutcomeReports"
+        ]
+      }
+    },
+    "/outcome-reports/{id}": {
+      "get": {
+        "operationId": "OutcomeReportsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "OutcomeReports"
+        ]
+      },
+      "patch": {
+        "operationId": "OutcomeReportsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: OFFICER, ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOutcomeReportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "OutcomeReports"
+        ]
+      },
+      "delete": {
+        "operationId": "OutcomeReportsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "OutcomeReports"
+        ]
+      }
+    },
+    "/demo-access/roles": {
+      "get": {
+        "operationId": "DemoAccessController_findOfficialRoles",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DemoAccess"
+        ]
+      }
+    },
+    "/demo-access/official/sign-in": {
+      "post": {
+        "operationId": "DemoAccessController_signInOfficial",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfficialDemoSignInDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DemoAccess"
+        ]
+      }
+    },
+    "/demo-access/citizen/sign-in": {
+      "post": {
+        "operationId": "DemoAccessController_signInCitizen",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CitizenDemoSignInDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DemoAccess"
+        ]
+      }
+    },
+    "/demo-access/citizen/register": {
+      "post": {
+        "operationId": "DemoAccessController_registerCitizen",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CitizenRegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DemoAccess"
+        ]
+      }
+    },
+    "/demo-access/citizen/lookup": {
+      "post": {
+        "operationId": "DemoAccessController_lookupCitizen",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CitizenLookupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DemoAccess"
+        ]
+      }
+    },
+    "/demo-access/official/lookup": {
+      "post": {
+        "operationId": "DemoAccessController_lookupOfficial",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfficialLookupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DemoAccess"
+        ]
+      }
+    },
+    "/demo-access/citizen/reset-password": {
+      "patch": {
+        "operationId": "DemoAccessController_resetCitizenPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DemoAccess"
+        ]
+      }
+    },
+    "/demo-access/official/reset-password": {
+      "patch": {
+        "operationId": "DemoAccessController_resetOfficialPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DemoAccess"
+        ]
+      }
+    },
+    "/demo-access/official-accounts": {
+      "get": {
+        "operationId": "DemoAccessController_findAllAccounts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DemoAccess"
+        ]
+      },
+      "post": {
+        "operationId": "DemoAccessController_createAccount",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOfficialAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DemoAccess"
+        ]
+      }
+    },
+    "/demo-access/official-accounts/{id}": {
+      "get": {
+        "operationId": "DemoAccessController_findOneAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DemoAccess"
+        ]
+      },
+      "patch": {
+        "operationId": "DemoAccessController_updateAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOfficialAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "DemoAccess"
+        ]
+      },
+      "delete": {
+        "operationId": "DemoAccessController_removeAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ADMINISTRATOR",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "DemoAccess"
+        ]
+      }
+    },
+    "/public-insights": {
+      "get": {
+        "operationId": "PublicInsightsController_findPublic",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PublicInsights"
+        ]
+      }
+    },
+    "/public-insights/admin": {
+      "get": {
+        "operationId": "PublicInsightsController_findAdmin",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PublicInsights"
+        ]
+      }
+    },
+    "/public-insights/activity": {
+      "get": {
+        "operationId": "PublicInsightsController_findActivity",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PublicInsights"
+        ]
+      }
+    },
+    "/public-insights/budget-snapshots": {
+      "get": {
+        "operationId": "PublicInsightsController_findBudgetSnapshots",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PublicInsights"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "API Documentation",
+    "description": "InfraLynx API documentation",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "CreateDepartmentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "publicLabel": {
+            "type": "string"
+          },
+          "lead": {
+            "type": "string"
+          },
+          "budgetCr": {
+            "type": "number",
+            "minimum": 0
+          },
+          "utilization": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "name",
+          "publicLabel",
+          "lead",
+          "budgetCr",
+          "utilization"
+        ]
+      },
+      "UpdateDepartmentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "publicLabel": {
+            "type": "string"
+          },
+          "lead": {
+            "type": "string"
+          },
+          "budgetCr": {
+            "type": "number",
+            "minimum": 0
+          },
+          "utilization": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      },
+      "CreateRequestDto": {
+        "type": "object",
+        "properties": {
+          "citizenAadhaar": {
+            "type": "string"
+          },
+          "requestType": {
+            "type": "string",
+            "enum": [
+              "Complaint",
+              "Improvement"
+            ]
+          },
+          "categoryId": {
+            "type": "string"
+          },
+          "requesterName": {
+            "type": "string"
+          },
+          "requesterContact": {
+            "type": "string"
+          },
+          "requesterEmail": {
+            "type": "string",
+            "format": "email"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "locationText": {
+            "type": "string"
+          },
+          "urgency": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "EMERGENCY"
+            ]
+          }
+        },
+        "required": [
+          "requestType",
+          "categoryId",
+          "requesterName",
+          "requesterContact",
+          "requesterEmail",
+          "title",
+          "description",
+          "locationText",
+          "urgency"
+        ]
+      },
+      "UpdateRequestDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "RECEIVED",
+              "UNDER_REVIEW",
+              "APPROVED_FOR_PLANNING",
+              "CONVERTED_TO_WORK_ORDER",
+              "CLOSED",
+              "REJECTED"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "urgency": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "EMERGENCY"
+            ]
+          }
+        }
+      },
+      "CreateWorkOrderDto": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "locationText": {
+            "type": "string"
+          },
+          "engineerId": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "title",
+          "locationText",
+          "priority",
+          "status",
+          "dueDate"
+        ]
+      },
+      "UpdateWorkOrderDto": {
+        "type": "object",
+        "properties": {
+          "engineerId": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "approvedBy": {
+            "type": "string"
+          },
+          "approvedAt": {
+            "type": "string"
+          },
+          "rejectedBy": {
+            "type": "string"
+          },
+          "rejectedAt": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateQuotationDto": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "vendor": {
+            "type": "string"
+          },
+          "item": {
+            "type": "string"
+          },
+          "amountLakhs": {
+            "type": "number"
+          },
+          "gstValid": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "vendor",
+          "item",
+          "amountLakhs",
+          "gstValid",
+          "status"
+        ]
+      },
+      "UpdateQuotationDto": {
+        "type": "object",
+        "properties": {
+          "vendor": {
+            "type": "string"
+          },
+          "item": {
+            "type": "string"
+          },
+          "amountLakhs": {
+            "type": "number"
+          },
+          "gstValid": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateInspectionDto": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "engineerId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "locationText": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "engineerId",
+          "title",
+          "locationText",
+          "severity",
+          "dueDate",
+          "status"
+        ]
+      },
+      "UpdateInspectionDto": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateIssueReportDto": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "engineerId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "locationText": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "engineerId",
+          "title",
+          "category",
+          "locationText",
+          "severity",
+          "status"
+        ]
+      },
+      "UpdateIssueReportDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateResourceRequestDto": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "engineerId": {
+            "type": "string"
+          },
+          "item": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "string"
+          },
+          "urgency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "engineerId",
+          "item",
+          "quantity",
+          "urgency",
+          "status"
+        ]
+      },
+      "UpdateResourceRequestDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "urgency": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateProgressReportDto": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "engineerId": {
+            "type": "string"
+          },
+          "workOrderId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "engineerId",
+          "title",
+          "summary",
+          "status"
+        ]
+      },
+      "UpdateProgressReportDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateBudgetProposalDto": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "amountCr": {
+            "type": "number"
+          },
+          "justification": {
+            "type": "string"
+          },
+          "requestedBy": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "title",
+          "amountCr",
+          "justification",
+          "requestedBy"
+        ]
+      },
+      "UpdateBudgetProposalDto": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "string"
+          },
+          "amountCr": {
+            "type": "number"
+          }
+        }
+      },
+      "CreateProcurementBillDto": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "vendor": {
+            "type": "string"
+          },
+          "workOrderId": {
+            "type": "string"
+          },
+          "amountLakhs": {
+            "type": "number"
+          },
+          "gstValid": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "vendor",
+          "workOrderId",
+          "amountLakhs",
+          "gstValid"
+        ]
+      },
+      "UpdateProcurementBillDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "gstValid": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CreateQcReviewDto": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "workOrderId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "reviewer": {
+            "type": "string"
+          },
+          "finding": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "departmentId",
+          "workOrderId",
+          "title",
+          "reviewer",
+          "finding",
+          "status",
+          "score"
+        ]
+      },
+      "UpdateQcReviewDto": {
+        "type": "object",
+        "properties": {
+          "finding": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          }
+        }
+      },
+      "CreateFundReleaseDto": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "proposalId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "amountCr": {
+            "type": "number"
+          },
+          "quarter": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "proposalId",
+          "title",
+          "amountCr",
+          "quarter"
+        ]
+      },
+      "UpdateFundReleaseDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "releasedAt": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateMaintenanceScheduleDto": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "frequency": {
+            "type": "string"
+          },
+          "nextDate": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "title",
+          "frequency",
+          "nextDate"
+        ]
+      },
+      "UpdateMaintenanceScheduleDto": {
+        "type": "object",
+        "properties": {
+          "frequency": {
+            "type": "string"
+          },
+          "nextDate": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateMaintenanceLogDto": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "engineerId": {
+            "type": "string"
+          },
+          "scheduleId": {
+            "type": "string"
+          },
+          "workOrderId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "activity": {
+            "type": "string"
+          },
+          "hoursSpent": {
+            "type": "number"
+          },
+          "date": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "engineerId",
+          "title",
+          "activity",
+          "hoursSpent",
+          "date",
+          "status"
+        ]
+      },
+      "UpdateMaintenanceLogDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "activity": {
+            "type": "string"
+          },
+          "hoursSpent": {
+            "type": "number"
+          }
+        }
+      },
+      "CreateSensorDeploymentDto": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "engineerId": {
+            "type": "string"
+          },
+          "workOrderId": {
+            "type": "string"
+          },
+          "sensorType": {
+            "type": "string"
+          },
+          "assetLocation": {
+            "type": "string"
+          },
+          "serialNo": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "engineerId",
+          "sensorType",
+          "assetLocation",
+          "serialNo",
+          "status"
+        ]
+      },
+      "UpdateSensorDeploymentDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateMaterialLogDto": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "engineerId": {
+            "type": "string"
+          },
+          "workOrderId": {
+            "type": "string"
+          },
+          "material": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "usedOn": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "engineerId",
+          "material",
+          "quantity",
+          "unit",
+          "usedOn"
+        ]
+      },
+      "UpdateMaterialLogDto": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateOutcomeReportDto": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "workOrderId": {
+            "type": "string"
+          },
+          "preparedBy": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "budgetSanctioned": {
+            "type": "number"
+          },
+          "budgetUsed": {
+            "type": "number"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "lessonsLearned": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "workOrderId",
+          "preparedBy",
+          "title",
+          "summary",
+          "budgetSanctioned",
+          "budgetUsed",
+          "outcome"
+        ]
+      },
+      "UpdateOutcomeReportDto": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "lessonsLearned": {
+            "type": "string"
+          }
+        }
+      },
+      "OfficialDemoSignInDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMINISTRATOR",
+              "OFFICER",
+              "ENGINEER",
+              "CFO",
+              "QC_REVIEWER"
+            ]
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "CitizenDemoSignInDto": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "password"
+        ]
+      },
+      "CitizenRegisterDto": {
+        "type": "object",
+        "properties": {
+          "aadhaar": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          },
+          "preferredLanguage": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "aadhaar",
+          "name",
+          "phone",
+          "email",
+          "password"
+        ]
+      },
+      "CitizenLookupDto": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier"
+        ]
+      },
+      "OfficialLookupDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ResetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "password"
+        ]
+      },
+      "CreateOfficialAccountDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMINISTRATOR",
+              "OFFICER",
+              "ENGINEER",
+              "CFO",
+              "QC_REVIEWER"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          },
+          "departmentId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "name",
+          "email",
+          "password"
+        ]
+      },
+      "UpdateOfficialAccountDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMINISTRATOR",
+              "OFFICER",
+              "ENGINEER",
+              "CFO",
+              "QC_REVIEWER"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          },
+          "departmentId": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

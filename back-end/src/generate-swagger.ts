@@ -1,22 +1,11 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
-import { SwaggerModule } from '@nestjs/swagger';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import * as fs from 'fs';
 import * as path from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
-  // Enable CORS so the front-end (file:// or localhost) can call the API
-  app.enableCors({ origin: '*' });
-
-  // Global validation — strip unknown fields, throw on bad DTOs
-  app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: false }),
-  );
-
-  const { DocumentBuilder } = require('@nestjs/swagger');
+  const app = await NestFactory.create(AppModule, { logger: false });
 
   const config = new DocumentBuilder()
     .setTitle('API Documentation')
@@ -56,16 +45,16 @@ async function bootstrap() {
   }
 
   for (const pathKey in document.paths) {
-    const pathItem = document.paths[pathKey] as any;
+    const pathItem = document.paths[pathKey];
     for (const methodKey in pathItem) {
-      const operation = pathItem[methodKey];
+      const operation = pathItem[methodKey as keyof typeof pathItem];
       if (typeof operation === 'object' && operation !== null) {
-        const opId = operation.operationId;
+        const opId = (operation as any).operationId;
         if (opId && roleMap[opId]) {
-          if (!operation.parameters) {
-            operation.parameters = [];
+          if (!(operation as any).parameters) {
+            (operation as any).parameters = [];
           }
-          operation.parameters.push({
+          (operation as any).parameters.push({
             name: 'X-Role',
             in: 'header',
             description: `Allowed roles: ${roleMap[opId].join(', ')}`,
@@ -77,18 +66,15 @@ async function bootstrap() {
     }
   }
 
-  // Save the generated json to docs/swagger.json for reference
   const docsDir = path.join(__dirname, '..', 'docs');
   if (!fs.existsSync(docsDir)) {
     fs.mkdirSync(docsDir);
   }
+
   fs.writeFileSync(path.join(docsDir, 'swagger.json'), JSON.stringify(document, null, 2));
 
-  // Serve Swagger UI using the dynamically generated document
-  SwaggerModule.setup('api', app, document);
-  console.log('Swagger UI available at http://localhost:3000/api');
-
-  await app.listen(3000);
-  console.log('InfraLynx CRIMS backend running on http://localhost:3000');
+  console.log('Swagger documentation generated successfully at docs/swagger.json');
+  await app.close();
 }
+
 bootstrap();
