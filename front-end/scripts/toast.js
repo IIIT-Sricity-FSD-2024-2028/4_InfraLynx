@@ -1,5 +1,5 @@
-(function attachToast(globalScope) {
-  /* Toast notification system — requires a #toast-container element in the page. */
+﻿(function attachToast(globalScope) {
+  /* Toast notification system â€” requires a #toast-container element in the page. */
 
   const CRIMS = (globalScope.CRIMS = globalScope.CRIMS || {});
 
@@ -26,7 +26,7 @@
     var close = document.createElement("button");
     close.className = "toast-close";
     close.setAttribute("aria-label", "Dismiss");
-    close.textContent = "×";
+    close.textContent = "Ã—";
     close.addEventListener("click", function () {
       dismiss(el);
     });
@@ -63,3 +63,4 @@
     CRIMS.utils.toast = showToast;
   }
 })(window);
+

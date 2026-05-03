@@ -1,4 +1,4 @@
-(function bootstrapCfo(globalScope) {
+﻿(function bootstrapCfo(globalScope) {
   const {
     clearSession,
     deleteBudgetProposal,
@@ -111,8 +111,8 @@
     return "neutral";
   }
 
-  function populateSelects() {
-    const state = getState();
+  async function populateSelects() {
+    const state = await getState();
     const currentProposalDepartment = elements.proposalDepartmentSelect.value;
     const currentProposalStage = elements.proposalStageSelect.value;
     const currentBillDepartment = elements.billDepartmentSelect.value;
@@ -162,8 +162,8 @@
     }
   }
 
-  function renderHero(session) {
-    const state = getState();
+  async function renderHero(session) {
+    const state = await getState();
     const pendingProposal =
       (state.budgetProposals || []).find((item) => item.stage === "PENDING_CFO_REVIEW") || (state.budgetProposals || [])[0];
     const gstRiskBill =
@@ -205,8 +205,8 @@
       `;
   }
 
-  function renderOverview() {
-    const state = getState();
+  async function renderOverview() {
+    const state = await getState();
     const pendingProposalCount = (state.budgetProposals || []).filter((item) => item.stage === "PENDING_CFO_REVIEW").length;
     const verificationBillCount = (state.procurementBills || []).filter((item) => item.status === "UNDER_VERIFICATION").length;
     const proposalExposure = (state.budgetProposals || []).reduce((total, item) => total + Number(item.amountCr || 0), 0);
@@ -262,8 +262,8 @@
       .join("");
   }
 
-  function renderProposalTable() {
-    const proposals = getState().budgetProposals || [];
+  async function renderProposalTable() {
+    const proposals = (await getState()).budgetProposals || [];
 
     if (!proposals.length) {
       elements.proposalTableBody.innerHTML =
@@ -292,8 +292,8 @@
       .join("");
   }
 
-  function renderBillTable() {
-    const state = getState();
+  async function renderBillTable() {
+    const state = await getState();
     const bills = state.procurementBills || [];
 
     if (!bills.length) {
@@ -324,12 +324,12 @@
       .join("");
   }
 
-  function renderAll(session) {
-    renderHero(session);
-    renderOverview();
-    renderProposalTable();
-    renderBillTable();
-    renderReleaseTable();
+  async function renderAll(session) {
+    await renderHero(session);
+    await renderOverview();
+    await renderProposalTable();
+    await renderBillTable();
+    await renderReleaseTable();
   }
 
   function resetProposalForm() {
@@ -346,9 +346,9 @@
     showError(elements.billError, "");
   }
 
-  function renderReleaseTable() {
+  async function renderReleaseTable() {
     if (!elements.releaseTableBody) return;
-    const releases = getState().fundReleases || [];
+    const releases = (await getState()).fundReleases || [];
     if (!releases.length) {
       elements.releaseTableBody.innerHTML = '<tr><td colspan="6"><div class="empty-state">No fund releases are recorded yet.</div></td></tr>';
       return;
@@ -360,7 +360,7 @@
           <td><strong>${escapeHtml(item.title)}</strong></td>
           <td>${escapeHtml((dept && dept.name) || 'Unknown')}</td>
           <td class="mono">INR ${escapeHtml(Number(item.amountCr).toFixed(2))} Cr</td>
-          <td>${escapeHtml(item.quarter || '—')}</td>
+          <td>${escapeHtml(item.quarter || 'â€”')}</td>
           <td><span class="status-pill ${item.status === 'RELEASED' ? '' : item.status === 'WITHHELD' ? 'alert' : 'warning'}">${escapeHtml(formatStatus(item.status))}</span></td>
           <td><div class="row-actions">
             <button class="text-button" type="button" data-release-edit="${item.id}">Edit</button>
@@ -378,7 +378,7 @@
     showError(elements.releaseError, "");
   }
 
-  function bind(session) {
+  async function bind(session) {
     elements.signOutButton.addEventListener("click", () => {
       clearSession();
       globalScope.location.href = "./auth.html?mode=official";
@@ -386,15 +386,15 @@
 
     document.title = `InfraLynx | ${(getRoleByCode(session.role) || {}).name || "CFO"} Workspace`;
 
-    populateSelects();
-    renderAll(session);
+    await populateSelects();
+    await renderAll(session);
     resetProposalForm();
     resetBillForm();
 
     elements.proposalResetButton.addEventListener("click", resetProposalForm);
     elements.billResetButton.addEventListener("click", resetBillForm);
 
-    elements.proposalForm.addEventListener("submit", (event) => {
+    elements.proposalForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.proposalForm).entries());
 
@@ -404,16 +404,16 @@
       }
 
       try {
-        upsertBudgetProposal(payload);
-        populateSelects();
-        renderAll(session);
+        await upsertBudgetProposal(payload);
+        await populateSelects();
+        await renderAll(session);
         resetProposalForm();
       } catch (error) {
         showError(elements.proposalError, error.message);
       }
     });
 
-    elements.billForm.addEventListener("submit", (event) => {
+    elements.billForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.billForm).entries());
 
@@ -423,21 +423,21 @@
       }
 
       try {
-        upsertProcurementBill(payload);
-        populateSelects();
-        renderAll(session);
+        await upsertProcurementBill(payload);
+        await populateSelects();
+        await renderAll(session);
         resetBillForm();
       } catch (error) {
         showError(elements.billError, error.message);
       }
     });
 
-    elements.proposalTableBody.addEventListener("click", (event) => {
+    elements.proposalTableBody.addEventListener("click", async (event) => {
       const editButton = event.target.closest("[data-proposal-edit]");
       const deleteButton = event.target.closest("[data-proposal-delete]");
 
       if (editButton) {
-        const proposal = (getState().budgetProposals || []).find((item) => item.id === editButton.dataset.proposalEdit);
+        const proposal = ((await getState()).budgetProposals || []).find((item) => item.id === editButton.dataset.proposalEdit);
         if (!proposal) {
           return;
         }
@@ -452,9 +452,9 @@
 
       if (deleteButton) {
         try {
-          deleteBudgetProposal(deleteButton.dataset.proposalDelete);
-          populateSelects();
-          renderAll(session);
+          await deleteBudgetProposal(deleteButton.dataset.proposalDelete);
+          await populateSelects();
+          await renderAll(session);
           resetProposalForm();
         } catch (error) {
           showError(elements.proposalError, error.message);
@@ -462,12 +462,12 @@
       }
     });
 
-    elements.billTableBody.addEventListener("click", (event) => {
+    elements.billTableBody.addEventListener("click", async (event) => {
       const editButton = event.target.closest("[data-bill-edit]");
       const deleteButton = event.target.closest("[data-bill-delete]");
 
       if (editButton) {
-        const bill = (getState().procurementBills || []).find((item) => item.id === editButton.dataset.billEdit);
+        const bill = ((await getState()).procurementBills || []).find((item) => item.id === editButton.dataset.billEdit);
         if (!bill) {
           return;
         }
@@ -489,9 +489,9 @@
 
       if (deleteButton) {
         try {
-          deleteProcurementBill(deleteButton.dataset.billDelete);
-          populateSelects();
-          renderAll(session);
+          await deleteProcurementBill(deleteButton.dataset.billDelete);
+          await populateSelects();
+          await renderAll(session);
           resetBillForm();
         } catch (error) {
           showError(elements.billError, error.message);
@@ -499,10 +499,10 @@
       }
     });
 
-    /* ── Fund Releases ── */
+    /* â”€â”€ Fund Releases â”€â”€ */
     if (elements.releaseForm) {
       elements.releaseResetButton.addEventListener("click", resetReleaseForm);
-      elements.releaseForm.addEventListener("submit", (event) => {
+      elements.releaseForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const payload = Object.fromEntries(new FormData(elements.releaseForm).entries());
         if (!payload.departmentId) { showError(elements.releaseError, "Select the target department."); return; }
@@ -510,20 +510,20 @@
         if (Number(payload.amountCr) <= 0) { showError(elements.releaseError, "Enter a valid release amount greater than zero."); return; }
         if (!payload.status) { showError(elements.releaseError, "Select the release status."); return; }
         try {
-          upsertFundRelease(payload);
-          populateSelects();
-          renderAll(session);
+          await upsertFundRelease(payload);
+          await populateSelects();
+          await renderAll(session);
           resetReleaseForm();
         } catch (error) {
           showError(elements.releaseError, error.message);
         }
       });
 
-      elements.releaseTableBody.addEventListener("click", (event) => {
+      elements.releaseTableBody.addEventListener("click", async (event) => {
         const editButton = event.target.closest("[data-release-edit]");
         const deleteButton = event.target.closest("[data-release-delete]");
         if (editButton) {
-          const release = (getState().fundReleases || []).find((item) => item.id === editButton.dataset.releaseEdit);
+          const release = ((await getState()).fundReleases || []).find((item) => item.id === editButton.dataset.releaseEdit);
           if (!release) return;
           Object.entries(release).forEach(([key, value]) => {
             if (elements.releaseForm.elements[key]) elements.releaseForm.elements[key].value = value == null ? "" : value;
@@ -532,9 +532,9 @@
         }
         if (deleteButton) {
           try {
-            deleteFundRelease(deleteButton.dataset.releaseDelete);
-            populateSelects();
-            renderAll(session);
+            await deleteFundRelease(deleteButton.dataset.releaseDelete);
+            await populateSelects();
+            await renderAll(session);
             resetReleaseForm();
           } catch (error) {
             showError(elements.releaseError, error.message);
@@ -544,8 +544,8 @@
     }
   }
 
-  function init() {
-    initializeStore();
+  async function init() {
+    await initializeStore();
     const session = getAuthorizedSession();
 
     if (!session) {
@@ -554,9 +554,11 @@
     }
 
     bindLanguageSelector(elements.languageSelect);
-    bind(session);
+    await bind(session);
     resetReleaseForm();
   }
 
   init();
 })(window);
+
+

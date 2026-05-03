@@ -1,37 +1,8 @@
-(function attachDataStore(globalScope) {
+﻿(function attachDataStore(globalScope) {
   const crims = (globalScope.CRIMS = globalScope.CRIMS || {});
-  const FALLBACK_SEED_DATA = crims.seedData;
-  const STORE_KEY = "crims-front-end-state";
+  const api = crims.api;
   const SESSION_KEY = "crims-front-end-session";
   const LANGUAGE_KEY = "crims-front-end-language";
-  const COLLECTION_KEYS = [
-    "departments",
-    "serviceCategories",
-    "publicStats",
-    "impactStories",
-    "officialRoles",
-    "officialAccounts",
-    "citizenUsers",
-    "requests",
-    "adminAlerts",
-    "budgetSnapshots",
-    "activityFeed",
-    "workOrders",
-    "quotations",
-    "maintenanceSchedules",
-    "inspections",
-    "issueReports",
-    "resourceRequests",
-    "progressReports",
-    "budgetProposals",
-    "procurementBills",
-    "qcReviews",
-    "fundReleases",
-    "maintenanceLogs",
-    "sensorDeployments",
-    "taskMaterialLogs",
-    "outcomeReports"
-  ];
   const REQUEST_STATUS_STEPS = [
     "RECEIVED",
     "UNDER_REVIEW",
@@ -40,18 +11,7 @@
     "CLOSED"
   ];
 
-  function clone(data) {
-    return JSON.parse(JSON.stringify(data));
-  }
-
-  function translate(key, fallback) {
-    const i18n = globalScope.CRIMS && globalScope.CRIMS.i18n;
-    if (!i18n || typeof i18n.t !== "function") {
-      return fallback;
-    }
-
-    return i18n.t(key) || fallback;
-  }
+  /* â”€â”€ Local-only helpers (session, language, formatting) â”€â”€ */
 
   function storageAvailable(type) {
     try {
@@ -65,1057 +25,683 @@
     }
   }
 
-  function readLocalStorage(key, fallback) {
-    if (!storageAvailable("localStorage")) {
-      return fallback;
-    }
-
-    const raw = globalScope.localStorage.getItem(key);
-    if (!raw) {
-      return fallback;
-    }
-
-    try {
-      return JSON.parse(raw);
-    } catch (_error) {
-      return fallback;
-    }
-  }
-
-  function writeLocalStorage(key, value) {
-    if (!storageAvailable("localStorage")) {
-      return;
-    }
-
-    globalScope.localStorage.setItem(key, JSON.stringify(value));
-  }
-
-  function normalizeState(candidateState) {
-    const seededState = clone(FALLBACK_SEED_DATA);
-    const sourceState = candidateState && typeof candidateState === "object" ? candidateState : {};
-    const normalizedState = {
-      ...seededState,
-      ...sourceState,
-      meta: {
-        ...seededState.meta,
-        ...(sourceState.meta || {}),
-        seedVersion: seededState.meta.seedVersion
-      }
-    };
-
-    COLLECTION_KEYS.forEach((key) => {
-      normalizedState[key] = Array.isArray(sourceState[key]) ? sourceState[key] : clone(seededState[key] || []);
-    });
-
-    return normalizedState;
-  }
-
-  function initializeStore() {
-    const existing = readLocalStorage(STORE_KEY, null);
-    const normalizedState = normalizeState(existing);
-    writeLocalStorage(STORE_KEY, normalizedState);
-    return normalizedState;
-  }
-
-  function getState() {
-    const existing = readLocalStorage(STORE_KEY, null);
-    return normalizeState(existing);
-  }
-
-  function saveState(nextState) {
-    const normalizedState = normalizeState(nextState);
-    writeLocalStorage(STORE_KEY, normalizedState);
-    return normalizedState;
+  function translate(key, fallback) {
+    const i18n = globalScope.CRIMS && globalScope.CRIMS.i18n;
+    if (!i18n || typeof i18n.t !== "function") return fallback;
+    return i18n.t(key) || fallback;
   }
 
   function getLanguage() {
-    if (!storageAvailable("localStorage")) {
-      return "en";
-    }
-
+    if (!storageAvailable("localStorage")) return "en";
     return globalScope.localStorage.getItem(LANGUAGE_KEY) || "en";
   }
 
   function setLanguage(languageCode) {
-    if (!storageAvailable("localStorage")) {
-      return;
-    }
-
+    if (!storageAvailable("localStorage")) return;
     globalScope.localStorage.setItem(LANGUAGE_KEY, languageCode);
   }
 
   function getSession() {
-    return readLocalStorage(SESSION_KEY, null);
+    if (!storageAvailable("localStorage")) return null;
+    try {
+      const raw = globalScope.localStorage.getItem(SESSION_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_e) { return null; }
   }
 
   function setSession(payload) {
-    writeLocalStorage(SESSION_KEY, payload);
+    if (!storageAvailable("localStorage")) return;
+    globalScope.localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
   }
 
   function clearSession() {
-    if (!storageAvailable("localStorage")) {
-      return;
-    }
-
+    if (!storageAvailable("localStorage")) return;
     globalScope.localStorage.removeItem(SESSION_KEY);
   }
 
+  function formatDisplayDate(value) {
+    return new Intl.DateTimeFormat("en-IN", {
+      day: "2-digit", month: "short", year: "numeric"
+    }).format(new Date(value));
+  }
+
+  function formatStatus(status) {
+    if (!status) return "Unknown";
+    return status.split("_").map((t) => t.charAt(0) + t.slice(1).toLowerCase()).join(" ");
+  }
+
+  /* â”€â”€ In-memory activity feed (front-end only convenience) â”€â”€ */
+
+  let activityFeedCache = [];
+  let latestState = null;
+
+  function prependActivity(title, detail) {
+    activityFeedCache = [{
+      id: "feed-" + Date.now(),
+      title, detail, meta: "Just now"
+    }].concat(activityFeedCache).slice(0, 8);
+  }
+
+  /* â”€â”€ Backward-compatible getState / initializeStore â”€â”€ */
+  /* These now fetch everything from the backend and return a combined object */
+
+  async function initializeStore() {
+    return getState();
+  }
+
+  async function getState() {
+    const [
+      departments, serviceCategories, requests, workOrders, quotations,
+      inspections, issueReports, resourceRequests, progressReports,
+      budgetProposals, procurementBills, qcReviews, fundReleases,
+      mSchedules, mLogs, sensors, materials, outcomeReports,
+      publicData, adminData, activityData, budgetSnapshots,
+      officialRoles, officialAccounts
+    ] = await Promise.all([
+      api.get("/departments"),
+      api.get("/service-categories"),
+      api.get("/requests"),
+      api.get("/work-orders"),
+      api.get("/quotations"),
+      api.get("/inspections"),
+      api.get("/issue-reports"),
+      api.get("/resource-requests"),
+      api.get("/progress-reports"),
+      api.get("/budget-proposals"),
+      api.get("/procurement-bills"),
+      api.get("/qc-reviews"),
+      api.get("/fund-releases"),
+      api.get("/maintenance/schedules"),
+      api.get("/maintenance/logs"),
+      api.get("/field-assets/sensors"),
+      api.get("/field-assets/materials"),
+      api.get("/outcome-reports"),
+      api.get("/public-insights").catch(() => ({ publicStats: [], impactStories: [] })),
+      api.get("/public-insights/admin").catch(() => ({ adminAlerts: [] })),
+      api.get("/public-insights/activity").catch(() => []),
+      api.get("/public-insights/budget-snapshots").catch(() => []),
+      api.get("/demo-access/roles").catch(() => []),
+      api.get("/demo-access/official-accounts").catch(() => [])
+    ]);
+
+    if (activityFeedCache.length === 0 && Array.isArray(activityData)) {
+      activityFeedCache = activityData;
+    }
+
+    latestState = {
+      departments,
+      serviceCategories,
+      requests,
+      workOrders,
+      quotations,
+      inspections,
+      issueReports,
+      resourceRequests,
+      progressReports,
+      budgetProposals,
+      procurementBills,
+      qcReviews,
+      fundReleases,
+      maintenanceSchedules: mSchedules,
+      maintenanceLogs: mLogs,
+      sensorDeployments: sensors,
+      taskMaterialLogs: materials,
+      outcomeReports,
+      publicStats: publicData.publicStats || publicData || [],
+      impactStories: publicData.impactStories || [],
+      adminAlerts: adminData.adminAlerts || adminData || [],
+      budgetSnapshots: budgetSnapshots || [],
+      activityFeed: activityFeedCache,
+      officialRoles: officialRoles || [],
+      officialAccounts: officialAccounts || [],
+      citizenUsers: [],
+      meta: { seedVersion: "api-connected", systemName: "CRIMS", productName: "InfraLynx" }
+    };
+    return latestState;
+  }
+
+  async function saveState(_nextState) {
+    /* No-op: individual CRUD functions now call the API directly */
+    return _nextState;
+  }
+
+  /* â”€â”€ Lookup helpers â”€â”€ */
+
   function getRoleByCode(roleCode) {
-    return getState().officialRoles.find((role) => role.code === roleCode);
+    const roles = latestState ? latestState.officialRoles : [];
+    return roles.find((r) => r.code === roleCode);
   }
 
   function getCategoryById(categoryId) {
-    return getState().serviceCategories.find((category) => category.id === categoryId);
+    const cats = latestState ? latestState.serviceCategories : [];
+    return cats.find((c) => c.id === categoryId);
   }
 
   function getDepartmentById(departmentId) {
-    return getState().departments.find((department) => department.id === departmentId);
+    const depts = latestState ? latestState.departments : [];
+    return depts.find((d) => d.id === departmentId);
   }
 
-  function createId(prefix) {
-    if (globalScope.crypto && globalScope.crypto.randomUUID) {
-      return `${prefix}-${globalScope.crypto.randomUUID()}`;
-    }
+  /* â”€â”€ Authentication â”€â”€ */
 
-    return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  async function authenticateCitizen(identifier, password) {
+    const result = await api.post("/demo-access/citizen/sign-in", { identifier, password });
+    setSession(result.session);
+    return result.account;
   }
 
-  function slugify(value) {
-    return String(value || "")
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
+  async function authenticateOfficial(email, password) {
+    const result = await api.post("/demo-access/official/sign-in", { email, password });
+    setSession(result.session);
+    return result.account;
   }
 
-  function generateReferenceNumber(requests) {
-    const year = new Date().getFullYear();
-    const maxSequence = requests.reduce((maxValue, request) => {
-      const match = String(request.publicReferenceNo || "").match(/CRIMS-\d{4}-(\d+)/);
-      if (!match) {
-        return maxValue;
-      }
-
-      return Math.max(maxValue, Number(match[1]));
-    }, 0);
-
-    return `CRIMS-${year}-${String(maxSequence + 1).padStart(4, "0")}`;
-  }
-
-  function registerCitizenAccount(payload) {
-    const state = getState();
-    const aadhaarMatch = state.citizenUsers.find((user) => user.aadhaar === payload.aadhaar);
-
-    if (aadhaarMatch) {
-      throw new Error(translate("error.accountExistsAadhaar", "An account already exists for this Aadhaar number."));
-    }
-
-    const emailMatch = state.citizenUsers.find((user) => user.email.toLowerCase() === payload.email.toLowerCase());
-    if (emailMatch) {
-      throw new Error(translate("error.accountExistsEmail", "This email is already linked to an existing citizen account."));
-    }
-
-    const citizenRecord = {
-      id: createId("citizen"),
+  async function registerCitizenAccount(payload) {
+    const result = await api.post("/demo-access/citizen/register", {
       aadhaar: payload.aadhaar,
       name: payload.name,
       phone: payload.phone,
       email: payload.email,
       password: payload.password,
-      preferredLanguage: payload.preferredLanguage || "en",
-      createdAt: new Date().toISOString()
-    };
-
-    state.citizenUsers.unshift(citizenRecord);
-    saveState(state);
-
-    return citizenRecord;
-  }
-
-  function authenticateCitizen(identifier, password) {
-    const normalizedIdentifier = identifier.trim().toLowerCase();
-    const citizen = getState().citizenUsers.find((user) => {
-      return user.aadhaar === normalizedIdentifier || user.email.toLowerCase() === normalizedIdentifier;
+      preferredLanguage: payload.preferredLanguage || "en"
     });
-
-    if (!citizen || citizen.password !== password) {
-      throw new Error(translate("error.citizenSignInFailed", "Citizen sign-in failed. Check the Aadhaar or email and password."));
-    }
-
-    const session = {
-      type: "citizen",
-      citizenId: citizen.id,
-      citizenName: citizen.name,
-      aadhaar: citizen.aadhaar,
-      createdAt: new Date().toISOString()
-    };
-
-    setSession(session);
-    return citizen;
+    return result;
   }
 
-  function authenticateOfficial(email, password) {
-    const account = getState().officialAccounts.find((item) => {
-      return item.email.toLowerCase() === email.toLowerCase();
-    });
-
-    if (!account || account.password !== password) {
-      throw new Error(translate("error.officialSignInFailed", "Sign-in failed. Check your email and password."));
-    }
-
-    const session = {
-      type: "official",
-      officialId: account.id,
-      role: account.role,
-      name: account.name,
-      createdAt: new Date().toISOString()
-    };
-
-    setSession(session);
-    return account;
+  async function lookupCitizenAccount(identifier) {
+    return api.post("/demo-access/citizen/lookup", { identifier });
   }
 
-  function ensureCitizenIdentity(state, payload) {
-    if (!payload.aadhaar) {
-      return {
-        id: createId("public-requester"),
-        aadhaar: "",
-        name: payload.name,
-        phone: payload.phone,
-        email: payload.email,
-        password: null,
-        preferredLanguage: getLanguage(),
-        createdAt: new Date().toISOString()
-      };
-    }
-
-    const aadhaarMatch = state.citizenUsers.find((user) => user.aadhaar === payload.aadhaar);
-
-    if (!aadhaarMatch) {
-      const citizenRecord = {
-        id: createId("citizen"),
-        aadhaar: payload.aadhaar,
-        name: payload.name,
-        phone: payload.phone,
-        email: payload.email,
-        password: null,
-        preferredLanguage: getLanguage(),
-        createdAt: new Date().toISOString()
-      };
-
-      state.citizenUsers.unshift(citizenRecord);
-      return citizenRecord;
-    }
-
-    const matchesKnownIdentity =
-      aadhaarMatch.name.trim().toLowerCase() === payload.name.trim().toLowerCase() &&
-      aadhaarMatch.phone === payload.phone &&
-      aadhaarMatch.email.toLowerCase() === payload.email.toLowerCase();
-
-    if (!matchesKnownIdentity) {
-      throw new Error(
-        translate(
-          "error.aadhaarLinkedConflict",
-          "This Aadhaar number is already linked to another citizen identity. Use matching contact details or sign in first."
-        )
-      );
-    }
-
-    return aadhaarMatch;
+  async function lookupOfficialAccount(email) {
+    return api.post("/demo-access/official/lookup", { email });
   }
 
-  function submitCitizenRequest(payload) {
-    const state = getState();
-    const citizen = ensureCitizenIdentity(state, payload);
-    const category = getCategoryById(payload.categoryId);
+  async function resetCitizenPassword(identifier, password) {
+    return api.patch("/demo-access/citizen/reset-password", { identifier, password });
+  }
 
-    if (!category) {
-      throw new Error(translate("error.invalidServiceCategory", "Select a valid service category before submitting the request."));
-    }
+  async function resetOfficialPassword(email, password) {
+    return api.patch("/demo-access/official/reset-password", { identifier: email, password });
+  }
 
-    const requestRecord = {
-      requestId: createId("request"),
-      publicReferenceNo: generateReferenceNumber(state.requests),
-      citizenAadhaar: citizen.aadhaar,
+  /* â”€â”€ Citizen Requests â”€â”€ */
+
+  async function submitCitizenRequest(payload) {
+    const record = await api.post("/requests", {
+      citizenAadhaar: payload.aadhaar || "",
       requestType: payload.requestType,
       categoryId: payload.categoryId,
-      departmentId: category.departmentId,
       requesterName: payload.name,
       requesterContact: payload.phone,
       requesterEmail: payload.email,
       title: payload.title,
       description: payload.description,
       locationText: payload.locationText,
-      urgency: payload.urgency,
-      status: "RECEIVED",
-      receivedAt: new Date().toISOString()
-    };
-
-    state.requests.unshift(requestRecord);
-    saveState(state);
-
-    return requestRecord;
-  }
-
-  function findRequestByReference(referenceNumber) {
-    const normalizedReference = referenceNumber.trim().toUpperCase();
-    return getState().requests.find((request) => request.publicReferenceNo === normalizedReference) || null;
-  }
-
-  function getCitizenRequests(identifier) {
-    const normalizedIdentifier = identifier.trim().toLowerCase();
-    const citizen = getState().citizenUsers.find((user) => {
-      return user.aadhaar === normalizedIdentifier || user.email.toLowerCase() === normalizedIdentifier;
+      urgency: payload.urgency
     });
-
-    if (!citizen) {
-      return [];
-    }
-
-    return getState().requests.filter((request) => request.citizenAadhaar === citizen.aadhaar);
+    prependActivity("New citizen request", record.publicReferenceNo + " was submitted.");
+    return record;
   }
 
-  function formatDisplayDate(value) {
-    return new Intl.DateTimeFormat("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    }).format(new Date(value));
+  async function findRequestByReference(referenceNumber) {
+    try {
+      const result = await api.get("/requests/track?ref=" + encodeURIComponent(referenceNumber.trim().toUpperCase()));
+      return result || null;
+    } catch (_e) { return null; }
   }
 
-  function formatStatus(status) {
-    if (!status) {
-      return "Unknown";
-    }
-
-    return status
-      .split("_")
-      .map((token) => token.charAt(0) + token.slice(1).toLowerCase())
-      .join(" ");
+  async function getCitizenRequests(identifier) {
+    try {
+      const result = await api.get("/requests?aadhaar=" + encodeURIComponent(identifier.trim()));
+      return result || [];
+    } catch (_e) { return []; }
   }
 
-  function prependActivity(state, title, detail) {
-    const nextFeedItem = {
-      id: createId("feed"),
-      title,
-      detail,
-      meta: "Just now"
-    };
+  /* â”€â”€ Departments â”€â”€ */
 
-    state.activityFeed = [nextFeedItem].concat(state.activityFeed || []).slice(0, 8);
-  }
-
-  function upsertDepartment(payload) {
-    const state = getState();
-    const normalizedName = payload.name.trim().toLowerCase();
-    const duplicate = state.departments.find((department) => {
-      return department.name.trim().toLowerCase() === normalizedName && department.id !== payload.id;
-    });
-
-    if (duplicate) {
-      throw new Error("A department with this name already exists.");
-    }
-
-    const departmentRecord = {
-      id: payload.id || `dept-${slugify(payload.name) || Date.now()}`,
-      name: payload.name.trim(),
-      publicLabel: payload.publicLabel.trim(),
-      lead: payload.lead.trim(),
-      budgetCr: Number(payload.budgetCr),
-      utilization: Number(payload.utilization)
-    };
-
+  async function upsertDepartment(payload) {
+    let record;
     if (payload.id) {
-      state.departments = state.departments.map((department) => {
-        return department.id === payload.id ? departmentRecord : department;
-      });
-      prependActivity(state, "Department updated", `${departmentRecord.name} settings were revised by the administrator.`);
+      record = await api.patch("/departments/" + payload.id, {
+        name: payload.name, publicLabel: payload.publicLabel, lead: payload.lead,
+        budgetCr: Number(payload.budgetCr), utilization: Number(payload.utilization)
+      }, "ADMINISTRATOR");
+      prependActivity("Department updated", record.name + " settings were revised.");
     } else {
-      state.departments.unshift(departmentRecord);
-      prependActivity(state, "Department added", `${departmentRecord.name} is now available in the administrator registry.`);
+      record = await api.post("/departments", {
+        name: payload.name, publicLabel: payload.publicLabel, lead: payload.lead,
+        budgetCr: Number(payload.budgetCr), utilization: Number(payload.utilization)
+      }, "ADMINISTRATOR");
+      prependActivity("Department added", record.name + " is now available.");
     }
-
-    saveState(state);
-    return departmentRecord;
+    return record;
   }
 
-  function deleteDepartment(departmentId) {
-    const state = getState();
-    const department = state.departments.find((item) => item.id === departmentId);
-
-    if (!department) {
-      throw new Error("Department not found.");
-    }
-
-    const hasRequests = state.requests.some((request) => request.departmentId === departmentId);
-    const hasAccounts = state.officialAccounts.some((account) => account.departmentId === departmentId);
-
-    if (hasRequests || hasAccounts) {
-      throw new Error("This department is still linked to requests or official accounts.");
-    }
-
-    state.departments = state.departments.filter((item) => item.id !== departmentId);
-    prependActivity(state, "Department removed", `${department.name} was removed from the prototype registry.`);
-    saveState(state);
+  async function deleteDepartment(departmentId) {
+    await api.del("/departments/" + departmentId, "ADMINISTRATOR");
+    prependActivity("Department removed", "A department was removed from the registry.");
   }
 
-  function upsertOfficialAccount(payload) {
-    const state = getState();
-    const normalizedEmail = payload.email.trim().toLowerCase();
-    const duplicate = state.officialAccounts.find((account) => {
-      return account.email.toLowerCase() === normalizedEmail && account.id !== payload.id;
-    });
+  /* â”€â”€ Official Accounts â”€â”€ */
 
-    if (duplicate) {
-      throw new Error("An official account already exists for this email address.");
-    }
-
-    const officialRecord = {
-      id: payload.id || createId("official"),
-      role: payload.role,
-      name: payload.name.trim(),
-      email: normalizedEmail,
-      password: payload.password.trim(),
-      departmentId: payload.departmentId || null
-    };
-
+  async function upsertOfficialAccount(payload) {
+    let record;
     if (payload.id) {
-      state.officialAccounts = state.officialAccounts.map((account) => {
-        return account.id === payload.id ? officialRecord : account;
-      });
-      prependActivity(state, "Official account updated", `${officialRecord.name} access settings were revised.`);
+      record = await api.patch("/demo-access/official-accounts/" + payload.id, {
+        role: payload.role, name: payload.name, email: payload.email,
+        password: payload.password, departmentId: payload.departmentId || null
+      }, "ADMINISTRATOR");
+      prependActivity("Official account updated", record.name + " access settings were revised.");
     } else {
-      state.officialAccounts.unshift(officialRecord);
-      prependActivity(state, "Official account added", `${officialRecord.name} was provisioned for ${formatStatus(officialRecord.role)} access.`);
+      record = await api.post("/demo-access/official-accounts", {
+        role: payload.role, name: payload.name, email: payload.email,
+        password: payload.password, departmentId: payload.departmentId || null
+      }, "ADMINISTRATOR");
+      prependActivity("Official account added", record.name + " was provisioned for " + formatStatus(record.role) + " access.");
     }
-
-    saveState(state);
-    return officialRecord;
+    return record;
   }
 
-  function deleteOfficialAccount(accountId) {
-    const state = getState();
-    const account = state.officialAccounts.find((item) => item.id === accountId);
-
-    if (!account) {
-      throw new Error("Official account not found.");
-    }
-
-    state.officialAccounts = state.officialAccounts.filter((item) => item.id !== accountId);
-    prependActivity(state, "Official account removed", `${account.name} was removed from official access.`);
-    saveState(state);
+  async function deleteOfficialAccount(accountId) {
+    await api.del("/demo-access/official-accounts/" + accountId, "ADMINISTRATOR");
+    prependActivity("Official account removed", "An official account was removed.");
   }
 
-  function upsertAdminRequest(payload) {
-    const state = getState();
-    const category = state.serviceCategories.find((item) => item.id === payload.categoryId);
+  /* â”€â”€ Admin Requests â”€â”€ */
 
-    if (!category) {
-      throw new Error("Select a valid service category.");
-    }
-
-    const requestRecord = {
-      requestId: payload.requestId || createId("request"),
-      publicReferenceNo: payload.publicReferenceNo || generateReferenceNumber(state.requests),
-      citizenAadhaar: payload.citizenAadhaar || "000000000000",
-      requestType: payload.requestType,
-      categoryId: payload.categoryId,
-      departmentId: category.departmentId,
-      requesterName: payload.requesterName.trim(),
-      requesterContact: payload.requesterContact.trim(),
-      requesterEmail: payload.requesterEmail.trim().toLowerCase(),
-      title: payload.title.trim(),
-      description: payload.description.trim(),
-      locationText: payload.locationText.trim(),
-      urgency: payload.urgency,
-      status: payload.status,
-      receivedAt: payload.receivedAt || new Date().toISOString()
-    };
-
+  async function upsertAdminRequest(payload) {
+    let record;
     if (payload.requestId) {
-      state.requests = state.requests.map((request) => {
-        return request.requestId === payload.requestId ? requestRecord : request;
-      });
-      prependActivity(state, "Citizen request updated", `${requestRecord.publicReferenceNo} was updated in the administrator control room.`);
+      record = await api.patch("/requests/" + payload.requestId, {
+        status: payload.status, title: payload.title, description: payload.description, urgency: payload.urgency
+      }, "ADMINISTRATOR");
+      prependActivity("Citizen request updated", (record.publicReferenceNo || payload.requestId) + " was updated.");
     } else {
-      state.requests.unshift(requestRecord);
-      prependActivity(state, "Citizen request added", `${requestRecord.publicReferenceNo} was created from the administrator console.`);
+      record = await api.post("/requests", {
+        citizenAadhaar: payload.citizenAadhaar || "000000000000",
+        requestType: payload.requestType, categoryId: payload.categoryId,
+        requesterName: payload.requesterName, requesterContact: payload.requesterContact,
+        requesterEmail: payload.requesterEmail, title: payload.title,
+        description: payload.description, locationText: payload.locationText, urgency: payload.urgency
+      }, "ADMINISTRATOR");
+      prependActivity("Citizen request added", (record.publicReferenceNo || "") + " was created from administrator console.");
     }
-
-    saveState(state);
-    return requestRecord;
+    return record;
   }
 
-  function deleteAdminRequest(requestId) {
-    const state = getState();
-    const request = state.requests.find((item) => item.requestId === requestId);
-
-    if (!request) {
-      throw new Error("Request not found.");
-    }
-
-    state.requests = state.requests.filter((item) => item.requestId !== requestId);
-    prependActivity(state, "Citizen request removed", `${request.publicReferenceNo} was removed from the administrator queue.`);
-    saveState(state);
+  async function deleteAdminRequest(requestId) {
+    await api.del("/requests/" + requestId, "ADMINISTRATOR");
+    prependActivity("Citizen request removed", "A request was removed from the queue.");
   }
 
-  function upsertWorkOrder(payload) {
-    const state = getState();
-    const workOrderRecord = {
-      id: payload.id || createId("wo"),
-      referenceNo: payload.referenceNo || `WO-${String(Date.now()).slice(-4)}`,
-      departmentId: payload.departmentId,
-      requestId: payload.requestId || "",
-      title: payload.title.trim(),
-      locationText: payload.locationText.trim(),
-      engineerId: payload.engineerId || "",
-      priority: payload.priority,
-      status: payload.status,
-      dueDate: payload.dueDate,
-      notes: String(payload.notes || "").trim(),
-      approvedBy: payload.approvedBy || null,
-      approvedAt: payload.approvedAt || null,
-      rejectedBy: payload.rejectedBy || null,
-      rejectedAt: payload.rejectedAt || null
+  /* â”€â”€ Work Orders â”€â”€ */
+
+  async function upsertWorkOrder(payload) {
+    let record;
+    const body = {
+      departmentId: payload.departmentId, requestId: payload.requestId || "",
+      title: payload.title, locationText: payload.locationText,
+      engineerId: payload.engineerId || "", priority: payload.priority,
+      status: payload.status, dueDate: payload.dueDate, notes: payload.notes || ""
     };
-
     if (payload.id) {
-      state.workOrders = state.workOrders.map((item) => {
-        return item.id === payload.id ? workOrderRecord : item;
-      });
-      prependActivity(state, "Work order updated", `${workOrderRecord.referenceNo} was updated by the Department Officer.`);
+      record = await api.patch("/work-orders/" + payload.id, body, "OFFICER");
+      prependActivity("Work order updated", (record.referenceNo || payload.id) + " was updated.");
     } else {
-      state.workOrders.unshift(workOrderRecord);
-      prependActivity(state, "Work order created", `${workOrderRecord.referenceNo} was created for ${workOrderRecord.title}.`);
+      record = await api.post("/work-orders", body, "OFFICER");
+      prependActivity("Work order created", (record.referenceNo || "") + " was created.");
     }
-
-    saveState(state);
-    return workOrderRecord;
+    return record;
   }
 
-  function deleteWorkOrder(workOrderId) {
-    const state = getState();
-    const workOrder = state.workOrders.find((item) => item.id === workOrderId);
-
-    if (!workOrder) {
-      throw new Error("Work order not found.");
-    }
-
-    state.workOrders = state.workOrders.filter((item) => item.id !== workOrderId);
-    prependActivity(state, "Work order removed", `${workOrder.referenceNo} was removed from the operational queue.`);
-    saveState(state);
+  async function deleteWorkOrder(workOrderId) {
+    await api.del("/work-orders/" + workOrderId, "ADMINISTRATOR");
+    prependActivity("Work order removed", "A work order was removed.");
   }
 
-  function upsertQuotation(payload) {
-    const state = getState();
-    const quotationRecord = {
-      id: payload.id || createId("quote"),
-      departmentId: payload.departmentId,
-      vendor: payload.vendor.trim(),
-      item: payload.item.trim(),
+  /* â”€â”€ Quotations â”€â”€ */
+
+  async function upsertQuotation(payload) {
+    const body = {
+      departmentId: payload.departmentId, vendor: payload.vendor, item: payload.item,
       amountLakhs: Number(payload.amountLakhs),
       gstValid: payload.gstValid === true || payload.gstValid === "true",
       status: payload.status
     };
-
+    let record;
     if (payload.id) {
-      state.quotations = state.quotations.map((item) => {
-        return item.id === payload.id ? quotationRecord : item;
-      });
-      prependActivity(state, "Quotation updated", `${quotationRecord.vendor} quotation was updated for ${quotationRecord.item}.`);
+      record = await api.patch("/quotations/" + payload.id, body, "OFFICER");
+      prependActivity("Quotation updated", record.vendor + " quotation was updated.");
     } else {
-      state.quotations.unshift(quotationRecord);
-      prependActivity(state, "Quotation added", `${quotationRecord.vendor} quotation entered department verification.`);
+      record = await api.post("/quotations", body, "OFFICER");
+      prependActivity("Quotation added", record.vendor + " quotation entered verification.");
     }
-
-    saveState(state);
-    return quotationRecord;
-  }
-
-  function deleteQuotation(quotationId) {
-    const state = getState();
-    const quotation = state.quotations.find((item) => item.id === quotationId);
-
-    if (!quotation) {
-      throw new Error("Quotation not found.");
-    }
-
-    state.quotations = state.quotations.filter((item) => item.id !== quotationId);
-    prependActivity(state, "Quotation removed", `${quotation.vendor} quotation was removed from review.`);
-    saveState(state);
-  }
-
-  function upsertMaintenanceSchedule(payload) {
-    const state = getState();
-    const scheduleRecord = {
-      id: payload.id || createId("schedule"),
-      departmentId: payload.departmentId,
-      title: payload.title.trim(),
-      frequency: payload.frequency,
-      nextDate: payload.nextDate,
-      assignee: payload.assignee || ""
-    };
-
-    if (payload.id) {
-      state.maintenanceSchedules = state.maintenanceSchedules.map((item) => {
-        return item.id === payload.id ? scheduleRecord : item;
-      });
-      prependActivity(state, "Maintenance schedule updated", `${scheduleRecord.title} was revised by the Department Officer.`);
-    } else {
-      state.maintenanceSchedules.unshift(scheduleRecord);
-      prependActivity(state, "Maintenance schedule added", `${scheduleRecord.title} was added to the maintenance calendar.`);
-    }
-
-    saveState(state);
-    return scheduleRecord;
-  }
-
-  function deleteMaintenanceSchedule(scheduleId) {
-    const state = getState();
-    const schedule = state.maintenanceSchedules.find((item) => item.id === scheduleId);
-
-    if (!schedule) {
-      throw new Error("Maintenance schedule not found.");
-    }
-
-    state.maintenanceSchedules = state.maintenanceSchedules.filter((item) => item.id !== scheduleId);
-    prependActivity(state, "Maintenance schedule removed", `${schedule.title} was removed from the calendar.`);
-    saveState(state);
-  }
-
-  function upsertInspection(payload) {
-    const state = getState();
-    const record = {
-      id: payload.id || createId("inspection"),
-      departmentId: payload.departmentId,
-      engineerId: payload.engineerId,
-      title: payload.title.trim(),
-      locationText: payload.locationText.trim(),
-      severity: payload.severity,
-      dueDate: payload.dueDate,
-      status: payload.status
-    };
-
-    if (payload.id) {
-      state.inspections = state.inspections.map((item) => (item.id === payload.id ? record : item));
-      prependActivity(state, "Inspection updated", `${record.title} inspection was updated in the field queue.`);
-    } else {
-      state.inspections.unshift(record);
-      prependActivity(state, "Inspection added", `${record.title} inspection was added for field follow-up.`);
-    }
-
-    saveState(state);
     return record;
   }
 
-  function deleteInspection(inspectionId) {
-    const state = getState();
-    const inspection = state.inspections.find((item) => item.id === inspectionId);
-    if (!inspection) {
-      throw new Error("Inspection not found.");
-    }
-    state.inspections = state.inspections.filter((item) => item.id !== inspectionId);
-    prependActivity(state, "Inspection removed", `${inspection.title} was removed from the field queue.`);
-    saveState(state);
+  async function deleteQuotation(quotationId) {
+    await api.del("/quotations/" + quotationId, "OFFICER");
+    prependActivity("Quotation removed", "A quotation was removed from review.");
   }
 
-  function upsertIssueReport(payload) {
-    const state = getState();
-    const record = {
-      id: payload.id || createId("issue"),
-      departmentId: payload.departmentId,
-      engineerId: payload.engineerId,
-      title: payload.title.trim(),
-      category: payload.category.trim(),
-      locationText: payload.locationText.trim(),
-      severity: payload.severity,
-      status: payload.status
+  /* â”€â”€ Maintenance Schedules â”€â”€ */
+
+  async function upsertMaintenanceSchedule(payload) {
+    const body = {
+      departmentId: payload.departmentId, title: payload.title,
+      frequency: payload.frequency, nextDate: payload.nextDate, assignee: payload.assignee || ""
     };
-
+    let record;
     if (payload.id) {
-      state.issueReports = state.issueReports.map((item) => (item.id === payload.id ? record : item));
-      prependActivity(state, "Issue report updated", `${record.title} was updated by the field engineer.`);
+      record = await api.patch("/maintenance/schedules/" + payload.id, body, "OFFICER");
+      prependActivity("Maintenance schedule updated", record.title + " was revised.");
     } else {
-      state.issueReports.unshift(record);
-      prependActivity(state, "Issue report logged", `${record.title} was logged from the field.`);
+      record = await api.post("/maintenance/schedules", body, "OFFICER");
+      prependActivity("Maintenance schedule added", record.title + " was added.");
     }
-
-    saveState(state);
     return record;
   }
 
-  function deleteIssueReport(issueId) {
-    const state = getState();
-    const issue = state.issueReports.find((item) => item.id === issueId);
-    if (!issue) {
-      throw new Error("Issue report not found.");
-    }
-    state.issueReports = state.issueReports.filter((item) => item.id !== issueId);
-    prependActivity(state, "Issue report removed", `${issue.title} was removed from field reporting.`);
-    saveState(state);
+  async function deleteMaintenanceSchedule(scheduleId) {
+    await api.del("/maintenance/schedules/" + scheduleId, "ADMINISTRATOR");
+    prependActivity("Maintenance schedule removed", "A schedule was removed.");
   }
 
-  function upsertResourceRequest(payload) {
-    const state = getState();
-    const record = {
-      id: payload.id || createId("resource"),
-      departmentId: payload.departmentId,
-      engineerId: payload.engineerId,
-      item: payload.item.trim(),
-      quantity: payload.quantity.trim(),
-      urgency: payload.urgency,
-      status: payload.status
+  /* â”€â”€ Inspections â”€â”€ */
+
+  async function upsertInspection(payload) {
+    const body = {
+      departmentId: payload.departmentId, engineerId: payload.engineerId,
+      title: payload.title, locationText: payload.locationText,
+      severity: payload.severity, dueDate: payload.dueDate, status: payload.status
     };
-
+    let record;
     if (payload.id) {
-      state.resourceRequests = state.resourceRequests.map((item) => (item.id === payload.id ? record : item));
-      prependActivity(state, "Resource request updated", `${record.item} request was updated in field operations.`);
+      record = await api.patch("/inspections/" + payload.id, body, "ENGINEER");
+      prependActivity("Inspection updated", record.title + " was updated.");
     } else {
-      state.resourceRequests.unshift(record);
-      prependActivity(state, "Resource request raised", `${record.item} request was raised from the field.`);
+      record = await api.post("/inspections", body, "ENGINEER");
+      prependActivity("Inspection added", record.title + " was added.");
     }
-
-    saveState(state);
     return record;
   }
 
-  function deleteResourceRequest(resourceId) {
-    const state = getState();
-    const request = state.resourceRequests.find((item) => item.id === resourceId);
-    if (!request) {
-      throw new Error("Resource request not found.");
-    }
-    state.resourceRequests = state.resourceRequests.filter((item) => item.id !== resourceId);
-    prependActivity(state, "Resource request removed", `${request.item} request was removed from field operations.`);
-    saveState(state);
+  async function deleteInspection(inspectionId) {
+    await api.del("/inspections/" + inspectionId, "OFFICER");
+    prependActivity("Inspection removed", "An inspection was removed.");
   }
 
-  function upsertProgressReport(payload) {
-    const state = getState();
-    const record = {
-      id: payload.id || createId("report"),
-      departmentId: payload.departmentId,
-      engineerId: payload.engineerId,
-      workOrderId: payload.workOrderId || "",
-      title: payload.title.trim(),
-      summary: payload.summary.trim(),
-      status: payload.status,
-      submittedAt: payload.submittedAt || new Date().toISOString()
+  /* â”€â”€ Issue Reports â”€â”€ */
+
+  async function upsertIssueReport(payload) {
+    const body = {
+      departmentId: payload.departmentId, engineerId: payload.engineerId,
+      title: payload.title, category: payload.category, locationText: payload.locationText,
+      severity: payload.severity, status: payload.status
     };
-
+    let record;
     if (payload.id) {
-      state.progressReports = state.progressReports.map((item) => (item.id === payload.id ? record : item));
-      prependActivity(state, "Progress report updated", `${record.title} was updated for officer review.`);
+      record = await api.patch("/issue-reports/" + payload.id, body, "ENGINEER");
+      prependActivity("Issue report updated", record.title + " was updated.");
     } else {
-      state.progressReports.unshift(record);
-      prependActivity(state, "Progress report submitted", `${record.title} was submitted from the field.`);
+      record = await api.post("/issue-reports", body, "ENGINEER");
+      prependActivity("Issue report logged", record.title + " was logged.");
     }
-
-    saveState(state);
     return record;
   }
 
-  function deleteProgressReport(reportId) {
-    const state = getState();
-    const report = state.progressReports.find((item) => item.id === reportId);
-    if (!report) {
-      throw new Error("Progress report not found.");
-    }
-    state.progressReports = state.progressReports.filter((item) => item.id !== reportId);
-    prependActivity(state, "Progress report removed", `${report.title} was removed from field reporting.`);
-    saveState(state);
+  async function deleteIssueReport(issueId) {
+    await api.del("/issue-reports/" + issueId, "OFFICER");
+    prependActivity("Issue report removed", "An issue report was removed.");
   }
 
-  function upsertBudgetProposal(payload) {
-    const state = getState();
-    const record = {
-      id: payload.id || createId("proposal"),
-      departmentId: payload.departmentId,
-      title: payload.title.trim(),
-      amountCr: Number(payload.amountCr),
-      stage: payload.stage,
-      justification: payload.justification.trim(),
-      requestedBy: payload.requestedBy || ""
+  /* â”€â”€ Resource Requests â”€â”€ */
+
+  async function upsertResourceRequest(payload) {
+    const body = {
+      departmentId: payload.departmentId, engineerId: payload.engineerId,
+      item: payload.item, quantity: payload.quantity, urgency: payload.urgency, status: payload.status
     };
+    let record;
     if (payload.id) {
-      state.budgetProposals = state.budgetProposals.map((item) => (item.id === payload.id ? record : item));
-      prependActivity(state, "Budget proposal updated", `${record.title} was updated in CFO review.`);
+      record = await api.patch("/resource-requests/" + payload.id, body, "ENGINEER");
+      prependActivity("Resource request updated", record.item + " request was updated.");
     } else {
-      state.budgetProposals.unshift(record);
-      prependActivity(state, "Budget proposal added", `${record.title} entered the finance queue.`);
+      record = await api.post("/resource-requests", body, "ENGINEER");
+      prependActivity("Resource request raised", record.item + " request was raised.");
     }
-    saveState(state);
     return record;
   }
 
-  function deleteBudgetProposal(proposalId) {
-    const state = getState();
-    const proposal = state.budgetProposals.find((item) => item.id === proposalId);
-    if (!proposal) throw new Error("Budget proposal not found.");
-    state.budgetProposals = state.budgetProposals.filter((item) => item.id !== proposalId);
-    prependActivity(state, "Budget proposal removed", `${proposal.title} was removed from finance review.`);
-    saveState(state);
+  async function deleteResourceRequest(resourceId) {
+    await api.del("/resource-requests/" + resourceId, "OFFICER");
+    prependActivity("Resource request removed", "A resource request was removed.");
   }
 
-  function upsertProcurementBill(payload) {
-    const state = getState();
-    const record = {
-      id: payload.id || createId("bill"),
-      departmentId: payload.departmentId,
-      vendor: payload.vendor.trim(),
+  /* â”€â”€ Progress Reports â”€â”€ */
+
+  async function upsertProgressReport(payload) {
+    const body = {
+      departmentId: payload.departmentId, engineerId: payload.engineerId,
+      workOrderId: payload.workOrderId || "", title: payload.title,
+      summary: payload.summary, status: payload.status
+    };
+    let record;
+    if (payload.id) {
+      record = await api.patch("/progress-reports/" + payload.id, body, "ENGINEER");
+      prependActivity("Progress report updated", record.title + " was updated.");
+    } else {
+      record = await api.post("/progress-reports", body, "ENGINEER");
+      prependActivity("Progress report submitted", record.title + " was submitted.");
+    }
+    return record;
+  }
+
+  async function deleteProgressReport(reportId) {
+    await api.del("/progress-reports/" + reportId, "ADMINISTRATOR");
+    prependActivity("Progress report removed", "A progress report was removed.");
+  }
+
+  /* â”€â”€ Budget Proposals â”€â”€ */
+
+  async function upsertBudgetProposal(payload) {
+    const body = {
+      departmentId: payload.departmentId, title: payload.title,
+      amountCr: Number(payload.amountCr), stage: payload.stage,
+      justification: payload.justification, requestedBy: payload.requestedBy || ""
+    };
+    let record;
+    if (payload.id) {
+      record = await api.patch("/budget-proposals/" + payload.id, body, "CFO");
+      prependActivity("Budget proposal updated", record.title + " was updated.");
+    } else {
+      record = await api.post("/budget-proposals", body, "OFFICER");
+      prependActivity("Budget proposal added", record.title + " entered the finance queue.");
+    }
+    return record;
+  }
+
+  async function deleteBudgetProposal(proposalId) {
+    await api.del("/budget-proposals/" + proposalId, "ADMINISTRATOR");
+    prependActivity("Budget proposal removed", "A budget proposal was removed.");
+  }
+
+  /* â”€â”€ Procurement Bills â”€â”€ */
+
+  async function upsertProcurementBill(payload) {
+    const body = {
+      departmentId: payload.departmentId, vendor: payload.vendor,
       workOrderId: payload.workOrderId || "",
       amountLakhs: Number(payload.amountLakhs),
       gstValid: payload.gstValid === true || payload.gstValid === "true",
       status: payload.status
     };
+    let record;
     if (payload.id) {
-      state.procurementBills = state.procurementBills.map((item) => (item.id === payload.id ? record : item));
-      prependActivity(state, "Procurement bill updated", `${record.vendor} bill status was updated by CFO.`);
+      record = await api.patch("/procurement-bills/" + payload.id, body, "CFO");
+      prependActivity("Procurement bill updated", record.vendor + " bill status was updated.");
     } else {
-      state.procurementBills.unshift(record);
-      prependActivity(state, "Procurement bill added", `${record.vendor} bill entered verification.`);
+      record = await api.post("/procurement-bills", body, "OFFICER");
+      prependActivity("Procurement bill added", record.vendor + " bill entered verification.");
     }
-    saveState(state);
     return record;
   }
 
-  function deleteProcurementBill(billId) {
-    const state = getState();
-    const bill = state.procurementBills.find((item) => item.id === billId);
-    if (!bill) throw new Error("Procurement bill not found.");
-    state.procurementBills = state.procurementBills.filter((item) => item.id !== billId);
-    prependActivity(state, "Procurement bill removed", `${bill.vendor} bill was removed from finance review.`);
-    saveState(state);
+  async function deleteProcurementBill(billId) {
+    await api.del("/procurement-bills/" + billId, "ADMINISTRATOR");
+    prependActivity("Procurement bill removed", "A procurement bill was removed.");
   }
 
-  function upsertQcReview(payload) {
-    const state = getState();
-    const record = {
-      id: payload.id || createId("qc"),
-      departmentId: payload.departmentId,
-      workOrderId: payload.workOrderId || "",
-      title: payload.title.trim(),
-      reviewer: payload.reviewer || "",
-      finding: payload.finding.trim(),
-      status: payload.status,
-      score: Number(payload.score)
+  /* â”€â”€ QC Reviews â”€â”€ */
+
+  async function upsertQcReview(payload) {
+    const body = {
+      departmentId: payload.departmentId, workOrderId: payload.workOrderId || "",
+      title: payload.title, reviewer: payload.reviewer || "",
+      finding: payload.finding, status: payload.status, score: Number(payload.score)
     };
+    let record;
     if (payload.id) {
-      state.qcReviews = state.qcReviews.map((item) => (item.id === payload.id ? record : item));
-      prependActivity(state, "QC review updated", `${record.title} was updated during quality review.`);
+      record = await api.patch("/qc-reviews/" + payload.id, body, "QC_REVIEWER");
+      prependActivity("QC review updated", record.title + " was updated.");
     } else {
-      state.qcReviews.unshift(record);
-      prependActivity(state, "QC review added", `${record.title} entered the QC queue.`);
+      record = await api.post("/qc-reviews", body, "QC_REVIEWER");
+      prependActivity("QC review added", record.title + " entered the QC queue.");
     }
-    saveState(state);
     return record;
   }
 
-  function deleteQcReview(reviewId) {
-    const state = getState();
-    const review = state.qcReviews.find((item) => item.id === reviewId);
-    if (!review) throw new Error("QC review not found.");
-    state.qcReviews = state.qcReviews.filter((item) => item.id !== reviewId);
-    prependActivity(state, "QC review removed", `${review.title} was removed from quality review.`);
-    saveState(state);
+  async function deleteQcReview(reviewId) {
+    await api.del("/qc-reviews/" + reviewId, "ADMINISTRATOR");
+    prependActivity("QC review removed", "A QC review was removed.");
   }
 
-  /* ── Fund Releases ── */
-  function upsertFundRelease(payload) {
-    const state = getState();
-    const record = {
-      id: payload.id || createId("release"),
-      departmentId: payload.departmentId,
-      proposalId: payload.proposalId || "",
-      title: payload.title.trim(),
-      amountCr: Number(payload.amountCr),
-      quarter: payload.quarter || "",
-      status: payload.status,
-      releasedAt: payload.status === "RELEASED" ? (payload.releasedAt || new Date().toISOString()) : null,
-      notes: (payload.notes || "").trim()
+  /* â”€â”€ Fund Releases â”€â”€ */
+
+  async function upsertFundRelease(payload) {
+    const body = {
+      departmentId: payload.departmentId, proposalId: payload.proposalId || "",
+      title: payload.title, amountCr: Number(payload.amountCr),
+      quarter: payload.quarter || "", status: payload.status, notes: payload.notes || ""
     };
+    let record;
     if (payload.id) {
-      state.fundReleases = (state.fundReleases || []).map((item) => (item.id === payload.id ? record : item));
-      prependActivity(state, "Fund release updated", `${record.title} was updated by CFO.`);
+      record = await api.patch("/fund-releases/" + payload.id, body, "CFO");
+      prependActivity("Fund release updated", record.title + " was updated.");
     } else {
-      state.fundReleases = [record].concat(state.fundReleases || []);
-      prependActivity(state, "Fund release created", `${record.title} entered the release queue.`);
+      record = await api.post("/fund-releases", body, "CFO");
+      prependActivity("Fund release created", record.title + " entered the release queue.");
     }
-    saveState(state);
     return record;
   }
 
-  function deleteFundRelease(releaseId) {
-    const state = getState();
-    const release = (state.fundReleases || []).find((item) => item.id === releaseId);
-    if (!release) throw new Error("Fund release not found.");
-    state.fundReleases = (state.fundReleases || []).filter((item) => item.id !== releaseId);
-    prependActivity(state, "Fund release removed", `${release.title} was removed from the release schedule.`);
-    saveState(state);
+  async function deleteFundRelease(releaseId) {
+    await api.del("/fund-releases/" + releaseId, "ADMINISTRATOR");
+    prependActivity("Fund release removed", "A fund release was removed.");
   }
 
-  /* ── Maintenance Logs ── */
-  function upsertMaintenanceLog(payload) {
-    const state = getState();
-    const record = {
-      id: payload.id || createId("mlog"),
-      departmentId: payload.departmentId,
-      engineerId: payload.engineerId,
-      scheduleId: payload.scheduleId || "",
-      workOrderId: payload.workOrderId || "",
-      title: payload.title.trim(),
-      activity: (payload.activity || "").trim(),
-      hoursSpent: Number(payload.hoursSpent) || 0,
-      date: payload.date,
-      status: payload.status
+  /* â”€â”€ Maintenance Logs â”€â”€ */
+
+  async function upsertMaintenanceLog(payload) {
+    const body = {
+      departmentId: payload.departmentId, engineerId: payload.engineerId,
+      scheduleId: payload.scheduleId || "", workOrderId: payload.workOrderId || "",
+      title: payload.title, activity: payload.activity || "",
+      hoursSpent: Number(payload.hoursSpent) || 0, date: payload.date, status: payload.status
     };
+    let record;
     if (payload.id) {
-      state.maintenanceLogs = (state.maintenanceLogs || []).map((item) => (item.id === payload.id ? record : item));
-      prependActivity(state, "Maintenance log updated", `${record.title} was updated by field engineer.`);
+      record = await api.patch("/maintenance/logs/" + payload.id, body, "ENGINEER");
+      prependActivity("Maintenance log updated", record.title + " was updated.");
     } else {
-      state.maintenanceLogs = [record].concat(state.maintenanceLogs || []);
-      prependActivity(state, "Maintenance log added", `${record.title} was logged from the field.`);
+      record = await api.post("/maintenance/logs", body, "ENGINEER");
+      prependActivity("Maintenance log added", record.title + " was logged.");
     }
-    saveState(state);
     return record;
   }
 
-  function deleteMaintenanceLog(logId) {
-    const state = getState();
-    const log = (state.maintenanceLogs || []).find((item) => item.id === logId);
-    if (!log) throw new Error("Maintenance log not found.");
-    state.maintenanceLogs = (state.maintenanceLogs || []).filter((item) => item.id !== logId);
-    prependActivity(state, "Maintenance log removed", `${log.title} was removed from field records.`);
-    saveState(state);
+  async function deleteMaintenanceLog(logId) {
+    await api.del("/maintenance/logs/" + logId, "ADMINISTRATOR");
+    prependActivity("Maintenance log removed", "A maintenance log was removed.");
   }
 
-  /* ── Sensor Deployments ── */
-  function upsertSensorDeployment(payload) {
-    const state = getState();
-    const record = {
-      id: payload.id || createId("sensor"),
-      departmentId: payload.departmentId,
-      engineerId: payload.engineerId,
-      workOrderId: payload.workOrderId || "",
-      sensorType: payload.sensorType.trim(),
-      assetLocation: payload.assetLocation.trim(),
-      serialNo: (payload.serialNo || "").trim(),
-      installedAt: payload.installedAt || new Date().toISOString(),
-      status: payload.status,
-      notes: (payload.notes || "").trim()
+  /* â”€â”€ Sensor Deployments â”€â”€ */
+
+  async function upsertSensorDeployment(payload) {
+    const body = {
+      departmentId: payload.departmentId, engineerId: payload.engineerId,
+      workOrderId: payload.workOrderId || "", sensorType: payload.sensorType,
+      assetLocation: payload.assetLocation, serialNo: payload.serialNo || "",
+      status: payload.status, notes: payload.notes || ""
     };
+    let record;
     if (payload.id) {
-      state.sensorDeployments = (state.sensorDeployments || []).map((item) => (item.id === payload.id ? record : item));
-      prependActivity(state, "Sensor deployment updated", `${record.sensorType} at ${record.assetLocation} was updated.`);
+      record = await api.patch("/field-assets/sensors/" + payload.id, body, "ENGINEER");
+      prependActivity("Sensor deployment updated", record.sensorType + " was updated.");
     } else {
-      state.sensorDeployments = [record].concat(state.sensorDeployments || []);
-      prependActivity(state, "Sensor deployed", `${record.sensorType} installed at ${record.assetLocation}.`);
+      record = await api.post("/field-assets/sensors", body, "ENGINEER");
+      prependActivity("Sensor deployed", record.sensorType + " installed at " + record.assetLocation + ".");
     }
-    saveState(state);
     return record;
   }
 
-  function deleteSensorDeployment(sensorId) {
-    const state = getState();
-    const sensor = (state.sensorDeployments || []).find((item) => item.id === sensorId);
-    if (!sensor) throw new Error("Sensor deployment not found.");
-    state.sensorDeployments = (state.sensorDeployments || []).filter((item) => item.id !== sensorId);
-    prependActivity(state, "Sensor removed", `${sensor.sensorType} deployment record was removed.`);
-    saveState(state);
+  async function deleteSensorDeployment(sensorId) {
+    await api.del("/field-assets/sensors/" + sensorId, "ENGINEER");
+    prependActivity("Sensor removed", "A sensor deployment record was removed.");
   }
 
-  /* ── Task Material Logs ── */
-  function upsertTaskMaterialLog(payload) {
-    const state = getState();
-    const record = {
-      id: payload.id || createId("matlog"),
-      departmentId: payload.departmentId,
-      engineerId: payload.engineerId,
-      workOrderId: payload.workOrderId || "",
-      material: payload.material.trim(),
-      quantity: payload.quantity.trim(),
-      unit: (payload.unit || "").trim(),
-      usedOn: payload.usedOn,
-      notes: (payload.notes || "").trim()
+  /* â”€â”€ Task Material Logs â”€â”€ */
+
+  async function upsertTaskMaterialLog(payload) {
+    const body = {
+      departmentId: payload.departmentId, engineerId: payload.engineerId,
+      workOrderId: payload.workOrderId || "", material: payload.material,
+      quantity: payload.quantity, unit: payload.unit || "",
+      usedOn: payload.usedOn, notes: payload.notes || ""
     };
+    let record;
     if (payload.id) {
-      state.taskMaterialLogs = (state.taskMaterialLogs || []).map((item) => (item.id === payload.id ? record : item));
-      prependActivity(state, "Material log updated", `${record.material} log was updated.`);
+      record = await api.patch("/field-assets/materials/" + payload.id, body, "ENGINEER");
+      prependActivity("Material log updated", record.material + " log was updated.");
     } else {
-      state.taskMaterialLogs = [record].concat(state.taskMaterialLogs || []);
-      prependActivity(state, "Material logged", `${record.material} usage was recorded by field engineer.`);
+      record = await api.post("/field-assets/materials", body, "ENGINEER");
+      prependActivity("Material logged", record.material + " usage was recorded.");
     }
-    saveState(state);
     return record;
   }
 
-  function deleteTaskMaterialLog(logId) {
-    const state = getState();
-    const log = (state.taskMaterialLogs || []).find((item) => item.id === logId);
-    if (!log) throw new Error("Material log not found.");
-    state.taskMaterialLogs = (state.taskMaterialLogs || []).filter((item) => item.id !== logId);
-    prependActivity(state, "Material log removed", `${log.material} log was removed.`);
-    saveState(state);
+  async function deleteTaskMaterialLog(logId) {
+    await api.del("/field-assets/materials/" + logId, "ENGINEER");
+    prependActivity("Material log removed", "A material log was removed.");
   }
 
-  /* ── Outcome / Accountability Reports ── */
-  function upsertOutcomeReport(payload) {
-    const state = getState();
-    const linkedWorkOrderId = payload.workOrderId || "";
-    const record = {
-      id: payload.id || createId("outcome"),
-      departmentId: payload.departmentId,
-      workOrderId: linkedWorkOrderId,
-      preparedBy: payload.preparedBy || "",
-      title: payload.title.trim(),
-      summary: (payload.summary || "").trim(),
-      budgetSanctioned: Number(payload.budgetSanctioned) || 0,
-      budgetUsed: Number(payload.budgetUsed) || 0,
-      outcome: payload.outcome || "PENDING",
-      lessonsLearned: (payload.lessonsLearned || "").trim(),
-      submittedAt: payload.submittedAt || new Date().toISOString()
+  /* â”€â”€ Outcome Reports â”€â”€ */
+
+  async function upsertOutcomeReport(payload) {
+    const body = {
+      departmentId: payload.departmentId, workOrderId: payload.workOrderId || "",
+      preparedBy: payload.preparedBy || "", title: payload.title,
+      summary: payload.summary || "", budgetSanctioned: Number(payload.budgetSanctioned) || 0,
+      budgetUsed: Number(payload.budgetUsed) || 0, outcome: payload.outcome || "PENDING",
+      lessonsLearned: payload.lessonsLearned || ""
     };
+    let record;
     if (payload.id) {
-      state.outcomeReports = (state.outcomeReports || []).map((item) => (item.id === payload.id ? record : item));
-      prependActivity(state, "Outcome report updated", `${record.title} was updated by the officer.`);
+      record = await api.patch("/outcome-reports/" + payload.id, body, "OFFICER");
+      prependActivity("Outcome report updated", record.title + " was updated.");
     } else {
-      state.outcomeReports = [record].concat(state.outcomeReports || []);
-      prependActivity(state, "Outcome report submitted", `${record.title} was submitted for review.`);
+      record = await api.post("/outcome-reports", body, "OFFICER");
+      prependActivity("Outcome report submitted", record.title + " was submitted.");
     }
-
-    if (linkedWorkOrderId) {
-      state.workOrders = (state.workOrders || []).map((workOrder) => {
-        if (workOrder.id !== linkedWorkOrderId) {
-          return workOrder;
-        }
-
-        return {
-          ...workOrder,
-          status: "COMPLETED"
-        };
-      });
-      const linkedWorkOrder = (state.workOrders || []).find((item) => item.id === linkedWorkOrderId);
-      if (linkedWorkOrder) {
-        prependActivity(
-          state,
-          "Work order completed",
-          `${linkedWorkOrder.referenceNo} was marked completed after the outcome report was submitted.`
-        );
-      }
-    }
-
-    saveState(state);
     return record;
   }
 
-  function deleteOutcomeReport(reportId) {
-    const state = getState();
-    const report = (state.outcomeReports || []).find((item) => item.id === reportId);
-    if (!report) throw new Error("Outcome report not found.");
-    state.outcomeReports = (state.outcomeReports || []).filter((item) => item.id !== reportId);
-    prependActivity(state, "Outcome report removed", `${report.title} was removed from records.`);
-    saveState(state);
+  async function deleteOutcomeReport(reportId) {
+    await api.del("/outcome-reports/" + reportId, "ADMINISTRATOR");
+    prependActivity("Outcome report removed", "An outcome report was removed.");
   }
+
+  /* â”€â”€ Expose public API (same signature as before, now async) â”€â”€ */
 
   crims.store = {
     REQUEST_STATUS_STEPS,
@@ -1131,6 +717,10 @@
     getCategoryById,
     getDepartmentById,
     registerCitizenAccount,
+    lookupCitizenAccount,
+    lookupOfficialAccount,
+    resetCitizenPassword,
+    resetOfficialPassword,
     authenticateCitizen,
     authenticateOfficial,
     submitCitizenRequest,
@@ -1176,3 +766,4 @@
     formatStatus
   };
 })(window);
+

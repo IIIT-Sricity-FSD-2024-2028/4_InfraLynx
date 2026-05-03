@@ -28,6 +28,12 @@ export class FieldAssetsService {
     this.sensors[idx] = { ...this.sensors[idx], ...dto };
     return this.sensors[idx];
   }
+  removeSensor(id: string) {
+    const idx = this.sensors.findIndex((s) => s.id === id);
+    if (idx === -1) throw new NotFoundException(`Sensor "${id}" not found`);
+    this.sensors.splice(idx, 1);
+    return { deleted: true };
+  }
 
   // --- Material Logs ---
   findAllMaterials() { return this.materials; }
@@ -46,5 +52,11 @@ export class FieldAssetsService {
     if (idx === -1) throw new NotFoundException(`Material log "${id}" not found`);
     this.materials[idx] = { ...this.materials[idx], ...dto };
     return this.materials[idx];
+  }
+  removeMaterial(id: string) {
+    const idx = this.materials.findIndex((m) => m.id === id);
+    if (idx === -1) throw new NotFoundException(`Material log "${id}" not found`);
+    this.materials.splice(idx, 1);
+    return { deleted: true };
   }
 }

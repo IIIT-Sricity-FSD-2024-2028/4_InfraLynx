@@ -1,4 +1,4 @@
-(function bootstrapLanding(globalScope) {
+﻿(function bootstrapLanding(globalScope) {
   const {
     REQUEST_STATUS_STEPS,
     findRequestByReference,
@@ -32,18 +32,18 @@
       { step: "05", title: "Verify & close", copy: "Quality checks happen before the case is marked completed for the public record." }
     ],
     hi: [
-      { step: "01", title: "समस्या बताएं", copy: "समस्या या सुधार की जरूरत लिखें। स्थान और संपर्क जानकारी भी दें।" },
-      { step: "02", title: "रसीद मिलेगी", copy: "अनुरोध जमा होते ही एक संदर्भ संख्या मिलती है, जिससे आगे स्थिति देखी जा सकती है।" },
-      { step: "03", title: "जांच और योजना", copy: "अधिकारी देखते हैं कि मामला कितना जरूरी है, क्या काम करना है और कितनी तैयारी चाहिए।" },
-      { step: "04", title: "मंजूरी और काम", copy: "जांच पूरी होने के बाद काम स्वीकृत होता है और टीम मौके पर काम शुरू करती है।" },
-      { step: "05", title: "पुष्टि और बंद", copy: "काम पूरा होने के बाद गुणवत्ता जांच होती है, फिर ही अनुरोध बंद किया जाता है।" }
+      { step: "01", title: "à¤¸à¤®à¤¸à¥à¤¯à¤¾ à¤¬à¤¤à¤¾à¤à¤‚", copy: "à¤¸à¤®à¤¸à¥à¤¯à¤¾ à¤¯à¤¾ à¤¸à¥à¤§à¤¾à¤° à¤•à¥€ à¤œà¤°à¥‚à¤°à¤¤ à¤²à¤¿à¤–à¥‡à¤‚à¥¤ à¤¸à¥à¤¥à¤¾à¤¨ à¤”à¤° à¤¸à¤‚à¤ªà¤°à¥à¤• à¤œà¤¾à¤¨à¤•à¤¾à¤°à¥€ à¤­à¥€ à¤¦à¥‡à¤‚à¥¤" },
+      { step: "02", title: "à¤°à¤¸à¥€à¤¦ à¤®à¤¿à¤²à¥‡à¤—à¥€", copy: "à¤…à¤¨à¥à¤°à¥‹à¤§ à¤œà¤®à¤¾ à¤¹à¥‹à¤¤à¥‡ à¤¹à¥€ à¤à¤• à¤¸à¤‚à¤¦à¤°à¥à¤­ à¤¸à¤‚à¤–à¥à¤¯à¤¾ à¤®à¤¿à¤²à¤¤à¥€ à¤¹à¥ˆ, à¤œà¤¿à¤¸à¤¸à¥‡ à¤†à¤—à¥‡ à¤¸à¥à¤¥à¤¿à¤¤à¤¿ à¤¦à¥‡à¤–à¥€ à¤œà¤¾ à¤¸à¤•à¤¤à¥€ à¤¹à¥ˆà¥¤" },
+      { step: "03", title: "à¤œà¤¾à¤‚à¤š à¤”à¤° à¤¯à¥‹à¤œà¤¨à¤¾", copy: "à¤…à¤§à¤¿à¤•à¤¾à¤°à¥€ à¤¦à¥‡à¤–à¤¤à¥‡ à¤¹à¥ˆà¤‚ à¤•à¤¿ à¤®à¤¾à¤®à¤²à¤¾ à¤•à¤¿à¤¤à¤¨à¤¾ à¤œà¤°à¥‚à¤°à¥€ à¤¹à¥ˆ, à¤•à¥à¤¯à¤¾ à¤•à¤¾à¤® à¤•à¤°à¤¨à¤¾ à¤¹à¥ˆ à¤”à¤° à¤•à¤¿à¤¤à¤¨à¥€ à¤¤à¥ˆà¤¯à¤¾à¤°à¥€ à¤šà¤¾à¤¹à¤¿à¤à¥¤" },
+      { step: "04", title: "à¤®à¤‚à¤œà¥‚à¤°à¥€ à¤”à¤° à¤•à¤¾à¤®", copy: "à¤œà¤¾à¤‚à¤š à¤ªà¥‚à¤°à¥€ à¤¹à¥‹à¤¨à¥‡ à¤•à¥‡ à¤¬à¤¾à¤¦ à¤•à¤¾à¤® à¤¸à¥à¤µà¥€à¤•à¥ƒà¤¤ à¤¹à¥‹à¤¤à¤¾ à¤¹à¥ˆ à¤”à¤° à¤Ÿà¥€à¤® à¤®à¥Œà¤•à¥‡ à¤ªà¤° à¤•à¤¾à¤® à¤¶à¥à¤°à¥‚ à¤•à¤°à¤¤à¥€ à¤¹à¥ˆà¥¤" },
+      { step: "05", title: "à¤ªà¥à¤·à¥à¤Ÿà¤¿ à¤”à¤° à¤¬à¤‚à¤¦", copy: "à¤•à¤¾à¤® à¤ªà¥‚à¤°à¤¾ à¤¹à¥‹à¤¨à¥‡ à¤•à¥‡ à¤¬à¤¾à¤¦ à¤—à¥à¤£à¤µà¤¤à¥à¤¤à¤¾ à¤œà¤¾à¤‚à¤š à¤¹à¥‹à¤¤à¥€ à¤¹à¥ˆ, à¤«à¤¿à¤° à¤¹à¥€ à¤…à¤¨à¥à¤°à¥‹à¤§ à¤¬à¤‚à¤¦ à¤•à¤¿à¤¯à¤¾ à¤œà¤¾à¤¤à¤¾ à¤¹à¥ˆà¥¤" }
     ],
     te: [
-      { step: "01", title: "సమస్య చెప్పండి", copy: "ఏ సమస్య ఉందో లేదా ఏ మార్పు కావాలో రాయండి. చోటు మరియు సంప్రదింపు వివరాలు కూడా ఇవ్వండి." },
-      { step: "02", title: "రెఫరెన్స్ వస్తుంది", copy: "అభ్యర్థన పంపిన వెంటనే ఒక రిఫరెన్స్ నంబర్ వస్తుంది. దాని ద్వారా తర్వాత స్థితి చూడవచ్చు." },
-      { step: "03", title: "పరిశీలన మరియు ప్లాన్", copy: "అధికారులు ఇది ఎంత అత్యవసరమో, ఏ పని కావాలో, ఎంత సన్నాహకం అవసరమో చూస్తారు." },
-      { step: "04", title: "ఆమోదం మరియు పని", copy: "పరిశీలన పూర్తైన తర్వాత పని ఆమోదం పొంది, బృందం ప్రదేశంలో పని ప్రారంభిస్తుంది." },
-      { step: "05", title: "నిర్ధారణ మరియు ముగింపు", copy: "పని పూర్తయ్యాక నాణ్యత తనిఖీ జరుగుతుంది. తరువాతే అభ్యర్థనను ముగిస్తారు." }
+      { step: "01", title: "à°¸à°®à°¸à±à°¯ à°šà±†à°ªà±à°ªà°‚à°¡à°¿", copy: "à° à°¸à°®à°¸à±à°¯ à°‰à°‚à°¦à±‹ à°²à±‡à°¦à°¾ à° à°®à°¾à°°à±à°ªà± à°•à°¾à°µà°¾à°²à±‹ à°°à°¾à°¯à°‚à°¡à°¿. à°šà±‹à°Ÿà± à°®à°°à°¿à°¯à± à°¸à°‚à°ªà±à°°à°¦à°¿à°‚à°ªà± à°µà°¿à°µà°°à°¾à°²à± à°•à±‚à°¡à°¾ à°‡à°µà±à°µà°‚à°¡à°¿." },
+      { step: "02", title: "à°°à±†à°«à°°à±†à°¨à±à°¸à± à°µà°¸à±à°¤à±à°‚à°¦à°¿", copy: "à°…à°­à±à°¯à°°à±à°¥à°¨ à°ªà°‚à°ªà°¿à°¨ à°µà±†à°‚à°Ÿà°¨à±‡ à°’à°• à°°à°¿à°«à°°à±†à°¨à±à°¸à± à°¨à°‚à°¬à°°à± à°µà°¸à±à°¤à±à°‚à°¦à°¿. à°¦à°¾à°¨à°¿ à°¦à±à°µà°¾à°°à°¾ à°¤à°°à±à°µà°¾à°¤ à°¸à±à°¥à°¿à°¤à°¿ à°šà±‚à°¡à°µà°šà±à°šà±." },
+      { step: "03", title: "à°ªà°°à°¿à°¶à±€à°²à°¨ à°®à°°à°¿à°¯à± à°ªà±à°²à°¾à°¨à±", copy: "à°…à°§à°¿à°•à°¾à°°à±à°²à± à°‡à°¦à°¿ à°Žà°‚à°¤ à°…à°¤à±à°¯à°µà°¸à°°à°®à±‹, à° à°ªà°¨à°¿ à°•à°¾à°µà°¾à°²à±‹, à°Žà°‚à°¤ à°¸à°¨à±à°¨à°¾à°¹à°•à°‚ à°…à°µà°¸à°°à°®à±‹ à°šà±‚à°¸à±à°¤à°¾à°°à±." },
+      { step: "04", title: "à°†à°®à±‹à°¦à°‚ à°®à°°à°¿à°¯à± à°ªà°¨à°¿", copy: "à°ªà°°à°¿à°¶à±€à°²à°¨ à°ªà±‚à°°à±à°¤à±ˆà°¨ à°¤à°°à±à°µà°¾à°¤ à°ªà°¨à°¿ à°†à°®à±‹à°¦à°‚ à°ªà±Šà°‚à°¦à°¿, à°¬à±ƒà°‚à°¦à°‚ à°ªà±à°°à°¦à±‡à°¶à°‚à°²à±‹ à°ªà°¨à°¿ à°ªà±à°°à°¾à°°à°‚à°­à°¿à°¸à±à°¤à±à°‚à°¦à°¿." },
+      { step: "05", title: "à°¨à°¿à°°à±à°§à°¾à°°à°£ à°®à°°à°¿à°¯à± à°®à±à°—à°¿à°‚à°ªà±", copy: "à°ªà°¨à°¿ à°ªà±‚à°°à±à°¤à°¯à±à°¯à°¾à°• à°¨à°¾à°£à±à°¯à°¤ à°¤à°¨à°¿à°–à±€ à°œà°°à±à°—à±à°¤à±à°‚à°¦à°¿. à°¤à°°à±à°µà°¾à°¤à±‡ à°…à°­à±à°¯à°°à±à°¥à°¨à°¨à± à°®à±à°—à°¿à°¸à±à°¤à°¾à°°à±." }
     ]
   };
 
@@ -72,46 +72,46 @@
     ],
     hi: [
       {
-        label: "ट्रैक होने वाला अनुरोध",
-        title: "हर शिकायत को नंबर मिलता है",
-        copy: "हर अनुरोध के लिए एक सार्वजनिक संदर्भ संख्या बनती है, इसलिए बार-बार व्यक्तिगत रूप से पूछने की जरूरत नहीं रहती।"
+        label: "à¤Ÿà¥à¤°à¥ˆà¤• à¤¹à¥‹à¤¨à¥‡ à¤µà¤¾à¤²à¤¾ à¤…à¤¨à¥à¤°à¥‹à¤§",
+        title: "à¤¹à¤° à¤¶à¤¿à¤•à¤¾à¤¯à¤¤ à¤•à¥‹ à¤¨à¤‚à¤¬à¤° à¤®à¤¿à¤²à¤¤à¤¾ à¤¹à¥ˆ",
+        copy: "à¤¹à¤° à¤…à¤¨à¥à¤°à¥‹à¤§ à¤•à¥‡ à¤²à¤¿à¤ à¤à¤• à¤¸à¤¾à¤°à¥à¤µà¤œà¤¨à¤¿à¤• à¤¸à¤‚à¤¦à¤°à¥à¤­ à¤¸à¤‚à¤–à¥à¤¯à¤¾ à¤¬à¤¨à¤¤à¥€ à¤¹à¥ˆ, à¤‡à¤¸à¤²à¤¿à¤ à¤¬à¤¾à¤°-à¤¬à¤¾à¤° à¤µà¥à¤¯à¤•à¥à¤¤à¤¿à¤—à¤¤ à¤°à¥‚à¤ª à¤¸à¥‡ à¤ªà¥‚à¤›à¤¨à¥‡ à¤•à¥€ à¤œà¤°à¥‚à¤°à¤¤ à¤¨à¤¹à¥€à¤‚ à¤°à¤¹à¤¤à¥€à¥¤"
       },
       {
-        label: "वित्तीय जांच",
-        title: "जांच के बाद ही पैसा आगे बढ़ता है",
-        copy: "अनुमान, अधिकारी की मंजूरी और वित्त समीक्षा के बाद ही खर्च आगे बढ़ता है।"
+        label: "à¤µà¤¿à¤¤à¥à¤¤à¥€à¤¯ à¤œà¤¾à¤‚à¤š",
+        title: "à¤œà¤¾à¤‚à¤š à¤•à¥‡ à¤¬à¤¾à¤¦ à¤¹à¥€ à¤ªà¥ˆà¤¸à¤¾ à¤†à¤—à¥‡ à¤¬à¤¢à¤¼à¤¤à¤¾ à¤¹à¥ˆ",
+        copy: "à¤…à¤¨à¥à¤®à¤¾à¤¨, à¤…à¤§à¤¿à¤•à¤¾à¤°à¥€ à¤•à¥€ à¤®à¤‚à¤œà¥‚à¤°à¥€ à¤”à¤° à¤µà¤¿à¤¤à¥à¤¤ à¤¸à¤®à¥€à¤•à¥à¤·à¤¾ à¤•à¥‡ à¤¬à¤¾à¤¦ à¤¹à¥€ à¤–à¤°à¥à¤š à¤†à¤—à¥‡ à¤¬à¤¢à¤¼à¤¤à¤¾ à¤¹à¥ˆà¥¤"
       },
       {
-        label: "खरीद पर नियंत्रण",
-        title: "बिल और कोटेशन जरूरी हैं",
-        copy: "खरीद से पहले प्रमाण रहने से मनमानी कम होती है और जिम्मेदारी बढ़ती है।"
+        label: "à¤–à¤°à¥€à¤¦ à¤ªà¤° à¤¨à¤¿à¤¯à¤‚à¤¤à¥à¤°à¤£",
+        title: "à¤¬à¤¿à¤² à¤”à¤° à¤•à¥‹à¤Ÿà¥‡à¤¶à¤¨ à¤œà¤°à¥‚à¤°à¥€ à¤¹à¥ˆà¤‚",
+        copy: "à¤–à¤°à¥€à¤¦ à¤¸à¥‡ à¤ªà¤¹à¤²à¥‡ à¤ªà¥à¤°à¤®à¤¾à¤£ à¤°à¤¹à¤¨à¥‡ à¤¸à¥‡ à¤®à¤¨à¤®à¤¾à¤¨à¥€ à¤•à¤® à¤¹à¥‹à¤¤à¥€ à¤¹à¥ˆ à¤”à¤° à¤œà¤¿à¤®à¥à¤®à¥‡à¤¦à¤¾à¤°à¥€ à¤¬à¤¢à¤¼à¤¤à¥€ à¤¹à¥ˆà¥¤"
       },
       {
-        label: "अलग से सत्यापन",
-        title: "पूरा काम जांच के बाद ही बंद होता है",
-        copy: "सिर्फ कह देने से काम पूरा नहीं माना जाता। पहले जांच होती है, फिर मामला बंद होता है।"
+        label: "à¤…à¤²à¤— à¤¸à¥‡ à¤¸à¤¤à¥à¤¯à¤¾à¤ªà¤¨",
+        title: "à¤ªà¥‚à¤°à¤¾ à¤•à¤¾à¤® à¤œà¤¾à¤‚à¤š à¤•à¥‡ à¤¬à¤¾à¤¦ à¤¹à¥€ à¤¬à¤‚à¤¦ à¤¹à¥‹à¤¤à¤¾ à¤¹à¥ˆ",
+        copy: "à¤¸à¤¿à¤°à¥à¤« à¤•à¤¹ à¤¦à¥‡à¤¨à¥‡ à¤¸à¥‡ à¤•à¤¾à¤® à¤ªà¥‚à¤°à¤¾ à¤¨à¤¹à¥€à¤‚ à¤®à¤¾à¤¨à¤¾ à¤œà¤¾à¤¤à¤¾à¥¤ à¤ªà¤¹à¤²à¥‡ à¤œà¤¾à¤‚à¤š à¤¹à¥‹à¤¤à¥€ à¤¹à¥ˆ, à¤«à¤¿à¤° à¤®à¤¾à¤®à¤²à¤¾ à¤¬à¤‚à¤¦ à¤¹à¥‹à¤¤à¤¾ à¤¹à¥ˆà¥¤"
       }
     ],
     te: [
       {
-        label: "ట్రాక్ చేయగల అభ్యర్థన",
-        title: "ప్రతి ఫిర్యాదుకి ఒక నంబర్ ఉంటుంది",
-        copy: "ప్రతి అభ్యర్థనకు ఒక పబ్లిక్ రిఫరెన్స్ నంబర్ వస్తుంది. అందువల్ల వ్యక్తిగతంగా తిరిగి తిరిగి అడగాల్సిన అవసరం తగ్గుతుంది."
+        label: "à°Ÿà±à°°à°¾à°•à± à°šà±‡à°¯à°—à°² à°…à°­à±à°¯à°°à±à°¥à°¨",
+        title: "à°ªà±à°°à°¤à°¿ à°«à°¿à°°à±à°¯à°¾à°¦à±à°•à°¿ à°’à°• à°¨à°‚à°¬à°°à± à°‰à°‚à°Ÿà±à°‚à°¦à°¿",
+        copy: "à°ªà±à°°à°¤à°¿ à°…à°­à±à°¯à°°à±à°¥à°¨à°•à± à°’à°• à°ªà°¬à±à°²à°¿à°•à± à°°à°¿à°«à°°à±†à°¨à±à°¸à± à°¨à°‚à°¬à°°à± à°µà°¸à±à°¤à±à°‚à°¦à°¿. à°…à°‚à°¦à±à°µà°²à±à°² à°µà±à°¯à°•à±à°¤à°¿à°—à°¤à°‚à°—à°¾ à°¤à°¿à°°à°¿à°—à°¿ à°¤à°¿à°°à°¿à°—à°¿ à°…à°¡à°—à°¾à°²à±à°¸à°¿à°¨ à°…à°µà°¸à°°à°‚ à°¤à°—à±à°—à±à°¤à±à°‚à°¦à°¿."
       },
       {
-        label: "ఆర్థిక తనిఖీ",
-        title: "చెక్ అయిన తర్వాతే నిధులు కదులుతాయి",
-        copy: "అంచనా, అధికారుల ఆమోదం, ఫైనాన్స్ పరిశీలన తర్వాతే ఖర్చు ముందుకు వెళ్తుంది."
+        label: "à°†à°°à±à°¥à°¿à°• à°¤à°¨à°¿à°–à±€",
+        title: "à°šà±†à°•à± à°…à°¯à°¿à°¨ à°¤à°°à±à°µà°¾à°¤à±‡ à°¨à°¿à°§à±à°²à± à°•à°¦à±à°²à±à°¤à°¾à°¯à°¿",
+        copy: "à°…à°‚à°šà°¨à°¾, à°…à°§à°¿à°•à°¾à°°à±à°² à°†à°®à±‹à°¦à°‚, à°«à±ˆà°¨à°¾à°¨à±à°¸à± à°ªà°°à°¿à°¶à±€à°²à°¨ à°¤à°°à±à°µà°¾à°¤à±‡ à°–à°°à±à°šà± à°®à±à°‚à°¦à±à°•à± à°µà±†à°³à±à°¤à±à°‚à°¦à°¿."
       },
       {
-        label: "కొనుగోలు నియంత్రణ",
-        title: "బిల్ మరియు కోటేషన్ తప్పనిసరి",
-        copy: "కొనుగోలు ముందు ఆధారాలు ఉండటం వల్ల యాదృచ్ఛిక ఖర్చులు తగ్గి బాధ్యత పెరుగుతుంది."
+        label: "à°•à±Šà°¨à±à°—à±‹à°²à± à°¨à°¿à°¯à°‚à°¤à±à°°à°£",
+        title: "à°¬à°¿à°²à± à°®à°°à°¿à°¯à± à°•à±‹à°Ÿà±‡à°·à°¨à± à°¤à°ªà±à°ªà°¨à°¿à°¸à°°à°¿",
+        copy: "à°•à±Šà°¨à±à°—à±‹à°²à± à°®à±à°‚à°¦à± à°†à°§à°¾à°°à°¾à°²à± à°‰à°‚à°¡à°Ÿà°‚ à°µà°²à±à°² à°¯à°¾à°¦à±ƒà°šà±à°›à°¿à°• à°–à°°à±à°šà±à°²à± à°¤à°—à±à°—à°¿ à°¬à°¾à°§à±à°¯à°¤ à°ªà±†à°°à±à°—à±à°¤à±à°‚à°¦à°¿."
       },
       {
-        label: "వేరుగా తనిఖీ",
-        title: "పని పూర్తైందని చూపించే ముందు పరీక్ష ఉంటుంది",
-        copy: "ఎవరైనా పూర్తైందని చెప్పడం సరిపోదు. పని నిజంగా పూర్తైందో చూసిన తరువాతే కేసు మూసివేస్తారు."
+        label: "à°µà±‡à°°à±à°—à°¾ à°¤à°¨à°¿à°–à±€",
+        title: "à°ªà°¨à°¿ à°ªà±‚à°°à±à°¤à±ˆà°‚à°¦à°¨à°¿ à°šà±‚à°ªà°¿à°‚à°šà±‡ à°®à±à°‚à°¦à± à°ªà°°à±€à°•à±à°· à°‰à°‚à°Ÿà±à°‚à°¦à°¿",
+        copy: "à°Žà°µà°°à±ˆà°¨à°¾ à°ªà±‚à°°à±à°¤à±ˆà°‚à°¦à°¨à°¿ à°šà±†à°ªà±à°ªà°¡à°‚ à°¸à°°à°¿à°ªà±‹à°¦à±. à°ªà°¨à°¿ à°¨à°¿à°œà°‚à°—à°¾ à°ªà±‚à°°à±à°¤à±ˆà°‚à°¦à±‹ à°šà±‚à°¸à°¿à°¨ à°¤à°°à±à°µà°¾à°¤à±‡ à°•à±‡à°¸à± à°®à±‚à°¸à°¿à°µà±‡à°¸à±à°¤à°¾à°°à±."
       }
     ]
   };
@@ -360,8 +360,8 @@
       .join("");
   }
 
-  function renderStatsGrid() {
-    const publicStats = getState().publicStats;
+  async function renderStatsGrid() {
+    const publicStats = (await getState()).publicStats;
     const language = getLanguage();
     elements.statsGrid.innerHTML = publicStats
       .map((item) => {
@@ -427,8 +427,8 @@
     });
   }
 
-  function renderImpactGrid() {
-    const impactStories = getState().impactStories;
+  async function renderImpactGrid() {
+    const impactStories = (await getState()).impactStories;
     const language = getLanguage();
     elements.impactGrid.innerHTML = impactStories
       .map((story) => {
@@ -442,7 +442,7 @@
       .join("");
   }
 
-  function renderLocalizedOptions() {
+  async function renderLocalizedOptions() {
     const currentType = elements.requestTypeSelect.value;
     const currentUrgency = elements.urgencySelect.value;
     const currentCategory = elements.categorySelect.value;
@@ -453,7 +453,7 @@
       `<option value="Improvement">${t("request.typeImprovement")}</option>`
     ].join("");
 
-    const serviceCategories = getState().serviceCategories;
+    const serviceCategories = (await getState()).serviceCategories;
     elements.categorySelect.innerHTML = [
       `<option value="">${t("request.categoryLabel")}</option>`,
       ...serviceCategories.map((category) => {
@@ -544,13 +544,13 @@
     elements.trackingError.classList.remove("hidden");
   }
 
-  function prefillCitizenSession() {
+  async function prefillCitizenSession() {
     const session = getSession();
     if (!session || session.type !== "citizen") {
       return;
     }
 
-    const citizen = getState().citizenUsers.find((user) => user.id === session.citizenId);
+    const citizen = (await getState()).citizenUsers.find((user) => user.id === session.citizenId);
     if (!citizen) {
       return;
     }
@@ -562,7 +562,7 @@
   }
 
   function bindRequestForm() {
-    elements.requestForm.addEventListener("submit", (event) => {
+    elements.requestForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.requestForm).entries());
       const validationMessage = getRequestFormError(payload);
@@ -575,11 +575,11 @@
       }
 
       try {
-        const requestRecord = submitCitizenRequest(payload);
+        const requestRecord = await submitCitizenRequest(payload);
         renderAcknowledgement(requestRecord);
         elements.requestForm.reset();
-        renderLocalizedOptions();
-        prefillCitizenSession();
+        await renderLocalizedOptions();
+        await prefillCitizenSession();
         globalScope.location.hash = "submit-request";
       } catch (error) {
         showRequestError(error.message);
@@ -588,7 +588,7 @@
   }
 
   function bindTrackingForm() {
-    elements.trackingForm.addEventListener("submit", (event) => {
+    elements.trackingForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const reference = String(new FormData(elements.trackingForm).get("reference") || "").trim();
 
@@ -600,7 +600,7 @@
         return;
       }
 
-      const requestRecord = findRequestByReference(reference);
+      const requestRecord = await findRequestByReference(reference);
       if (!requestRecord) {
         showTrackingError(t("request.lookupMissing"));
         elements.trackingResult.classList.add("hidden");
@@ -614,7 +614,7 @@
   function bindCityPrideModal() {
     const modal = document.querySelector("#city-pride-modal");
     const closeButton = document.querySelector("#city-pride-close");
-    const hint = document.querySelector("#city-pride-close-hint");
+    let isClosed = false;
 
     if (!modal || !closeButton) {
       return;
@@ -623,26 +623,20 @@
     animateCountUp(modal);
 
     function closeModal() {
+      if (isClosed) return;
+      isClosed = true;
       modal.classList.add("is-hidden");
     }
 
-    setTimeout(() => {
-      closeButton.disabled = false;
-      closeButton.classList.add("is-ready");
-      if (hint) {
-        hint.textContent = "You can close this update now";
-      }
-    }, 3000);
-
     closeButton.addEventListener("click", closeModal);
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && !closeButton.disabled) {
+      if (event.key === "Escape") {
         closeModal();
       }
     });
   }
 
-  function renderHeroStatusCard() {
+  async function renderHeroStatusCard() {
     const liveCard = document.querySelector("#hero-live-card");
     const liveBadge = document.querySelector("#hero-live-badge");
     const liveDesc = document.querySelector("#hero-live-desc");
@@ -664,7 +658,7 @@
     };
 
     // Get newest request, but prioritize by Urgency
-    const request = getState().requests
+    const request = (await getState()).requests
       .slice()
       .sort((a, b) => {
         const scoreA = urgencyScore[a.urgency] || 0;
@@ -691,7 +685,7 @@
     if (liveInfo) liveInfo.style.display = "block";
 
     if (liveTitle) liveTitle.textContent = request.title;
-    if (liveLocation) liveLocation.textContent = "📍 " + request.locationText;
+    if (liveLocation) liveLocation.textContent = "ðŸ“ " + request.locationText;
 
     liveFooter.style.display = "block";
     liveStages.style.display = "flex";
@@ -732,16 +726,16 @@
     }).join("");
   }
 
-  function rerenderDynamicContent() {
+  async function rerenderDynamicContent() {
     renderStaticText();
-    renderLocalizedOptions();
+    await renderLocalizedOptions();
 
     renderHeroTrustPanel();
     renderWorkflowCards();
     renderAssuranceCards();
-    renderStatsGrid();
-    renderImpactGrid();
-    renderHeroStatusCard();
+    await renderStatsGrid();
+    await renderImpactGrid();
+    await renderHeroStatusCard();
     animateCountUp(document.querySelector(".city-function-card"));
 
     if (currentAcknowledgement) {
@@ -753,8 +747,8 @@
     }
   }
 
-  function init() {
-    initializeStore();
+  async function init() {
+    await initializeStore();
     bindLanguageSelector(elements.languageSelect);
     applyTranslations(document, getLanguage());
     renderStaticText();
@@ -762,12 +756,12 @@
     renderHeroTrustPanel();
     renderWorkflowCards();
     renderAssuranceCards();
-    renderStatsGrid();
-    renderImpactGrid();
-    renderHeroStatusCard();
+    await renderStatsGrid();
+    await renderImpactGrid();
+    await renderHeroStatusCard();
     animateCountUp(document.querySelector(".city-function-card"));
-    renderLocalizedOptions();
-    prefillCitizenSession();
+    await renderLocalizedOptions();
+    await prefillCitizenSession();
     bindRequestForm();
     bindTrackingForm();
     bindCityPrideModal();
@@ -779,3 +773,5 @@
 
   init();
 })(window);
+
+

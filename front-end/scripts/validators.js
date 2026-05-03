@@ -1,4 +1,4 @@
-(function attachValidators(globalScope) {
+﻿(function attachValidators(globalScope) {
   const crims = (globalScope.CRIMS = globalScope.CRIMS || {});
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phonePattern = /^[6-9]\d{9}$/;
@@ -127,3 +127,4 @@
     getOfficialSignInError
   };
 })(window);
+

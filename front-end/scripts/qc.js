@@ -1,4 +1,4 @@
-(function bootstrapQc(globalScope) {
+﻿(function bootstrapQc(globalScope) {
   const {
     clearSession,
     deleteQcReview,
@@ -79,8 +79,8 @@
     return "neutral";
   }
 
-  function populateSelects() {
-    const state = getState();
+  async function populateSelects() {
+    const state = await getState();
     const currentDepartment = elements.departmentSelect.value;
     const currentWorkOrder = elements.workOrderSelect.value;
     const currentStatus = elements.statusSelect.value;
@@ -107,8 +107,8 @@
     elements.statusSelect.value = currentStatus;
   }
 
-  function renderHero(session) {
-    const state = getState();
+  async function renderHero(session) {
+    const state = await getState();
     const pendingReview = (state.qcReviews || []).find((item) => item.status === "UNDER_REVIEW") || (state.qcReviews || [])[0];
     const closureTarget =
       (state.workOrders || []).find((item) => item.status === "PENDING_QC" || item.status === "COMPLETED") ||
@@ -148,8 +148,8 @@
       `;
   }
 
-  function renderOverview() {
-    const state = getState();
+  async function renderOverview() {
+    const state = await getState();
     const qcReviews = state.qcReviews || [];
     const workOrders = state.workOrders || [];
     const averageScore = qcReviews.length
@@ -210,8 +210,8 @@
       .join("");
   }
 
-  function renderReviewTable() {
-    const reviews = getState().qcReviews || [];
+  async function renderReviewTable() {
+    const reviews = (await getState()).qcReviews || [];
 
     if (!reviews.length) {
       elements.tableBody.innerHTML =
@@ -219,7 +219,7 @@
       return;
     }
 
-    const state = getState();
+    const state = await getState();
     elements.tableBody.innerHTML = reviews
       .map((review) => {
         const workOrder = (state.workOrders || []).find((item) => item.id === review.workOrderId);
@@ -241,10 +241,10 @@
       .join("");
   }
 
-  function renderAll(session) {
-    renderHero(session);
-    renderOverview();
-    renderReviewTable();
+  async function renderAll(session) {
+    await renderHero(session);
+    await renderOverview();
+    await renderReviewTable();
   }
 
   function resetForm(session) {
@@ -255,21 +255,22 @@
     showError(elements.error, "");
   }
 
-  function bind(session) {
+  async function bind(session) {
     elements.signOutButton.addEventListener("click", () => {
       clearSession();
       globalScope.location.href = "./auth.html?mode=official";
     });
 
-    document.title = `InfraLynx | ${(getRoleByCode(session.role) || {}).name || "QC Reviewer"} Workspace`;
+    const role = await getRoleByCode(session.role);
+    document.title = `InfraLynx | ${(role || {}).name || "QC Reviewer"} Workspace`;
 
-    populateSelects();
-    renderAll(session);
+    await populateSelects();
+    await renderAll(session);
     resetForm(session);
 
     elements.resetButton.addEventListener("click", () => resetForm(session));
 
-    elements.form.addEventListener("submit", (event) => {
+    elements.form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.form).entries());
 
@@ -284,21 +285,22 @@
       }
 
       try {
-        upsertQcReview(payload);
-        populateSelects();
-        renderAll(session);
+        await upsertQcReview(payload);
+        await populateSelects();
+        await renderAll(session);
         resetForm(session);
       } catch (error) {
         showError(elements.error, error.message);
       }
     });
 
-    elements.tableBody.addEventListener("click", (event) => {
+    elements.tableBody.addEventListener("click", async (event) => {
       const editButton = event.target.closest("[data-review-edit]");
       const deleteButton = event.target.closest("[data-review-delete]");
 
       if (editButton) {
-        const review = (getState().qcReviews || []).find((item) => item.id === editButton.dataset.reviewEdit);
+        const state = await getState();
+        const review = (state.qcReviews || []).find((item) => item.id === editButton.dataset.reviewEdit);
         if (!review) {
           return;
         }
@@ -313,9 +315,9 @@
 
       if (deleteButton) {
         try {
-          deleteQcReview(deleteButton.dataset.reviewDelete);
-          populateSelects();
-          renderAll(session);
+          await deleteQcReview(deleteButton.dataset.reviewDelete);
+          await populateSelects();
+          await renderAll(session);
           resetForm(session);
         } catch (error) {
           showError(elements.error, error.message);
@@ -324,8 +326,8 @@
     });
   }
 
-  function init() {
-    initializeStore();
+  async function init() {
+    await initializeStore();
     const session = getAuthorizedSession();
 
     if (!session) {
@@ -334,8 +336,9 @@
     }
 
     bindLanguageSelector(elements.languageSelect);
-    bind(session);
+    await bind(session);
   }
 
   init();
 })(window);
+

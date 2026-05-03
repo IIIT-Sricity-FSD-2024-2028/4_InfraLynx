@@ -1,4 +1,4 @@
-(function bootstrapAdmin(globalScope) {
+﻿(function bootstrapAdmin(globalScope) {
   const {
     REQUEST_STATUS_STEPS,
     clearSession,
@@ -137,8 +137,8 @@
     sectionMap.forEach(({ section }) => observer.observe(section));
   }
 
-  function getOverviewMetrics() {
-    const state = getState();
+  async function getOverviewMetrics() {
+    const state = await getState();
     const requests = state.requests;
     const officialCount = state.officialAccounts.length;
     const activeRequests = requests.filter((request) => request.status !== "CLOSED" && request.status !== "REJECTED").length;
@@ -180,9 +180,9 @@
     return `<span class="mono">${escapeHtml(order.status || "No action")}</span>`;
   }
 
-  function renderOverview() {
-    const state = getState();
-    const metrics = getOverviewMetrics();
+  async function renderOverview() {
+    const state = await getState();
+    const metrics = await getOverviewMetrics();
     const averageUtilization = state.departments.length
       ? state.departments.reduce((sum, department) => sum + Number(department.utilization || 0), 0) / state.departments.length
       : 0;
@@ -316,8 +316,8 @@
     return "";
   }
 
-  function populateSelects() {
-    const state = getState();
+  async function populateSelects() {
+    const state = await getState();
     const currentFilter = elements.requestFilterSelect.value;
     const currentRequestType = elements.requestTypeSelect.value;
     const currentCategory = elements.requestCategorySelect.value;
@@ -385,8 +385,8 @@
     elements.officialDepartmentSelect.value = currentOfficialDepartment;
   }
 
-  function renderRequestTable() {
-    const state = getState();
+  async function renderRequestTable() {
+    const state = await getState();
     const filterValue = elements.requestFilterSelect.value || "ALL";
     const filteredRequests = state.requests.filter((request) => {
       return filterValue === "ALL" ? true : request.status === filterValue;
@@ -422,8 +422,8 @@
       .join("");
   }
 
-  function renderOfficialTable() {
-    const state = getState();
+  async function renderOfficialTable() {
+    const state = await getState();
 
     elements.officialTableBody.innerHTML = state.officialAccounts
       .map((account) => {
@@ -447,8 +447,8 @@
       .join("");
   }
 
-  function renderDepartmentTable() {
-    const state = getState();
+  async function renderDepartmentTable() {
+    const state = await getState();
 
     elements.departmentTableBody.innerHTML = state.departments
       .map((department) => {
@@ -473,8 +473,8 @@
       .join("");
   }
 
-  function generateAdminReport() {
-    const state = getState();
+  async function generateAdminReport() {
+    const state = await getState();
     const totalRequests = state.requests.length;
     const totalWorkOrders = (state.workOrders || []).length;
     const totalBudget = state.departments.reduce((sum, department) => sum + Number(department.budgetCr || 0), 0);
@@ -495,61 +495,61 @@
     `;
   }
 
-  function updateWorkOrderStatus(workOrderId, nextStatus) {
-    const state = getState();
+  async function updateWorkOrderStatus(workOrderId, nextStatus) {
+    const state = await getState();
     const workOrder = (state.workOrders || []).find((item) => item.id === workOrderId);
     if (!workOrder) {
       return;
     }
 
-    upsertWorkOrder({
+    await upsertWorkOrder({
       ...workOrder,
       status: nextStatus
     });
   }
 
   function bindWorkOrderControls() {
-    elements.activityFeed.addEventListener("click", (event) => {
+    elements.activityFeed.addEventListener("click", async (event) => {
       const approveButton = event.target.closest("[data-workorder-approve]");
       const rejectButton = event.target.closest("[data-workorder-reject]");
       const validateButton = event.target.closest("[data-workorder-validate]");
 
       if (approveButton) {
-        updateWorkOrderStatus(approveButton.dataset.workorderApprove, "APPROVED");
+        await updateWorkOrderStatus(approveButton.dataset.workorderApprove, "APPROVED");
         renderAll();
         return;
       }
 
       if (rejectButton) {
-        updateWorkOrderStatus(rejectButton.dataset.workorderReject, "REJECTED");
+        await updateWorkOrderStatus(rejectButton.dataset.workorderReject, "REJECTED");
         renderAll();
         return;
       }
 
       if (validateButton) {
-        updateWorkOrderStatus(validateButton.dataset.workorderValidate, "COMPLETED");
+        await updateWorkOrderStatus(validateButton.dataset.workorderValidate, "COMPLETED");
         renderAll();
       }
     });
   }
 
   function bindReportControls() {
-    elements.summaryGrid.addEventListener("click", (event) => {
+    elements.summaryGrid.addEventListener("click", async (event) => {
       if (!event.target.closest("[data-generate-report]")) {
         return;
       }
 
-      generateAdminReport();
+      await generateAdminReport();
     });
   }
 
-  function renderAll() {
-    renderOverview();
-    populateSelects();
-    renderRequestTable();
-    renderOfficialTable();
-    renderDepartmentTable();
-    renderWorkOrderApprovalTable();
+  async function renderAll() {
+    await renderOverview();
+    await populateSelects();
+    await renderRequestTable();
+    await renderOfficialTable();
+    await renderDepartmentTable();
+    await renderWorkOrderApprovalTable();
   }
 
   function resetRequestForm() {
@@ -630,7 +630,7 @@
     elements.requestFilterSelect.addEventListener("change", renderRequestTable);
     elements.requestResetButton.addEventListener("click", resetRequestForm);
 
-    elements.requestForm.addEventListener("submit", (event) => {
+    elements.requestForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.requestForm).entries());
       const validationMessage = validateRequest(payload);
@@ -642,7 +642,7 @@
       }
 
       try {
-        upsertAdminRequest(payload);
+        await upsertAdminRequest(payload);
         resetRequestForm();
         renderAll();
       } catch (error) {
@@ -650,12 +650,12 @@
       }
     });
 
-    elements.requestTableBody.addEventListener("click", (event) => {
+    elements.requestTableBody.addEventListener("click", async (event) => {
       const editButton = event.target.closest("[data-request-edit]");
       const deleteButton = event.target.closest("[data-request-delete]");
 
       if (editButton) {
-        const request = getState().requests.find((item) => item.requestId === editButton.dataset.requestEdit);
+        const request = (await getState()).requests.find((item) => item.requestId === editButton.dataset.requestEdit);
         if (!request) {
           return;
         }
@@ -672,7 +672,7 @@
 
       if (deleteButton) {
         try {
-          deleteAdminRequest(deleteButton.dataset.requestDelete);
+          await deleteAdminRequest(deleteButton.dataset.requestDelete);
           resetRequestForm();
           renderAll();
         } catch (error) {
@@ -685,7 +685,7 @@
   function bindOfficialControls() {
     elements.officialResetButton.addEventListener("click", resetOfficialForm);
 
-    elements.officialForm.addEventListener("submit", (event) => {
+    elements.officialForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.officialForm).entries());
       const validationMessage = validateOfficial(payload);
@@ -697,7 +697,7 @@
       }
 
       try {
-        upsertOfficialAccount(payload);
+        await upsertOfficialAccount(payload);
         resetOfficialForm();
         renderAll();
       } catch (error) {
@@ -705,12 +705,12 @@
       }
     });
 
-    elements.officialTableBody.addEventListener("click", (event) => {
+    elements.officialTableBody.addEventListener("click", async (event) => {
       const editButton = event.target.closest("[data-official-edit]");
       const deleteButton = event.target.closest("[data-official-delete]");
 
       if (editButton) {
-        const account = getState().officialAccounts.find((item) => item.id === editButton.dataset.officialEdit);
+        const account = (await getState()).officialAccounts.find((item) => item.id === editButton.dataset.officialEdit);
         if (!account) {
           return;
         }
@@ -727,7 +727,7 @@
 
       if (deleteButton) {
         try {
-          deleteOfficialAccount(deleteButton.dataset.officialDelete);
+          await deleteOfficialAccount(deleteButton.dataset.officialDelete);
           resetOfficialForm();
           renderAll();
         } catch (error) {
@@ -740,7 +740,7 @@
   function bindDepartmentControls() {
     elements.departmentResetButton.addEventListener("click", resetDepartmentForm);
 
-    elements.departmentForm.addEventListener("submit", (event) => {
+    elements.departmentForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.departmentForm).entries());
       const validationMessage = validateDepartment(payload);
@@ -752,7 +752,7 @@
       }
 
       try {
-        upsertDepartment(payload);
+        await upsertDepartment(payload);
         resetDepartmentForm();
         renderAll();
       } catch (error) {
@@ -760,12 +760,12 @@
       }
     });
 
-    elements.departmentTableBody.addEventListener("click", (event) => {
+    elements.departmentTableBody.addEventListener("click", async (event) => {
       const editButton = event.target.closest("[data-department-edit]");
       const deleteButton = event.target.closest("[data-department-delete]");
 
       if (editButton) {
-        const department = getState().departments.find((item) => item.id === editButton.dataset.departmentEdit);
+        const department = (await getState()).departments.find((item) => item.id === editButton.dataset.departmentEdit);
         if (!department) {
           return;
         }
@@ -782,7 +782,7 @@
 
       if (deleteButton) {
         try {
-          deleteDepartment(deleteButton.dataset.departmentDelete);
+          await deleteDepartment(deleteButton.dataset.departmentDelete);
           resetDepartmentForm();
           renderAll();
         } catch (error) {
@@ -792,7 +792,7 @@
     });
   }
 
-  function bindSessionControls(session) {
+  async function bindSessionControls(session) {
     const role = getRoleByCode(session.role);
     elements.adminGreeting.textContent = `City-wide control for ${session.name}`;
     elements.sessionRoleLabel.textContent = (role && role.name) || "Administrator authenticated";
@@ -803,10 +803,10 @@
     });
   }
 
-  /* ── Work Order Approval Table ── */
-  function renderWorkOrderApprovalTable() {
+  /* â”€â”€ Work Order Approval Table â”€â”€ */
+  async function renderWorkOrderApprovalTable() {
     if (!elements.adminWorkOrderTableBody) return;
-    const state = getState();
+    const state = await getState();
     const workOrders = state.workOrders || [];
     if (!workOrders.length) {
       elements.adminWorkOrderTableBody.innerHTML = '<tr><td colspan="7"><div class="empty-state">No work orders exist in the system yet.</div></td></tr>';
@@ -834,11 +834,11 @@
 
   function bindWorkOrderApprovalControls(session) {
     if (!elements.adminWorkOrderTableBody) return;
-    elements.adminWorkOrderTableBody.addEventListener("click", (event) => {
+    elements.adminWorkOrderTableBody.addEventListener("click", async (event) => {
       const approveBtn = event.target.closest("[data-wo-approve]");
       const rejectBtn = event.target.closest("[data-wo-reject]");
       if (approveBtn) {
-        const state = getState();
+        const state = await getState();
         const wo = (state.workOrders || []).find((item) => item.id === approveBtn.dataset.woApprove);
         if (!wo) return;
         try {
@@ -846,7 +846,7 @@
             wo.status === "DRAFT" || wo.status === "PENDING_OFFICER_APPROVAL" || wo.status === "PENDING_ADMIN_APPROVAL"
               ? "APPROVED"
               : wo.status;
-          upsertWorkOrder({
+          await upsertWorkOrder({
             ...wo,
             approvedBy: session.officialId,
             approvedAt: new Date().toISOString(),
@@ -862,11 +862,11 @@
       }
       if (rejectBtn) {
         const reason = globalScope.prompt('Enter rejection reason (optional):');
-        const state = getState();
+        const state = await getState();
         const wo = (state.workOrders || []).find((item) => item.id === rejectBtn.dataset.woReject);
         if (!wo) return;
         try {
-          upsertWorkOrder({
+          await upsertWorkOrder({
             ...wo,
             approvedBy: null,
             approvedAt: null,
@@ -884,8 +884,8 @@
     });
   }
 
-  function init() {
-    initializeStore();
+  async function init() {
+    await initializeStore();
     const session = getAuthorizedSession();
 
     if (!session) {
@@ -894,7 +894,7 @@
     }
 
     bindLanguageSelector(elements.languageSelect);
-    bindSessionControls(session);
+    await bindSessionControls(session);
     renderAll();
     resetRequestForm();
     resetOfficialForm();
@@ -910,3 +910,5 @@
 
   init();
 })(window);
+
+

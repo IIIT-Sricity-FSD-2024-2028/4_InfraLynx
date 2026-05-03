@@ -1,4 +1,4 @@
-(function bootstrapEngineer(globalScope) {
+﻿(function bootstrapEngineer(globalScope) {
   const {
     clearSession,
     deleteInspection,
@@ -115,12 +115,12 @@
     return session && session.type === "official" && session.role === "ENGINEER" ? session : null;
   }
 
-  function getEngineerContext() {
+  async function getEngineerContext() {
     const session = getAuthorizedSession();
     if (!session) {
       return null;
     }
-    const account = getState().officialAccounts.find((item) => item.id === session.officialId);
+    const account = (await getState()).officialAccounts.find((item) => item.id === session.officialId);
     if (!account || !account.departmentId) {
       return null;
     }
@@ -205,8 +205,8 @@
     return "neutral";
   }
 
-  function getEngineerData(context) {
-    const state = getState();
+  async function getEngineerData(context) {
+    const state = await getState();
     return {
       workOrders: (state.workOrders || []).filter((item) => item.engineerId === context.account.id),
       inspections: (state.inspections || []).filter((item) => item.engineerId === context.account.id),
@@ -220,8 +220,8 @@
     };
   }
 
-  function renderHero(context) {
-    const data = getEngineerData(context);
+  async function renderHero(context) {
+    const data = await getEngineerData(context);
     const activeOrders = data.workOrders.filter((item) => item.status === "IN_PROGRESS").length;
     const pendingInspections = data.inspections.filter((item) => item.status !== "COMPLETED").length;
     const openIssues = data.issues.filter((item) => item.status === "OPEN" || item.status === "UNDER_REVIEW").length;
@@ -263,8 +263,8 @@
       .join("");
   }
 
-  function renderNotifications(context) {
-    const data = getEngineerData(context);
+  async function renderNotifications(context) {
+    const data = await getEngineerData(context);
     elements.engineerNotificationList.innerHTML = data.notifications
       .map((item) => {
         return `
@@ -280,8 +280,8 @@
       .join("");
   }
 
-  function renderAssignedWork(context) {
-    const data = getEngineerData(context);
+  async function renderAssignedWork(context) {
+    const data = await getEngineerData(context);
     if (!data.workOrders.length) {
       elements.assignedWorkList.innerHTML = '<div class="empty-state">No work orders are assigned to this engineer yet.</div>';
       return;
@@ -303,8 +303,8 @@
       .join("");
   }
 
-  function populateSelects(context) {
-    const data = getEngineerData(context);
+  async function populateSelects(context) {
+    const data = await getEngineerData(context);
     const currentInspectionSeverity = elements.inspectionSeveritySelect.value;
     const currentInspectionStatus = elements.inspectionStatusSelect.value;
     const currentIssueSeverity = elements.issueSeveritySelect.value;
@@ -391,8 +391,8 @@
     elements.reportWorkOrderSelect.value = currentReportWorkOrder;
   }
 
-  function renderInspectionTable(context) {
-    const data = getEngineerData(context);
+  async function renderInspectionTable(context) {
+    const data = await getEngineerData(context);
     if (!data.inspections.length) {
       elements.inspectionTableBody.innerHTML = '<tr><td colspan="6"><div class="empty-state">No inspections are currently assigned.</div></td></tr>';
       return;
@@ -419,8 +419,8 @@
       .join("");
   }
 
-  function renderIssueTable(context) {
-    const data = getEngineerData(context);
+  async function renderIssueTable(context) {
+    const data = await getEngineerData(context);
     if (!data.issues.length) {
       elements.issueTableBody.innerHTML = '<tr><td colspan="6"><div class="empty-state">No issue reports are currently logged.</div></td></tr>';
       return;
@@ -447,8 +447,8 @@
       .join("");
   }
 
-  function renderResourceTable(context) {
-    const data = getEngineerData(context);
+  async function renderResourceTable(context) {
+    const data = await getEngineerData(context);
     if (!data.resources.length) {
       elements.resourceTableBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No resource requests are currently present.</div></td></tr>';
       return;
@@ -474,8 +474,9 @@
       .join("");
   }
 
-  function renderReportTable(context) {
-    const data = getEngineerData(context);
+  async function renderReportTable(context) {
+    const data = await getEngineerData(context);
+    const state = await getState();
     if (!data.reports.length) {
       elements.reportTableBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No progress reports have been submitted yet.</div></td></tr>';
       return;
@@ -483,7 +484,7 @@
 
     elements.reportTableBody.innerHTML = data.reports
       .map((item) => {
-        const workOrder = item.workOrderId ? getState().workOrders.find((record) => record.id === item.workOrderId) : null;
+        const workOrder = item.workOrderId ? state.workOrders.find((record) => record.id === item.workOrderId) : null;
         return `
           <tr>
             <td><strong>${escapeHtml(item.title)}</strong></td>
@@ -502,18 +503,18 @@
       .join("");
   }
 
-  function renderAll(context) {
+  async function renderAll(context) {
     renderHero(context);
-    renderNotifications(context);
-    renderAssignedWork(context);
+    await renderNotifications(context);
+    await renderAssignedWork(context);
     populateSelects(context);
-    renderInspectionTable(context);
-    renderIssueTable(context);
-    renderResourceTable(context);
-    renderReportTable(context);
-    renderMlogTable(context);
-    renderMatlogTable(context);
-    renderSensorTable(context);
+    await renderInspectionTable(context);
+    await renderIssueTable(context);
+    await renderResourceTable(context);
+    await renderReportTable(context);
+    await renderMlogTable(context);
+    await renderMatlogTable(context);
+    await renderSensorTable(context);
   }
 
   function resetInspectionForm(context) {
@@ -586,7 +587,7 @@
 
   function bindInspectionControls(context) {
     elements.inspectionReset.addEventListener("click", () => resetInspectionForm(context));
-    elements.inspectionForm.addEventListener("submit", (event) => {
+    elements.inspectionForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.inspectionForm).entries());
       const error = validateInspection(payload);
@@ -596,7 +597,7 @@
         return;
       }
       try {
-        upsertInspection(payload);
+        await upsertInspection(payload);
         resetInspectionForm(context);
         renderAll(context);
       } catch (err) {
@@ -604,11 +605,11 @@
       }
     });
 
-    elements.inspectionTableBody.addEventListener("click", (event) => {
+    elements.inspectionTableBody.addEventListener("click", async (event) => {
       const editButton = event.target.closest("[data-inspection-edit]");
       const deleteButton = event.target.closest("[data-inspection-delete]");
       if (editButton) {
-        const record = getState().inspections.find((item) => item.id === editButton.dataset.inspectionEdit);
+        const record = (await getState()).inspections.find((item) => item.id === editButton.dataset.inspectionEdit);
         if (!record) return;
         Object.entries(record).forEach(([key, value]) => {
           if (elements.inspectionForm.elements[key]) {
@@ -620,7 +621,7 @@
       }
       if (deleteButton) {
         try {
-          deleteInspection(deleteButton.dataset.inspectionDelete);
+          await deleteInspection(deleteButton.dataset.inspectionDelete);
           resetInspectionForm(context);
           renderAll(context);
         } catch (err) {
@@ -632,7 +633,7 @@
 
   function bindIssueControls(context) {
     elements.issueReset.addEventListener("click", () => resetIssueForm(context));
-    elements.issueForm.addEventListener("submit", (event) => {
+    elements.issueForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.issueForm).entries());
       const error = validateIssue(payload);
@@ -642,7 +643,7 @@
         return;
       }
       try {
-        upsertIssueReport(payload);
+        await upsertIssueReport(payload);
         resetIssueForm(context);
         renderAll(context);
       } catch (err) {
@@ -650,11 +651,11 @@
       }
     });
 
-    elements.issueTableBody.addEventListener("click", (event) => {
+    elements.issueTableBody.addEventListener("click", async (event) => {
       const editButton = event.target.closest("[data-issue-edit]");
       const deleteButton = event.target.closest("[data-issue-delete]");
       if (editButton) {
-        const record = getState().issueReports.find((item) => item.id === editButton.dataset.issueEdit);
+        const record = (await getState()).issueReports.find((item) => item.id === editButton.dataset.issueEdit);
         if (!record) return;
         Object.entries(record).forEach(([key, value]) => {
           if (elements.issueForm.elements[key]) {
@@ -666,7 +667,7 @@
       }
       if (deleteButton) {
         try {
-          deleteIssueReport(deleteButton.dataset.issueDelete);
+          await deleteIssueReport(deleteButton.dataset.issueDelete);
           resetIssueForm(context);
           renderAll(context);
         } catch (err) {
@@ -678,7 +679,7 @@
 
   function bindResourceControls(context) {
     elements.resourceReset.addEventListener("click", () => resetResourceForm(context));
-    elements.resourceForm.addEventListener("submit", (event) => {
+    elements.resourceForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.resourceForm).entries());
       const error = validateResource(payload);
@@ -688,7 +689,7 @@
         return;
       }
       try {
-        upsertResourceRequest(payload);
+        await upsertResourceRequest(payload);
         resetResourceForm(context);
         renderAll(context);
       } catch (err) {
@@ -696,11 +697,11 @@
       }
     });
 
-    elements.resourceTableBody.addEventListener("click", (event) => {
+    elements.resourceTableBody.addEventListener("click", async (event) => {
       const editButton = event.target.closest("[data-resource-edit]");
       const deleteButton = event.target.closest("[data-resource-delete]");
       if (editButton) {
-        const record = getState().resourceRequests.find((item) => item.id === editButton.dataset.resourceEdit);
+        const record = (await getState()).resourceRequests.find((item) => item.id === editButton.dataset.resourceEdit);
         if (!record) return;
         Object.entries(record).forEach(([key, value]) => {
           if (elements.resourceForm.elements[key]) {
@@ -712,7 +713,7 @@
       }
       if (deleteButton) {
         try {
-          deleteResourceRequest(deleteButton.dataset.resourceDelete);
+          await deleteResourceRequest(deleteButton.dataset.resourceDelete);
           resetResourceForm(context);
           renderAll(context);
         } catch (err) {
@@ -724,7 +725,7 @@
 
   function bindReportControls(context) {
     elements.reportReset.addEventListener("click", () => resetReportForm(context));
-    elements.reportForm.addEventListener("submit", (event) => {
+    elements.reportForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.reportForm).entries());
       const error = validateReport(payload);
@@ -734,7 +735,7 @@
         return;
       }
       try {
-        upsertProgressReport(payload);
+        await upsertProgressReport(payload);
         resetReportForm(context);
         renderAll(context);
       } catch (err) {
@@ -742,11 +743,11 @@
       }
     });
 
-    elements.reportTableBody.addEventListener("click", (event) => {
+    elements.reportTableBody.addEventListener("click", async (event) => {
       const editButton = event.target.closest("[data-report-edit]");
       const deleteButton = event.target.closest("[data-report-delete]");
       if (editButton) {
-        const record = getState().progressReports.find((item) => item.id === editButton.dataset.reportEdit);
+        const record = (await getState()).progressReports.find((item) => item.id === editButton.dataset.reportEdit);
         if (!record) return;
         Object.entries(record).forEach(([key, value]) => {
           if (elements.reportForm.elements[key]) {
@@ -758,7 +759,7 @@
       }
       if (deleteButton) {
         try {
-          deleteProgressReport(deleteButton.dataset.reportDelete);
+          await deleteProgressReport(deleteButton.dataset.reportDelete);
           resetReportForm(context);
           renderAll(context);
         } catch (err) {
@@ -768,10 +769,10 @@
     });
   }
 
-  /* ── Maintenance Log rendering ── */
-  function renderMlogTable(context) {
+  /* â”€â”€ Maintenance Log rendering â”€â”€ */
+  async function renderMlogTable(context) {
     if (!elements.mlogTableBody) return;
-    const data = getEngineerData(context);
+    const data = await getEngineerData(context);
     if (!data.maintenanceLogs.length) {
       elements.mlogTableBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No maintenance logs recorded yet.</div></td></tr>';
       return;
@@ -810,38 +811,38 @@
   function bindMlogControls(context) {
     if (!elements.mlogForm) return;
     elements.mlogReset.addEventListener("click", () => resetMlogForm(context));
-    elements.mlogForm.addEventListener("submit", (event) => {
+    elements.mlogForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.mlogForm).entries());
       const error = validateMlog(payload);
       globalScope.CRIMS.utils.showError(elements.mlogError, "");
       if (error) { globalScope.CRIMS.utils.showError(elements.mlogError, error); return; }
       try {
-        upsertMaintenanceLog(payload);
+        await upsertMaintenanceLog(payload);
         resetMlogForm(context);
         renderAll(context);
       } catch (err) { globalScope.CRIMS.utils.showError(elements.mlogError, err.message); }
     });
-    elements.mlogTableBody.addEventListener("click", (event) => {
+    elements.mlogTableBody.addEventListener("click", async (event) => {
       const editBtn = event.target.closest("[data-mlog-edit]");
       const delBtn = event.target.closest("[data-mlog-delete]");
       if (editBtn) {
-        const record = getState().maintenanceLogs.find((item) => item.id === editBtn.dataset.mlogEdit);
+        const record = (await getState()).maintenanceLogs.find((item) => item.id === editBtn.dataset.mlogEdit);
         if (!record) return;
         Object.entries(record).forEach(([k, v]) => { if (elements.mlogForm.elements[k]) elements.mlogForm.elements[k].value = v || ""; });
         elements.mlogFormTitle.textContent = `Edit: ${record.title}`;
       }
       if (delBtn) {
-        try { deleteMaintenanceLog(delBtn.dataset.mlogDelete); resetMlogForm(context); renderAll(context); }
+        try { await deleteMaintenanceLog(delBtn.dataset.mlogDelete); resetMlogForm(context); renderAll(context); }
         catch (err) { globalScope.CRIMS.utils.showError(elements.mlogError, err.message); }
       }
     });
   }
 
-  /* ── Material Log rendering ── */
-  function renderMatlogTable(context) {
+  /* â”€â”€ Material Log rendering â”€â”€ */
+  async function renderMatlogTable(context) {
     if (!elements.matlogTableBody) return;
-    const data = getEngineerData(context);
+    const data = await getEngineerData(context);
     if (!data.materialLogs.length) {
       elements.matlogTableBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No material usage logged yet.</div></td></tr>';
       return;
@@ -879,38 +880,38 @@
   function bindMatlogControls(context) {
     if (!elements.matlogForm) return;
     elements.matlogReset.addEventListener("click", () => resetMatlogForm(context));
-    elements.matlogForm.addEventListener("submit", (event) => {
+    elements.matlogForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.matlogForm).entries());
       const error = validateMatlog(payload);
       globalScope.CRIMS.utils.showError(elements.matlogError, "");
       if (error) { globalScope.CRIMS.utils.showError(elements.matlogError, error); return; }
       try {
-        upsertTaskMaterialLog(payload);
+        await upsertTaskMaterialLog(payload);
         resetMatlogForm(context);
         renderAll(context);
       } catch (err) { globalScope.CRIMS.utils.showError(elements.matlogError, err.message); }
     });
-    elements.matlogTableBody.addEventListener("click", (event) => {
+    elements.matlogTableBody.addEventListener("click", async (event) => {
       const editBtn = event.target.closest("[data-matlog-edit]");
       const delBtn = event.target.closest("[data-matlog-delete]");
       if (editBtn) {
-        const record = getState().taskMaterialLogs.find((item) => item.id === editBtn.dataset.matlogEdit);
+        const record = (await getState()).taskMaterialLogs.find((item) => item.id === editBtn.dataset.matlogEdit);
         if (!record) return;
         Object.entries(record).forEach(([k, v]) => { if (elements.matlogForm.elements[k]) elements.matlogForm.elements[k].value = v || ""; });
         elements.matlogFormTitle.textContent = `Edit: ${record.material}`;
       }
       if (delBtn) {
-        try { deleteTaskMaterialLog(delBtn.dataset.matlogDelete); resetMatlogForm(context); renderAll(context); }
+        try { await deleteTaskMaterialLog(delBtn.dataset.matlogDelete); resetMatlogForm(context); renderAll(context); }
         catch (err) { globalScope.CRIMS.utils.showError(elements.matlogError, err.message); }
       }
     });
   }
 
-  /* ── Sensor Deployment rendering ── */
-  function renderSensorTable(context) {
+  /* â”€â”€ Sensor Deployment rendering â”€â”€ */
+  async function renderSensorTable(context) {
     if (!elements.sensorTableBody) return;
-    const data = getEngineerData(context);
+    const data = await getEngineerData(context);
     if (!data.sensorDeployments.length) {
       elements.sensorTableBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No sensor deployments recorded yet.</div></td></tr>';
       return;
@@ -919,7 +920,7 @@
       <tr>
         <td><strong>${escapeHtml(item.sensorType)}</strong></td>
         <td>${escapeHtml(item.assetLocation)}</td>
-        <td class="mono">${escapeHtml(item.serialNo || '–')}</td>
+        <td class="mono">${escapeHtml(item.serialNo || 'â€“')}</td>
         <td><span class="status-pill ${item.status === 'ACTIVE' ? '' : 'alert'}">${escapeHtml(formatStatus(item.status))}</span></td>
         <td><div class="row-actions">
           <button class="text-button" type="button" data-sensor-edit="${item.id}">Edit</button>
@@ -948,29 +949,29 @@
   function bindSensorControls(context) {
     if (!elements.sensorForm) return;
     elements.sensorReset.addEventListener("click", () => resetSensorForm(context));
-    elements.sensorForm.addEventListener("submit", (event) => {
+    elements.sensorForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.sensorForm).entries());
       const error = validateSensor(payload);
       globalScope.CRIMS.utils.showError(elements.sensorError, "");
       if (error) { globalScope.CRIMS.utils.showError(elements.sensorError, error); return; }
       try {
-        upsertSensorDeployment(payload);
+        await upsertSensorDeployment(payload);
         resetSensorForm(context);
         renderAll(context);
       } catch (err) { globalScope.CRIMS.utils.showError(elements.sensorError, err.message); }
     });
-    elements.sensorTableBody.addEventListener("click", (event) => {
+    elements.sensorTableBody.addEventListener("click", async (event) => {
       const editBtn = event.target.closest("[data-sensor-edit]");
       const delBtn = event.target.closest("[data-sensor-delete]");
       if (editBtn) {
-        const record = getState().sensorDeployments.find((item) => item.id === editBtn.dataset.sensorEdit);
+        const record = (await getState()).sensorDeployments.find((item) => item.id === editBtn.dataset.sensorEdit);
         if (!record) return;
         Object.entries(record).forEach(([k, v]) => { if (elements.sensorForm.elements[k]) elements.sensorForm.elements[k].value = v || ""; });
         elements.sensorFormTitle.textContent = `Edit: ${record.sensorType}`;
       }
       if (delBtn) {
-        try { deleteSensorDeployment(delBtn.dataset.sensorDelete); resetSensorForm(context); renderAll(context); }
+        try { await deleteSensorDeployment(delBtn.dataset.sensorDelete); resetSensorForm(context); renderAll(context); }
         catch (err) { globalScope.CRIMS.utils.showError(elements.sensorError, err.message); }
       }
     });
@@ -986,9 +987,9 @@
     document.title = `InfraLynx | ${role ? role.name : "Field Engineer"} Workspace`;
   }
 
-  function init() {
-    initializeStore();
-    const context = getEngineerContext();
+  async function init() {
+    await initializeStore();
+    const context = await getEngineerContext();
     if (!context) {
       renderAccessGuard();
       return;
@@ -1016,3 +1017,5 @@
 
   init();
 })(window);
+
+
