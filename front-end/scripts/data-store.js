@@ -265,20 +265,20 @@
       record = await api.patch("/departments/" + payload.id, {
         name: payload.name, publicLabel: payload.publicLabel, lead: payload.lead,
         budgetCr: Number(payload.budgetCr), utilization: Number(payload.utilization)
-      }, "ADMINISTRATOR");
+      });
       prependActivity("Department updated", record.name + " settings were revised.");
     } else {
       record = await api.post("/departments", {
         name: payload.name, publicLabel: payload.publicLabel, lead: payload.lead,
         budgetCr: Number(payload.budgetCr), utilization: Number(payload.utilization)
-      }, "ADMINISTRATOR");
+      });
       prependActivity("Department added", record.name + " is now available.");
     }
     return record;
   }
 
   async function deleteDepartment(departmentId) {
-    await api.del("/departments/" + departmentId, "ADMINISTRATOR");
+    await api.del("/departments/" + departmentId);
     prependActivity("Department removed", "A department was removed from the registry.");
   }
 
@@ -290,20 +290,20 @@
       record = await api.patch("/demo-access/official-accounts/" + payload.id, {
         role: payload.role, name: payload.name, email: payload.email,
         password: payload.password, departmentId: payload.departmentId || null
-      }, "ADMINISTRATOR");
+      });
       prependActivity("Official account updated", record.name + " access settings were revised.");
     } else {
       record = await api.post("/demo-access/official-accounts", {
         role: payload.role, name: payload.name, email: payload.email,
         password: payload.password, departmentId: payload.departmentId || null
-      }, "ADMINISTRATOR");
+      });
       prependActivity("Official account added", record.name + " was provisioned for " + formatStatus(record.role) + " access.");
     }
     return record;
   }
 
   async function deleteOfficialAccount(accountId) {
-    await api.del("/demo-access/official-accounts/" + accountId, "ADMINISTRATOR");
+    await api.del("/demo-access/official-accounts/" + accountId);
     prependActivity("Official account removed", "An official account was removed.");
   }
 
@@ -314,7 +314,7 @@
     if (payload.requestId) {
       record = await api.patch("/requests/" + payload.requestId, {
         status: payload.status, title: payload.title, description: payload.description, urgency: payload.urgency
-      }, "ADMINISTRATOR");
+      });
       prependActivity("Citizen request updated", (record.publicReferenceNo || payload.requestId) + " was updated.");
     } else {
       record = await api.post("/requests", {
@@ -323,14 +323,14 @@
         requesterName: payload.requesterName, requesterContact: payload.requesterContact,
         requesterEmail: payload.requesterEmail, title: payload.title,
         description: payload.description, locationText: payload.locationText, urgency: payload.urgency
-      }, "ADMINISTRATOR");
+      });
       prependActivity("Citizen request added", (record.publicReferenceNo || "") + " was created from administrator console.");
     }
     return record;
   }
 
   async function deleteAdminRequest(requestId) {
-    await api.del("/requests/" + requestId, "ADMINISTRATOR");
+    await api.del("/requests/" + requestId);
     prependActivity("Citizen request removed", "A request was removed from the queue.");
   }
 
@@ -345,17 +345,17 @@
       status: payload.status, dueDate: payload.dueDate, notes: payload.notes || ""
     };
     if (payload.id) {
-      record = await api.patch("/work-orders/" + payload.id, body, "OFFICER");
+      record = await api.patch("/work-orders/" + payload.id, body);
       prependActivity("Work order updated", (record.referenceNo || payload.id) + " was updated.");
     } else {
-      record = await api.post("/work-orders", body, "OFFICER");
+      record = await api.post("/work-orders", body);
       prependActivity("Work order created", (record.referenceNo || "") + " was created.");
     }
     return record;
   }
 
   async function deleteWorkOrder(workOrderId) {
-    await api.del("/work-orders/" + workOrderId, "ADMINISTRATOR");
+    await api.del("/work-orders/" + workOrderId);
     prependActivity("Work order removed", "A work order was removed.");
   }
 
@@ -370,17 +370,17 @@
     };
     let record;
     if (payload.id) {
-      record = await api.patch("/quotations/" + payload.id, body, "OFFICER");
+      record = await api.patch("/quotations/" + payload.id, body);
       prependActivity("Quotation updated", record.vendor + " quotation was updated.");
     } else {
-      record = await api.post("/quotations", body, "OFFICER");
+      record = await api.post("/quotations", body);
       prependActivity("Quotation added", record.vendor + " quotation entered verification.");
     }
     return record;
   }
 
   async function deleteQuotation(quotationId) {
-    await api.del("/quotations/" + quotationId, "OFFICER");
+    await api.del("/quotations/" + quotationId);
     prependActivity("Quotation removed", "A quotation was removed from review.");
   }
 
@@ -393,17 +393,17 @@
     };
     let record;
     if (payload.id) {
-      record = await api.patch("/maintenance/schedules/" + payload.id, body, "OFFICER");
+      record = await api.patch("/maintenance/schedules/" + payload.id, body);
       prependActivity("Maintenance schedule updated", record.title + " was revised.");
     } else {
-      record = await api.post("/maintenance/schedules", body, "OFFICER");
+      record = await api.post("/maintenance/schedules", body);
       prependActivity("Maintenance schedule added", record.title + " was added.");
     }
     return record;
   }
 
   async function deleteMaintenanceSchedule(scheduleId) {
-    await api.del("/maintenance/schedules/" + scheduleId, "ADMINISTRATOR");
+    await api.del("/maintenance/schedules/" + scheduleId);
     prependActivity("Maintenance schedule removed", "A schedule was removed.");
   }
 
@@ -417,17 +417,17 @@
     };
     let record;
     if (payload.id) {
-      record = await api.patch("/inspections/" + payload.id, body, "ENGINEER");
+      record = await api.patch("/inspections/" + payload.id, body);
       prependActivity("Inspection updated", record.title + " was updated.");
     } else {
-      record = await api.post("/inspections", body, "ENGINEER");
+      record = await api.post("/inspections", body);
       prependActivity("Inspection added", record.title + " was added.");
     }
     return record;
   }
 
   async function deleteInspection(inspectionId) {
-    await api.del("/inspections/" + inspectionId, "OFFICER");
+    await api.del("/inspections/" + inspectionId);
     prependActivity("Inspection removed", "An inspection was removed.");
   }
 
@@ -441,17 +441,17 @@
     };
     let record;
     if (payload.id) {
-      record = await api.patch("/issue-reports/" + payload.id, body, "ENGINEER");
+      record = await api.patch("/issue-reports/" + payload.id, body);
       prependActivity("Issue report updated", record.title + " was updated.");
     } else {
-      record = await api.post("/issue-reports", body, "ENGINEER");
+      record = await api.post("/issue-reports", body);
       prependActivity("Issue report logged", record.title + " was logged.");
     }
     return record;
   }
 
   async function deleteIssueReport(issueId) {
-    await api.del("/issue-reports/" + issueId, "OFFICER");
+    await api.del("/issue-reports/" + issueId);
     prependActivity("Issue report removed", "An issue report was removed.");
   }
 
@@ -464,17 +464,17 @@
     };
     let record;
     if (payload.id) {
-      record = await api.patch("/resource-requests/" + payload.id, body, "ENGINEER");
+      record = await api.patch("/resource-requests/" + payload.id, body);
       prependActivity("Resource request updated", record.item + " request was updated.");
     } else {
-      record = await api.post("/resource-requests", body, "ENGINEER");
+      record = await api.post("/resource-requests", body);
       prependActivity("Resource request raised", record.item + " request was raised.");
     }
     return record;
   }
 
   async function deleteResourceRequest(resourceId) {
-    await api.del("/resource-requests/" + resourceId, "OFFICER");
+    await api.del("/resource-requests/" + resourceId);
     prependActivity("Resource request removed", "A resource request was removed.");
   }
 
@@ -488,17 +488,17 @@
     };
     let record;
     if (payload.id) {
-      record = await api.patch("/progress-reports/" + payload.id, body, "ENGINEER");
+      record = await api.patch("/progress-reports/" + payload.id, body);
       prependActivity("Progress report updated", record.title + " was updated.");
     } else {
-      record = await api.post("/progress-reports", body, "ENGINEER");
+      record = await api.post("/progress-reports", body);
       prependActivity("Progress report submitted", record.title + " was submitted.");
     }
     return record;
   }
 
   async function deleteProgressReport(reportId) {
-    await api.del("/progress-reports/" + reportId, "ADMINISTRATOR");
+    await api.del("/progress-reports/" + reportId);
     prependActivity("Progress report removed", "A progress report was removed.");
   }
 
@@ -512,17 +512,17 @@
     };
     let record;
     if (payload.id) {
-      record = await api.patch("/budget-proposals/" + payload.id, body, "CFO");
+      record = await api.patch("/budget-proposals/" + payload.id, body);
       prependActivity("Budget proposal updated", record.title + " was updated.");
     } else {
-      record = await api.post("/budget-proposals", body, "OFFICER");
+      record = await api.post("/budget-proposals", body);
       prependActivity("Budget proposal added", record.title + " entered the finance queue.");
     }
     return record;
   }
 
   async function deleteBudgetProposal(proposalId) {
-    await api.del("/budget-proposals/" + proposalId, "ADMINISTRATOR");
+    await api.del("/budget-proposals/" + proposalId);
     prependActivity("Budget proposal removed", "A budget proposal was removed.");
   }
 
@@ -538,17 +538,17 @@
     };
     let record;
     if (payload.id) {
-      record = await api.patch("/procurement-bills/" + payload.id, body, "CFO");
+      record = await api.patch("/procurement-bills/" + payload.id, body);
       prependActivity("Procurement bill updated", record.vendor + " bill status was updated.");
     } else {
-      record = await api.post("/procurement-bills", body, "OFFICER");
+      record = await api.post("/procurement-bills", body);
       prependActivity("Procurement bill added", record.vendor + " bill entered verification.");
     }
     return record;
   }
 
   async function deleteProcurementBill(billId) {
-    await api.del("/procurement-bills/" + billId, "ADMINISTRATOR");
+    await api.del("/procurement-bills/" + billId);
     prependActivity("Procurement bill removed", "A procurement bill was removed.");
   }
 
@@ -562,17 +562,17 @@
     };
     let record;
     if (payload.id) {
-      record = await api.patch("/qc-reviews/" + payload.id, body, "QC_REVIEWER");
+      record = await api.patch("/qc-reviews/" + payload.id, body);
       prependActivity("QC review updated", record.title + " was updated.");
     } else {
-      record = await api.post("/qc-reviews", body, "QC_REVIEWER");
+      record = await api.post("/qc-reviews", body);
       prependActivity("QC review added", record.title + " entered the QC queue.");
     }
     return record;
   }
 
   async function deleteQcReview(reviewId) {
-    await api.del("/qc-reviews/" + reviewId, "ADMINISTRATOR");
+    await api.del("/qc-reviews/" + reviewId);
     prependActivity("QC review removed", "A QC review was removed.");
   }
 
@@ -586,17 +586,17 @@
     };
     let record;
     if (payload.id) {
-      record = await api.patch("/fund-releases/" + payload.id, body, "CFO");
+      record = await api.patch("/fund-releases/" + payload.id, body);
       prependActivity("Fund release updated", record.title + " was updated.");
     } else {
-      record = await api.post("/fund-releases", body, "CFO");
+      record = await api.post("/fund-releases", body);
       prependActivity("Fund release created", record.title + " entered the release queue.");
     }
     return record;
   }
 
   async function deleteFundRelease(releaseId) {
-    await api.del("/fund-releases/" + releaseId, "ADMINISTRATOR");
+    await api.del("/fund-releases/" + releaseId);
     prependActivity("Fund release removed", "A fund release was removed.");
   }
 
@@ -611,17 +611,17 @@
     };
     let record;
     if (payload.id) {
-      record = await api.patch("/maintenance/logs/" + payload.id, body, "ENGINEER");
+      record = await api.patch("/maintenance/logs/" + payload.id, body);
       prependActivity("Maintenance log updated", record.title + " was updated.");
     } else {
-      record = await api.post("/maintenance/logs", body, "ENGINEER");
+      record = await api.post("/maintenance/logs", body);
       prependActivity("Maintenance log added", record.title + " was logged.");
     }
     return record;
   }
 
   async function deleteMaintenanceLog(logId) {
-    await api.del("/maintenance/logs/" + logId, "ADMINISTRATOR");
+    await api.del("/maintenance/logs/" + logId);
     prependActivity("Maintenance log removed", "A maintenance log was removed.");
   }
 
@@ -636,17 +636,17 @@
     };
     let record;
     if (payload.id) {
-      record = await api.patch("/field-assets/sensors/" + payload.id, body, "ENGINEER");
+      record = await api.patch("/field-assets/sensors/" + payload.id, body);
       prependActivity("Sensor deployment updated", record.sensorType + " was updated.");
     } else {
-      record = await api.post("/field-assets/sensors", body, "ENGINEER");
+      record = await api.post("/field-assets/sensors", body);
       prependActivity("Sensor deployed", record.sensorType + " installed at " + record.assetLocation + ".");
     }
     return record;
   }
 
   async function deleteSensorDeployment(sensorId) {
-    await api.del("/field-assets/sensors/" + sensorId, "ENGINEER");
+    await api.del("/field-assets/sensors/" + sensorId);
     prependActivity("Sensor removed", "A sensor deployment record was removed.");
   }
 
@@ -661,17 +661,17 @@
     };
     let record;
     if (payload.id) {
-      record = await api.patch("/field-assets/materials/" + payload.id, body, "ENGINEER");
+      record = await api.patch("/field-assets/materials/" + payload.id, body);
       prependActivity("Material log updated", record.material + " log was updated.");
     } else {
-      record = await api.post("/field-assets/materials", body, "ENGINEER");
+      record = await api.post("/field-assets/materials", body);
       prependActivity("Material logged", record.material + " usage was recorded.");
     }
     return record;
   }
 
   async function deleteTaskMaterialLog(logId) {
-    await api.del("/field-assets/materials/" + logId, "ENGINEER");
+    await api.del("/field-assets/materials/" + logId);
     prependActivity("Material log removed", "A material log was removed.");
   }
 
@@ -687,17 +687,17 @@
     };
     let record;
     if (payload.id) {
-      record = await api.patch("/outcome-reports/" + payload.id, body, "OFFICER");
+      record = await api.patch("/outcome-reports/" + payload.id, body);
       prependActivity("Outcome report updated", record.title + " was updated.");
     } else {
-      record = await api.post("/outcome-reports", body, "OFFICER");
+      record = await api.post("/outcome-reports", body);
       prependActivity("Outcome report submitted", record.title + " was submitted.");
     }
     return record;
   }
 
   async function deleteOutcomeReport(reportId) {
-    await api.del("/outcome-reports/" + reportId, "ADMINISTRATOR");
+    await api.del("/outcome-reports/" + reportId);
     prependActivity("Outcome report removed", "An outcome report was removed.");
   }
 
@@ -766,4 +766,5 @@
     formatStatus
   };
 })(window);
+
 
