@@ -1,14 +1,14 @@
 # InfraLynx CRIMS
 
-InfraLynx CRIMS is a civic request and infrastructure workflow prototype for Smart City and Urban Services. The current phase uses **in-memory seed data only** across the front-end and NestJS backend.
+InfraLynx CRIMS is a civic request and infrastructure workflow prototype for Smart City and Urban Services. The current phase uses a **NestJS in-memory backend** as the single runtime data source.
 
 `Database/DBschema.sql` and the ER diagrams are showcase and future-persistence references. They are not connected to the running product in this phase.
 
 ## Current Implementation Phase
 
-- Storage: in-memory arrays from `back-end/src/data/seed.data.ts` and `front-end/scripts/seed-data.js`
+- Storage: in-memory arrays from `back-end/src/data/seed.data.ts`
 - Backend: NestJS demo API with role-guarded official actions and public request tracking
-- Frontend: static HTML, CSS, and JavaScript pages under `front-end/`
+- Frontend: static HTML, CSS, and JavaScript pages under `front-end/`, integrated through `front-end/scripts/api-client.js`
 - Database: not connected yet
 - Authentication: demo access only; not production identity management
 
@@ -94,6 +94,7 @@ The front-end is intentionally built with only HTML, CSS, and JavaScript.
 - `front-end/pages/auth.html` handles citizen demo access and official demo sign-in.
 - `front-end/pages/citizen.html` is the citizen request workspace.
 - Official workspaces live in `front-end/pages/admin.html`, `officer.html`, `engineer.html`, `cfo.html`, and `qcreviewer.html`.
+- All dashboard reads and CRUD operations go through the NestJS API; browser storage is used only for demo session and language preferences.
 - `front-end/scripts/routes.js` centralizes page routing for the moved `pages/` structure.
 
 The current visual direction uses a light civic interface with green as the signature color.
@@ -105,7 +106,6 @@ The current visual direction uses a light civic interface with green as the sign
 - Demo sign-in and `x-role` headers are not secure production authentication.
 - Aadhaar/demo ID values in seed data are mock-only and should not be used as a production identity design.
 - Amount fields such as `amountCr` and `amountLakhs` are display-friendly demo units, not a final accounting schema.
-- The backend and frontend each keep their own seed copies until a later API-first integration phase.
 
 ## Future Persistence Phase
 
@@ -114,12 +114,20 @@ When the project moves beyond the in-memory phase:
 - Choose the final persistence layer and migration tool.
 - Promote `DBschema.sql` or a revised schema into the real source of truth.
 - Replace demo access with secure authentication, hashed passwords, sessions/JWTs, and production RBAC.
-- Replace duplicate front-end seed data with backend API calls.
 - Add schema/API parity tests so future drift is caught automatically.
 
 ## Local Commands
 
-Backend:
+Install and run both apps from the root:
+
+```bash
+npm install
+npm start
+```
+
+This starts the backend at `http://localhost:3000` and the frontend at `http://localhost:3001`.
+
+Backend only:
 
 ```bash
 cd back-end
@@ -129,12 +137,12 @@ npm test
 npm run start:dev
 ```
 
-Frontend:
+Frontend only:
 
-Open `front-end/index.html` directly, or serve `front-end/` with any static server.
+Serve `front-end/` with any static server. Direct `file://` opening is not recommended for Review-4 because the frontend expects the backend API at `http://localhost:3000`.
 
 ## Project Status
 
-Current phase: in-memory functional prototype  
+Current phase: backend-driven in-memory functional prototype  
 Persistence phase: planned later  
 Last updated: May 2026

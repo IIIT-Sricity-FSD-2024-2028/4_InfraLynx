@@ -1449,7 +1449,7 @@
 .city-pride-close {
   position: absolute;
   top: 14px;
-  left: 14px;
+  right: 14px;
   display: grid;
   place-items: center;
   width: 34px;
@@ -1460,14 +1460,7 @@
   color: #166534;
   font-size: 1rem;
   font-weight: 900;
-  opacity: 0;
-  pointer-events: none;
   transition: opacity 0.25s var(--ease), transform 0.2s var(--ease), background 0.2s var(--ease);
-}
-
-.city-pride-close.is-ready {
-  opacity: 1;
-  pointer-events: auto;
 }
 
 .city-pride-close:hover {

@@ -1,7 +1,7 @@
-(function attachUtils(globalScope) {
+﻿(function attachUtils(globalScope) {
   const crims = (globalScope.CRIMS = globalScope.CRIMS || {});
 
-  /* ── HTML escaping ── */
+  /* â”€â”€ HTML escaping â”€â”€ */
   function escapeHtml(value) {
     return String(value == null ? "" : value)
       .replace(/&/g, "&amp;")
@@ -11,7 +11,7 @@
       .replace(/'/g, "&#39;");
   }
 
-  /* ── Inline error display ── */
+  /* â”€â”€ Inline error display â”€â”€ */
   function showError(element, message) {
     if (!element) return;
     if (!message) {
@@ -23,7 +23,7 @@
     element.classList.remove("hidden");
   }
 
-  /* ── Toast notification (requires #toast-container in the page) ── */
+  /* â”€â”€ Toast notification (requires #toast-container in the page) â”€â”€ */
   function toast(message, type) {
     const toneClass = type === "error" ? "toast-error" : type === "warning" ? "toast-warning" : "toast-success";
     const container = document.getElementById("toast-container");
@@ -41,12 +41,12 @@
     }, 3200);
   }
 
-  /* ── Confirm dialog (returns Promise<boolean>) ── */
+  /* â”€â”€ Confirm dialog (returns Promise<boolean>) â”€â”€ */
   function confirmAction(message) {
     return Promise.resolve(globalScope.confirm(message));
   }
 
-  /* ── Format a status string (e.g. "IN_PROGRESS" → "In Progress") ── */
+  /* â”€â”€ Format a status string (e.g. "IN_PROGRESS" â†’ "In Progress") â”€â”€ */
   function formatStatus(status) {
     if (!status) return "Unknown";
     return String(status)
@@ -63,3 +63,4 @@
     formatStatus
   };
 })(window);
+

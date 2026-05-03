@@ -1,4 +1,4 @@
-(function bootstrapCitizenWorkspace(globalScope) {
+﻿(function bootstrapCitizenWorkspace(globalScope) {
     const {
       clearSession,
       formatDisplayDate,
@@ -98,13 +98,13 @@
         return null;
       }
   
-      const state = getState();
-      const citizen = state.citizenUsers.find((item) => item.id === session.citizenId) || null;
-      if (!citizen) {
-        return null;
-      }
-  
-      return citizen;
+      return {
+        id: session.citizenId,
+        name: session.citizenName || session.name || "",
+        aadhaar: session.aadhaar || "",
+        email: session.email || "",
+        phone: session.phone || ""
+      };
     }
   
     function renderAccessGuard() {
@@ -123,15 +123,16 @@
       `;
     }
   
-    function getCitizenRequestsSorted(citizen) {
-      return getState()
-        .requests
+    async function getCitizenRequestsSorted(citizen) {
+      const state = await getState();
+      return state.requests
         .filter((request) => request.citizenAadhaar === citizen.aadhaar)
         .sort((left, right) => new Date(right.receivedAt) - new Date(left.receivedAt));
     }
   
-    function getLinkedWorkOrders(requestId) {
-      return getState().workOrders.filter((order) => order.requestId === requestId);
+    async function getLinkedWorkOrders(requestId) {
+      const state = await getState();
+      return state.workOrders.filter((order) => order.requestId === requestId);
     }
   
     function getStatusPillClass(status) {
@@ -185,8 +186,8 @@
       elements.requestForm.elements.aadhaar.value = citizen.aadhaar;
     }
   
-    function populateRequestOptions() {
-      const state = getState();
+    async function populateRequestOptions() {
+      const state = await getState();
       const language = getLanguage();
   
       elements.requestTypeSelect.innerHTML = `
@@ -211,8 +212,8 @@
       `;
     }
   
-    function renderSummary(citizen) {
-      const requests = getCitizenRequestsSorted(citizen);
+    async function renderSummary(citizen) {
+      const requests = await getCitizenRequestsSorted(citizen);
       const planningReady = requests.filter((request) => request.status === "APPROVED_FOR_PLANNING").length;
       const converted = requests.filter((request) => request.status === "CONVERTED_TO_WORK_ORDER").length;
       const active = requests.filter((request) => request.status !== "CLOSED" && request.status !== "REJECTED").length;
@@ -285,8 +286,8 @@
       });
     }
   
-    function renderRequestHistory(citizen) {
-      const requests = getCitizenRequestsSorted(citizen);
+    async function renderRequestHistory(citizen) {
+      const requests = await getCitizenRequestsSorted(citizen);
   
       if (!requests.length) {
         elements.requestList.innerHTML = `
@@ -296,12 +297,13 @@
         `;
         return;
       }
-  
+
+      const state = await getState();
       elements.requestList.innerHTML = requests
         .map((request) => {
-          const department = getDepartmentById(request.departmentId);
-          const category = getCategoryById(request.categoryId);
-          const linkedWorkOrders = getLinkedWorkOrders(request.requestId);
+          const department = state.departments.find((d) => d.id === request.departmentId);
+          const category = state.serviceCategories.find((c) => c.id === request.categoryId);
+          const linkedWorkOrders = state.workOrders.filter((o) => o.requestId === request.requestId);
           const latestWorkOrder = linkedWorkOrders[0] || null;
           const statusClass = getStatusPillClass(request.status);
   
@@ -369,7 +371,7 @@
     }
   
     function bindRequestForm(citizen) {
-      elements.requestForm.addEventListener("submit", (event) => {
+      elements.requestForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const payload = Object.fromEntries(new FormData(elements.requestForm).entries());
         const validationMessage = getRequestFormError(payload);
@@ -382,16 +384,16 @@
         }
   
         try {
-          const record = submitCitizenRequest(payload);
+          const record = await submitCitizenRequest(payload);
           elements.ackReference.textContent = record.publicReferenceNo;
           elements.ackStatus.textContent = localizeStatus(record.status);
           elements.ackNextStep.textContent = getNextCitizenStep(record.status);
           elements.requestAck.classList.remove("hidden");
           elements.requestForm.reset();
           populateCitizenIdentity(citizen);
-          populateRequestOptions();
-          renderSummary(citizen);
-          renderRequestHistory(citizen);
+          await populateRequestOptions();
+          await renderSummary(citizen);
+          await renderRequestHistory(citizen);
         } catch (error) {
           showError(elements.requestError, error.message);
         }
@@ -405,8 +407,8 @@
       });
     }
   
-    function init() {
-      initializeStore();
+    async function init() {
+      await initializeStore();
       bindLanguageSelector(elements.languageSelect);
       applyTranslations(document, getLanguage());
       renderStaticText();
@@ -417,22 +419,23 @@
         return;
       }
   
-      populateRequestOptions();
+      await populateRequestOptions();
       populateCitizenIdentity(citizen);
-      renderSummary(citizen);
-      renderRequestHistory(citizen);
+      await renderSummary(citizen);
+      await renderRequestHistory(citizen);
       bindRequestForm(citizen);
       bindSignOut();
   
-      document.addEventListener("crims:language-change", () => {
+      document.addEventListener("crims:language-change", async () => {
         renderStaticText();
-        populateRequestOptions();
+        await populateRequestOptions();
         populateCitizenIdentity(citizen);
-        renderSummary(citizen);
-        renderRequestHistory(citizen);
+        await renderSummary(citizen);
+        await renderRequestHistory(citizen);
       });
     }
   
     init();
   })(window);
   
+

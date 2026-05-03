@@ -1,5 +1,5 @@
-/**
- * nav-tabs.js — SPA-style panel switcher for all CRIMS role dashboards.
+﻿/**
+ * nav-tabs.js â€” SPA-style panel switcher for all CRIMS role dashboards.
  *
  * Works with any sidebar/topnav link that carries a data attribute like:
  *   data-admin-nav, data-officer-nav, data-engineer-nav
@@ -113,3 +113,4 @@
     init();
   }
 })(window);
+

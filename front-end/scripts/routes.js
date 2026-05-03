@@ -1,4 +1,4 @@
-(function attachRoutes(globalScope) {
+﻿(function attachRoutes(globalScope) {
   const crims = (globalScope.CRIMS = globalScope.CRIMS || {});
   const pagePath = globalScope.location.pathname.replace(/\\/g, "/");
   const isInsidePages = pagePath.includes("/pages/");
@@ -26,3 +26,4 @@
     workspaceForRole
   };
 })(window);
+
