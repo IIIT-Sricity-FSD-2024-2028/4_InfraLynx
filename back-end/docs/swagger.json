@@ -7,7 +7,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -160,7 +167,7 @@
         "parameters": [
           {
             "name": "departmentId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -206,7 +213,7 @@
         "parameters": [
           {
             "name": "aadhaar",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -367,7 +374,7 @@
         "parameters": [
           {
             "name": "departmentId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -375,7 +382,7 @@
           },
           {
             "name": "engineerId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -383,7 +390,7 @@
           },
           {
             "name": "requestId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -392,7 +399,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -424,7 +441,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -447,7 +471,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -487,7 +518,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -531,7 +569,7 @@
         "parameters": [
           {
             "name": "departmentId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -679,7 +717,7 @@
         "parameters": [
           {
             "name": "engineerId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -827,7 +865,7 @@
         "parameters": [
           {
             "name": "engineerId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -975,7 +1013,7 @@
         "parameters": [
           {
             "name": "engineerId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -1123,7 +1161,7 @@
         "parameters": [
           {
             "name": "engineerId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -1131,7 +1169,7 @@
           },
           {
             "name": "workOrderId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -1140,7 +1178,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1195,7 +1243,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1235,7 +1290,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1279,7 +1341,7 @@
         "parameters": [
           {
             "name": "departmentId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -1288,7 +1350,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1343,7 +1415,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1383,7 +1462,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1427,7 +1513,7 @@
         "parameters": [
           {
             "name": "departmentId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -1575,7 +1661,7 @@
         "parameters": [
           {
             "name": "workOrderId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -1584,7 +1670,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1639,7 +1735,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1679,7 +1782,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1723,7 +1833,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1778,7 +1898,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1818,7 +1945,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1862,7 +1996,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1917,7 +2061,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1957,7 +2108,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2001,7 +2159,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2056,7 +2224,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2096,7 +2271,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2140,7 +2322,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2195,7 +2387,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2235,7 +2434,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2279,7 +2485,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2334,7 +2550,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2374,7 +2597,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2418,7 +2648,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2473,7 +2713,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2513,7 +2760,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2629,7 +2883,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2653,7 +2914,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2677,7 +2945,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2739,7 +3014,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2771,7 +3056,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2794,7 +3086,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2834,7 +3133,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -2941,171 +3247,1040 @@
     "schemas": {
       "CreateDepartmentDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "publicLabel": {
+            "type": "string"
+          },
+          "lead": {
+            "type": "string"
+          },
+          "budgetCr": {
+            "type": "number",
+            "minimum": 0
+          },
+          "utilization": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "name",
+          "publicLabel",
+          "lead",
+          "budgetCr",
+          "utilization"
+        ]
       },
       "UpdateDepartmentDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "publicLabel": {
+            "type": "string"
+          },
+          "lead": {
+            "type": "string"
+          },
+          "budgetCr": {
+            "type": "number",
+            "minimum": 0
+          },
+          "utilization": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
       },
       "CreateRequestDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "citizenAadhaar": {
+            "type": "string"
+          },
+          "requestType": {
+            "type": "string",
+            "enum": [
+              "Complaint",
+              "Improvement"
+            ]
+          },
+          "categoryId": {
+            "type": "string"
+          },
+          "requesterName": {
+            "type": "string"
+          },
+          "requesterContact": {
+            "type": "string"
+          },
+          "requesterEmail": {
+            "type": "string",
+            "format": "email"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "locationText": {
+            "type": "string"
+          },
+          "urgency": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "EMERGENCY"
+            ]
+          }
+        },
+        "required": [
+          "requestType",
+          "categoryId",
+          "requesterName",
+          "requesterContact",
+          "requesterEmail",
+          "title",
+          "description",
+          "locationText",
+          "urgency"
+        ]
       },
       "UpdateRequestDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "RECEIVED",
+              "UNDER_REVIEW",
+              "APPROVED_FOR_PLANNING",
+              "CONVERTED_TO_WORK_ORDER",
+              "CLOSED",
+              "REJECTED"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "urgency": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "EMERGENCY"
+            ]
+          }
+        }
       },
       "CreateWorkOrderDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "locationText": {
+            "type": "string"
+          },
+          "engineerId": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "title",
+          "locationText",
+          "priority",
+          "status",
+          "dueDate"
+        ]
       },
       "UpdateWorkOrderDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "engineerId": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "approvedBy": {
+            "type": "string"
+          },
+          "approvedAt": {
+            "type": "string"
+          },
+          "rejectedBy": {
+            "type": "string"
+          },
+          "rejectedAt": {
+            "type": "string"
+          }
+        }
       },
       "CreateQuotationDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "vendor": {
+            "type": "string"
+          },
+          "item": {
+            "type": "string"
+          },
+          "amountLakhs": {
+            "type": "number"
+          },
+          "gstValid": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "vendor",
+          "item",
+          "amountLakhs",
+          "gstValid",
+          "status"
+        ]
       },
       "UpdateQuotationDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "vendor": {
+            "type": "string"
+          },
+          "item": {
+            "type": "string"
+          },
+          "amountLakhs": {
+            "type": "number"
+          },
+          "gstValid": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
       },
       "CreateInspectionDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "engineerId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "locationText": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "engineerId",
+          "title",
+          "locationText",
+          "severity",
+          "dueDate",
+          "status"
+        ]
       },
       "UpdateInspectionDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "severity": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
       },
       "CreateIssueReportDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "engineerId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "locationText": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "engineerId",
+          "title",
+          "category",
+          "locationText",
+          "severity",
+          "status"
+        ]
       },
       "UpdateIssueReportDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          }
+        }
       },
       "CreateResourceRequestDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "engineerId": {
+            "type": "string"
+          },
+          "item": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "string"
+          },
+          "urgency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "engineerId",
+          "item",
+          "quantity",
+          "urgency",
+          "status"
+        ]
       },
       "UpdateResourceRequestDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "urgency": {
+            "type": "string"
+          }
+        }
       },
       "CreateProgressReportDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "engineerId": {
+            "type": "string"
+          },
+          "workOrderId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "engineerId",
+          "title",
+          "summary",
+          "status"
+        ]
       },
       "UpdateProgressReportDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        }
       },
       "CreateBudgetProposalDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "amountCr": {
+            "type": "number"
+          },
+          "justification": {
+            "type": "string"
+          },
+          "requestedBy": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "title",
+          "amountCr",
+          "justification",
+          "requestedBy"
+        ]
       },
       "UpdateBudgetProposalDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "stage": {
+            "type": "string"
+          },
+          "amountCr": {
+            "type": "number"
+          }
+        }
       },
       "CreateProcurementBillDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "vendor": {
+            "type": "string"
+          },
+          "workOrderId": {
+            "type": "string"
+          },
+          "amountLakhs": {
+            "type": "number"
+          },
+          "gstValid": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "vendor",
+          "workOrderId",
+          "amountLakhs",
+          "gstValid"
+        ]
       },
       "UpdateProcurementBillDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "gstValid": {
+            "type": "boolean"
+          }
+        }
       },
       "CreateQcReviewDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "workOrderId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "reviewer": {
+            "type": "string"
+          },
+          "finding": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "departmentId",
+          "workOrderId",
+          "title",
+          "reviewer",
+          "finding",
+          "status",
+          "score"
+        ]
       },
       "UpdateQcReviewDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "finding": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          }
+        }
       },
       "CreateFundReleaseDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "proposalId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "amountCr": {
+            "type": "number"
+          },
+          "quarter": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "proposalId",
+          "title",
+          "amountCr",
+          "quarter"
+        ]
       },
       "UpdateFundReleaseDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "releasedAt": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
       },
       "CreateMaintenanceScheduleDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "frequency": {
+            "type": "string"
+          },
+          "nextDate": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "title",
+          "frequency",
+          "nextDate"
+        ]
       },
       "UpdateMaintenanceScheduleDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "frequency": {
+            "type": "string"
+          },
+          "nextDate": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          }
+        }
       },
       "CreateMaintenanceLogDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "engineerId": {
+            "type": "string"
+          },
+          "scheduleId": {
+            "type": "string"
+          },
+          "workOrderId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "activity": {
+            "type": "string"
+          },
+          "hoursSpent": {
+            "type": "number"
+          },
+          "date": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "engineerId",
+          "title",
+          "activity",
+          "hoursSpent",
+          "date",
+          "status"
+        ]
       },
       "UpdateMaintenanceLogDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "activity": {
+            "type": "string"
+          },
+          "hoursSpent": {
+            "type": "number"
+          }
+        }
       },
       "CreateSensorDeploymentDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "engineerId": {
+            "type": "string"
+          },
+          "workOrderId": {
+            "type": "string"
+          },
+          "sensorType": {
+            "type": "string"
+          },
+          "assetLocation": {
+            "type": "string"
+          },
+          "serialNo": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "engineerId",
+          "sensorType",
+          "assetLocation",
+          "serialNo",
+          "status"
+        ]
       },
       "UpdateSensorDeploymentDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
       },
       "CreateMaterialLogDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "engineerId": {
+            "type": "string"
+          },
+          "workOrderId": {
+            "type": "string"
+          },
+          "material": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "usedOn": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "engineerId",
+          "material",
+          "quantity",
+          "unit",
+          "usedOn"
+        ]
       },
       "UpdateMaterialLogDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "quantity": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
       },
       "CreateOutcomeReportDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "departmentId": {
+            "type": "string"
+          },
+          "workOrderId": {
+            "type": "string"
+          },
+          "preparedBy": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "budgetSanctioned": {
+            "type": "number"
+          },
+          "budgetUsed": {
+            "type": "number"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "lessonsLearned": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "departmentId",
+          "workOrderId",
+          "preparedBy",
+          "title",
+          "summary",
+          "budgetSanctioned",
+          "budgetUsed",
+          "outcome"
+        ]
       },
       "UpdateOutcomeReportDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "outcome": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "lessonsLearned": {
+            "type": "string"
+          }
+        }
       },
       "OfficialDemoSignInDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMINISTRATOR",
+              "OFFICER",
+              "ENGINEER",
+              "CFO",
+              "QC_REVIEWER"
+            ]
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
       },
       "CitizenDemoSignInDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "identifier": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "password"
+        ]
       },
       "CitizenRegisterDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "aadhaar": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          },
+          "preferredLanguage": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "aadhaar",
+          "name",
+          "phone",
+          "email",
+          "password"
+        ]
       },
       "CitizenLookupDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "identifier": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier"
+        ]
       },
       "OfficialLookupDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "required": [
+          "email"
+        ]
       },
       "ResetPasswordDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "identifier": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "password"
+        ]
       },
       "CreateOfficialAccountDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMINISTRATOR",
+              "OFFICER",
+              "ENGINEER",
+              "CFO",
+              "QC_REVIEWER"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          },
+          "departmentId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "name",
+          "email",
+          "password"
+        ]
       },
       "UpdateOfficialAccountDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMINISTRATOR",
+              "OFFICER",
+              "ENGINEER",
+              "CFO",
+              "QC_REVIEWER"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          },
+          "departmentId": {
+            "type": "string"
+          }
+        }
       }
     }
   }
