@@ -1391,3 +1391,30 @@
     flex-direction: column;
   }
 }
+/* --- Fix Glass Cards --- */
+body.landing-page article.glass-card,
+body.landing-page div.glass-card,
+body.landing-page section.glass-card {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(22, 101, 52, 0.08);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+body.landing-page article.glass-card::before,
+body.landing-page article.glass-card::after,
+body.landing-page div.glass-card::before,
+body.landing-page div.glass-card::after,
+body.landing-page section.glass-card::before,
+body.landing-page section.glass-card::after {
+  display: none;
+}
+
+/* --- Fix Text Boxes --- */
+body.landing-page .field input,
+body.landing-page .field select,
+body.landing-page .field textarea {
+  background: var(--surface-contrast);
+  border-color: var(--line-strong);
+}
