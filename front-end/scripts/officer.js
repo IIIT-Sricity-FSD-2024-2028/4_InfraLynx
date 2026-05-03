@@ -1,4 +1,4 @@
-﻿(function bootstrapOfficer(globalScope) {
+(function bootstrapOfficer(globalScope) {
   const {
     clearSession,
     deleteMaintenanceSchedule,
@@ -204,7 +204,7 @@
 
   async function renderHero(context) {
     const { department, account } = context;
-    const data = getDepartmentData(department.id);
+    const data = await getDepartmentData(department.id);
     const assignedCount = data.workOrders.filter((item) => item.engineerId).length;
     const reviewCount = data.quotations.filter((item) => item.status === "UNDER_REVIEW").length;
     const pendingQueue = data.requests.filter((item) => item.status === "RECEIVED" || item.status === "UNDER_REVIEW").length;
@@ -261,9 +261,9 @@
       `;
   }
 
-  function renderPlanningQueue(context) {
+  async function renderPlanningQueue(context) {
     const { department } = context;
-    const queue = getDepartmentData(department.id).requests.filter((item) => item.status !== "CLOSED");
+    const queue = (await getDepartmentData(department.id)).requests.filter((item) => item.status !== "CLOSED");
 
     if (!queue.length) {
       elements.planningQueue.innerHTML = '<div class="empty-state">No department requests are currently visible in the officer queue.</div>';
@@ -286,9 +286,9 @@
       .join("");
   }
 
-  function renderEngineerList(context) {
+  async function renderEngineerList(context) {
     const { department } = context;
-    const data = getDepartmentData(department.id);
+    const data = await getDepartmentData(department.id);
 
     if (!data.engineers.length) {
       elements.engineerList.innerHTML = '<div class="empty-state">No engineers are mapped to this department yet.</div>';
@@ -313,7 +313,7 @@
 
   async function populateSelects(context) {
     const { department } = context;
-    const data = getDepartmentData(department.id);
+    const data = await getDepartmentData(department.id);
 
     const currentWorkOrderRequest = elements.workOrderRequestSelect.value;
     const currentWorkOrderEngineer = elements.workOrderEngineerSelect.value;
@@ -412,9 +412,9 @@
       .join("");
   }
 
-  function renderQuotations(context) {
+  async function renderQuotations(context) {
     const { department } = context;
-    const data = getDepartmentData(department.id);
+    const data = await getDepartmentData(department.id);
 
     if (!data.quotations.length) {
       elements.quotationTableBody.innerHTML = '<tr><td colspan="6"><div class="empty-state">No quotations are currently registered for this department.</div></td></tr>';
@@ -474,12 +474,12 @@
   }
 
   async function renderAll(context) {
-    renderHero(context);
-    renderPlanningQueue(context);
-    renderEngineerList(context);
-    populateSelects(context);
+    await renderHero(context);
+    await renderPlanningQueue(context);
+    await renderEngineerList(context);
+    await populateSelects(context);
     await renderWorkOrders(context);
-    renderQuotations(context);
+    await renderQuotations(context);
     await renderSchedules(context);
     await renderProgressInbox(context);
     await renderOutcomeTable(context);
