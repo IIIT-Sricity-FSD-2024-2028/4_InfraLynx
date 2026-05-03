@@ -1,4 +1,4 @@
-(function attachValidators(globalScope) {
+﻿(function attachValidators(globalScope) {
   const crims = (globalScope.CRIMS = globalScope.CRIMS || {});
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phonePattern = /^[6-9]\d{9}$/;
@@ -37,8 +37,8 @@
       return "Enter a valid email address.";
     }
 
-    if (!isValidAadhaar(payload.aadhaar)) {
-      return "Enter a valid 12-digit Aadhaar number.";
+    if (payload.aadhaar && !isValidAadhaar(payload.aadhaar)) {
+      return "Enter a valid 12-digit Aadhaar number, or leave the demo identity field blank.";
     }
 
     if (!payload.requestType) {
@@ -98,7 +98,7 @@
 
   function getCitizenSignInError(payload) {
     if (!payload.identifier.trim()) {
-      return "Enter the Aadhaar number or email linked to the citizen account.";
+      return "Enter the email or demo ID linked to the citizen account.";
     }
 
     if (!payload.password.trim()) {
@@ -127,3 +127,4 @@
     getOfficialSignInError
   };
 })(window);
+

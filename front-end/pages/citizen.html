@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -64,7 +64,7 @@
         <article class="glass-card citizen-summary-card">
           <div class="summary-head">
             <div>
-              <span class="field-label">Citizen identity</span>
+              <span class="field-label">Demo citizen profile</span>
               <h2 id="citizen-name">Citizen</h2>
             </div>
             <span class="status-pill neutral" id="citizen-session-meta">Signed in</span>
@@ -107,7 +107,7 @@
                 <input type="email" name="email" autocomplete="email" readonly>
               </label>
               <label class="field">
-                <span class="field-label" data-i18n="request.aadhaarLabel">Aadhaar number</span>
+                <span class="field-label" data-i18n="request.aadhaarLabel">Demo citizen ID</span>
                 <input type="text" name="aadhaar" inputmode="numeric" maxlength="12" readonly>
               </label>
             </div>
@@ -146,7 +146,7 @@
             </div>
 
             <div class="field-help">
-              Your citizen identity is reused from sign-in so repeat submissions stay consistent with the Aadhaar-linked profile model in this prototype.
+              Your demo profile is reused from sign-in so repeat submissions stay grouped in this in-memory prototype.
             </div>
 
             <div class="auth-actions">
@@ -182,7 +182,7 @@
           <div class="section-kicker">Request history</div>
           <h2>Your linked citizen requests</h2>
           <p>
-            Each record reflects the public request intake model from the schema, including reference number, department routing, and the latest visible stage.
+            Each record reflects the public request intake model: reference number, department routing, and latest visible stage.
           </p>
         </div>
         <div class="request-card-grid" id="citizen-request-list"></div>
@@ -190,7 +190,7 @@
     </main>
   </div>
 
-  <script src="../scripts/seed-data.js"></script>
+  <script src="../scripts/api-client.js"></script>
   <script src="../scripts/data-store.js"></script>
   <script src="../scripts/i18n.js"></script>
   <script src="../scripts/validators.js"></script>

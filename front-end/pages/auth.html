@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -56,8 +56,8 @@
         <div class="auth-lane-strip">
           <article class="auth-lane-card">
             <span class="field-label" data-i18n="auth.citizenLaneLabel">Citizen lane</span>
-            <strong data-i18n="auth.citizenLaneTitle">Fast public access with Aadhaar uniqueness</strong>
-            <p data-i18n="auth.citizenLaneCopy">Citizens can sign in, create one profile per Aadhaar number, and return later to track requests more
+            <strong data-i18n="auth.citizenLaneTitle">Fast public access with optional demo profile</strong>
+            <p data-i18n="auth.citizenLaneCopy">Citizens can submit public requests freely, then use a demo profile only when repeat tracking is helpful.
               easily.</p>
           </article>
           <article class="auth-lane-card">
@@ -202,7 +202,7 @@
 
               <article class="glass-card result-panel hidden" id="official-result-panel">
                 <h3 data-i18n="auth.sampleOfficials">Official access summary</h3>
-                <p>Official access verified. Redirecting to your workspaceâ€¦</p>
+                <p>Official access verified. Redirecting to your workspaceÃ¢â‚¬Â¦</p>
                 <div class="result-meta" id="official-result-meta"></div>
               </article>
             </article>
@@ -212,8 +212,9 @@
     </main>
   </div>
 
-  <script src="../scripts/seed-data.js"></script>
+  <script src="../scripts/api-client.js"></script>
   <script src="../scripts/data-store.js"></script>
+  <script src="../scripts/routes.js"></script>
   <script src="../scripts/i18n.js"></script>
   <script src="../scripts/validators.js"></script>
   <script src="../scripts/auth.js"></script>

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -39,48 +39,48 @@
           <div class="sidebar-avatar" aria-hidden="true">A</div>
           <div class="sidebar-session-copy">
             <span class="sidebar-session-name" id="admin-greeting">Administrator</span>
-            <span class="sidebar-session-role" id="session-role-label">Super user Â· Full access</span>
+            <span class="sidebar-session-role" id="session-role-label">Super user Ã‚Â· Full access</span>
           </div>
         </div>
 
         <nav class="sidebar-nav" aria-label="Console sections">
           <a class="sidebar-nav-link is-active" href="#overview" data-admin-nav aria-current="page">
-            <div class="sidebar-nav-icon">📊</div>
+            <div class="sidebar-nav-icon">ðŸ“Š</div>
             <div class="sidebar-nav-label">
               <span>Overview</span>
               <strong>Governance snapshot</strong>
             </div>
           </a>
           <a class="sidebar-nav-link" href="#request-control" data-admin-nav>
-            <div class="sidebar-nav-icon">📋</div>
+            <div class="sidebar-nav-icon">ðŸ“‹</div>
             <div class="sidebar-nav-label">
               <span>Citizen Requests</span>
               <strong>Intake &amp; status control</strong>
             </div>
           </a>
           <a class="sidebar-nav-link" href="#work-orders" data-admin-nav>
-            <div class="sidebar-nav-icon">✅</div>
+            <div class="sidebar-nav-icon">âœ…</div>
             <div class="sidebar-nav-label">
               <span>Work Orders</span>
               <strong>Approval queue</strong>
             </div>
           </a>
           <a class="sidebar-nav-link" href="#official-control" data-admin-nav>
-            <div class="sidebar-nav-icon">👥</div>
+            <div class="sidebar-nav-icon">ðŸ‘¥</div>
             <div class="sidebar-nav-label">
               <span>Official Access</span>
               <strong>Accounts &amp; role mapping</strong>
             </div>
           </a>
           <a class="sidebar-nav-link" href="#department-control" data-admin-nav>
-            <div class="sidebar-nav-icon">🏛️</div>
+            <div class="sidebar-nav-icon">ðŸ›ï¸</div>
             <div class="sidebar-nav-label">
               <span>Departments</span>
               <strong>Registry &amp; budget posture</strong>
             </div>
           </a>
           <a class="sidebar-nav-link" href="#system-info" data-admin-nav>
-            <div class="sidebar-nav-icon">ℹ️</div>
+            <div class="sidebar-nav-icon">â„¹ï¸</div>
             <div class="sidebar-nav-label">
               <span>System Info</span>
               <strong>Console summary</strong>
@@ -455,8 +455,8 @@
               <div>
                 <div class="section-kicker">System information</div>
                 <h2>Role-aware navigation, state persistence, and CRUD are active</h2>
-                <p>The City Administrator console provides super user access across all operational domains. All data is
-                  managed locally in the browser prototype.</p>
+                <p>The City Administrator console provides super user access across all operational domains. All CRUD
+                  changes are routed through the NestJS backend API.</p>
               </div>
               <a class="button button-secondary" href="./auth.html?mode=official">Back to sign-in</a>
             </article>
@@ -467,7 +467,7 @@
     </div>
   </div>
 
-  <script src="../scripts/seed-data.js"></script>
+  <script src="../scripts/api-client.js"></script>
   <script src="../scripts/data-store.js"></script>
   <script src="../scripts/utils.js"></script>
   <script src="../scripts/i18n.js"></script>

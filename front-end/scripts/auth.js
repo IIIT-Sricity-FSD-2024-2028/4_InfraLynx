@@ -1,4 +1,4 @@
-(function bootstrapAuth(globalScope) {
+﻿(function bootstrapAuth(globalScope) {
   const {
     authenticateCitizen,
     authenticateOfficial,
@@ -37,14 +37,6 @@
     officialResultMeta: document.querySelector("#official-result-meta")
   };
 
-  const ROLE_WORKSPACE_MAP = {
-    ADMINISTRATOR: "./admin.html",
-    OFFICER: "./officer.html",
-    ENGINEER: "./engineer.html",
-    CFO: "./cfo.html",
-    QC_REVIEWER: "./qcreviewer.html"
-  };
-
   const ROLE_WORKSPACE_LABELS = {
     ADMINISTRATOR: "City Administrator console",
     OFFICER: "Department Officer workspace",
@@ -52,7 +44,8 @@
     CFO: "CFO workspace",
     QC_REVIEWER: "QC Reviewer workspace"
   };
-  const CITIZEN_WORKSPACE = "./citizen.html";
+  const routes = globalScope.CRIMS.routes;
+  const CITIZEN_WORKSPACE = routes ? routes.routes.citizen : "./citizen.html";
 
   let citizenMode = "signin";
   let accessMode = "citizen";
@@ -116,18 +109,18 @@
     globalScope.location.href = CITIZEN_WORKSPACE;
   }
 
-  function renderCitizenResult(citizenRecord) {
-    const requests = getCitizenRequests(citizenRecord.email);
+  async function renderCitizenResult(citizenRecord) {
+    const requests = await getCitizenRequests(citizenRecord.email || citizenRecord.aadhaar || "");
     elements.citizenResultMeta.innerHTML = `
       <div class="result-meta-row"><span>${t("auth.resultName")}</span><strong>${citizenRecord.name}</strong></div>
-      <div class="result-meta-row"><span>${t("auth.resultAadhaar")}</span><strong class="mono">XXXX-XXXX-${citizenRecord.aadhaar.slice(-4)}</strong></div>
+      <div class="result-meta-row"><span>${t("auth.resultAadhaar")}</span><strong class="mono">XXXX-XXXX-${(citizenRecord.aadhaar || "").slice(-4)}</strong></div>
       <div class="result-meta-row"><span>${t("auth.resultLinkedRequests")}</span><strong>${requests.length}</strong></div>
     `;
     elements.citizenResultPanel.classList.remove("hidden");
   }
 
   function bindCitizenForms() {
-    elements.citizenSigninForm.addEventListener("submit", (event) => {
+    elements.citizenSigninForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.citizenSigninForm).entries());
       const validationMessage = getCitizenSignInError(payload);
@@ -140,7 +133,7 @@
       }
 
       try {
-        authenticateCitizen(payload.identifier, payload.password);
+        await authenticateCitizen(payload.identifier, payload.password);
         elements.citizenSigninForm.reset();
         redirectCitizenWorkspace();
       } catch (error) {
@@ -148,7 +141,7 @@
       }
     });
 
-    elements.citizenSignupForm.addEventListener("submit", (event) => {
+    elements.citizenSignupForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.citizenSignupForm).entries());
       const validationMessage = getCitizenSignUpError(payload);
@@ -161,12 +154,12 @@
       }
 
       try {
-        const citizen = registerCitizenAccount({
+        const citizen = await registerCitizenAccount({
           ...payload,
           preferredLanguage: getLanguage()
         });
 
-        authenticateCitizen(citizen.email, payload.password);
+        await authenticateCitizen(citizen.email || payload.email, payload.password);
         elements.citizenSignupForm.reset();
         redirectCitizenWorkspace();
       } catch (error) {
@@ -176,7 +169,7 @@
   }
 
   function bindOfficialForm() {
-    elements.officialForm.addEventListener("submit", (event) => {
+    elements.officialForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.officialForm).entries());
       const validationMessage = getOfficialSignInError({
@@ -192,8 +185,8 @@
       }
 
       try {
-        const account = authenticateOfficial(payload.email, payload.password);
-        const nextWorkspace = ROLE_WORKSPACE_MAP[account.role];
+        const account = await authenticateOfficial(payload.email, payload.password);
+        const nextWorkspace = routes ? routes.workspaceForRole(account.role) : `./${account.role.toLowerCase()}.html`;
         if (nextWorkspace) {
           globalScope.location.href = nextWorkspace;
         }
@@ -254,8 +247,8 @@
     setAccessMode("citizen");
   }
 
-  function init() {
-    initializeStore();
+  async function init() {
+    await initializeStore();
     bindLanguageSelector(elements.languageSelect);
     applyTranslations(document, getLanguage());
     renderStaticText();
@@ -274,3 +267,4 @@
 
   init();
 })(window);
+

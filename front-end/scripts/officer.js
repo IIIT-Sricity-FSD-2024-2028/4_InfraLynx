@@ -1,4 +1,4 @@
-(function bootstrapOfficer(globalScope) {
+﻿(function bootstrapOfficer(globalScope) {
   const {
     clearSession,
     deleteMaintenanceSchedule,
@@ -100,13 +100,13 @@
     return session && session.type === "official" && session.role === "OFFICER" ? session : null;
   }
 
-  function getOfficerContext() {
+  async function getOfficerContext() {
     const session = getAuthorizedSession();
     if (!session) {
       return null;
     }
 
-    const account = getState().officialAccounts.find((item) => item.id === session.officialId);
+    const account = (await getState()).officialAccounts.find((item) => item.id === session.officialId);
     if (!account || !account.departmentId) {
       return null;
     }
@@ -189,8 +189,8 @@
     return "neutral";
   }
 
-  function getDepartmentData(departmentId) {
-    const state = getState();
+  async function getDepartmentData(departmentId) {
+    const state = await getState();
     return {
       requests: state.requests.filter((request) => request.departmentId === departmentId),
       workOrders: (state.workOrders || []).filter((item) => item.departmentId === departmentId),
@@ -202,7 +202,7 @@
     };
   }
 
-  function renderHero(context) {
+  async function renderHero(context) {
     const { department, account } = context;
     const data = getDepartmentData(department.id);
     const assignedCount = data.workOrders.filter((item) => item.engineerId).length;
@@ -311,7 +311,7 @@
       .join("");
   }
 
-  function populateSelects(context) {
+  async function populateSelects(context) {
     const { department } = context;
     const data = getDepartmentData(department.id);
 
@@ -374,15 +374,16 @@
     if (elements.outcomeWorkOrderSelect) {
       elements.outcomeWorkOrderSelect.innerHTML = [
         '<option value="">No linked work order</option>',
-        ...data.workOrders.map((item) => `<option value="${item.id}">${escapeHtml(item.referenceNo)} — ${escapeHtml(item.title)}</option>`)
+        ...data.workOrders.map((item) => `<option value="${item.id}">${escapeHtml(item.referenceNo)} â€” ${escapeHtml(item.title)}</option>`)
       ].join("");
       elements.outcomeWorkOrderSelect.value = currentOutcomeWorkOrder;
     }
   }
 
-  function renderWorkOrders(context) {
+  async function renderWorkOrders(context) {
     const { department } = context;
-    const data = getDepartmentData(department.id);
+    const data = await getDepartmentData(department.id);
+    const state = await getState();
 
     if (!data.workOrders.length) {
       elements.workOrderTableBody.innerHTML = '<tr><td colspan="6"><div class="empty-state">No work orders exist for this department yet.</div></td></tr>';
@@ -391,7 +392,7 @@
 
     elements.workOrderTableBody.innerHTML = data.workOrders
       .map((item) => {
-        const engineer = item.engineerId ? getState().officialAccounts.find((account) => account.id === item.engineerId) : null;
+        const engineer = item.engineerId ? state.officialAccounts.find((account) => account.id === item.engineerId) : null;
         return `
           <tr>
             <td><strong class="mono">${escapeHtml(item.referenceNo)}</strong><span>${escapeHtml(item.title)}</span></td>
@@ -441,9 +442,10 @@
       .join("");
   }
 
-  function renderSchedules(context) {
+  async function renderSchedules(context) {
     const { department } = context;
-    const data = getDepartmentData(department.id);
+    const data = await getDepartmentData(department.id);
+    const state = await getState();
 
     if (!data.schedules.length) {
       elements.scheduleTableBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No maintenance schedules exist for this department.</div></td></tr>';
@@ -452,7 +454,7 @@
 
     elements.scheduleTableBody.innerHTML = data.schedules
       .map((item) => {
-        const engineer = item.assignee ? getState().officialAccounts.find((account) => account.id === item.assignee) : null;
+        const engineer = item.assignee ? state.officialAccounts.find((account) => account.id === item.assignee) : null;
         return `
           <tr>
             <td><strong>${escapeHtml(item.title)}</strong></td>
@@ -471,16 +473,16 @@
       .join("");
   }
 
-  function renderAll(context) {
+  async function renderAll(context) {
     renderHero(context);
     renderPlanningQueue(context);
     renderEngineerList(context);
     populateSelects(context);
-    renderWorkOrders(context);
+    await renderWorkOrders(context);
     renderQuotations(context);
-    renderSchedules(context);
-    renderProgressInbox(context);
-    renderOutcomeTable(context);
+    await renderSchedules(context);
+    await renderProgressInbox(context);
+    await renderOutcomeTable(context);
   }
 
   function resetWorkOrderForm(context) {
@@ -538,7 +540,7 @@
   function bindWorkOrderControls(context) {
     elements.workOrderReset.addEventListener("click", () => resetWorkOrderForm(context));
 
-    elements.workOrderForm.addEventListener("submit", (event) => {
+    elements.workOrderForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.workOrderForm).entries());
       const validationMessage = validateWorkOrder(payload);
@@ -550,7 +552,7 @@
       }
 
       try {
-        upsertWorkOrder(payload);
+        await upsertWorkOrder(payload);
         resetWorkOrderForm(context);
         renderAll(context);
       } catch (error) {
@@ -558,12 +560,12 @@
       }
     });
 
-    elements.workOrderTableBody.addEventListener("click", (event) => {
+    elements.workOrderTableBody.addEventListener("click", async (event) => {
       const editButton = event.target.closest("[data-work-edit]");
       const deleteButton = event.target.closest("[data-work-delete]");
 
       if (editButton) {
-        const workOrder = getState().workOrders.find((item) => item.id === editButton.dataset.workEdit);
+        const workOrder = (await getState()).workOrders.find((item) => item.id === editButton.dataset.workEdit);
         if (!workOrder) {
           return;
         }
@@ -580,7 +582,7 @@
 
       if (deleteButton) {
         try {
-          deleteWorkOrder(deleteButton.dataset.workDelete);
+          await deleteWorkOrder(deleteButton.dataset.workDelete);
           resetWorkOrderForm(context);
           renderAll(context);
         } catch (error) {
@@ -593,7 +595,7 @@
   function bindQuotationControls(context) {
     elements.quotationReset.addEventListener("click", () => resetQuotationForm(context));
 
-    elements.quotationForm.addEventListener("submit", (event) => {
+    elements.quotationForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.quotationForm).entries());
       const validationMessage = validateQuotation(payload);
@@ -605,7 +607,7 @@
       }
 
       try {
-        upsertQuotation(payload);
+        await upsertQuotation(payload);
         resetQuotationForm(context);
         renderAll(context);
       } catch (error) {
@@ -613,12 +615,12 @@
       }
     });
 
-    elements.quotationTableBody.addEventListener("click", (event) => {
+    elements.quotationTableBody.addEventListener("click", async (event) => {
       const editButton = event.target.closest("[data-quote-edit]");
       const deleteButton = event.target.closest("[data-quote-delete]");
 
       if (editButton) {
-        const quote = getState().quotations.find((item) => item.id === editButton.dataset.quoteEdit);
+        const quote = (await getState()).quotations.find((item) => item.id === editButton.dataset.quoteEdit);
         if (!quote) {
           return;
         }
@@ -639,7 +641,7 @@
 
       if (deleteButton) {
         try {
-          deleteQuotation(deleteButton.dataset.quoteDelete);
+          await deleteQuotation(deleteButton.dataset.quoteDelete);
           resetQuotationForm(context);
           renderAll(context);
         } catch (error) {
@@ -652,7 +654,7 @@
   function bindScheduleControls(context) {
     elements.scheduleReset.addEventListener("click", () => resetScheduleForm(context));
 
-    elements.scheduleForm.addEventListener("submit", (event) => {
+    elements.scheduleForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.scheduleForm).entries());
       const validationMessage = validateSchedule(payload);
@@ -664,7 +666,7 @@
       }
 
       try {
-        upsertMaintenanceSchedule(payload);
+        await upsertMaintenanceSchedule(payload);
         resetScheduleForm(context);
         renderAll(context);
       } catch (error) {
@@ -672,12 +674,12 @@
       }
     });
 
-    elements.scheduleTableBody.addEventListener("click", (event) => {
+    elements.scheduleTableBody.addEventListener("click", async (event) => {
       const editButton = event.target.closest("[data-schedule-edit]");
       const deleteButton = event.target.closest("[data-schedule-delete]");
 
       if (editButton) {
-        const schedule = getState().maintenanceSchedules.find((item) => item.id === editButton.dataset.scheduleEdit);
+        const schedule = (await getState()).maintenanceSchedules.find((item) => item.id === editButton.dataset.scheduleEdit);
         if (!schedule) {
           return;
         }
@@ -694,7 +696,7 @@
 
       if (deleteButton) {
         try {
-          deleteMaintenanceSchedule(deleteButton.dataset.scheduleDelete);
+          await deleteMaintenanceSchedule(deleteButton.dataset.scheduleDelete);
           resetScheduleForm(context);
           renderAll(context);
         } catch (error) {
@@ -704,10 +706,10 @@
     });
   }
 
-  /* ── Progress inbox ── */
-  function renderProgressInbox(context) {
+  /* â”€â”€ Progress inbox â”€â”€ */
+  async function renderProgressInbox(context) {
     if (!elements.progressInboxBody) return;
-    const data = getDepartmentData(context.department.id);
+    const data = await getDepartmentData(context.department.id);
     if (!data.progressReports.length) {
       elements.progressInboxBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No progress reports in the inbox yet.</div></td></tr>';
       return;
@@ -719,7 +721,7 @@
         <tr>
           <td><strong>${escapeHtml(item.title)}</strong></td>
           <td>${escapeHtml(dt)}</td>
-          <td>${escapeHtml(item.summary ? item.summary.slice(0, 60) + (item.summary.length > 60 ? '…' : '') : '')}</td>
+          <td>${escapeHtml(item.summary ? item.summary.slice(0, 60) + (item.summary.length > 60 ? 'â€¦' : '') : '')}</td>
           <td><span class="status-pill ${isAcknowledged ? 'neutral' : 'warning'}">${escapeHtml(formatStatus(item.status))}</span></td>
           <td><div class="row-actions">
             ${!isAcknowledged ? `<button class="text-button" type="button" data-report-ack="${item.id}">Acknowledge</button>` : '<span class="mono">Done</span>'}
@@ -728,16 +730,17 @@
     }).join("");
   }
 
-  /* ── Outcome reports ── */
-  function renderOutcomeTable(context) {
+  /* â”€â”€ Outcome reports â”€â”€ */
+  async function renderOutcomeTable(context) {
     if (!elements.outcomeTableBody) return;
-    const data = getDepartmentData(context.department.id);
+    const data = await getDepartmentData(context.department.id);
+    const state = await getState();
     if (!data.outcomeReports.length) {
       elements.outcomeTableBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No outcome reports submitted yet for this department.</div></td></tr>';
       return;
     }
     elements.outcomeTableBody.innerHTML = data.outcomeReports.map((item) => {
-      const wo = item.workOrderId ? getState().workOrders.find((w) => w.id === item.workOrderId) : null;
+      const wo = item.workOrderId ? state.workOrders.find((w) => w.id === item.workOrderId) : null;
       return `
         <tr>
           <td><strong>${escapeHtml(item.title)}</strong></td>
@@ -772,13 +775,13 @@
 
   function bindProgressInboxControls(context) {
     if (!elements.progressInboxBody) return;
-    elements.progressInboxBody.addEventListener("click", (event) => {
+    elements.progressInboxBody.addEventListener("click", async (event) => {
       const ackButton = event.target.closest("[data-report-ack]");
       if (!ackButton) return;
-      const state = getState();
+      const state = await getState();
       const report = state.progressReports.find((item) => item.id === ackButton.dataset.reportAck);
       if (!report) return;
-      upsertProgressReport({ ...report, status: "ACKNOWLEDGED" });
+      await upsertProgressReport({ ...report, status: "ACKNOWLEDGED" });
       renderAll(context);
     });
   }
@@ -786,30 +789,30 @@
   function bindOutcomeControls(context) {
     if (!elements.outcomeForm) return;
     elements.outcomeReset.addEventListener("click", () => resetOutcomeForm(context));
-    elements.outcomeForm.addEventListener("submit", (event) => {
+    elements.outcomeForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.outcomeForm).entries());
       const error = validateOutcomeReport(payload);
       globalScope.CRIMS.utils.showError(elements.outcomeError, "");
       if (error) { globalScope.CRIMS.utils.showError(elements.outcomeError, error); return; }
       try {
-        upsertOutcomeReport(payload);
+        await upsertOutcomeReport(payload);
         resetOutcomeForm(context);
         renderAll(context);
       } catch (err) { globalScope.CRIMS.utils.showError(elements.outcomeError, err.message); }
     });
-    elements.outcomeTableBody.addEventListener("click", (event) => {
+    elements.outcomeTableBody.addEventListener("click", async (event) => {
       const editBtn = event.target.closest("[data-outcome-edit]");
       const delBtn = event.target.closest("[data-outcome-delete]");
       if (editBtn) {
-        const record = getState().outcomeReports.find((item) => item.id === editBtn.dataset.outcomeEdit);
+        const record = (await getState()).outcomeReports.find((item) => item.id === editBtn.dataset.outcomeEdit);
         if (!record) return;
         Object.entries(record).forEach(([k, v]) => { if (elements.outcomeForm.elements[k]) elements.outcomeForm.elements[k].value = v == null ? "" : v; });
         elements.outcomeFormTitle.textContent = `Edit: ${record.title}`;
         return;
       }
       if (delBtn) {
-        try { deleteOutcomeReport(delBtn.dataset.outcomeDelete); resetOutcomeForm(context); renderAll(context); }
+        try { await deleteOutcomeReport(delBtn.dataset.outcomeDelete); resetOutcomeForm(context); renderAll(context); }
         catch (err) { globalScope.CRIMS.utils.showError(elements.outcomeError, err.message); }
       }
     });
@@ -825,9 +828,9 @@
     document.title = `InfraLynx | ${role ? role.name : "Department Officer"} Workspace`;
   }
 
-  function init() {
-    initializeStore();
-    const context = getOfficerContext();
+  async function init() {
+    await initializeStore();
+    const context = await getOfficerContext();
 
     if (!context) {
       renderAccessGuard();
@@ -851,3 +854,5 @@
 
   init();
 })(window);
+
+

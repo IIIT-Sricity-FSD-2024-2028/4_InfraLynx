@@ -46,6 +46,7 @@ export class RequestsService {
       status: 'RECEIVED',
       receivedAt: new Date().toISOString(),
       ...dto,
+      citizenAadhaar: dto.citizenAadhaar || 'PUBLIC-DEMO',
     };
     this.store.unshift(record);
     return record;

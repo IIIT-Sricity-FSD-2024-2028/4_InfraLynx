@@ -19,6 +19,8 @@ import { FundReleasesModule } from './modules/fund-releases/fund-releases.module
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { FieldAssetsModule } from './modules/field-assets/field-assets.module';
 import { OutcomeReportsModule } from './modules/outcome-reports/outcome-reports.module';
+import { DemoAccessModule } from './modules/demo-access/demo-access.module';
+import { PublicInsightsModule } from './modules/public-insights/public-insights.module';
 
 @Module({
   imports: [
@@ -38,6 +40,8 @@ import { OutcomeReportsModule } from './modules/outcome-reports/outcome-reports.
     MaintenanceModule,
     FieldAssetsModule,
     OutcomeReportsModule,
+    DemoAccessModule,
+    PublicInsightsModule,
   ],
   controllers: [AppController],
   providers: [

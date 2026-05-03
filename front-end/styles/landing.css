@@ -1377,6 +1377,14 @@
     padding-top: 42px;
   }
 
+  .city-pride-dialog {
+    padding: 30px 20px 24px;
+  }
+
+  .city-pride-dialog-grid {
+    grid-template-columns: 1fr;
+  }
+
   .hero-highlights span,
   .pulse-stack span {
     width: 100%;
@@ -1391,7 +1399,7 @@
     flex-direction: column;
   }
 }
-/* --- Fix Glass Cards --- */
+
 body.landing-page article.glass-card,
 body.landing-page div.glass-card,
 body.landing-page section.glass-card {
@@ -1411,7 +1419,6 @@ body.landing-page section.glass-card::after {
   display: none;
 }
 
-/* --- Fix Text Boxes --- */
 body.landing-page .field input,
 body.landing-page .field select,
 body.landing-page .field textarea {
