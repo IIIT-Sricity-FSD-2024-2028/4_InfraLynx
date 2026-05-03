@@ -29,11 +29,11 @@
       return "Enter the citizen name using at least 3 characters.";
     }
 
-    if (!isValidPhone(payload.phone)) {
+    if (payload.phone && !isValidPhone(payload.phone)) {
       return "Enter a valid 10-digit Indian mobile number.";
     }
 
-    if (!isValidEmail(payload.email)) {
+    if (payload.email && !isValidEmail(payload.email)) {
       return "Enter a valid email address.";
     }
 
@@ -73,11 +73,11 @@
       return "Enter the citizen name using at least 3 characters.";
     }
 
-    if (!isValidPhone(payload.phone)) {
+    if (payload.phone && !isValidPhone(payload.phone)) {
       return "Enter a valid 10-digit Indian mobile number.";
     }
 
-    if (!isValidEmail(payload.email)) {
+    if (payload.email && !isValidEmail(payload.email)) {
       return "Enter a valid email address.";
     }
 
@@ -109,7 +109,7 @@
   }
 
   function getOfficialSignInError(payload) {
-    if (!isValidEmail(payload.email)) {
+    if (payload.email && !isValidEmail(payload.email)) {
       return "Enter your official email address.";
     }
 

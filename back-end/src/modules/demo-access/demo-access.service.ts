@@ -66,6 +66,8 @@ export class DemoAccessService {
         citizenId: citizen.id,
         citizenName: citizen.name,
         aadhaar: citizen.aadhaar,
+        email: citizen.email,
+        phone: citizen.phone,
         createdAt: new Date().toISOString(),
       },
     };
