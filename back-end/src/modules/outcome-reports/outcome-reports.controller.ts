@@ -13,5 +13,5 @@ export class OutcomeReportsController {
   @Get(':id') findOne(@Param('id') id: string) { return this.svc.findOne(id); }
   @Post() @Roles('OFFICER', 'ADMINISTRATOR') create(@Body() dto: CreateOutcomeReportDto) { return this.svc.create(dto); }
   @Patch(':id') @Roles('OFFICER', 'ADMINISTRATOR') update(@Param('id') id: string, @Body() dto: UpdateOutcomeReportDto) { return this.svc.update(id, dto); }
-  @Delete(':id') @Roles('ADMINISTRATOR') remove(@Param('id') id: string) { return this.svc.remove(id); }
+  @Delete(':id') @Roles('OFFICER', 'ADMINISTRATOR') remove(@Param('id') id: string) { return this.svc.remove(id); }
 }

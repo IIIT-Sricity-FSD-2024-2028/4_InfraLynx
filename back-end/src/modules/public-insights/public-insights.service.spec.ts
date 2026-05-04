@@ -4,7 +4,14 @@ describe('PublicInsightsService', () => {
   let service: PublicInsightsService;
 
   beforeEach(() => {
-    service = new PublicInsightsService();
+    service = new PublicInsightsService(
+      { findAll: () => [] } as any,
+      { findAll: () => [] } as any,
+      { findAll: () => [] } as any,
+      { findAll: () => [] } as any,
+      { findAll: () => [] } as any,
+      { findAll: () => [] } as any,
+    );
   });
 
   it('exposes landing-page insight collections from the in-memory seed', () => {

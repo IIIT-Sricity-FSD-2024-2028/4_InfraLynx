@@ -15,5 +15,5 @@ export class InspectionsController {
   @Get(':id') findOne(@Param('id') id: string) { return this.svc.findOne(id); }
   @Post() @Roles('OFFICER', 'ENGINEER') create(@Body() dto: CreateInspectionDto) { return this.svc.create(dto); }
   @Patch(':id') @Roles('OFFICER', 'ENGINEER') update(@Param('id') id: string, @Body() dto: UpdateInspectionDto) { return this.svc.update(id, dto); }
-  @Delete(':id') @Roles('ADMINISTRATOR', 'OFFICER') remove(@Param('id') id: string) { return this.svc.remove(id); }
+  @Delete(':id') @Roles('ADMINISTRATOR', 'OFFICER', 'ENGINEER') remove(@Param('id') id: string) { return this.svc.remove(id); }
 }

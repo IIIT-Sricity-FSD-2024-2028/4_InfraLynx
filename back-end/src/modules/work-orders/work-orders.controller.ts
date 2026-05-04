@@ -22,5 +22,5 @@ export class WorkOrdersController {
 
   @Patch(':id') @Roles('ADMINISTRATOR', 'OFFICER', 'ENGINEER') update(@Param('id') id: string, @Body() dto: UpdateWorkOrderDto) { return this.svc.update(id, dto); }
 
-  @Delete(':id') @Roles('ADMINISTRATOR') remove(@Param('id') id: string) { return this.svc.remove(id); }
+  @Delete(':id') @Roles('ADMINISTRATOR', 'OFFICER') remove(@Param('id') id: string) { return this.svc.remove(id); }
 }

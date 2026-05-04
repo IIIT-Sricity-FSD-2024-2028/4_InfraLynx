@@ -170,11 +170,19 @@
     }
 
     if (order.status === "APPROVED") {
-      return `<button class="text-button" type="button" data-workorder-validate="${order.id}">Validate</button>`;
+      return `<button class="text-button" type="button" data-workorder-start="${order.id}">Start execution</button>`;
+    }
+
+    if (order.status === "IN_PROGRESS") {
+      return `<button class="text-button" type="button" data-workorder-qc="${order.id}">Send to QC</button>`;
+    }
+
+    if (order.status === "PENDING_QC") {
+      return `<span class="mono">Awaiting QC reviewer</span>`;
     }
 
     if (order.status === "COMPLETED") {
-      return `<span class="mono">Validated</span>`;
+      return `<span class="mono">QC certified</span>`;
     }
 
     return `<span class="mono">${escapeHtml(order.status || "No action")}</span>`;
@@ -512,7 +520,8 @@
     elements.activityFeed.addEventListener("click", async (event) => {
       const approveButton = event.target.closest("[data-workorder-approve]");
       const rejectButton = event.target.closest("[data-workorder-reject]");
-      const validateButton = event.target.closest("[data-workorder-validate]");
+      const startButton = event.target.closest("[data-workorder-start]");
+      const qcButton = event.target.closest("[data-workorder-qc]");
 
       if (approveButton) {
         await updateWorkOrderStatus(approveButton.dataset.workorderApprove, "APPROVED");
@@ -526,8 +535,14 @@
         return;
       }
 
-      if (validateButton) {
-        await updateWorkOrderStatus(validateButton.dataset.workorderValidate, "COMPLETED");
+      if (startButton) {
+        await updateWorkOrderStatus(startButton.dataset.workorderStart, "IN_PROGRESS");
+        renderAll();
+        return;
+      }
+
+      if (qcButton) {
+        await updateWorkOrderStatus(qcButton.dataset.workorderQc, "PENDING_QC");
         renderAll();
       }
     });
@@ -842,13 +857,14 @@
         const wo = (state.workOrders || []).find((item) => item.id === approveBtn.dataset.woApprove);
         if (!wo) return;
         try {
+          const actorId = session.officialId || session.id || session.email || "administrator";
           const nextStatus =
             wo.status === "DRAFT" || wo.status === "PENDING_OFFICER_APPROVAL" || wo.status === "PENDING_ADMIN_APPROVAL"
               ? "APPROVED"
               : wo.status;
           await upsertWorkOrder({
             ...wo,
-            approvedBy: session.officialId,
+            approvedBy: actorId,
             approvedAt: new Date().toISOString(),
             rejectedBy: null,
             rejectedAt: null,
@@ -866,11 +882,12 @@
         const wo = (state.workOrders || []).find((item) => item.id === rejectBtn.dataset.woReject);
         if (!wo) return;
         try {
+          const actorId = session.officialId || session.id || session.email || "administrator";
           await upsertWorkOrder({
             ...wo,
             approvedBy: null,
             approvedAt: null,
-            rejectedBy: session.officialId,
+            rejectedBy: actorId,
             rejectedAt: new Date().toISOString(),
             status: 'CANCELLED',
             notes: reason || 'Rejected by administrator.'

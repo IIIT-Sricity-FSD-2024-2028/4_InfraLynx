@@ -1,4 +1,6 @@
-import { IsString, IsNumber, IsOptional } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
+
+const releaseStatusValues = ['PENDING', 'RELEASED', 'WITHHELD', 'REJECTED'] as const;
 
 export class CreateFundReleaseDto {
   @IsString() departmentId: string;
@@ -6,11 +8,11 @@ export class CreateFundReleaseDto {
   @IsString() title: string;
   @IsNumber() amountCr: number;
   @IsString() quarter: string;
-  @IsOptional() @IsString() status?: string;
+  @IsOptional() @IsIn(releaseStatusValues) status?: (typeof releaseStatusValues)[number];
   @IsOptional() @IsString() notes?: string;
 }
 export class UpdateFundReleaseDto {
-  @IsOptional() @IsString() status?: string;
+  @IsOptional() @IsIn(releaseStatusValues) status?: (typeof releaseStatusValues)[number];
   @IsOptional() @IsString() releasedAt?: string;
   @IsOptional() @IsString() notes?: string;
 }

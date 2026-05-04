@@ -15,5 +15,5 @@ export class QcReviewsController {
   @Get(':id') findOne(@Param('id') id: string) { return this.svc.findOne(id); }
   @Post() @Roles('QC_REVIEWER') create(@Body() dto: CreateQcReviewDto) { return this.svc.create(dto); }
   @Patch(':id') @Roles('QC_REVIEWER', 'ADMINISTRATOR') update(@Param('id') id: string, @Body() dto: UpdateQcReviewDto) { return this.svc.update(id, dto); }
-  @Delete(':id') @Roles('ADMINISTRATOR') remove(@Param('id') id: string) { return this.svc.remove(id); }
+  @Delete(':id') @Roles('QC_REVIEWER', 'ADMINISTRATOR') remove(@Param('id') id: string) { return this.svc.remove(id); }
 }

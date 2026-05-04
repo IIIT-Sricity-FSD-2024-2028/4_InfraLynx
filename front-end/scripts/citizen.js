@@ -305,6 +305,12 @@
           const category = state.serviceCategories.find((c) => c.id === request.categoryId);
           const linkedWorkOrders = state.workOrders.filter((o) => o.requestId === request.requestId);
           const latestWorkOrder = linkedWorkOrders[0] || null;
+          const linkedOutcomes = latestWorkOrder
+            ? (state.outcomeReports || []).filter((report) => report.workOrderId === latestWorkOrder.id)
+            : [];
+          const latestOutcome = linkedOutcomes.length
+            ? linkedOutcomes.sort((left, right) => new Date(right.submittedAt || 0) - new Date(left.submittedAt || 0))[0]
+            : null;
           const statusClass = getStatusPillClass(request.status);
   
           return `
@@ -354,6 +360,23 @@
                           )}</span>
                         </div>
                         <p>${escapeHtml(latestWorkOrder.notes || t("citizen.linkedWorkOrderFallback"))}</p>
+                      </article>
+                    `
+                    : ""
+                }
+
+                ${
+                  latestOutcome && request.status === "CLOSED"
+                    ? `
+                      <article class="linked-order">
+                        <div class="linked-order-head">
+                          <div>
+                            <span>Closure outcome</span>
+                            <strong>${escapeHtml(latestOutcome.title || "Outcome report")}</strong>
+                          </div>
+                          <span class="status-pill neutral">${escapeHtml(localizeStatus(latestOutcome.outcome || "PENDING"))}</span>
+                        </div>
+                        <p>${escapeHtml(latestOutcome.summary || "Final closure summary is available in the officer report.")}</p>
                       </article>
                     `
                     : ""

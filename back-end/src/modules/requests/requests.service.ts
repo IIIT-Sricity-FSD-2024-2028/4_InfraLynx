@@ -17,6 +17,30 @@ function genRef(existing: any[]): string {
 export class RequestsService {
   private store = seed.map((r) => ({ ...r }));
 
+  private ensureValidTransition(currentStatus: string, nextStatus: string) {
+    if (!nextStatus || currentStatus === nextStatus) {
+      return;
+    }
+
+    // Allow rejection from any non-closed state in this prototype flow.
+    if (nextStatus === 'REJECTED' && currentStatus !== 'CLOSED') {
+      return;
+    }
+
+    const currentIndex = STATUS_STEPS.indexOf(currentStatus);
+    const nextIndex = STATUS_STEPS.indexOf(nextStatus);
+
+    if (currentIndex === -1 || nextIndex === -1) {
+      throw new BadRequestException(`Invalid lifecycle transition: ${currentStatus} -> ${nextStatus}`);
+    }
+
+    if (nextIndex !== currentIndex + 1) {
+      throw new BadRequestException(
+        `Lifecycle must follow: RECEIVED -> UNDER_REVIEW -> APPROVED_FOR_PLANNING -> CONVERTED_TO_WORK_ORDER -> CLOSED`
+      );
+    }
+  }
+
   findAll() { return this.store; }
 
   findByAadhaar(aadhaar: string) {
@@ -55,7 +79,38 @@ export class RequestsService {
   update(id: string, dto: UpdateRequestDto) {
     const idx = this.store.findIndex((r) => r.requestId === id);
     if (idx === -1) throw new NotFoundException(`Request "${id}" not found`);
+    if (dto.status) {
+      this.ensureValidTransition(this.store[idx].status, dto.status);
+    }
     this.store[idx] = { ...this.store[idx], ...dto };
+    return this.store[idx];
+  }
+
+  transitionToWorkOrder(requestId: string) {
+    const idx = this.store.findIndex((r) => r.requestId === requestId);
+    if (idx === -1) throw new NotFoundException(`Request "${requestId}" not found`);
+
+    const currentStatus = this.store[idx].status;
+    if (currentStatus === 'CONVERTED_TO_WORK_ORDER' || currentStatus === 'CLOSED') {
+      return this.store[idx];
+    }
+
+    this.ensureValidTransition(currentStatus, 'CONVERTED_TO_WORK_ORDER');
+    this.store[idx] = { ...this.store[idx], status: 'CONVERTED_TO_WORK_ORDER' };
+    return this.store[idx];
+  }
+
+  closeAfterQcCertification(requestId: string) {
+    const idx = this.store.findIndex((r) => r.requestId === requestId);
+    if (idx === -1) throw new NotFoundException(`Request "${requestId}" not found`);
+
+    const currentStatus = this.store[idx].status;
+    if (currentStatus === 'CLOSED') {
+      return this.store[idx];
+    }
+
+    this.ensureValidTransition(currentStatus, 'CLOSED');
+    this.store[idx] = { ...this.store[idx], status: 'CLOSED' };
     return this.store[idx];
   }
 

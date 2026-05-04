@@ -84,6 +84,9 @@
     const currentDepartment = elements.departmentSelect.value;
     const currentWorkOrder = elements.workOrderSelect.value;
     const currentStatus = elements.statusSelect.value;
+    const qcEligibleOrders = (state.workOrders || []).filter((workOrder) => {
+      return workOrder.status === "PENDING_QC" || workOrder.status === "COMPLETED" || workOrder.status === "IN_PROGRESS";
+    });
 
     elements.departmentSelect.innerHTML = [
       '<option value="">Select department</option>',
@@ -92,7 +95,7 @@
 
     elements.workOrderSelect.innerHTML = [
       '<option value="">No linked work order</option>',
-      ...(state.workOrders || []).map((workOrder) => {
+      ...qcEligibleOrders.map((workOrder) => {
         return `<option value="${workOrder.id}">${escapeHtml(workOrder.referenceNo)} - ${escapeHtml(workOrder.title)}</option>`;
       })
     ].join("");
@@ -174,7 +177,7 @@
       .join("");
 
     const closureWorkOrders = workOrders.filter((item) => {
-      return item.status === "COMPLETED" || item.status === "PENDING_QC" || item.status === "IN_PROGRESS";
+      return item.status === "COMPLETED" || item.status === "PENDING_QC";
     });
 
     elements.workList.innerHTML = closureWorkOrders.length

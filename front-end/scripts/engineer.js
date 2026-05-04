@@ -19,6 +19,7 @@
     upsertIssueReport,
     upsertProgressReport,
     upsertResourceRequest,
+    upsertWorkOrder,
     upsertMaintenanceLog,
     upsertTaskMaterialLog,
     upsertSensorDeployment
@@ -289,6 +290,19 @@
 
     elements.assignedWorkList.innerHTML = data.workOrders
       .map((item) => {
+        const controls = [];
+        if (item.status === "APPROVED") {
+          controls.push(`<button class="text-button" type="button" data-work-status="${item.id}" data-next-status="IN_PROGRESS">Start work</button>`);
+        }
+        if (item.status === "IN_PROGRESS") {
+          controls.push(`<button class="text-button" type="button" data-work-status="${item.id}" data-next-status="PENDING_QC">Submit for QC</button>`);
+        }
+        if (item.status === "PENDING_QC") {
+          controls.push(`<span class="mono">Awaiting QC review</span>`);
+        }
+        if (item.status === "COMPLETED") {
+          controls.push(`<span class="mono">QC approved / completed</span>`);
+        }
         return `
           <article class="work-card">
             <div class="work-card-head">
@@ -297,10 +311,34 @@
             </div>
             <p>${escapeHtml(item.title)}</p>
             <p>${escapeHtml(item.locationText)} / Due ${escapeHtml(item.dueDate)} / ${escapeHtml(formatStatus(item.status))}</p>
+            <div class="row-actions">${controls.join("") || '<span class="mono">No action available</span>'}</div>
           </article>
         `;
       })
       .join("");
+  }
+
+  function bindAssignedWorkControls(context) {
+    elements.assignedWorkList.addEventListener("click", async (event) => {
+      const statusButton = event.target.closest("[data-work-status]");
+      if (!statusButton) return;
+
+      const nextStatus = statusButton.dataset.nextStatus;
+      const workOrderId = statusButton.dataset.workStatus;
+      const state = await getState();
+      const workOrder = (state.workOrders || []).find((item) => item.id === workOrderId);
+      if (!workOrder) return;
+
+      try {
+        await upsertWorkOrder({
+          ...workOrder,
+          status: nextStatus
+        });
+        renderAll(context);
+      } catch (error) {
+        globalScope.CRIMS.utils.showError(elements.reportError, error.message);
+      }
+    });
   }
 
   async function populateSelects(context) {
@@ -1013,6 +1051,7 @@
     bindMlogControls(context);
     bindMatlogControls(context);
     bindSensorControls(context);
+    bindAssignedWorkControls(context);
   }
 
   init();
