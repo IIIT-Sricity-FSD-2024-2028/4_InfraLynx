@@ -1,4 +1,4 @@
-﻿(function attachDataStore(globalScope) {
+(function attachDataStore(globalScope) {
   const crims = (globalScope.CRIMS = globalScope.CRIMS || {});
   const api = crims.api;
   const SESSION_KEY = "crims-front-end-session";
@@ -11,7 +11,7 @@
     "CLOSED"
   ];
 
-  /* â”€â”€ Local-only helpers (session, language, formatting) â”€â”€ */
+  /* ── Local-only helpers (session, language, formatting) ── */
 
   function storageAvailable(type) {
     try {
@@ -70,7 +70,7 @@
     return status.split("_").map((t) => t.charAt(0) + t.slice(1).toLowerCase()).join(" ");
   }
 
-  /* â”€â”€ In-memory activity feed (front-end only convenience) â”€â”€ */
+  /* ── In-memory activity feed (front-end only convenience) ── */
 
   let activityFeedCache = [];
   let latestState = null;
@@ -82,7 +82,7 @@
     }].concat(activityFeedCache).slice(0, 8);
   }
 
-  /* â”€â”€ Backward-compatible getState / initializeStore â”€â”€ */
+  /* ── Backward-compatible getState / initializeStore ── */
   /* These now fetch everything from the backend and return a combined object */
 
   async function initializeStore() {
@@ -165,7 +165,7 @@
     return _nextState;
   }
 
-  /* â”€â”€ Lookup helpers â”€â”€ */
+  /* ── Lookup helpers ── */
 
   function getRoleByCode(roleCode) {
     const roles = latestState ? latestState.officialRoles : [];
@@ -182,7 +182,7 @@
     return depts.find((d) => d.id === departmentId);
   }
 
-  /* â”€â”€ Authentication â”€â”€ */
+  /* ── Authentication ── */
 
   async function authenticateCitizen(identifier, password) {
     const result = await api.post("/demo-access/citizen/sign-in", { identifier, password });
@@ -224,7 +224,7 @@
     return api.patch("/demo-access/official/reset-password", { identifier: email, password });
   }
 
-  /* â”€â”€ Citizen Requests â”€â”€ */
+  /* ── Citizen Requests ── */
 
   async function submitCitizenRequest(payload) {
     const record = await api.post("/requests", {
@@ -257,7 +257,7 @@
     } catch (_e) { return []; }
   }
 
-  /* â”€â”€ Departments â”€â”€ */
+  /* ── Departments ── */
 
   async function upsertDepartment(payload) {
     let record;
@@ -265,24 +265,24 @@
       record = await api.patch("/departments/" + payload.id, {
         name: payload.name, publicLabel: payload.publicLabel, lead: payload.lead,
         budgetCr: Number(payload.budgetCr), utilization: Number(payload.utilization)
-      });
+      }, "ADMINISTRATOR");
       prependActivity("Department updated", record.name + " settings were revised.");
     } else {
       record = await api.post("/departments", {
         name: payload.name, publicLabel: payload.publicLabel, lead: payload.lead,
         budgetCr: Number(payload.budgetCr), utilization: Number(payload.utilization)
-      });
+      }, "ADMINISTRATOR");
       prependActivity("Department added", record.name + " is now available.");
     }
     return record;
   }
 
   async function deleteDepartment(departmentId) {
-    await api.del("/departments/" + departmentId);
+    await api.del("/departments/" + departmentId, "ADMINISTRATOR");
     prependActivity("Department removed", "A department was removed from the registry.");
   }
 
-  /* â”€â”€ Official Accounts â”€â”€ */
+  /* ── Official Accounts ── */
 
   async function upsertOfficialAccount(payload) {
     let record;
@@ -307,7 +307,7 @@
     prependActivity("Official account removed", "An official account was removed.");
   }
 
-  /* â”€â”€ Admin Requests â”€â”€ */
+  /* ── Admin Requests ── */
 
   async function upsertAdminRequest(payload) {
     let record;
@@ -334,7 +334,7 @@
     prependActivity("Citizen request removed", "A request was removed from the queue.");
   }
 
-  /* â”€â”€ Work Orders â”€â”€ */
+  /* ── Work Orders ── */
 
   async function upsertWorkOrder(payload) {
     let record;
@@ -342,7 +342,11 @@
       departmentId: payload.departmentId, requestId: payload.requestId || "",
       title: payload.title, locationText: payload.locationText,
       engineerId: payload.engineerId || "", priority: payload.priority,
-      status: payload.status, dueDate: payload.dueDate, notes: payload.notes || ""
+      status: payload.status, dueDate: payload.dueDate, notes: payload.notes || "",
+      approvedBy: payload.approvedBy || null,
+      approvedAt: payload.approvedAt || null,
+      rejectedBy: payload.rejectedBy || null,
+      rejectedAt: payload.rejectedAt || null
     };
     if (payload.id) {
       record = await api.patch("/work-orders/" + payload.id, body);
@@ -359,7 +363,7 @@
     prependActivity("Work order removed", "A work order was removed.");
   }
 
-  /* â”€â”€ Quotations â”€â”€ */
+  /* ── Quotations ── */
 
   async function upsertQuotation(payload) {
     const body = {
@@ -384,7 +388,7 @@
     prependActivity("Quotation removed", "A quotation was removed from review.");
   }
 
-  /* â”€â”€ Maintenance Schedules â”€â”€ */
+  /* ── Maintenance Schedules ── */
 
   async function upsertMaintenanceSchedule(payload) {
     const body = {
@@ -407,7 +411,7 @@
     prependActivity("Maintenance schedule removed", "A schedule was removed.");
   }
 
-  /* â”€â”€ Inspections â”€â”€ */
+  /* ── Inspections ── */
 
   async function upsertInspection(payload) {
     const body = {
@@ -431,7 +435,7 @@
     prependActivity("Inspection removed", "An inspection was removed.");
   }
 
-  /* â”€â”€ Issue Reports â”€â”€ */
+  /* ── Issue Reports ── */
 
   async function upsertIssueReport(payload) {
     const body = {
@@ -455,7 +459,7 @@
     prependActivity("Issue report removed", "An issue report was removed.");
   }
 
-  /* â”€â”€ Resource Requests â”€â”€ */
+  /* ── Resource Requests ── */
 
   async function upsertResourceRequest(payload) {
     const body = {
@@ -478,7 +482,7 @@
     prependActivity("Resource request removed", "A resource request was removed.");
   }
 
-  /* â”€â”€ Progress Reports â”€â”€ */
+  /* ── Progress Reports ── */
 
   async function upsertProgressReport(payload) {
     const body = {
@@ -502,7 +506,7 @@
     prependActivity("Progress report removed", "A progress report was removed.");
   }
 
-  /* â”€â”€ Budget Proposals â”€â”€ */
+  /* ── Budget Proposals ── */
 
   async function upsertBudgetProposal(payload) {
     const body = {
@@ -526,7 +530,7 @@
     prependActivity("Budget proposal removed", "A budget proposal was removed.");
   }
 
-  /* â”€â”€ Procurement Bills â”€â”€ */
+  /* ── Procurement Bills ── */
 
   async function upsertProcurementBill(payload) {
     const body = {
@@ -552,7 +556,7 @@
     prependActivity("Procurement bill removed", "A procurement bill was removed.");
   }
 
-  /* â”€â”€ QC Reviews â”€â”€ */
+  /* ── QC Reviews ── */
 
   async function upsertQcReview(payload) {
     const body = {
@@ -576,7 +580,7 @@
     prependActivity("QC review removed", "A QC review was removed.");
   }
 
-  /* â”€â”€ Fund Releases â”€â”€ */
+  /* ── Fund Releases ── */
 
   async function upsertFundRelease(payload) {
     const body = {
@@ -600,7 +604,7 @@
     prependActivity("Fund release removed", "A fund release was removed.");
   }
 
-  /* â”€â”€ Maintenance Logs â”€â”€ */
+  /* ── Maintenance Logs ── */
 
   async function upsertMaintenanceLog(payload) {
     const body = {
@@ -625,7 +629,7 @@
     prependActivity("Maintenance log removed", "A maintenance log was removed.");
   }
 
-  /* â”€â”€ Sensor Deployments â”€â”€ */
+  /* ── Sensor Deployments ── */
 
   async function upsertSensorDeployment(payload) {
     const body = {
@@ -650,7 +654,7 @@
     prependActivity("Sensor removed", "A sensor deployment record was removed.");
   }
 
-  /* â”€â”€ Task Material Logs â”€â”€ */
+  /* ── Task Material Logs ── */
 
   async function upsertTaskMaterialLog(payload) {
     const body = {
@@ -675,7 +679,7 @@
     prependActivity("Material log removed", "A material log was removed.");
   }
 
-  /* â”€â”€ Outcome Reports â”€â”€ */
+  /* ── Outcome Reports ── */
 
   async function upsertOutcomeReport(payload) {
     const body = {
@@ -701,7 +705,7 @@
     prependActivity("Outcome report removed", "An outcome report was removed.");
   }
 
-  /* â”€â”€ Expose public API (same signature as before, now async) â”€â”€ */
+  /* ── Expose public API (same signature as before, now async) ── */
 
   crims.store = {
     REQUEST_STATUS_STEPS,
@@ -766,5 +770,7 @@
     formatStatus
   };
 })(window);
+
+
 
 

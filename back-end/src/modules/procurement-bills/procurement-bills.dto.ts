@@ -1,4 +1,6 @@
-import { IsString, IsNumber, IsBoolean, IsOptional } from 'class-validator';
+import { IsBoolean, IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
+
+const billStatusValues = ['SUBMITTED', 'UNDER_VERIFICATION', 'APPROVED', 'REJECTED', 'PAID'] as const;
 
 export class CreateProcurementBillDto {
   @IsString() departmentId: string;
@@ -6,9 +8,9 @@ export class CreateProcurementBillDto {
   @IsString() workOrderId: string;
   @IsNumber() amountLakhs: number;
   @IsBoolean() gstValid: boolean;
-  @IsOptional() @IsString() status?: string;
+  @IsOptional() @IsIn(billStatusValues) status?: (typeof billStatusValues)[number];
 }
 export class UpdateProcurementBillDto {
-  @IsOptional() @IsString() status?: string;
+  @IsOptional() @IsIn(billStatusValues) status?: (typeof billStatusValues)[number];
   @IsOptional() @IsBoolean() gstValid?: boolean;
 }

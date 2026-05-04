@@ -1,4 +1,15 @@
-import { IsString, IsNumber, IsOptional } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
+
+const stageValues = [
+  'DRAFT',
+  'PENDING_ADMIN_FORWARD',
+  'PENDING_OFFICER_VERIFICATION',
+  'PENDING_CFO_REVIEW',
+  'APPROVED',
+  'PARTIALLY_RELEASED',
+  'FULLY_RELEASED',
+  'REJECTED',
+] as const;
 
 export class CreateBudgetProposalDto {
   @IsString() departmentId: string;
@@ -6,9 +17,9 @@ export class CreateBudgetProposalDto {
   @IsNumber() amountCr: number;
   @IsString() justification: string;
   @IsString() requestedBy: string;
-  @IsOptional() @IsString() stage?: string;
+  @IsOptional() @IsIn(stageValues) stage?: (typeof stageValues)[number];
 }
 export class UpdateBudgetProposalDto {
-  @IsOptional() @IsString() stage?: string;
+  @IsOptional() @IsIn(stageValues) stage?: (typeof stageValues)[number];
   @IsOptional() @IsNumber() amountCr?: number;
 }

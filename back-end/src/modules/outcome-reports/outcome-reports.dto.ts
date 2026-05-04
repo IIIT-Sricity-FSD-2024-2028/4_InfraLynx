@@ -1,4 +1,6 @@
-import { IsString, IsNumber, IsOptional } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
+
+const outcomeValues = ['SUCCESSFUL', 'PARTIALLY_SUCCESSFUL', 'UNSUCCESSFUL', 'PENDING'] as const;
 
 export class CreateOutcomeReportDto {
   @IsString() departmentId: string;
@@ -8,11 +10,11 @@ export class CreateOutcomeReportDto {
   @IsString() summary: string;
   @IsNumber() budgetSanctioned: number;
   @IsNumber() budgetUsed: number;
-  @IsString() outcome: string;
+  @IsIn(outcomeValues) outcome: (typeof outcomeValues)[number];
   @IsOptional() @IsString() lessonsLearned?: string;
 }
 export class UpdateOutcomeReportDto {
-  @IsOptional() @IsString() outcome?: string;
+  @IsOptional() @IsIn(outcomeValues) outcome?: (typeof outcomeValues)[number];
   @IsOptional() @IsString() summary?: string;
   @IsOptional() @IsString() lessonsLearned?: string;
 }

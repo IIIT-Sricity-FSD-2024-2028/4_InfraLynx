@@ -263,7 +263,20 @@
 
   async function renderPlanningQueue(context) {
     const { department } = context;
-    const queue = (await getDepartmentData(department.id)).requests.filter((item) => item.status !== "CLOSED");
+    const state = await getState();
+    const departmentData = await getDepartmentData(department.id);
+    const linkedRequestIds = new Set(
+      (departmentData.workOrders || [])
+        .map((wo) => wo.requestId)
+        .filter(Boolean)
+    );
+
+    const queue = (state.requests || []).filter((item) => {
+      if (item.status === "CLOSED" || item.status === "REJECTED") {
+        return false;
+      }
+      return item.departmentId === department.id || linkedRequestIds.has(item.requestId);
+    });
 
     if (!queue.length) {
       elements.planningQueue.innerHTML = '<div class="empty-state">No department requests are currently visible in the officer queue.</div>';

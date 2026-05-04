@@ -1,4 +1,6 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsIn, IsOptional, IsString } from 'class-validator';
+
+const progressStatusValues = ['DRAFT', 'SUBMITTED', 'ACKNOWLEDGED'] as const;
 
 export class CreateProgressReportDto {
   @IsString() departmentId: string;
@@ -6,9 +8,9 @@ export class CreateProgressReportDto {
   @IsOptional() @IsString() workOrderId?: string;
   @IsString() title: string;
   @IsString() summary: string;
-  @IsString() status: string;
+  @IsIn(progressStatusValues) status: (typeof progressStatusValues)[number];
 }
 export class UpdateProgressReportDto {
-  @IsOptional() @IsString() status?: string;
+  @IsOptional() @IsIn(progressStatusValues) status?: (typeof progressStatusValues)[number];
   @IsOptional() @IsString() summary?: string;
 }

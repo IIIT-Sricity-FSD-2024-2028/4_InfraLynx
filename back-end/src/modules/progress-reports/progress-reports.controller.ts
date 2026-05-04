@@ -17,5 +17,5 @@ export class ProgressReportsController {
   @Get(':id') findOne(@Param('id') id: string) { return this.svc.findOne(id); }
   @Post() @Roles('ENGINEER') create(@Body() dto: CreateProgressReportDto) { return this.svc.create(dto); }
   @Patch(':id') @Roles('ENGINEER', 'OFFICER', 'ADMINISTRATOR') update(@Param('id') id: string, @Body() dto: UpdateProgressReportDto) { return this.svc.update(id, dto); }
-  @Delete(':id') @Roles('ADMINISTRATOR') remove(@Param('id') id: string) { return this.svc.remove(id); }
+  @Delete(':id') @Roles('ADMINISTRATOR', 'OFFICER', 'ENGINEER') remove(@Param('id') id: string) { return this.svc.remove(id); }
 }

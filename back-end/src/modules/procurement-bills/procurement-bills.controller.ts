@@ -13,7 +13,7 @@ export class ProcurementBillsController {
     return deptId ? this.svc.findByDepartment(deptId) : this.svc.findAll();
   }
   @Get(':id') findOne(@Param('id') id: string) { return this.svc.findOne(id); }
-  @Post() @Roles('OFFICER', 'ADMINISTRATOR') create(@Body() dto: CreateProcurementBillDto) { return this.svc.create(dto); }
+  @Post() @Roles('OFFICER', 'CFO', 'ADMINISTRATOR') create(@Body() dto: CreateProcurementBillDto) { return this.svc.create(dto); }
   @Patch(':id') @Roles('CFO', 'ADMINISTRATOR') update(@Param('id') id: string, @Body() dto: UpdateProcurementBillDto) { return this.svc.update(id, dto); }
-  @Delete(':id') @Roles('ADMINISTRATOR') remove(@Param('id') id: string) { return this.svc.remove(id); }
+  @Delete(':id') @Roles('CFO', 'ADMINISTRATOR') remove(@Param('id') id: string) { return this.svc.remove(id); }
 }

@@ -78,7 +78,8 @@ frontendServer.on('error', (err) => {
 const isWindows = process.platform === 'win32';
 const npmCmd = isWindows ? 'npm.cmd' : 'npm';
 
-const backend = spawn(npmCmd, ['run', 'start:dev'], {
+const backendScript = process.env.BACKEND_WATCH === '1' ? 'start:dev' : 'start';
+const backend = spawn(npmCmd, ['run', backendScript], {
   cwd: path.join(__dirname, 'back-end'),
   stdio: 'inherit',
   shell: true,

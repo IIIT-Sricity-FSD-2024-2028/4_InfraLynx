@@ -13,5 +13,5 @@ export class FundReleasesController {
   @Get(':id') findOne(@Param('id') id: string) { return this.svc.findOne(id); }
   @Post() @Roles('CFO', 'ADMINISTRATOR') create(@Body() dto: CreateFundReleaseDto) { return this.svc.create(dto); }
   @Patch(':id') @Roles('CFO', 'ADMINISTRATOR') update(@Param('id') id: string, @Body() dto: UpdateFundReleaseDto) { return this.svc.update(id, dto); }
-  @Delete(':id') @Roles('ADMINISTRATOR') remove(@Param('id') id: string) { return this.svc.remove(id); }
+  @Delete(':id') @Roles('CFO', 'ADMINISTRATOR') remove(@Param('id') id: string) { return this.svc.remove(id); }
 }
