@@ -1178,17 +1178,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
-                  }
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -1243,14 +1233,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -1290,14 +1273,7 @@
         },
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -1350,17 +1326,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
-                  }
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -1415,14 +1381,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -1462,14 +1421,7 @@
         },
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -1670,17 +1622,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
-                  }
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -1735,14 +1677,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -1782,14 +1717,7 @@
         },
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -1833,17 +1761,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
-                  }
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -1898,14 +1816,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -1945,14 +1856,7 @@
         },
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -1996,17 +1900,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
-                  }
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2061,14 +1955,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2108,14 +1995,7 @@
         },
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2159,17 +2039,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
-                  }
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2224,14 +2094,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2271,14 +2134,7 @@
         },
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2322,17 +2178,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
-                  }
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2387,14 +2233,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2434,14 +2273,7 @@
         },
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2485,17 +2317,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
-                  }
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2550,14 +2372,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2597,14 +2412,7 @@
         },
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2648,17 +2456,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
-                  }
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2713,14 +2511,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -2760,14 +2551,7 @@
         },
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": ""
           }
         },
         "tags": [
@@ -3226,7 +3010,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -3396,6 +3187,9 @@
           "title": {
             "type": "string"
           },
+          "description": {
+            "type": "string"
+          },
           "locationText": {
             "type": "string"
           },
@@ -3424,15 +3218,14 @@
           },
           "notes": {
             "type": "string"
+          },
+          "isEmergency": {
+            "type": "boolean"
           }
         },
         "required": [
           "departmentId",
-          "title",
-          "locationText",
-          "priority",
-          "status",
-          "dueDate"
+          "title"
         ]
       },
       "UpdateWorkOrderDto": {
@@ -3458,6 +3251,12 @@
               "CANCELLED"
             ]
           },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
           "dueDate": {
             "type": "string"
           },
@@ -3475,6 +3274,9 @@
           },
           "rejectedAt": {
             "type": "string"
+          },
+          "qcPassed": {
+            "type": "boolean"
           }
         }
       },
@@ -3568,17 +3370,15 @@
         },
         "required": [
           "departmentId",
-          "engineerId",
-          "title",
-          "locationText",
-          "severity",
-          "dueDate",
-          "status"
+          "title"
         ]
       },
       "UpdateInspectionDto": {
         "type": "object",
         "properties": {
+          "title": {
+            "type": "string"
+          },
           "severity": {
             "type": "string"
           },
@@ -3586,6 +3386,12 @@
             "type": "string"
           },
           "status": {
+            "type": "string"
+          },
+          "locationText": {
+            "type": "string"
+          },
+          "engineerId": {
             "type": "string"
           }
         }
@@ -3617,21 +3423,28 @@
         },
         "required": [
           "departmentId",
-          "engineerId",
-          "title",
-          "category",
-          "locationText",
-          "severity",
-          "status"
+          "title"
         ]
       },
       "UpdateIssueReportDto": {
         "type": "object",
         "properties": {
+          "title": {
+            "type": "string"
+          },
           "status": {
             "type": "string"
           },
           "severity": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "locationText": {
+            "type": "string"
+          },
+          "engineerId": {
             "type": "string"
           }
         }
@@ -3660,11 +3473,7 @@
         },
         "required": [
           "departmentId",
-          "engineerId",
-          "item",
-          "quantity",
-          "urgency",
-          "status"
+          "item"
         ]
       },
       "UpdateResourceRequestDto": {
@@ -3674,6 +3483,15 @@
             "type": "string"
           },
           "urgency": {
+            "type": "string"
+          },
+          "item": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "string"
+          },
+          "engineerId": {
             "type": "string"
           }
         }
@@ -3707,10 +3525,7 @@
         },
         "required": [
           "departmentId",
-          "engineerId",
-          "title",
-          "summary",
-          "status"
+          "title"
         ]
       },
       "UpdateProgressReportDto": {
@@ -3723,6 +3538,9 @@
               "SUBMITTED",
               "ACKNOWLEDGED"
             ]
+          },
+          "title": {
+            "type": "string"
           },
           "summary": {
             "type": "string"
@@ -3822,7 +3640,6 @@
         "required": [
           "departmentId",
           "vendor",
-          "workOrderId",
           "amountLakhs",
           "gstValid"
         ]
@@ -3842,6 +3659,12 @@
           },
           "gstValid": {
             "type": "boolean"
+          },
+          "vendor": {
+            "type": "string"
+          },
+          "amountLakhs": {
+            "type": "number"
           }
         }
       },
@@ -3984,14 +3807,15 @@
         },
         "required": [
           "departmentId",
-          "title",
-          "frequency",
-          "nextDate"
+          "title"
         ]
       },
       "UpdateMaintenanceScheduleDto": {
         "type": "object",
         "properties": {
+          "title": {
+            "type": "string"
+          },
           "frequency": {
             "type": "string"
           },
@@ -4036,17 +3860,15 @@
         },
         "required": [
           "departmentId",
-          "engineerId",
-          "title",
-          "activity",
-          "hoursSpent",
-          "date",
-          "status"
+          "title"
         ]
       },
       "UpdateMaintenanceLogDto": {
         "type": "object",
         "properties": {
+          "title": {
+            "type": "string"
+          },
           "status": {
             "type": "string"
           },
@@ -4055,6 +3877,9 @@
           },
           "hoursSpent": {
             "type": "number"
+          },
+          "date": {
+            "type": "string"
           }
         }
       },
@@ -4088,17 +3913,19 @@
         },
         "required": [
           "departmentId",
-          "engineerId",
-          "sensorType",
-          "assetLocation",
-          "serialNo",
-          "status"
+          "sensorType"
         ]
       },
       "UpdateSensorDeploymentDto": {
         "type": "object",
         "properties": {
           "status": {
+            "type": "string"
+          },
+          "sensorType": {
+            "type": "string"
+          },
+          "assetLocation": {
             "type": "string"
           },
           "notes": {
@@ -4136,17 +3963,22 @@
         },
         "required": [
           "departmentId",
-          "engineerId",
-          "material",
-          "quantity",
-          "unit",
-          "usedOn"
+          "material"
         ]
       },
       "UpdateMaterialLogDto": {
         "type": "object",
         "properties": {
+          "material": {
+            "type": "string"
+          },
           "quantity": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "usedOn": {
             "type": "string"
           },
           "notes": {
@@ -4193,13 +4025,7 @@
         },
         "required": [
           "departmentId",
-          "workOrderId",
-          "preparedBy",
-          "title",
-          "summary",
-          "budgetSanctioned",
-          "budgetUsed",
-          "outcome"
+          "title"
         ]
       },
       "UpdateOutcomeReportDto": {
@@ -4214,11 +4040,17 @@
               "PENDING"
             ]
           },
+          "title": {
+            "type": "string"
+          },
           "summary": {
             "type": "string"
           },
           "lessonsLearned": {
             "type": "string"
+          },
+          "budgetUsed": {
+            "type": "number"
           }
         }
       },

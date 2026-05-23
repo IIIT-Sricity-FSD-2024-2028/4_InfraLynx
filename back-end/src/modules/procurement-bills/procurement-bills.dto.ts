@@ -5,7 +5,7 @@ const billStatusValues = ['SUBMITTED', 'UNDER_VERIFICATION', 'APPROVED', 'REJECT
 export class CreateProcurementBillDto {
   @IsString() departmentId: string;
   @IsString() vendor: string;
-  @IsString() workOrderId: string;
+  @IsOptional() @IsString() workOrderId?: string;
   @IsNumber() amountLakhs: number;
   @IsBoolean() gstValid: boolean;
   @IsOptional() @IsIn(billStatusValues) status?: (typeof billStatusValues)[number];
@@ -13,4 +13,6 @@ export class CreateProcurementBillDto {
 export class UpdateProcurementBillDto {
   @IsOptional() @IsIn(billStatusValues) status?: (typeof billStatusValues)[number];
   @IsOptional() @IsBoolean() gstValid?: boolean;
+  @IsOptional() @IsString() vendor?: string;
+  @IsOptional() @IsNumber() amountLakhs?: number;
 }

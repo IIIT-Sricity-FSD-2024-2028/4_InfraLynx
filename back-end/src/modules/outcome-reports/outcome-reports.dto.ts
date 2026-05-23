@@ -4,17 +4,19 @@ const outcomeValues = ['SUCCESSFUL', 'PARTIALLY_SUCCESSFUL', 'UNSUCCESSFUL', 'PE
 
 export class CreateOutcomeReportDto {
   @IsString() departmentId: string;
-  @IsString() workOrderId: string;
-  @IsString() preparedBy: string;
+  @IsOptional() @IsString() workOrderId?: string;
+  @IsOptional() @IsString() preparedBy?: string;
   @IsString() title: string;
-  @IsString() summary: string;
-  @IsNumber() budgetSanctioned: number;
-  @IsNumber() budgetUsed: number;
-  @IsIn(outcomeValues) outcome: (typeof outcomeValues)[number];
+  @IsOptional() @IsString() summary?: string;
+  @IsOptional() @IsNumber() budgetSanctioned?: number;
+  @IsOptional() @IsNumber() budgetUsed?: number;
+  @IsOptional() @IsIn(outcomeValues) outcome?: (typeof outcomeValues)[number];
   @IsOptional() @IsString() lessonsLearned?: string;
 }
 export class UpdateOutcomeReportDto {
   @IsOptional() @IsIn(outcomeValues) outcome?: (typeof outcomeValues)[number];
+  @IsOptional() @IsString() title?: string;
   @IsOptional() @IsString() summary?: string;
   @IsOptional() @IsString() lessonsLearned?: string;
+  @IsOptional() @IsNumber() budgetUsed?: number;
 }

@@ -1,5 +1,6 @@
-import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { citizenUsers, officialAccounts, officialRoles } from '../../data/seed.data';
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException, Inject } from '@nestjs/common';
+import { Pool } from 'pg';
+import { DB_POOL } from '../../database/database.module';
 import {
   CitizenDemoSignInDto,
   CitizenLookupDto,
@@ -10,9 +11,7 @@ import {
   ResetPasswordDto,
   UpdateOfficialAccountDto,
 } from './demo-access.dto';
-
-let nextCitizenIdx = citizenUsers.length;
-let nextOfficialIdx = officialAccounts.length;
+import { officialRoles } from '../../data/seed.data';
 
 function withoutPassword<T extends { password?: string }>(record: T) {
   const { password: _password, ...safeRecord } = record;
@@ -21,21 +20,22 @@ function withoutPassword<T extends { password?: string }>(record: T) {
 
 @Injectable()
 export class DemoAccessService {
+  constructor(@Inject(DB_POOL) private readonly db: Pool) {}
+
   findOfficialRoles() {
     return officialRoles;
   }
 
-  signInOfficial(dto: OfficialDemoSignInDto) {
-    const account = officialAccounts.find((item) => item.email.toLowerCase() === dto.email.toLowerCase());
-
+  async signInOfficial(dto: OfficialDemoSignInDto) {
+    const { rows } = await this.db.query('SELECT * FROM official_accounts WHERE LOWER(email) = LOWER($1)', [dto.email]);
+    const account = rows[0];
     if (!account || account.password !== dto.password || (dto.role && account.role !== dto.role)) {
       throw new UnauthorizedException('Demo official sign-in failed.');
     }
-
     return {
       demoOnly: true,
-      authModel: 'in-memory',
-      account: withoutPassword(account),
+      authModel: 'postgresql',
+      account: withoutPassword(this.mapOfficial(account)),
       session: {
         type: 'official',
         officialId: account.id,
@@ -46,21 +46,16 @@ export class DemoAccessService {
     };
   }
 
-  signInCitizen(dto: CitizenDemoSignInDto) {
-    const normalizedIdentifier = dto.identifier.trim().toLowerCase();
-    const citizen = citizenUsers.find((item) => {
-      return item.aadhaar === normalizedIdentifier || item.email.toLowerCase() === normalizedIdentifier;
-    });
-
-    if (!citizen || citizen.password !== dto.password) {
-      throw new UnauthorizedException('Demo citizen sign-in failed.');
-    }
-
+  async signInCitizen(dto: CitizenDemoSignInDto) {
+    const normalized = dto.identifier.trim().toLowerCase();
+    const { rows } = await this.db.query('SELECT * FROM citizen_users WHERE aadhaar = $1 OR LOWER(email) = $2', [normalized, normalized]);
+    const citizen = rows[0];
+    if (!citizen || citizen.password !== dto.password) throw new UnauthorizedException('Demo citizen sign-in failed.');
     return {
       demoOnly: true,
-      authModel: 'in-memory',
+      authModel: 'postgresql',
       note: 'Citizen access is a prototype convenience. Citizens remain public requesters in the current domain model.',
-      account: withoutPassword(citizen),
+      account: withoutPassword(this.mapCitizen(citizen)),
       session: {
         type: 'citizen',
         citizenId: citizen.id,
@@ -73,136 +68,119 @@ export class DemoAccessService {
     };
   }
 
-  findCitizenByIdentifier(dto: CitizenLookupDto) {
-    const normalizedIdentifier = dto.identifier.trim().toLowerCase();
-    const citizen = citizenUsers.find((item) => {
-      return item.aadhaar === normalizedIdentifier || item.email.toLowerCase() === normalizedIdentifier;
-    });
-    if (!citizen) {
-      throw new NotFoundException('Citizen account not found.');
-    }
-    return withoutPassword(citizen);
+  async findCitizenByIdentifier(dto: CitizenLookupDto) {
+    const normalized = dto.identifier.trim().toLowerCase();
+    const { rows } = await this.db.query('SELECT * FROM citizen_users WHERE aadhaar = $1 OR LOWER(email) = $2', [normalized, normalized]);
+    if (!rows.length) throw new NotFoundException('Citizen account not found.');
+    return withoutPassword(this.mapCitizen(rows[0]));
   }
 
-  findOfficialByEmail(dto: OfficialLookupDto) {
-    const official = officialAccounts.find((item) => item.email.toLowerCase() === dto.email.toLowerCase());
-    if (!official) {
-      throw new NotFoundException('Official account not found.');
-    }
-    return withoutPassword(official);
+  async findOfficialByEmail(dto: OfficialLookupDto) {
+    const { rows } = await this.db.query('SELECT * FROM official_accounts WHERE LOWER(email) = LOWER($1)', [dto.email]);
+    if (!rows.length) throw new NotFoundException('Official account not found.');
+    return withoutPassword(this.mapOfficial(rows[0]));
   }
 
-  resetCitizenPassword(dto: ResetPasswordDto) {
-    const normalizedIdentifier = dto.identifier.trim().toLowerCase();
-    const idx = citizenUsers.findIndex((item) => {
-      return item.aadhaar === normalizedIdentifier || item.email.toLowerCase() === normalizedIdentifier;
-    });
-    if (idx === -1) {
-      throw new NotFoundException('Citizen account not found.');
-    }
-    citizenUsers[idx] = { ...citizenUsers[idx], password: dto.password };
+  async resetCitizenPassword(dto: ResetPasswordDto) {
+    const normalized = dto.identifier.trim().toLowerCase();
+    const { rows: existing } = await this.db.query('SELECT id FROM citizen_users WHERE aadhaar = $1 OR LOWER(email) = $2', [normalized, normalized]);
+    if (!existing.length) throw new NotFoundException('Citizen account not found.');
+    await this.db.query('UPDATE citizen_users SET password = $1 WHERE id = $2', [dto.password, existing[0].id]);
     return { updated: true };
   }
 
-  resetOfficialPassword(dto: ResetPasswordDto) {
-    const normalizedEmail = dto.identifier.trim().toLowerCase();
-    const idx = officialAccounts.findIndex((item) => item.email.toLowerCase() === normalizedEmail);
-    if (idx === -1) {
-      throw new NotFoundException('Official account not found.');
-    }
-    officialAccounts[idx] = { ...officialAccounts[idx], password: dto.password };
+  async resetOfficialPassword(dto: ResetPasswordDto) {
+    const normalized = dto.identifier.trim().toLowerCase();
+    const { rows: existing } = await this.db.query('SELECT id FROM official_accounts WHERE LOWER(email) = $1', [normalized]);
+    if (!existing.length) throw new NotFoundException('Official account not found.');
+    await this.db.query('UPDATE official_accounts SET password = $1 WHERE id = $2', [dto.password, existing[0].id]);
     return { updated: true };
   }
 
-  // ── Citizen Registration ──────────────────────────────────────────────────
+  async registerCitizen(dto: CitizenRegisterDto) {
+    const { rows: aadhaarMatch } = await this.db.query('SELECT id FROM citizen_users WHERE aadhaar = $1', [dto.aadhaar]);
+    if (aadhaarMatch.length) throw new BadRequestException('An account already exists for this Aadhaar number.');
+    const { rows: emailMatch } = await this.db.query('SELECT id FROM citizen_users WHERE LOWER(email) = LOWER($1)', [dto.email]);
+    if (emailMatch.length) throw new BadRequestException('This email is already linked to an existing citizen account.');
 
-  registerCitizen(dto: CitizenRegisterDto) {
-    const aadhaarMatch = citizenUsers.find((u) => u.aadhaar === dto.aadhaar);
-    if (aadhaarMatch) {
-      throw new BadRequestException('An account already exists for this Aadhaar number.');
-    }
-
-    const emailMatch = citizenUsers.find((u) => u.email.toLowerCase() === dto.email.toLowerCase());
-    if (emailMatch) {
-      throw new BadRequestException('This email is already linked to an existing citizen account.');
-    }
-
-    nextCitizenIdx++;
-    const record = {
-      id: `citizen-${String(nextCitizenIdx).padStart(3, '0')}`,
-      aadhaar: dto.aadhaar,
-      name: dto.name,
-      phone: dto.phone,
-      email: dto.email,
-      password: dto.password,
-      preferredLanguage: dto.preferredLanguage || 'en',
-      createdAt: new Date().toISOString(),
-    };
-
-    citizenUsers.unshift(record);
-    return withoutPassword(record);
+    const countRes = await this.db.query('SELECT COUNT(*) AS cnt FROM citizen_users');
+    const idx = parseInt(countRes.rows[0].cnt) + 1;
+    const id = `citizen-${String(idx).padStart(3, '0')}`;
+    const { rows } = await this.db.query(
+      `INSERT INTO citizen_users (id, aadhaar, name, phone, email, password, preferred_language) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [id, dto.aadhaar, dto.name, dto.phone, dto.email, dto.password, dto.preferredLanguage || 'en'],
+    );
+    return withoutPassword(this.mapCitizen(rows[0]));
   }
 
-  // ── Official Accounts CRUD ────────────────────────────────────────────────
-
-  findAllOfficialAccounts() {
-    return officialAccounts.map(withoutPassword);
+  async findAllOfficialAccounts() {
+    const { rows } = await this.db.query('SELECT * FROM official_accounts ORDER BY id');
+    return rows.map(r => withoutPassword(this.mapOfficial(r)));
   }
 
-  findOneOfficialAccount(id: string) {
-    const account = officialAccounts.find((a) => a.id === id);
-    if (!account) throw new NotFoundException('Official account not found.');
-    return withoutPassword(account);
+  async findOneOfficialAccount(id: string) {
+    const { rows } = await this.db.query('SELECT * FROM official_accounts WHERE id = $1', [id]);
+    if (!rows.length) throw new NotFoundException('Official account not found.');
+    return withoutPassword(this.mapOfficial(rows[0]));
   }
 
-  createOfficialAccount(dto: CreateOfficialAccountDto) {
-    const emailMatch = officialAccounts.find((a) => a.email.toLowerCase() === dto.email.toLowerCase());
-    if (emailMatch) {
-      throw new BadRequestException('An official account already exists for this email address.');
-    }
-
-    nextOfficialIdx++;
-    const record = {
-      id: `official-${String(nextOfficialIdx).padStart(2, '0')}`,
-      role: dto.role,
-      name: dto.name,
-      email: dto.email.toLowerCase(),
-      password: dto.password,
-      departmentId: dto.departmentId || null,
-    };
-
-    officialAccounts.unshift(record);
-    return withoutPassword(record);
+  async createOfficialAccount(dto: CreateOfficialAccountDto) {
+    const { rows: emailMatch } = await this.db.query('SELECT id FROM official_accounts WHERE LOWER(email) = LOWER($1)', [dto.email]);
+    if (emailMatch.length) throw new BadRequestException('An official account already exists for this email address.');
+    const countRes = await this.db.query('SELECT COUNT(*) AS cnt FROM official_accounts');
+    const idx = parseInt(countRes.rows[0].cnt) + 1;
+    const id = `official-${String(idx).padStart(2, '0')}`;
+    const { rows } = await this.db.query(
+      `INSERT INTO official_accounts (id, role, name, email, password, department_id) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      [id, dto.role, dto.name, dto.email.toLowerCase(), dto.password, dto.departmentId || null],
+    );
+    return withoutPassword(this.mapOfficial(rows[0]));
   }
 
-  updateOfficialAccount(id: string, dto: UpdateOfficialAccountDto) {
-    const idx = officialAccounts.findIndex((a) => a.id === id);
-    if (idx === -1) throw new NotFoundException('Official account not found.');
-
+  async updateOfficialAccount(id: string, dto: UpdateOfficialAccountDto) {
+    const { rows: existing } = await this.db.query('SELECT * FROM official_accounts WHERE id = $1', [id]);
+    if (!existing.length) throw new NotFoundException('Official account not found.');
     if (dto.email) {
-      const emailDup = officialAccounts.find(
-        (a) => a.email.toLowerCase() === dto.email.toLowerCase() && a.id !== id,
-      );
-      if (emailDup) {
-        throw new BadRequestException('An official account already exists for this email address.');
-      }
+      const { rows: emailDup } = await this.db.query('SELECT id FROM official_accounts WHERE LOWER(email) = LOWER($1) AND id <> $2', [dto.email, id]);
+      if (emailDup.length) throw new BadRequestException('An official account already exists for this email address.');
     }
-
-    const current = officialAccounts[idx];
-    const updated = {
-      ...current,
-      ...dto,
-      email: dto.email ? dto.email.toLowerCase() : current.email,
-      departmentId: dto.departmentId !== undefined ? dto.departmentId : current.departmentId,
-    };
-    officialAccounts[idx] = updated;
-    return withoutPassword(updated);
+    const current = this.mapOfficial(existing[0]);
+    const { rows } = await this.db.query(
+      `UPDATE official_accounts SET name=$1, email=$2, role=$3, department_id=$4 WHERE id=$5 RETURNING *`,
+      [dto.name ?? current.name, dto.email ? dto.email.toLowerCase() : current.email,
+       dto.role ?? current.role, dto.departmentId !== undefined ? dto.departmentId : current.departmentId, id],
+    );
+    return withoutPassword(this.mapOfficial(rows[0]));
   }
 
-  removeOfficialAccount(id: string) {
-    const idx = officialAccounts.findIndex((a) => a.id === id);
-    if (idx === -1) throw new NotFoundException('Official account not found.');
-    officialAccounts.splice(idx, 1);
+  async removeOfficialAccount(id: string) {
+    const { rows } = await this.db.query('SELECT id FROM official_accounts WHERE id = $1', [id]);
+    if (!rows.length) throw new NotFoundException('Official account not found.');
+    await this.db.query('DELETE FROM official_accounts WHERE id = $1', [id]);
     return { deleted: true };
+  }
+
+  private mapCitizen(r: any) {
+    return {
+      id: r.id,
+      aadhaar: r.aadhaar,
+      name: r.name,
+      phone: r.phone,
+      email: r.email,
+      password: r.password,
+      preferredLanguage: r.preferred_language,
+      createdAt: r.created_at,
+    };
+  }
+
+  private mapOfficial(r: any) {
+    return {
+      id: r.id,
+      role: r.role,
+      name: r.name,
+      email: r.email,
+      password: r.password,
+      departmentId: r.department_id,
+    };
   }
 }
