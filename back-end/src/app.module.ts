@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './common/roles.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { DatabaseModule } from './database/database.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { ServiceCategoriesModule } from './modules/service-categories/service-categories.module';
 import { RequestsModule } from './modules/requests/requests.module';
@@ -24,6 +25,7 @@ import { PublicInsightsModule } from './modules/public-insights/public-insights.
 
 @Module({
   imports: [
+    DatabaseModule,
     DepartmentsModule,
     ServiceCategoriesModule,
     RequestsModule,

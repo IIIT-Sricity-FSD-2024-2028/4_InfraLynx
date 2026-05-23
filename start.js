@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 
 const BACKEND_PORT = Number(process.env.BACKEND_PORT || 3000);
-const FRONTEND_PORT = Number(process.env.FRONTEND_PORT || 3001);
+const FRONTEND_PORT = Number(process.env.FRONTEND_PORT || 5000);
 const FRONTEND_DIR = path.join(__dirname, 'front-end');
 
 // ── MIME types ────────────────────────────────────────────────────────────────
@@ -59,8 +59,8 @@ const frontendServer = http.createServer((req, res) => {
   });
 });
 
-frontendServer.listen(FRONTEND_PORT, () => {
-  console.log(`\x1b[36m[Frontend]\x1b[0m  ✓ Serving front-end at http://localhost:${FRONTEND_PORT}`);
+frontendServer.listen(FRONTEND_PORT, '0.0.0.0', () => {
+  console.log(`\x1b[36m[Frontend]\x1b[0m  ✓ Serving front-end at http://0.0.0.0:${FRONTEND_PORT}`);
 });
 
 frontendServer.on('error', (err) => {

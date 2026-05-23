@@ -5,7 +5,9 @@
 (function attachApiClient(globalScope) {
   const crims = (globalScope.CRIMS = globalScope.CRIMS || {});
 
-  const API_BASE = 'http://localhost:3000';
+  const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '0.0.0.0'
+    ? 'http://localhost:3000'
+    : `${window.location.protocol}//${window.location.hostname.replace(/^(\d+)-/, '3000-')}:${window.location.port}`;
 
   function getSessionRole() {
     try {
