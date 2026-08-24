@@ -1,15 +1,33 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import * as fs from 'fs';
 import * as path from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Security middleware: HTTP security headers (CSP, XSS, no-sniff, etc.)
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
 
   // Enable CORS so the front-end (file:// or localhost) can call the API
   app.enableCors({ origin: '*' });
+
+  // Serve uploaded evidence photos and files statically
+  const uploadsDir = path.resolve(__dirname, '..', 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  app.useStaticAssets(uploadsDir, {
+    prefix: '/uploads/',
+  });
 
   // Global validation — strip unknown fields, throw on bad DTOs
   app.useGlobalPipes(
@@ -80,7 +98,7 @@ async function bootstrap() {
   // Save the generated json to docs/swagger.json for reference
   const docsDir = path.join(__dirname, '..', 'docs');
   if (!fs.existsSync(docsDir)) {
-    fs.mkdirSync(docsDir);
+    fs.mkdirSync(docsDir, { recursive: true });
   }
   fs.writeFileSync(path.join(docsDir, 'swagger.json'), JSON.stringify(document, null, 2));
 
