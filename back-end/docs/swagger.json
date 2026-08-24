@@ -22,6 +22,47 @@
         ]
       }
     },
+    "/uploads/photo": {
+      "post": {
+        "operationId": "UploadsController_uploadPhoto",
+        "parameters": [
+          {
+            "name": "X-Role",
+            "in": "header",
+            "description": "Allowed roles: ENGINEER, OFFICER, ADMINISTRATOR, QC_REVIEWER",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "photo": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Upload an inspection/evidence photo or document",
+        "tags": [
+          "Uploads"
+        ]
+      }
+    },
     "/departments": {
       "get": {
         "operationId": "DepartmentsController_findAll",

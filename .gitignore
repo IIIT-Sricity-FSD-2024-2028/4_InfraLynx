@@ -32,7 +32,14 @@ eslint.config.js
 
 # ── Logs ──────────────────────────────────────────────
 *.log
-logs/
+logs/*
+!logs/.gitkeep
+back-end/logs/*
+!back-end/logs/.gitkeep
+
+# ── Uploaded files (evidence photos etc.) ─────────────
+back-end/uploads/*
+!back-end/uploads/.gitkeep
 
 # ── Test coverage ─────────────────────────────────────
 coverage/

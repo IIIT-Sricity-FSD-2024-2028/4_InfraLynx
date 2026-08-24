@@ -1,8 +1,13 @@
-import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './common/roles.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { LoggingModule } from './common/logging/logging.module';
+import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { RateLimitMiddleware } from './common/middleware/rate-limit.middleware';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { UploadsModule } from './modules/uploads/uploads.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { ServiceCategoriesModule } from './modules/service-categories/service-categories.module';
 import { RequestsModule } from './modules/requests/requests.module';
@@ -24,6 +29,8 @@ import { PublicInsightsModule } from './modules/public-insights/public-insights.
 
 @Module({
   imports: [
+    LoggingModule,
+    UploadsModule,
     DepartmentsModule,
     ServiceCategoriesModule,
     RequestsModule,
@@ -50,6 +57,15 @@ import { PublicInsightsModule } from './modules/public-insights/public-insights.
       provide: APP_GUARD,
       useClass: RolesGuard,
     },
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
   ],
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Router-level middleware: applied via MiddlewareConsumer and scoped to all routes ('*')
+    consumer.apply(RateLimitMiddleware, LoggerMiddleware).forRoutes('*');
+  }
+}
