@@ -6,6 +6,7 @@
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
         "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
         "target": "es2021",
         "sourceMap": true,
         "outDir": "./dist",
@@ -16,6 +17,10 @@
         "noImplicitAny": false,
         "strictBindCallApply": false,
         "forceConsistentCasingInFileNames": false,
-        "types": ["node", "jest"]
+        "types": [
+            "node",
+            "jest",
+            "multer"
+        ]
     }
 }
