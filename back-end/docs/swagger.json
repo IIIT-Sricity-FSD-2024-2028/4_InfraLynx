@@ -3605,6 +3605,9 @@
           },
           "status": {
             "type": "string"
+          },
+          "photoUrl": {
+            "type": "string"
           }
         },
         "required": [
@@ -3627,6 +3630,9 @@
             "type": "string"
           },
           "status": {
+            "type": "string"
+          },
+          "photoUrl": {
             "type": "string"
           }
         }
@@ -3653,6 +3659,9 @@
             "type": "string"
           },
           "status": {
+            "type": "string"
+          },
+          "photoUrl": {
             "type": "string"
           }
         },
@@ -3744,6 +3753,9 @@
               "SUBMITTED",
               "ACKNOWLEDGED"
             ]
+          },
+          "photoUrl": {
+            "type": "string"
           }
         },
         "required": [
@@ -3766,6 +3778,9 @@
             ]
           },
           "summary": {
+            "type": "string"
+          },
+          "photoUrl": {
             "type": "string"
           }
         }
@@ -4073,6 +4088,9 @@
           },
           "status": {
             "type": "string"
+          },
+          "photoUrl": {
+            "type": "string"
           }
         },
         "required": [
@@ -4230,6 +4248,9 @@
           },
           "lessonsLearned": {
             "type": "string"
+          },
+          "photoUrl": {
+            "type": "string"
           }
         },
         "required": [
@@ -4259,6 +4280,9 @@
             "type": "string"
           },
           "lessonsLearned": {
+            "type": "string"
+          },
+          "photoUrl": {
             "type": "string"
           }
         }
