@@ -724,17 +724,24 @@
     if (!elements.progressInboxBody) return;
     const data = await getDepartmentData(context.department.id);
     if (!data.progressReports.length) {
-      elements.progressInboxBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No progress reports in the inbox yet.</div></td></tr>';
+      elements.progressInboxBody.innerHTML = '<tr><td colspan="6"><div class="empty-state">No progress reports in the inbox yet.</div></td></tr>';
       return;
     }
     elements.progressInboxBody.innerHTML = data.progressReports.map((item) => {
       const dt = item.submittedAt ? new Date(item.submittedAt).toLocaleDateString("en-IN") : "";
       const isAcknowledged = item.status === "ACKNOWLEDGED";
+      const fileUrl = item.photoUrl
+        ? (item.photoUrl.startsWith("http") ? item.photoUrl : ((globalScope.CRIMS.api.API_BASE || "") + item.photoUrl))
+        : null;
+      const fileCell = fileUrl
+        ? `<a class="text-button" href="${escapeHtml(fileUrl)}" target="_blank" rel="noopener noreferrer">📎 View File</a>`
+        : '<span class="mono">-</span>';
       return `
         <tr>
           <td><strong>${escapeHtml(item.title)}</strong></td>
           <td>${escapeHtml(dt)}</td>
-          <td>${escapeHtml(item.summary ? item.summary.slice(0, 60) + (item.summary.length > 60 ? 'â€¦' : '') : '')}</td>
+          <td>${escapeHtml(item.summary ? item.summary.slice(0, 60) + (item.summary.length > 60 ? '…' : '') : '')}</td>
+          <td>${fileCell}</td>
           <td><span class="status-pill ${isAcknowledged ? 'neutral' : 'warning'}">${escapeHtml(formatStatus(item.status))}</span></td>
           <td><div class="row-actions">
             ${!isAcknowledged ? `<button class="text-button" type="button" data-report-ack="${item.id}">Acknowledge</button>` : '<span class="mono">Done</span>'}
