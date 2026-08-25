@@ -488,7 +488,8 @@
     const body = {
       departmentId: payload.departmentId, engineerId: payload.engineerId,
       workOrderId: payload.workOrderId || "", title: payload.title,
-      summary: payload.summary, status: payload.status
+      summary: payload.summary, status: payload.status,
+      photoUrl: payload.photoUrl || ""
     };
     let record;
     if (payload.id) {
