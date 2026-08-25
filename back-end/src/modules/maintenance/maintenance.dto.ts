@@ -23,6 +23,7 @@ export class CreateMaintenanceLogDto {
   @IsNumber() hoursSpent: number;
   @IsString() date: string;
   @IsString() status: string;
+  @IsOptional() @IsString() photoUrl?: string;
 }
 export class UpdateMaintenanceLogDto {
   @IsOptional() @IsString() status?: string;

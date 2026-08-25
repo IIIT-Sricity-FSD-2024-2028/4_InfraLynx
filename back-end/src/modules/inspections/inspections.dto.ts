@@ -8,9 +8,11 @@ export class CreateInspectionDto {
   @IsString() severity: string;
   @IsString() dueDate: string;
   @IsString() status: string;
+  @IsOptional() @IsString() photoUrl?: string;
 }
 export class UpdateInspectionDto {
   @IsOptional() @IsString() severity?: string;
   @IsOptional() @IsString() dueDate?: string;
   @IsOptional() @IsString() status?: string;
+  @IsOptional() @IsString() photoUrl?: string;
 }
