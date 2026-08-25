@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CRIMS API Client
  * Thin HTTP wrapper that every data-store function uses to talk to the NestJS backend.
  */
@@ -76,6 +76,21 @@
     return handleResponse(res);
   }
 
-  crims.api = { get, post, patch, del, API_BASE };
+
+  async function uploadFile(file, role) {
+    const fd = new FormData();
+    fd.append('photo', file);
+    const effectiveRole = role || getSessionRole();
+    const res = await fetch(`${API_BASE}/uploads/photo`, {
+      method: 'POST',
+      // No Content-Type header — browser sets multipart boundary automatically
+      headers: effectiveRole ? { 'x-role': effectiveRole } : {},
+      body: fd,
+    });
+    return handleResponse(res);
+  }
+
+  crims.api = { get, post, patch, del, uploadFile, API_BASE };
+
 })(window);
 

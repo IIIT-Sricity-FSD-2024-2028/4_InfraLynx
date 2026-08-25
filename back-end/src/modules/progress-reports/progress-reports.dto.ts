@@ -9,8 +9,10 @@ export class CreateProgressReportDto {
   @IsString() title: string;
   @IsString() summary: string;
   @IsIn(progressStatusValues) status: (typeof progressStatusValues)[number];
+  @IsOptional() @IsString() photoUrl?: string;
 }
 export class UpdateProgressReportDto {
   @IsOptional() @IsIn(progressStatusValues) status?: (typeof progressStatusValues)[number];
   @IsOptional() @IsString() summary?: string;
+  @IsOptional() @IsString() photoUrl?: string;
 }

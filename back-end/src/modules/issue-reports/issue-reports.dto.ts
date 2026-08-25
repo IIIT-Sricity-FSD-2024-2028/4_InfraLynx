@@ -8,6 +8,7 @@ export class CreateIssueReportDto {
   @IsString() locationText: string;
   @IsString() severity: string;
   @IsString() status: string;
+  @IsOptional() @IsString() photoUrl?: string;
 }
 export class UpdateIssueReportDto {
   @IsOptional() @IsString() status?: string;

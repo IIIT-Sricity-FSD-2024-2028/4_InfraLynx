@@ -1,4 +1,4 @@
-﻿(function bootstrapEngineer(globalScope) {
+(function bootstrapEngineer(globalScope) {
   const {
     clearSession,
     deleteInspection,
@@ -111,10 +111,138 @@
     element.classList.remove("hidden");
   }
 
+  /**
+   * createUploadWidget
+   *
+   * Injects a drag-and-drop photo upload widget into `container`.
+   * On file pick the file is immediately sent to POST /uploads/photo.
+   * The returned URL is written into `hiddenInput`.
+   * Exposes a .clear() method for form resets.
+   *
+   * @param {HTMLElement} container - The .upload-widget div in the form
+   * @param {HTMLInputElement} hiddenInput - The hidden <input name="photoUrl">
+   * @param {string} role - The engineer session role (for x-role header)
+   * @returns {{ clear: () => void }}
+   */
+  function createUploadWidget(container, hiddenInput, role) {
+    // ── Build DOM ──────────────────────────────────────────────
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".jpg,.jpeg,.png,.webp,.pdf";
+    fileInput.id = container.id + "-input";
+
+    const triggerBtn = document.createElement("label");
+    triggerBtn.className = "upload-trigger-btn";
+    triggerBtn.htmlFor = fileInput.id;
+    triggerBtn.innerHTML = "📎 Attach photo / PDF";
+
+    const hint = document.createElement("span");
+    hint.className = "upload-hint";
+    hint.textContent = "Max 5 MB · jpg png webp pdf";
+
+    const dropZone = document.createElement("div");
+    dropZone.className = "upload-drop-zone";
+    dropZone.appendChild(fileInput);
+    dropZone.appendChild(triggerBtn);
+    dropZone.appendChild(hint);
+
+    const statusRow = document.createElement("div");
+    statusRow.className = "upload-status";
+
+    const previewRow = document.createElement("div");
+    previewRow.className = "upload-preview-row";
+    previewRow.style.display = "none";
+
+    container.innerHTML = "";
+    container.appendChild(dropZone);
+    container.appendChild(statusRow);
+    container.appendChild(previewRow);
+
+    // ── Helpers ────────────────────────────────────────────────
+    function formatBytes(bytes) {
+      if (bytes < 1024) return bytes + " B";
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+      return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    }
+
+    function setStatus(state, text) {
+      statusRow.className = "upload-status" + (state ? " " + state : "");
+      if (state === "uploading") {
+        statusRow.innerHTML = `<span class="upload-spinner"></span><span>${text}</span>`;
+      } else if (state === "success") {
+        statusRow.innerHTML = `<span>✓ ${text}</span>`;
+      } else if (state === "error") {
+        statusRow.innerHTML = `<span>✗ ${text}</span>`;
+      } else {
+        statusRow.innerHTML = "";
+      }
+    }
+
+    function showPreview(file, uploadedUrl) {
+      const isImage = file.type.startsWith("image/");
+      previewRow.innerHTML = `
+        ${
+          isImage
+            ? `<img class="upload-thumb" src="${uploadedUrl}" alt="Preview">`
+            : `<div class="upload-thumb-icon">📄</div>`
+        }
+        <div class="upload-preview-info">
+          <div class="upload-preview-name">${file.name}</div>
+          <div class="upload-preview-size">${formatBytes(file.size)}</div>
+        </div>
+        <button type="button" class="upload-remove-btn" aria-label="Remove attachment">✕ Remove</button>
+      `;
+      previewRow.style.display = "flex";
+      previewRow.querySelector(".upload-remove-btn").addEventListener("click", clear);
+    }
+
+    function clear() {
+      fileInput.value = "";
+      hiddenInput.value = "";
+      previewRow.style.display = "none";
+      previewRow.innerHTML = "";
+      setStatus("", "");
+    }
+
+    // ── Upload handler ─────────────────────────────────────────
+    async function handleFile(file) {
+      if (!file) return;
+      clear();
+      setStatus("uploading", "Uploading…");
+      try {
+        const result = await globalScope.CRIMS.api.uploadFile(file, role);
+        hiddenInput.value = result.url;
+        setStatus("success", file.name);
+        showPreview(file, globalScope.CRIMS.api.API_BASE + result.url);
+      } catch (err) {
+        setStatus("error", err.message || "Upload failed");
+      }
+    }
+
+    // ── Events ─────────────────────────────────────────────────
+    fileInput.addEventListener("change", () => handleFile(fileInput.files[0]));
+
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("drag-over");
+    });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("drag-over");
+      handleFile(e.dataTransfer.files[0]);
+    });
+
+    return { clear };
+  }
+
+
+
   function getAuthorizedSession() {
     const session = getSession();
     return session && session.type === "official" && session.role === "ENGINEER" ? session : null;
   }
+
 
   async function getEngineerContext() {
     const session = getAuthorizedSession();
@@ -555,22 +683,24 @@
     await renderSensorTable(context);
   }
 
-  function resetInspectionForm(context) {
+  function resetInspectionForm(context, widget) {
     elements.inspectionForm.reset();
     elements.inspectionForm.elements.id.value = "";
     elements.inspectionForm.elements.departmentId.value = context.department.id;
     elements.inspectionForm.elements.engineerId.value = context.account.id;
     elements.inspectionFormTitle.textContent = "Add inspection";
     showError(elements.inspectionError, "");
+    if (widget) widget.clear();
   }
 
-  function resetIssueForm(context) {
+  function resetIssueForm(context, widget) {
     elements.issueForm.reset();
     elements.issueForm.elements.id.value = "";
     elements.issueForm.elements.departmentId.value = context.department.id;
     elements.issueForm.elements.engineerId.value = context.account.id;
     elements.issueFormTitle.textContent = "Add issue report";
     showError(elements.issueError, "");
+    if (widget) widget.clear();
   }
 
   function resetResourceForm(context) {
@@ -582,7 +712,7 @@
     showError(elements.resourceError, "");
   }
 
-  function resetReportForm(context) {
+  function resetReportForm(context, widget) {
     elements.reportForm.reset();
     elements.reportForm.elements.id.value = "";
     elements.reportForm.elements.departmentId.value = context.department.id;
@@ -590,6 +720,7 @@
     elements.reportForm.elements.submittedAt.value = "";
     elements.reportFormTitle.textContent = "Add progress report";
     showError(elements.reportError, "");
+    if (widget) widget.clear();
   }
 
   function validateInspection(payload) {
@@ -623,8 +754,8 @@
     return "";
   }
 
-  function bindInspectionControls(context) {
-    elements.inspectionReset.addEventListener("click", () => resetInspectionForm(context));
+  function bindInspectionControls(context, widget) {
+    elements.inspectionReset.addEventListener("click", () => resetInspectionForm(context, widget));
     elements.inspectionForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.inspectionForm).entries());
@@ -636,7 +767,7 @@
       }
       try {
         await upsertInspection(payload);
-        resetInspectionForm(context);
+        resetInspectionForm(context, widget);
         renderAll(context);
       } catch (err) {
         showError(elements.inspectionError, err.message);
@@ -669,8 +800,8 @@
     });
   }
 
-  function bindIssueControls(context) {
-    elements.issueReset.addEventListener("click", () => resetIssueForm(context));
+  function bindIssueControls(context, widget) {
+    elements.issueReset.addEventListener("click", () => resetIssueForm(context, widget));
     elements.issueForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.issueForm).entries());
@@ -682,7 +813,7 @@
       }
       try {
         await upsertIssueReport(payload);
-        resetIssueForm(context);
+        resetIssueForm(context, widget);
         renderAll(context);
       } catch (err) {
         showError(elements.issueError, err.message);
@@ -761,8 +892,8 @@
     });
   }
 
-  function bindReportControls(context) {
-    elements.reportReset.addEventListener("click", () => resetReportForm(context));
+  function bindReportControls(context, widget) {
+    elements.reportReset.addEventListener("click", () => resetReportForm(context, widget));
     elements.reportForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.reportForm).entries());
@@ -774,7 +905,7 @@
       }
       try {
         await upsertProgressReport(payload);
-        resetReportForm(context);
+        resetReportForm(context, widget);
         renderAll(context);
       } catch (err) {
         showError(elements.reportError, err.message);
@@ -828,7 +959,7 @@
       </tr>`).join("");
   }
 
-  function resetMlogForm(context) {
+  function resetMlogForm(context, widget) {
     if (!elements.mlogForm) return;
     elements.mlogForm.reset();
     elements.mlogForm.elements.id.value = "";
@@ -836,6 +967,7 @@
     elements.mlogForm.elements.engineerId.value = context.account.id;
     elements.mlogFormTitle.textContent = "Add maintenance log";
     globalScope.CRIMS.utils.showError(elements.mlogError, "");
+    if (widget) widget.clear();
   }
 
   function validateMlog(payload) {
@@ -846,9 +978,9 @@
     return "";
   }
 
-  function bindMlogControls(context) {
+  function bindMlogControls(context, widget) {
     if (!elements.mlogForm) return;
-    elements.mlogReset.addEventListener("click", () => resetMlogForm(context));
+    elements.mlogReset.addEventListener("click", () => resetMlogForm(context, widget));
     elements.mlogForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.mlogForm).entries());
@@ -857,7 +989,7 @@
       if (error) { globalScope.CRIMS.utils.showError(elements.mlogError, error); return; }
       try {
         await upsertMaintenanceLog(payload);
-        resetMlogForm(context);
+        resetMlogForm(context, widget);
         renderAll(context);
       } catch (err) { globalScope.CRIMS.utils.showError(elements.mlogError, err.message); }
     });
@@ -1033,22 +1165,45 @@
       return;
     }
 
+    // ── Create upload widgets for the 4 evidence-bearing forms ──
+    const role = context.session.role;
+    const inspectionWidget = createUploadWidget(
+      document.getElementById("inspection-upload-widget"),
+      elements.inspectionForm.elements.photoUrl,
+      role
+    );
+    const issueWidget = createUploadWidget(
+      document.getElementById("issue-upload-widget"),
+      elements.issueForm.elements.photoUrl,
+      role
+    );
+    const reportWidget = createUploadWidget(
+      document.getElementById("report-upload-widget"),
+      elements.reportForm.elements.photoUrl,
+      role
+    );
+    const mlogWidget = createUploadWidget(
+      document.getElementById("mlog-upload-widget"),
+      elements.mlogForm.elements.photoUrl,
+      role
+    );
+
     bindLanguageSelector(elements.languageSelect);
     bindSession(context);
     renderAll(context);
-    resetInspectionForm(context);
-    resetIssueForm(context);
+    resetInspectionForm(context, inspectionWidget);
+    resetIssueForm(context, issueWidget);
     resetResourceForm(context);
-    resetReportForm(context);
-    resetMlogForm(context);
+    resetReportForm(context, reportWidget);
+    resetMlogForm(context, mlogWidget);
     resetMatlogForm(context);
     resetSensorForm(context);
     bindSectionNavigation();
-    bindInspectionControls(context);
-    bindIssueControls(context);
+    bindInspectionControls(context, inspectionWidget);
+    bindIssueControls(context, issueWidget);
     bindResourceControls(context);
-    bindReportControls(context);
-    bindMlogControls(context);
+    bindReportControls(context, reportWidget);
+    bindMlogControls(context, mlogWidget);
     bindMatlogControls(context);
     bindSensorControls(context);
     bindAssignedWorkControls(context);
@@ -1056,5 +1211,3 @@
 
   init();
 })(window);
-
-
