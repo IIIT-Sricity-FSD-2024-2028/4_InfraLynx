@@ -248,7 +248,13 @@
   }
 
   async function init() {
-    await initializeStore();
+    try {
+      await initializeStore();
+    } catch (e) {
+      // If the store fails to load (e.g. server down or rate-limited),
+      // continue anyway so sign-in forms are still usable.
+      console.warn('[auth] initializeStore failed:', e.message);
+    }
     bindLanguageSelector(elements.languageSelect);
     applyTranslations(document, getLanguage());
     renderStaticText();
