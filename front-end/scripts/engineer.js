@@ -644,17 +644,24 @@
     const data = await getEngineerData(context);
     const state = await getState();
     if (!data.reports.length) {
-      elements.reportTableBody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No progress reports have been submitted yet.</div></td></tr>';
+      elements.reportTableBody.innerHTML = '<tr><td colspan="6"><div class="empty-state">No progress reports have been submitted yet.</div></td></tr>';
       return;
     }
 
     elements.reportTableBody.innerHTML = data.reports
       .map((item) => {
         const workOrder = item.workOrderId ? state.workOrders.find((record) => record.id === item.workOrderId) : null;
+        const fileUrl = item.photoUrl
+          ? (item.photoUrl.startsWith("http") ? item.photoUrl : ((globalScope.CRIMS.api.API_BASE || "") + item.photoUrl))
+          : null;
+        const fileCell = fileUrl
+          ? `<a class="text-button" href="${escapeHtml(fileUrl)}" target="_blank" rel="noopener noreferrer">📎 View File</a>`
+          : '<span class="mono">-</span>';
         return `
           <tr>
             <td><strong>${escapeHtml(item.title)}</strong></td>
             <td>${escapeHtml((workOrder && workOrder.referenceNo) || "Unlinked")}</td>
+            <td>${fileCell}</td>
             <td><span class="status-pill ${statusTone(item.status)}">${escapeHtml(formatStatus(item.status))}</span></td>
             <td>${escapeHtml(formatDisplayDate(item.submittedAt))}</td>
             <td>
