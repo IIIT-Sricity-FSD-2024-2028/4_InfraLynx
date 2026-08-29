@@ -12,11 +12,9 @@ export class CreateOutcomeReportDto {
   @IsNumber() budgetUsed: number;
   @IsIn(outcomeValues) outcome: (typeof outcomeValues)[number];
   @IsOptional() @IsString() lessonsLearned?: string;
-  @IsOptional() @IsString() photoUrl?: string;
 }
 export class UpdateOutcomeReportDto {
   @IsOptional() @IsIn(outcomeValues) outcome?: (typeof outcomeValues)[number];
   @IsOptional() @IsString() summary?: string;
   @IsOptional() @IsString() lessonsLearned?: string;
-  @IsOptional() @IsString() photoUrl?: string;
 }
