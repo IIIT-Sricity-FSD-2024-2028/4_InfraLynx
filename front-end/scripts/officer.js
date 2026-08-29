@@ -767,7 +767,6 @@
           <td>${escapeHtml(wo ? wo.referenceNo : 'Unlinked')}</td>
           <td><span class="status-pill ${item.outcome === 'SUCCESSFUL' ? '' : 'warning'}">${escapeHtml(formatStatus(item.outcome))}</span></td>
           <td class="mono">INR ${escapeHtml(Number(item.budgetUsed).toFixed(2))} Cr</td>
-          <td>${item.photoUrl ? `<a href="${escapeHtml(item.photoUrl)}" target="_blank" class="text-button" style="padding:0">📎 File</a>` : '<span style="opacity:0.5">-</span>'}</td>
           <td><div class="row-actions">
             <button class="text-button" type="button" data-outcome-edit="${item.id}">Edit</button>
             <button class="text-button danger" type="button" data-outcome-delete="${item.id}">Delete</button>
@@ -782,11 +781,6 @@
     elements.outcomeForm.elements.id.value = "";
     elements.outcomeForm.elements.departmentId.value = context.department.id;
     elements.outcomeForm.elements.preparedBy.value = context.account.id;
-    if (elements.outcomeForm.elements.photoUrl) {
-      elements.outcomeForm.elements.photoUrl.value = "";
-    }
-    const previewContainer = document.getElementById("outcome-file-preview-container");
-    if (previewContainer) previewContainer.style.display = "none";
     elements.outcomeFormTitle.textContent = "Add outcome report";
     globalScope.CRIMS.utils.showError(elements.outcomeError, "");
   }
@@ -814,37 +808,6 @@
 
   function bindOutcomeControls(context) {
     if (!elements.outcomeForm) return;
-
-    if (elements.outcomeWorkOrderSelect) {
-      elements.outcomeWorkOrderSelect.addEventListener("change", async (event) => {
-        const woId = event.target.value;
-        const formPhoto = elements.outcomeForm.elements.photoUrl;
-        const previewContainer = document.getElementById("outcome-file-preview-container");
-        const previewEl = document.getElementById("outcome-file-preview");
-        if (!formPhoto || !previewContainer || !previewEl) return;
-        
-        if (!woId) {
-          formPhoto.value = "";
-          previewContainer.style.display = "none";
-          previewEl.innerHTML = "";
-          return;
-        }
-
-        const state = await getState();
-        const woReports = (state.progressReports || []).filter((r) => r.workOrderId === woId && r.photoUrl);
-        if (woReports.length) {
-          const latestReport = woReports[woReports.length - 1];
-          formPhoto.value = latestReport.photoUrl;
-          previewContainer.style.display = "block";
-          previewEl.innerHTML = `<a href="${escapeHtml(latestReport.photoUrl)}" target="_blank" style="color:var(--text-color);text-decoration:underline;">View Engineer's File</a>`;
-        } else {
-          formPhoto.value = "";
-          previewContainer.style.display = "none";
-          previewEl.innerHTML = "";
-        }
-      });
-    }
-
     elements.outcomeReset.addEventListener("click", () => resetOutcomeForm(context));
     elements.outcomeForm.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -866,15 +829,6 @@
         if (!record) return;
         Object.entries(record).forEach(([k, v]) => { if (elements.outcomeForm.elements[k]) elements.outcomeForm.elements[k].value = v == null ? "" : v; });
         elements.outcomeFormTitle.textContent = `Edit: ${record.title}`;
-        
-        const previewContainer = document.getElementById("outcome-file-preview-container");
-        const previewEl = document.getElementById("outcome-file-preview");
-        if (record.photoUrl && previewContainer && previewEl) {
-          previewContainer.style.display = "block";
-          previewEl.innerHTML = `<a href="${escapeHtml(record.photoUrl)}" target="_blank" style="color:var(--text-color);text-decoration:underline;">View Engineer's File</a>`;
-        } else if (previewContainer) {
-          previewContainer.style.display = "none";
-        }
         return;
       }
       if (delBtn) {

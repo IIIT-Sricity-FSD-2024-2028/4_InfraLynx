@@ -9,7 +9,6 @@
     home: homePath,
     auth: `${pagePrefix}auth.html`,
     forgotPassword: `${pagePrefix}forgot-password.html`,
-    subscription: `${pagePrefix}subscription.html`,
     citizen: `${pagePrefix}citizen.html`,
     ADMINISTRATOR: `${pagePrefix}admin.html`,
     OFFICER: `${pagePrefix}officer.html`,

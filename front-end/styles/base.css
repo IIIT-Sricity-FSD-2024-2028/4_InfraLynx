@@ -118,8 +118,7 @@ button {
 /* ── Page shell ── */
 .page-shell {
   position: relative;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   background:
     radial-gradient(ellipse at 10% 0%, rgba(22, 163, 74, 0.06), transparent 45%),
     radial-gradient(ellipse at 90% 20%, rgba(245, 158, 11, 0.04), transparent 40%),
