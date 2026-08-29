@@ -4248,6 +4248,9 @@
           },
           "lessonsLearned": {
             "type": "string"
+          },
+          "photoUrl": {
+            "type": "string"
           }
         },
         "required": [
@@ -4277,6 +4280,9 @@
             "type": "string"
           },
           "lessonsLearned": {
+            "type": "string"
+          },
+          "photoUrl": {
             "type": "string"
           }
         }
