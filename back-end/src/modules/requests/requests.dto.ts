@@ -22,6 +22,7 @@ export class CreateRequestDto {
   @IsString() description: string;
   @IsString() locationText: string;
   @IsIn(urgencyValues) urgency: (typeof urgencyValues)[number];
+  @IsOptional() @IsString() photoUrl?: string;
 }
 
 export class UpdateRequestDto {
@@ -29,6 +30,7 @@ export class UpdateRequestDto {
   @IsOptional() @IsString() title?: string;
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsIn(urgencyValues) urgency?: (typeof urgencyValues)[number];
+  @IsOptional() @IsString() photoUrl?: string;
 }
 
 export class TrackRequestDto {

@@ -134,6 +134,7 @@
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.85);
   border: 1px solid var(--line);
+  min-width: 0;
 }
 
 .ack-item span,
@@ -147,6 +148,10 @@
   display: block;
   margin-top: 6px;
   color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.4;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .request-card-head h3 {

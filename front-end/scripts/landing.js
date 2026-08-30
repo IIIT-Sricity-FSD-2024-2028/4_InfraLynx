@@ -561,7 +561,115 @@
     elements.requestForm.elements.aadhaar.value = citizen.aadhaar;
   }
 
+  function createUploadWidget(container, hiddenInput, role) {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".jpg,.jpeg,.png,.webp,.pdf";
+    fileInput.id = container.id + "-input";
+    fileInput.style.display = "none";
+
+    const triggerBtn = document.createElement("label");
+    triggerBtn.className = "upload-trigger-btn";
+    triggerBtn.htmlFor = fileInput.id;
+    triggerBtn.innerHTML = "📎 Attach photo / evidence";
+
+    const hint = document.createElement("span");
+    hint.className = "upload-hint";
+    hint.textContent = "Max 5 MB · jpg png webp pdf";
+
+    const dropZone = document.createElement("div");
+    dropZone.className = "upload-drop-zone";
+    dropZone.appendChild(fileInput);
+    dropZone.appendChild(triggerBtn);
+    dropZone.appendChild(hint);
+
+    const statusRow = document.createElement("div");
+    statusRow.className = "upload-status";
+
+    const previewRow = document.createElement("div");
+    previewRow.className = "upload-preview-row";
+    previewRow.style.display = "none";
+
+    container.innerHTML = "";
+    container.appendChild(dropZone);
+    container.appendChild(statusRow);
+    container.appendChild(previewRow);
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return bytes + " B";
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+      return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    }
+
+    function setStatus(state, text) {
+      statusRow.className = "upload-status" + (state ? " " + state : "");
+      if (state === "uploading") {
+        statusRow.innerHTML = `<span class="upload-spinner"></span><span>${text}</span>`;
+      } else if (state === "success") {
+        statusRow.innerHTML = `<span>✓ ${text}</span>`;
+      } else if (state === "error") {
+        statusRow.innerHTML = `<span>✗ ${text}</span>`;
+      } else {
+        statusRow.innerHTML = "";
+      }
+    }
+
+    function showPreview(file, uploadedUrl) {
+      const isImage = file.type.startsWith("image/");
+      previewRow.innerHTML = `
+        ${
+          isImage
+            ? `<img class="upload-thumb" src="${uploadedUrl}" alt="Preview">`
+            : `<div class="upload-thumb-icon">📄</div>`
+        }
+        <div class="upload-preview-info">
+          <div class="upload-preview-name">${file.name}</div>
+          <div class="upload-preview-size">${formatBytes(file.size)}</div>
+        </div>
+        <button type="button" class="upload-remove-btn" aria-label="Remove attachment">✕ Remove</button>
+      `;
+      previewRow.style.display = "flex";
+      previewRow.querySelector(".upload-remove-btn").addEventListener("click", clear);
+    }
+
+    function clear() {
+      fileInput.value = "";
+      hiddenInput.value = "";
+      previewRow.style.display = "none";
+      previewRow.innerHTML = "";
+      setStatus("", "");
+    }
+
+    async function handleFile(file) {
+      if (!file) return;
+      clear();
+      setStatus("uploading", "Uploading…");
+      try {
+        const result = await globalScope.CRIMS.api.uploadFile(file, role);
+        hiddenInput.value = result.url;
+        setStatus("success", file.name);
+        const fullUrl = result.url.startsWith("http") ? result.url : ((globalScope.CRIMS.api.API_BASE || "") + result.url);
+        showPreview(file, fullUrl);
+      } catch (err) {
+        setStatus("error", err.message || "Upload failed");
+      }
+    }
+
+    fileInput.addEventListener("change", (e) => {
+      if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+    });
+
+    return { clear };
+  }
+
   function bindRequestForm() {
+    const widgetContainer = document.querySelector("#landing-upload-widget");
+    const hiddenInput = document.querySelector("#landing-photo-url");
+    let uploadWidget = null;
+    if (widgetContainer && hiddenInput) {
+      uploadWidget = createUploadWidget(widgetContainer, hiddenInput, "CITIZEN");
+    }
+
     elements.requestForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const payload = Object.fromEntries(new FormData(elements.requestForm).entries());
@@ -578,6 +686,7 @@
         const requestRecord = await submitCitizenRequest(payload);
         renderAcknowledgement(requestRecord);
         elements.requestForm.reset();
+        if (uploadWidget) uploadWidget.clear();
         await renderLocalizedOptions();
         await prefillCitizenSession();
         globalScope.location.hash = "submit-request";

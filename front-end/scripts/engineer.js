@@ -130,6 +130,7 @@
     fileInput.type = "file";
     fileInput.accept = ".jpg,.jpeg,.png,.webp,.pdf";
     fileInput.id = container.id + "-input";
+    fileInput.style.display = "none";
 
     const triggerBtn = document.createElement("label");
     triggerBtn.className = "upload-trigger-btn";

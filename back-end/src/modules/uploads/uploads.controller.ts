@@ -34,7 +34,7 @@ if (!fs.existsSync(uploadsDir)) {
 @UseGuards(RolesGuard)
 export class UploadsController {
   @Post('photo')
-  @Roles('ENGINEER', 'OFFICER', 'ADMINISTRATOR', 'QC_REVIEWER')
+  @Roles('ENGINEER', 'OFFICER', 'ADMINISTRATOR', 'QC_REVIEWER', 'CITIZEN')
   @ApiOperation({ summary: 'Upload an inspection/evidence photo or document' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({

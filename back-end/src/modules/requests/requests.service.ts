@@ -15,7 +15,7 @@ function genRef(existing: any[]): string {
 
 @Injectable()
 export class RequestsService {
-  private store = seed.map((r) => ({ ...r }));
+  private store: any[] = seed.map((r) => ({ ...r }));
 
   private ensureValidTransition(currentStatus: string, nextStatus: string) {
     if (!nextStatus || currentStatus === nextStatus) {
