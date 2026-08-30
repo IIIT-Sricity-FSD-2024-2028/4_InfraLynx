@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InfraLynx | Super Admin — Revenue &amp; Subscriptions</title>
+  <meta name="description" content="Super Admin console for InfraLynx platform owners to track subscriptions, revenue, and business health.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/base.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+  <style>
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse at 8% 0%, rgba(22, 163, 74, 0.07), transparent 45%),
+        radial-gradient(ellipse at 92% 18%, rgba(245, 158, 11, 0.05), transparent 40%),
+        linear-gradient(180deg, #f8faf8 0%, #f3f7f3 50%, #fafaf8 100%);
+    }
+
+    .sa-shell {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Sidebar ── */
+    .sa-sidebar {
+      background: rgba(255, 255, 255, 0.92);
+      border-right: 1px solid rgba(22, 101, 52, 0.09);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 10;
+    }
+
+    .sa-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid rgba(22, 101, 52, 0.07);
+    }
+
+    .sa-brand img { width: 38px; height: 38px; object-fit: contain; border-radius: 10px; }
+    .sa-brand-copy { display: grid; gap: 2px; }
+    .sa-brand-title { font-family: "Sora", sans-serif; font-size: 0.94rem; font-weight: 700; color: var(--text); }
+    .sa-brand-role { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--primary); }
+
+    .sa-admin-badge {
+      margin: 16px 20px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(22, 163, 74, 0.08), rgba(245, 158, 11, 0.06));
+      border: 1px solid rgba(22, 101, 52, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sa-avatar {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white; font-weight: 800; font-size: 0.9rem;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+
+    .sa-admin-name { font-weight: 700; font-size: 0.86rem; color: var(--text); }
+    .sa-admin-label { font-size: 0.7rem; color: var(--text-soft); }
+
+    .sa-nav { padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+
+    .sa-nav-section {
+      font-size: 0.64rem; font-weight: 800; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-muted); padding: 14px 8px 6px;
+    }
+
+    .sa-nav-link {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 12px;
+      font-size: 0.86rem; font-weight: 600; color: var(--text-soft);
+      cursor: pointer; transition: background 0.18s, color 0.18s;
+      border: none; background: none; width: 100%; text-align: left; text-decoration: none;
+    }
+    .sa-nav-link:hover { background: rgba(22, 163, 74, 0.06); color: var(--primary-darker); }
+    .sa-nav-link.is-active { background: rgba(22, 163, 74, 0.1); color: var(--primary-darker); font-weight: 700; }
+    .sa-nav-icon { font-size: 1.1rem; width: 22px; text-align: center; flex-shrink: 0; }
+
+    .sa-sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(22, 101, 52, 0.07); }
+
+    /* ── Main ── */
+    .sa-main { padding: 28px 32px 60px; overflow-y: auto; min-width: 0; }
+
+    .sa-topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
+    .sa-page-title { font-family: "Sora", sans-serif; font-size: 1.55rem; font-weight: 700; color: var(--text); margin: 0; }
+    .sa-page-sub { font-size: 0.86rem; color: var(--text-soft); margin: 4px 0 0; }
+    .sa-topbar-actions { display: flex; align-items: center; gap: 10px; }
+
+    .sa-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 16px; border-radius: 10px;
+      font-size: 0.84rem; font-weight: 700; border: 1px solid transparent;
+      cursor: pointer; transition: transform 0.18s, box-shadow 0.18s;
+    }
+    .sa-btn:hover { transform: translateY(-1px); }
+    .sa-btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; box-shadow: 0 6px 16px rgba(22,163,74,0.22); }
+    .sa-btn-ghost { background: rgba(255,255,255,0.8); border-color: rgba(22,101,52,0.14); color: var(--text); }
+
+    /* ── Sections ── */
+    .sa-section { display: none; }
+    .sa-section.is-active { display: block; animation: fadeUp 0.22s var(--ease) both; }
+
+    /* ── KPI strip ── */
+    .kpi-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
+
+    .kpi-card {
+      background: rgba(255,255,255,0.9); border: 1px solid rgba(22,101,52,0.08);
+      border-radius: 18px; box-shadow: var(--shadow); padding: 18px 18px 16px;
+      position: relative; overflow: hidden;
+      transition: box-shadow 0.25s, transform 0.25s;
+    }
+    .kpi-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .kpi-card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 3px; }
+    .kpi-card.green::before  { background: linear-gradient(90deg, #16a34a, #4ade80); }
+    .kpi-card.amber::before  { background: linear-gradient(90deg, #f59e0b, #fde68a); }
+    .kpi-card.blue::before   { background: linear-gradient(90deg, #2563eb, #93c5fd); }
+    .kpi-card.red::before    { background: linear-gradient(90deg, #dc2626, #fca5a5); }
+    .kpi-card.violet::before { background: linear-gradient(90deg, #7c3aed, #c4b5fd); }
+
+    .kpi-label { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+    .kpi-value { font-family: "Sora", sans-serif; font-size: 1.7rem; font-weight: 700; color: var(--text); line-height: 1; }
+    .kpi-icon { position: absolute; top: 14px; right: 14px; font-size: 1.5rem; opacity: 0.18; }
+
+    .kpi-delta {
+      display: inline-flex; align-items: center; gap: 4px;
+      margin-top: 8px; font-size: 0.76rem; font-weight: 700;
+      padding: 3px 8px; border-radius: 999px;
+    }
+    .kpi-delta.up   { background: rgba(22,163,74,0.1);  color: var(--primary-darker); }
+    .kpi-delta.down { background: rgba(220,38,38,0.08); color: #991b1b; }
+    .kpi-delta.flat { background: rgba(26,46,34,0.06);  color: var(--text-soft); }
+
+    /* ── Charts row ── */
+    .charts-row { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; margin-bottom: 24px; }
+
+    .chart-card {
+      background: rgba(255,255,255,0.9); border: 1px solid rgba(22,101,52,0.08);
+      border-radius: 20px; box-shadow: var(--shadow); padding: 20px 22px;
+    }
+
+    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .chart-title { font-family: "Sora", sans-serif; font-size: 0.96rem; font-weight: 700; color: var(--text); }
+    .chart-sub { font-size: 0.78rem; color: var(--text-soft); margin-top: 2px; }
+
+    .chart-filter-btn {
+      padding: 5px 12px; border-radius: 8px; font-size: 0.76rem; font-weight: 700;
+      border: 1px solid rgba(22,101,52,0.14); background: rgba(255,255,255,0.8);
+      color: var(--text-soft); cursor: pointer; transition: background 0.15s, color 0.15s;
+    }
+    .chart-filter-btn.active { background: rgba(22,163,74,0.1); color: var(--primary-darker); border-color: rgba(22,163,74,0.2); }
+
+    .donut-legend { display: grid; gap: 10px; margin-top: 16px; }
+    .donut-legend-row { display: flex; align-items: center; justify-content: space-between; font-size: 0.84rem; color: var(--text-soft); }
+    .donut-legend-dot { width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; flex-shrink: 0; }
+    .donut-legend-left { display: flex; align-items: center; }
+    .donut-legend-val { font-weight: 700; color: var(--text); }
+
+    /* ── Bottom row ── */
+    .bottom-row { display: grid; grid-template-columns: 1fr 320px; gap: 18px; align-items: start; }
+
+    /* ── Table card ── */
+    .table-card {
+      background: rgba(255,255,255,0.9); border: 1px solid rgba(22,101,52,0.08);
+      border-radius: 20px; box-shadow: var(--shadow); overflow: hidden;
+    }
+
+    .table-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 20px; border-bottom: 1px solid rgba(22,101,52,0.07); gap: 12px; flex-wrap: wrap;
+    }
+    .table-title { font-family: "Sora", sans-serif; font-size: 0.96rem; font-weight: 700; color: var(--text); }
+    .table-controls { display: flex; align-items: center; gap: 10px; }
+
+    .search-input {
+      padding: 8px 14px; border-radius: 10px;
+      border: 1px solid rgba(22,101,52,0.14); background: rgba(248,250,248,0.9);
+      font-size: 0.82rem; color: var(--text); outline: none; width: 200px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-input:focus { border-color: rgba(22,163,74,0.4); box-shadow: 0 0 0 3px rgba(22,163,74,0.08); }
+
+    .filter-select {
+      padding: 8px 12px; border-radius: 10px;
+      border: 1px solid rgba(22,101,52,0.14); background: rgba(248,250,248,0.9);
+      font-size: 0.82rem; color: var(--text); outline: none; cursor: pointer;
+    }
+
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .data-table th {
+      padding: 11px 16px; text-align: left; font-size: 0.7rem; font-weight: 800;
+      letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted);
+      background: rgba(248,250,248,0.6); border-bottom: 1px solid rgba(22,101,52,0.07); white-space: nowrap;
+    }
+    .data-table td {
+      padding: 13px 16px; border-bottom: 1px solid rgba(22,101,52,0.05);
+      color: var(--text); vertical-align: middle;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: rgba(22,163,74,0.025); }
+
+    .org-cell { display: flex; align-items: center; gap: 10px; }
+    .org-icon {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: linear-gradient(135deg, rgba(22,163,74,0.12), rgba(22,163,74,0.06));
+      display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0;
+    }
+    .org-name { font-weight: 700; font-size: 0.84rem; }
+    .org-city { font-size: 0.72rem; color: var(--text-soft); }
+
+    .pill {
+      display: inline-flex; align-items: center; padding: 3px 10px;
+      border-radius: 999px; font-size: 0.71rem; font-weight: 800;
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .pill-green  { background: rgba(22,163,74,0.1);   color: var(--primary-darker); }
+    .pill-amber  { background: rgba(245,158,11,0.1);  color: #92400e; }
+    .pill-blue   { background: rgba(37,99,235,0.1);   color: #1e3a8a; }
+    .pill-red    { background: rgba(220,38,38,0.08);  color: #991b1b; }
+    .pill-muted  { background: rgba(26,46,34,0.06);   color: var(--text-soft); }
+    .pill-violet { background: rgba(124,58,237,0.08); color: #5b21b6; }
+
+    .action-link {
+      font-size: 0.78rem; font-weight: 700; color: var(--primary);
+      cursor: pointer; background: none; border: none; padding: 0; transition: color 0.15s;
+    }
+    .action-link:hover { color: var(--primary-darker); }
+
+    .table-footer {
+      padding: 12px 20px; border-top: 1px solid rgba(22,101,52,0.07);
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 0.8rem; color: var(--text-soft);
+    }
+
+    .pagination { display: flex; gap: 4px; }
+    .page-btn {
+      width: 28px; height: 28px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; font-weight: 700;
+      border: 1px solid rgba(22,101,52,0.12); background: none;
+      color: var(--text-soft); cursor: pointer; transition: background 0.15s, color 0.15s;
+    }
+    .page-btn.active, .page-btn:hover { background: rgba(22,163,74,0.1); color: var(--primary-darker); border-color: rgba(22,163,74,0.2); }
+
+    /* ── Side cards ── */
+    .side-stack { display: flex; flex-direction: column; gap: 16px; }
+
+    .side-card {
+      background: rgba(255,255,255,0.9); border: 1px solid rgba(22,101,52,0.08);
+      border-radius: 18px; box-shadow: var(--shadow); overflow: hidden;
+    }
+
+    .side-card-header {
+      padding: 14px 16px; border-bottom: 1px solid rgba(22,101,52,0.07);
+      font-family: "Sora", sans-serif; font-size: 0.88rem; font-weight: 700;
+      color: var(--text); display: flex; align-items: center; gap: 8px;
+    }
+
+    .feed-item {
+      padding: 12px 16px; border-bottom: 1px solid rgba(22,101,52,0.05);
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .feed-item:last-child { border-bottom: none; }
+    .feed-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+    .feed-dot.green { background: var(--primary); }
+    .feed-dot.amber { background: var(--accent-amber); }
+    .feed-dot.red   { background: var(--accent-red); }
+    .feed-dot.blue  { background: var(--accent-blue); }
+    .feed-body { flex: 1; min-width: 0; }
+    .feed-org  { font-weight: 700; font-size: 0.82rem; color: var(--text); }
+    .feed-desc { font-size: 0.76rem; color: var(--text-soft); margin-top: 2px; }
+    .feed-time { font-size: 0.7rem; color: var(--text-muted); margin-top: 3px; font-family: "IBM Plex Mono", monospace; }
+    .feed-amount { font-family: "Sora", sans-serif; font-weight: 700; font-size: 0.84rem; color: var(--text); flex-shrink: 0; }
+
+    .alert-item { display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; border-bottom: 1px solid rgba(22,101,52,0.05); }
+    .alert-item:last-child { border-bottom: none; }
+    .alert-icon { font-size: 1rem; margin-top: 1px; flex-shrink: 0; }
+    .alert-text { font-size: 0.8rem; color: var(--text-soft); line-height: 1.5; }
+    .alert-text strong { color: var(--text); font-weight: 700; }
+    .alert-badge { margin-top: 5px; display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 0.66rem; font-weight: 800; }
+
+    /* ── Geo ── */
+    .geo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .geo-card {
+      background: rgba(255,255,255,0.9); border: 1px solid rgba(22,101,52,0.08);
+      border-radius: 16px; box-shadow: var(--shadow-sm); padding: 16px 18px;
+      display: flex; align-items: center; gap: 14px;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .geo-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .geo-flag { font-size: 1.8rem; }
+    .geo-state { font-weight: 700; font-size: 0.9rem; color: var(--text); }
+    .geo-count { font-size: 0.76rem; color: var(--text-soft); margin-top: 2px; }
+    .geo-bar-wrap { flex: 1; height: 6px; background: rgba(22,101,52,0.08); border-radius: 3px; overflow: hidden; }
+    .geo-bar { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--primary), var(--primary-light)); }
+
+    /* ── TX table ── */
+    .tx-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .tx-table th {
+      padding: 10px 16px; font-size: 0.7rem; font-weight: 800;
+      letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted);
+      text-align: left; background: rgba(248,250,248,0.6); border-bottom: 1px solid rgba(22,101,52,0.07);
+    }
+    .tx-table td { padding: 12px 16px; border-bottom: 1px solid rgba(22,101,52,0.05); color: var(--text); vertical-align: middle; }
+    .tx-table tr:last-child td { border-bottom: none; }
+    .tx-table tr:hover td { background: rgba(22,163,74,0.025); }
+
+    @media (max-width: 1180px) {
+      .kpi-strip { grid-template-columns: repeat(3, 1fr); }
+      .charts-row { grid-template-columns: 1fr; }
+      .bottom-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 900px) {
+      .sa-shell { grid-template-columns: 1fr; }
+      .sa-sidebar { display: none; }
+      .sa-main { padding: 20px 16px 40px; }
+      .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+      .geo-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ── Login Gate ── */
+    .login-gate {
+      position: fixed; inset: 0; z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      background:
+        radial-gradient(ellipse at 15% 10%, rgba(22,163,74,0.1), transparent 50%),
+        radial-gradient(ellipse at 85% 80%, rgba(245,158,11,0.07), transparent 50%),
+        linear-gradient(135deg, #f0f7f0 0%, #fafaf8 100%);
+    }
+    .login-gate.hidden { display: none; }
+
+    .login-card {
+      width: min(440px, calc(100vw - 32px));
+      background: rgba(255,255,255,0.95);
+      border: 1px solid rgba(22,101,52,0.1);
+      border-radius: 28px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+      padding: 36px 32px 32px;
+      position: relative; overflow: hidden;
+      animation: fadeUp 0.3s var(--ease) both;
+    }
+    .login-card::before {
+      content: "";
+      position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+      background: linear-gradient(90deg, #16a34a, #f59e0b, #60a5fa);
+    }
+    .login-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+    .login-logo img { width: 40px; height: 40px; border-radius: 10px; object-fit: contain; }
+    .login-logo-copy { display: grid; gap: 2px; }
+    .login-logo-title { font-family: "Sora", sans-serif; font-size: 1rem; font-weight: 700; color: var(--text); }
+    .login-logo-sub { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--primary); }
+    .login-heading { font-family: "Sora", sans-serif; font-size: 1.5rem; font-weight: 700; color: var(--text); margin: 0 0 6px; }
+    .login-sub { font-size: 0.86rem; color: var(--text-soft); margin: 0 0 24px; }
+
+    .login-field { display: grid; gap: 6px; margin-bottom: 16px; }
+    .login-field label { font-size: 0.76rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--primary-darker); }
+    .login-field input {
+      padding: 12px 14px; border: 1px solid rgba(22,101,52,0.15);
+      border-radius: 12px; background: rgba(248,250,248,0.8);
+      font-size: 0.92rem; color: var(--text); outline: none; width: 100%;
+      transition: border-color 0.2s, box-shadow 0.2s; box-sizing: border-box;
+    }
+    .login-field input:focus { border-color: rgba(22,163,74,0.5); box-shadow: 0 0 0 4px rgba(22,163,74,0.08); }
+
+    .login-btn {
+      width: 100%; padding: 13px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white; border: none; border-radius: 12px;
+      font-size: 0.92rem; font-weight: 800; cursor: pointer;
+      margin-top: 6px; box-shadow: 0 8px 20px rgba(22,163,74,0.22);
+      transition: transform 0.18s, box-shadow 0.18s;
+    }
+    .login-btn:hover { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(22,163,74,0.28); }
+
+    .login-error {
+      margin-top: 14px; padding: 10px 14px;
+      background: rgba(220,38,38,0.07); border: 1px solid rgba(220,38,38,0.18);
+      border-radius: 10px; color: #991b1b; font-size: 0.84rem; font-weight: 600; display: none;
+    }
+    .login-error.show { display: block; }
+    .login-hint { margin-top: 16px; text-align: center; font-size: 0.76rem; color: var(--text-muted); }
+
+    /* ── Admin management ── */
+    .admins-grid { display: grid; gap: 12px; margin-top: 4px; }
+    .admin-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(22,101,52,0.08); border-radius: 14px;
+      box-shadow: var(--shadow-sm); gap: 12px;
+    }
+    .admin-row-left { display: flex; align-items: center; gap: 12px; }
+    .admin-avatar-sm {
+      width: 34px; height: 34px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white; font-weight: 800; font-size: 0.84rem;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .admin-row-name { font-weight: 700; font-size: 0.88rem; color: var(--text); }
+    .admin-row-email { font-size: 0.76rem; color: var(--text-soft); margin-top: 2px; }
+    .admin-row-actions { display: flex; gap: 8px; align-items: center; }
+
+    .add-admin-card {
+      background: rgba(255,255,255,0.9); border: 1px solid rgba(22,101,52,0.08);
+      border-radius: 20px; box-shadow: var(--shadow); padding: 24px; margin-top: 20px;
+    }
+    .add-admin-title { font-family: "Sora", sans-serif; font-size: 0.96rem; font-weight: 700; color: var(--text); margin: 0 0 16px; }
+    .add-admin-grid { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: end; }
+    .add-admin-field { display: grid; gap: 6px; }
+    .add-admin-field label { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--primary-darker); }
+    .add-admin-field input {
+      padding: 10px 12px; border: 1px solid rgba(22,101,52,0.14);
+      border-radius: 10px; background: rgba(248,250,248,0.9);
+      font-size: 0.84rem; color: var(--text); outline: none; width: 100%;
+      transition: border-color 0.2s, box-shadow 0.2s; box-sizing: border-box;
+    }
+    .add-admin-field input:focus { border-color: rgba(22,163,74,0.4); box-shadow: 0 0 0 3px rgba(22,163,74,0.08); }
+    .add-admin-msg { margin-top: 12px; font-size: 0.82rem; font-weight: 600; padding: 8px 12px; border-radius: 8px; display: none; }
+    .add-admin-msg.success { display: block; background: rgba(22,163,74,0.08); color: var(--primary-darker); }
+    .add-admin-msg.error   { display: block; background: rgba(220,38,38,0.07); color: #991b1b; }
+  </style>
+</head>
+
+<body>
+
+  <!-- ══ LOGIN GATE ══ -->
+  <div class="login-gate" id="loginGate">
+    <div class="login-card">
+      <div class="login-logo">
+        <img src="../assets/CRIMS_logo.png" alt="InfraLynx logo">
+        <div class="login-logo-copy">
+          <span class="login-logo-title">InfraLynx</span>
+          <span class="login-logo-sub">Super Admin</span>
+        </div>
+      </div>
+      <h1 class="login-heading">Platform sign in</h1>
+      <p class="login-sub">Restricted to authorised platform administrators only.</p>
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="login-field">
+          <label for="loginEmail">Email address</label>
+          <input id="loginEmail" type="email" placeholder="admin@infralynx.app" required autocomplete="username">
+        </div>
+        <div class="login-field">
+          <label for="loginPassword">Password</label>
+          <input id="loginPassword" type="password" placeholder="Enter your password" required autocomplete="current-password">
+        </div>
+        <button class="login-btn" type="submit">Sign in to dashboard</button>
+      </form>
+      <div class="login-error" id="loginError">Incorrect email or password. Please try again.</div>
+      <p class="login-hint">&#128274; Access is limited to platform administrators only.</p>
+    </div>
+  </div>
+
+  <div style="position:fixed;inset:0;pointer-events:none;z-index:0;">
+    <div class="ambient-orb left"></div>
+    <div class="ambient-orb right"></div>
+    <div class="grid-sheen"></div>
+  </div>
+
+  <div class="sa-shell" id="saShell" style="display:none;">
+
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="sa-sidebar" aria-label="Super Admin navigation">
+      <div class="sa-brand">
+        <img src="../assets/CRIMS_logo.png" alt="InfraLynx logo">
+        <div class="sa-brand-copy">
+          <span class="sa-brand-title">InfraLynx</span>
+          <span class="sa-brand-role">Super Admin</span>
+        </div>
+      </div>
+
+      <div class="sa-admin-badge">
+        <div class="sa-avatar">S</div>
+        <div>
+          <div class="sa-admin-name">Platform Owner</div>
+          <div class="sa-admin-label">Full access · All orgs</div>
+        </div>
+      </div>
+
+      <nav class="sa-nav" aria-label="Console sections">
+        <div class="sa-nav-section">Revenue</div>
+        <button class="sa-nav-link is-active" id="nav-overview" onclick="showSection('overview')">
+          <span class="sa-nav-icon">📊</span> Revenue Overview
+        </button>
+        <button class="sa-nav-link" id="nav-transactions" onclick="showSection('transactions')">
+          <span class="sa-nav-icon">💳</span> Transactions
+        </button>
+
+        <div class="sa-nav-section">Subscribers</div>
+        <button class="sa-nav-link" id="nav-subscribers" onclick="showSection('subscribers')">
+          <span class="sa-nav-icon">🏛️</span> All Organisations
+        </button>
+        <button class="sa-nav-link" id="nav-geography" onclick="showSection('geography')">
+          <span class="sa-nav-icon">🗺️</span> Geographic Coverage
+        </button>
+
+        <div class="sa-nav-section">Platform</div>
+        <button class="sa-nav-link" id="nav-alerts" onclick="showSection('alerts')">
+          <span class="sa-nav-icon">🔔</span> Alerts &amp; Renewals
+          <span style="margin-left:auto;" class="pill pill-red" id="alert-count-badge">3</span>
+        </button>
+        <button class="sa-nav-link" id="nav-usage" onclick="showSection('usage')">
+          <span class="sa-nav-icon">⚡</span> Platform Usage
+        </button>
+
+        <div class="sa-nav-section">Account</div>
+        <button class="sa-nav-link" id="nav-admins" onclick="showSection('admins')">
+          <span class="sa-nav-icon">&#128100;</span> Admin Accounts
+        </button>
+      </nav>
+
+      <div class="sa-sidebar-footer" style="display:grid;gap:2px;">
+        <div style="padding:8px 12px;font-size:0.74rem;color:var(--text-soft);line-height:1.4;">
+          Signed in as<br><strong id="activeAdminEmail" style="color:var(--text);"></strong>
+        </div>
+        <a href="../index.html" class="sa-nav-link">
+          <span class="sa-nav-icon">🏠</span> Back to site
+        </a>
+        <button class="sa-nav-link" onclick="handleLogout()" style="color:var(--accent-red);">
+          <span class="sa-nav-icon">&#128682;</span> Sign out
+        </button>
+      </div>
+    </aside>
+
+    <!-- ══ MAIN ══ -->
+    <main class="sa-main">
+
+      <!-- OVERVIEW -->
+      <section class="sa-section is-active" id="section-overview">
+        <div class="sa-topbar">
+          <div>
+            <h1 class="sa-page-title">Revenue Overview</h1>
+            <p class="sa-page-sub">Live snapshot · August 2026</p>
+          </div>
+          <div class="sa-topbar-actions">
+            <button class="sa-btn sa-btn-ghost" onclick="exportCSV()">&#8595; Export CSV</button>
+            <button class="sa-btn sa-btn-primary">+ Add Org</button>
+          </div>
+        </div>
+
+        <div class="kpi-strip">
+          <div class="kpi-card green">
+            <div class="kpi-icon">💰</div>
+            <div class="kpi-label">MRR</div>
+            <div class="kpi-value" id="kpi-mrr">—</div>
+            <div class="kpi-delta up">↑ 18% vs last month</div>
+          </div>
+          <div class="kpi-card blue">
+            <div class="kpi-icon">📈</div>
+            <div class="kpi-label">ARR</div>
+            <div class="kpi-value" id="kpi-arr">—</div>
+            <div class="kpi-delta up">↑ 22% YoY</div>
+          </div>
+          <div class="kpi-card amber">
+            <div class="kpi-icon">🏛️</div>
+            <div class="kpi-label">Active Orgs</div>
+            <div class="kpi-value" id="kpi-orgs">—</div>
+            <div class="kpi-delta up">↑ 4 this month</div>
+          </div>
+          <div class="kpi-card violet">
+            <div class="kpi-icon">👤</div>
+            <div class="kpi-label">Avg Rev / Org</div>
+            <div class="kpi-value" id="kpi-arpo">—</div>
+            <div class="kpi-delta flat">→ Stable</div>
+          </div>
+          <div class="kpi-card red">
+            <div class="kpi-icon">📉</div>
+            <div class="kpi-label">Churn Rate</div>
+            <div class="kpi-value">2.1%</div>
+            <div class="kpi-delta down">↑ 0.3% vs last month</div>
+          </div>
+        </div>
+
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Monthly Recurring Revenue</div>
+                <div class="chart-sub">Last 12 months — by plan tier</div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button class="chart-filter-btn active" onclick="setChartPeriod('12m',this)">12M</button>
+                <button class="chart-filter-btn" onclick="setChartPeriod('6m',this)">6M</button>
+                <button class="chart-filter-btn" onclick="setChartPeriod('3m',this)">3M</button>
+              </div>
+            </div>
+            <canvas id="mrrChart" height="200"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Plan Distribution</div>
+                <div class="chart-sub">Active subscribers by tier</div>
+              </div>
+            </div>
+            <div style="max-width:200px;margin:0 auto;">
+              <canvas id="donutChart" height="180"></canvas>
+            </div>
+            <div class="donut-legend" id="donutLegend"></div>
+          </div>
+        </div>
+
+        <div class="bottom-row">
+          <div class="table-card">
+            <div class="table-header">
+              <div class="table-title">Subscriber Accounts</div>
+              <div class="table-controls">
+                <input class="search-input" id="subSearch" type="search" placeholder="Search org…" oninput="filterTable()">
+                <select class="filter-select" id="planFilter" onchange="filterTable()">
+                  <option value="">All plans</option>
+                  <option value="Basic">Basic</option>
+                  <option value="Professional">Professional</option>
+                  <option value="Scale">Scale</option>
+                </select>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Organisation</th><th>Plan</th><th>Monthly</th>
+                    <th>Status</th><th>Renewal</th><th>Users</th><th></th>
+                  </tr>
+                </thead>
+                <tbody id="subTableBody"></tbody>
+              </table>
+            </div>
+            <div class="table-footer">
+              <span id="sub-count-label">Loading…</span>
+              <div class="pagination" id="pagination"></div>
+            </div>
+          </div>
+
+          <div class="side-stack">
+            <div class="side-card">
+              <div class="side-card-header">💳 Recent Transactions</div>
+              <div id="txFeed"></div>
+            </div>
+            <div class="side-card">
+              <div class="side-card-header">🔔 Renewal Alerts</div>
+              <div id="alertFeed"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TRANSACTIONS -->
+      <section class="sa-section" id="section-transactions">
+        <div class="sa-topbar">
+          <div>
+            <h1 class="sa-page-title">All Transactions</h1>
+            <p class="sa-page-sub">Full payment history across all organisations</p>
+          </div>
+          <div class="sa-topbar-actions">
+            <button class="sa-btn sa-btn-ghost">&#8595; Export</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title">Transaction Ledger</div>
+            <div class="table-controls">
+              <input class="search-input" type="search" placeholder="Search…">
+              <select class="filter-select">
+                <option>All statuses</option><option>Paid</option><option>Pending</option><option>Failed</option>
+              </select>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="tx-table">
+              <thead>
+                <tr><th>Txn ID</th><th>Organisation</th><th>Plan</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th></tr>
+              </thead>
+              <tbody id="fullTxBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- SUBSCRIBERS -->
+      <section class="sa-section" id="section-subscribers">
+        <div class="sa-topbar">
+          <div>
+            <h1 class="sa-page-title">All Organisations</h1>
+            <p class="sa-page-sub">Manage subscriber access, plans, and activation</p>
+          </div>
+          <div class="sa-topbar-actions">
+            <button class="sa-btn sa-btn-primary">+ Provision Org</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title">Subscriber Registry</div>
+            <div class="table-controls">
+              <input class="search-input" type="search" placeholder="Search org…">
+              <select class="filter-select"><option>All plans</option><option>Basic</option><option>Professional</option><option>Scale</option></select>
+              <select class="filter-select"><option>All statuses</option><option>Active</option><option>Overdue</option><option>Cancelled</option></select>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead>
+                <tr><th>Organisation</th><th>Plan</th><th>Monthly</th><th>Payment</th><th>Status</th><th>Users</th><th>Started</th><th>Next Renewal</th><th>Actions</th></tr>
+              </thead>
+              <tbody id="fullSubBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- GEOGRAPHY -->
+      <section class="sa-section" id="section-geography">
+        <div class="sa-topbar">
+          <div>
+            <h1 class="sa-page-title">Geographic Coverage</h1>
+            <p class="sa-page-sub">Active subscribers by Indian state</p>
+          </div>
+        </div>
+        <div class="chart-card" style="margin-bottom:20px;">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Subscribers by State</div>
+              <div class="chart-sub">Total active organisations per state</div>
+            </div>
+          </div>
+          <canvas id="geoChart" height="120"></canvas>
+        </div>
+        <div class="geo-grid" id="geoGrid"></div>
+      </section>
+
+      <!-- ALERTS -->
+      <section class="sa-section" id="section-alerts">
+        <div class="sa-topbar">
+          <div>
+            <h1 class="sa-page-title">Alerts &amp; Renewals</h1>
+            <p class="sa-page-sub">Upcoming renewals, overdue payments, and at-risk accounts</p>
+          </div>
+        </div>
+        <div class="bottom-row">
+          <div>
+            <div class="table-card" style="margin-bottom:18px;">
+              <div class="side-card-header" style="padding:16px 20px;font-size:0.96rem;border-bottom:1px solid rgba(22,101,52,0.07);">⏰ Renewals in Next 30 Days</div>
+              <table class="data-table" id="renewalTable">
+                <thead><tr><th>Organisation</th><th>Plan</th><th>Amount</th><th>Renewal Date</th><th>Days Left</th><th>Action</th></tr></thead>
+                <tbody id="renewalBody"></tbody>
+              </table>
+            </div>
+            <div class="table-card">
+              <div class="side-card-header" style="padding:16px 20px;font-size:0.96rem;border-bottom:1px solid rgba(22,101,52,0.07);">🚨 Overdue Payments</div>
+              <table class="data-table" id="overdueTable">
+                <thead><tr><th>Organisation</th><th>Plan</th><th>Amount</th><th>Due Date</th><th>Days Overdue</th><th>Action</th></tr></thead>
+                <tbody id="overdueBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="side-stack">
+            <div class="side-card">
+              <div class="side-card-header">📊 Alerts Summary</div>
+              <div style="padding:16px;display:grid;gap:12px;">
+                <div class="kpi-card amber" style="padding:14px 16px;">
+                  <div class="kpi-label">Renewals due</div>
+                  <div class="kpi-value" style="font-size:1.4rem;" id="alert-renewal-count">—</div>
+                  <div style="font-size:0.74rem;color:var(--text-soft);margin-top:4px;">next 30 days</div>
+                </div>
+                <div class="kpi-card red" style="padding:14px 16px;">
+                  <div class="kpi-label">Overdue</div>
+                  <div class="kpi-value" style="font-size:1.4rem;" id="alert-overdue-count">—</div>
+                  <div style="font-size:0.74rem;color:var(--text-soft);margin-top:4px;">need follow-up</div>
+                </div>
+                <div class="kpi-card green" style="padding:14px 16px;">
+                  <div class="kpi-label">Upsell opps</div>
+                  <div class="kpi-value" style="font-size:1.4rem;">5</div>
+                  <div style="font-size:0.74rem;color:var(--text-soft);margin-top:4px;">Basic → Pro candidates</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- USAGE -->
+      <section class="sa-section" id="section-usage">
+        <div class="sa-topbar">
+          <div>
+            <h1 class="sa-page-title">Platform Usage</h1>
+            <p class="sa-page-sub">Active users, logins, and engagement per subscriber org</p>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title">Org Usage Metrics</div>
+            <div class="table-controls">
+              <input class="search-input" type="search" placeholder="Search org…">
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Organisation</th><th>Plan</th><th>Active Users</th><th>Total Seats</th>
+                  <th>Utilization</th><th>Last Login</th><th>Requests Processed</th><th>Health</th>
+                </tr>
+              </thead>
+              <tbody id="usageBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ADMIN ACCOUNTS -->
+      <section class="sa-section" id="section-admins">
+        <div class="sa-topbar">
+          <div>
+            <h1 class="sa-page-title">Admin Accounts</h1>
+            <p class="sa-page-sub">Manage who has Super Admin access to this console</p>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title">&#128272; Active Super Admins</div>
+            <div style="font-size:0.8rem;color:var(--text-soft);">Changes take effect immediately</div>
+          </div>
+          <div style="padding:16px 20px;" id="adminsGrid"></div>
+        </div>
+
+        <div class="add-admin-card">
+          <h2 class="add-admin-title">+ Add a new Super Admin</h2>
+          <div class="add-admin-grid">
+            <div class="add-admin-field">
+              <label for="newAdminName">Full name</label>
+              <input id="newAdminName" type="text" placeholder="Jane Doe">
+            </div>
+            <div class="add-admin-field">
+              <label for="newAdminEmail">Email address</label>
+              <input id="newAdminEmail" type="email" placeholder="jane@infralynx.app">
+            </div>
+            <div class="add-admin-field">
+              <label for="newAdminPass">Password</label>
+              <input id="newAdminPass" type="password" placeholder="Min 8 characters">
+            </div>
+            <button class="sa-btn sa-btn-primary" onclick="addAdmin()">Add Admin</button>
+          </div>
+          <div class="add-admin-msg" id="addAdminMsg"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    /* ── Data ── */
+    const SUBSCRIBERS = [
+      { id:1,  org:"Greater Hyderabad MC",     city:"Hyderabad, TG",  plan:"Scale",        price:18499, method:"Bank Transfer", status:"Active",    users:48, seats:60, lastLogin:"Today",       started:"Jan 2025", renewal:"2026-09-05", requests:1842, icon:"🏙️" },
+      { id:2,  org:"Bengaluru Urban Dev Auth",  city:"Bengaluru, KA",  plan:"Scale",        price:18499, method:"UPI",           status:"Active",    users:61, seats:80, lastLogin:"Today",       started:"Mar 2025", renewal:"2026-09-12", requests:2104, icon:"🏛️" },
+      { id:3,  org:"Chennai Metro Water Board", city:"Chennai, TN",    plan:"Professional", price:7999,  method:"Credit Card",   status:"Active",    users:22, seats:30, lastLogin:"Yesterday",   started:"May 2025", renewal:"2026-10-01", requests:734,  icon:"🏗️" },
+      { id:4,  org:"Pune Municipal Corp",       city:"Pune, MH",       plan:"Professional", price:7999,  method:"UPI",           status:"Active",    users:18, seats:30, lastLogin:"2 days ago",  started:"Jun 2025", renewal:"2026-09-18", requests:582,  icon:"🏢" },
+      { id:5,  org:"Jaipur Development Auth",   city:"Jaipur, RJ",     plan:"Professional", price:7999,  method:"Bank Transfer", status:"Overdue",   users:14, seats:30, lastLogin:"5 days ago",  started:"Jul 2025", renewal:"2026-08-15", requests:301,  icon:"🕌" },
+      { id:6,  org:"Lucknow Smart City Ltd",    city:"Lucknow, UP",    plan:"Basic",        price:2499,  method:"UPI",           status:"Active",    users:3,  seats:3,  lastLogin:"Today",       started:"Aug 2025", renewal:"2026-09-22", requests:98,   icon:"🌆" },
+      { id:7,  org:"Ahmedabad AMC",             city:"Ahmedabad, GJ",  plan:"Scale",        price:18499, method:"Bank Transfer", status:"Active",    users:55, seats:60, lastLogin:"Yesterday",   started:"Feb 2025", renewal:"2026-10-05", requests:1621, icon:"🏙️" },
+      { id:8,  org:"Kochi Corp Authority",      city:"Kochi, KL",      plan:"Basic",        price:2499,  method:"Credit Card",   status:"Active",    users:2,  seats:3,  lastLogin:"3 days ago",  started:"Jul 2025", renewal:"2026-09-28", requests:45,   icon:"⛵" },
+      { id:9,  org:"Bhopal MC Infrastructure",  city:"Bhopal, MP",     plan:"Professional", price:7999,  method:"UPI",           status:"Active",    users:16, seats:30, lastLogin:"Today",       started:"Apr 2025", renewal:"2026-10-10", requests:419,  icon:"🏛️" },
+      { id:10, org:"Coimbatore City MC",        city:"Coimbatore, TN", plan:"Basic",        price:2499,  method:"UPI",           status:"Cancelled", users:0,  seats:3,  lastLogin:"45 days ago", started:"Dec 2024", renewal:"—",          requests:12,   icon:"🌇" },
+      { id:11, org:"Nagpur Smart City Corp",    city:"Nagpur, MH",     plan:"Professional", price:7999,  method:"Bank Transfer", status:"Active",    users:20, seats:30, lastLogin:"Yesterday",   started:"Jun 2025", renewal:"2026-09-30", requests:503,  icon:"🏙️" },
+      { id:12, org:"Patna Urban Dev Board",     city:"Patna, BR",      plan:"Basic",        price:2499,  method:"UPI",           status:"Overdue",   users:1,  seats:3,  lastLogin:"12 days ago", started:"Jul 2025", renewal:"2026-08-20", requests:23,   icon:"🏞️" },
+    ];
+
+    const TRANSACTIONS = [
+      { id:"TXN-2408-001", org:"Greater Hyderabad MC",     plan:"Scale",        amount:18499, method:"Bank Transfer", status:"Paid",    date:"30 Aug 2026" },
+      { id:"TXN-2408-002", org:"Bengaluru Urban Dev Auth",  plan:"Scale",        amount:18499, method:"UPI",           status:"Paid",    date:"29 Aug 2026" },
+      { id:"TXN-2408-003", org:"Lucknow Smart City Ltd",   plan:"Basic",        amount:2499,  method:"UPI",           status:"Paid",    date:"28 Aug 2026" },
+      { id:"TXN-2408-004", org:"Jaipur Development Auth",  plan:"Professional", amount:7999,  method:"Bank Transfer", status:"Failed",  date:"25 Aug 2026" },
+      { id:"TXN-2408-005", org:"Nagpur Smart City Corp",   plan:"Professional", amount:7999,  method:"Bank Transfer", status:"Paid",    date:"24 Aug 2026" },
+      { id:"TXN-2408-006", org:"Ahmedabad AMC",            plan:"Scale",        amount:18499, method:"Bank Transfer", status:"Paid",    date:"22 Aug 2026" },
+      { id:"TXN-2408-007", org:"Patna Urban Dev Board",    plan:"Basic",        amount:2499,  method:"UPI",           status:"Pending", date:"20 Aug 2026" },
+      { id:"TXN-2408-008", org:"Bhopal MC Infrastructure", plan:"Professional", amount:7999,  method:"UPI",           status:"Paid",    date:"18 Aug 2026" },
+      { id:"TXN-2408-009", org:"Chennai Metro Water Board",plan:"Professional", amount:7999,  method:"Credit Card",   status:"Paid",    date:"15 Aug 2026" },
+      { id:"TXN-2408-010", org:"Pune Municipal Corp",      plan:"Professional", amount:7999,  method:"UPI",           status:"Paid",    date:"14 Aug 2026" },
+      { id:"TXN-2408-011", org:"Kochi Corp Authority",     plan:"Basic",        amount:2499,  method:"Credit Card",   status:"Paid",    date:"10 Aug 2026" },
+    ];
+
+    const GEO_DATA = [
+      { state:"Maharashtra",   flag:"🦁", subs:4, bar:100 },
+      { state:"Telangana",     flag:"🏙️", subs:3, bar:75 },
+      { state:"Karnataka",     flag:"🌿", subs:3, bar:75 },
+      { state:"Tamil Nadu",    flag:"🌊", subs:3, bar:75 },
+      { state:"Gujarat",       flag:"🪁", subs:2, bar:50 },
+      { state:"Rajasthan",     flag:"🕌", subs:2, bar:50 },
+      { state:"Uttar Pradesh", flag:"🌆", subs:2, bar:50 },
+      { state:"Kerala",        flag:"🌴", subs:1, bar:25 },
+      { state:"Madhya Pradesh",flag:"🌳", subs:1, bar:25 },
+      { state:"Bihar",         flag:"🏞️", subs:1, bar:25 },
+    ];
+
+    /* ── Helpers ── */
+    const fmt = n => "Rs. " + Number(n).toLocaleString("en-IN");
+
+    function planPill(p) {
+      const c = { Scale:"pill-violet", Professional:"pill-blue", Basic:"pill-green" };
+      return `<span class="pill ${c[p]||'pill-muted'}">${p}</span>`;
+    }
+    function statusPill(s) {
+      const c = { Active:"pill-green", Overdue:"pill-red", Cancelled:"pill-muted", Paid:"pill-green", Failed:"pill-red", Pending:"pill-amber" };
+      return `<span class="pill ${c[s]||'pill-muted'}">${s}</span>`;
+    }
+    function daysUntil(d) {
+      if (d === "—") return null;
+      return Math.ceil((new Date(d) - new Date()) / 86400000);
+    }
+    function utilBar(used, total) {
+      const pct = Math.round((used / total) * 100);
+      const col = pct > 85 ? "#dc2626" : pct > 60 ? "#f59e0b" : "#16a34a";
+      return `<div style="display:flex;align-items:center;gap:8px;">
+        <div style="flex:1;height:6px;background:rgba(22,101,52,0.1);border-radius:3px;overflow:hidden;">
+          <div style="width:${pct}%;height:100%;background:${col};border-radius:3px;"></div>
+        </div>
+        <span style="font-size:0.74rem;font-weight:700;color:var(--text-soft);white-space:nowrap;">${pct}%</span>
+      </div>`;
+    }
+
+    /* ── KPIs ── */
+    function calcKPIs() {
+      const active = SUBSCRIBERS.filter(s => s.status === "Active");
+      const mrr  = active.reduce((s, o) => s + o.price, 0);
+      const arr  = mrr * 12;
+      const arpo = active.length ? Math.round(mrr / active.length) : 0;
+      document.getElementById("kpi-mrr").textContent  = fmt(mrr);
+      document.getElementById("kpi-arr").textContent  = fmt(arr);
+      document.getElementById("kpi-orgs").textContent = active.length;
+      document.getElementById("kpi-arpo").textContent = fmt(arpo);
+    }
+
+    /* ── MRR Chart ── */
+    let mrrChart;
+    const MRR_LABELS = ["Sep'25","Oct'25","Nov'25","Dec'25","Jan'26","Feb'26","Mar'26","Apr'26","May'26","Jun'26","Jul'26","Aug'26"];
+    const MRR_BASIC  = [2499,4998,4998,7497,9996,9996,9996,9996,12495,12495,12495,12495];
+    const MRR_PRO    = [7999,15998,23997,31996,39995,47994,47994,55993,63992,63992,71991,71991];
+    const MRR_SCALE  = [18499,18499,36998,36998,55497,55497,73996,73996,73996,92495,92495,110994];
+
+    function buildMRRChart(period) {
+      const n = { "3m":3, "6m":6, "12m":12 }[period] || 12;
+      if (mrrChart) mrrChart.destroy();
+      mrrChart = new Chart(document.getElementById("mrrChart"), {
+        type: "bar",
+        data: {
+          labels: MRR_LABELS.slice(-n),
+          datasets: [
+            { label:"Basic",        data: MRR_BASIC.slice(-n),  backgroundColor:"rgba(22,163,74,0.5)",  borderRadius:4, stack:"s" },
+            { label:"Professional", data: MRR_PRO.slice(-n),    backgroundColor:"rgba(37,99,235,0.55)", borderRadius:4, stack:"s" },
+            { label:"Scale",        data: MRR_SCALE.slice(-n),  backgroundColor:"rgba(124,58,237,0.5)", borderRadius:4, stack:"s" },
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position:"bottom", labels:{ font:{ family:"Manrope", size:11 }, boxWidth:10, padding:16 } },
+            tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: Rs. ${ctx.raw.toLocaleString("en-IN")}` } }
+          },
+          scales: {
+            x: { stacked:true, grid:{ display:false }, ticks:{ font:{ family:"Manrope", size:10 } } },
+            y: { stacked:true, grid:{ color:"rgba(22,101,52,0.06)" }, ticks:{ font:{ family:"Manrope", size:10 }, callback: v => "Rs."+(v/1000).toFixed(0)+"k" } }
+          }
+        }
+      });
+    }
+
+    function setChartPeriod(p, btn) {
+      document.querySelectorAll(".chart-filter-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      buildMRRChart(p);
+    }
+
+    /* ── Donut ── */
+    function buildDonut() {
+      const active = SUBSCRIBERS.filter(s => s.status === "Active");
+      const counts = { Basic:0, Professional:0, Scale:0 };
+      active.forEach(s => counts[s.plan]++);
+      const colors = ["rgba(22,163,74,0.75)","rgba(37,99,235,0.75)","rgba(124,58,237,0.75)"];
+      new Chart(document.getElementById("donutChart"), {
+        type:"doughnut",
+        data: { labels: Object.keys(counts), datasets:[{ data: Object.values(counts), backgroundColor:colors, borderWidth:0, hoverOffset:6 }] },
+        options: { responsive:true, cutout:"70%", plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: c => ` ${c.label}: ${c.raw} orgs` } } } }
+      });
+      const legend = document.getElementById("donutLegend");
+      Object.entries(counts).forEach(([name, val], i) => {
+        const rev = SUBSCRIBERS.filter(s => s.status === "Active" && s.plan === name).reduce((sum, o) => sum + o.price, 0);
+        legend.innerHTML += `<div class="donut-legend-row">
+          <div class="donut-legend-left"><div class="donut-legend-dot" style="background:${colors[i]};"></div><span>${name}</span></div>
+          <div><span class="donut-legend-val">${val} orgs</span> <span style="font-size:0.72rem;color:var(--text-muted);">Rs. ${rev.toLocaleString("en-IN")}</span></div>
+        </div>`;
+      });
+    }
+
+    /* ── Geo ── */
+    function buildGeoChart() {
+      new Chart(document.getElementById("geoChart"), {
+        type:"bar",
+        data: { labels: GEO_DATA.map(g => g.state), datasets:[{ data: GEO_DATA.map(g => g.subs), backgroundColor:"rgba(22,163,74,0.55)", borderRadius:6 }] },
+        options: { responsive:true, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: c => ` ${c.raw} org(s)` } } }, scales:{ x:{ grid:{ display:false }, ticks:{ font:{ family:"Manrope", size:10 } } }, y:{ grid:{ color:"rgba(22,101,52,0.06)" }, ticks:{ stepSize:1, font:{ family:"Manrope", size:10 } } } } }
+      });
+      const grid = document.getElementById("geoGrid");
+      GEO_DATA.forEach(g => {
+        grid.innerHTML += `<div class="geo-card">
+          <div class="geo-flag">${g.flag}</div>
+          <div style="flex:1;min-width:0;">
+            <div class="geo-state">${g.state}</div>
+            <div class="geo-count">${g.subs} active org${g.subs > 1 ? "s" : ""}</div>
+            <div class="geo-bar-wrap" style="margin-top:6px;"><div class="geo-bar" style="width:${g.bar}%;"></div></div>
+          </div>
+        </div>`;
+      });
+    }
+
+    /* ── Subscriber table ── */
+    let currentPage = 1;
+    const PAGE_SIZE = 6;
+
+    function renderSubTable(data) {
+      const body = document.getElementById("subTableBody");
+      body.innerHTML = "";
+      const start = (currentPage - 1) * PAGE_SIZE;
+      data.slice(start, start + PAGE_SIZE).forEach(s => {
+        body.innerHTML += `<tr>
+          <td><div class="org-cell"><div class="org-icon">${s.icon}</div>
+            <div><div class="org-name">${s.org}</div><div class="org-city">${s.city}</div></div></div></td>
+          <td>${planPill(s.plan)}</td>
+          <td><span style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:0.82rem;">${fmt(s.price)}</span></td>
+          <td>${statusPill(s.status)}</td>
+          <td style="font-size:0.8rem;color:var(--text-soft);">${s.renewal}</td>
+          <td style="font-weight:700;">${s.users}</td>
+          <td><button class="action-link">Manage &#8594;</button></td>
+        </tr>`;
+      });
+      document.getElementById("sub-count-label").textContent = `Showing ${start+1}–${Math.min(start+PAGE_SIZE,data.length)} of ${data.length}`;
+      const pages = Math.ceil(data.length / PAGE_SIZE);
+      const pg = document.getElementById("pagination");
+      pg.innerHTML = "";
+      for (let i = 1; i <= pages; i++) {
+        pg.innerHTML += `<button class="page-btn ${i===currentPage?"active":""}" onclick="goPage(${i})">${i}</button>`;
+      }
+    }
+
+    function goPage(p) { currentPage = p; filterTable(); }
+
+    function filterTable() {
+      const q = document.getElementById("subSearch").value.toLowerCase();
+      const plan = document.getElementById("planFilter").value;
+      renderSubTable(SUBSCRIBERS.filter(s =>
+        (!q || s.org.toLowerCase().includes(q) || s.city.toLowerCase().includes(q)) &&
+        (!plan || s.plan === plan)
+      ));
+    }
+
+    /* ── Full sub table ── */
+    function renderFullSubTable() {
+      const body = document.getElementById("fullSubBody");
+      SUBSCRIBERS.forEach(s => {
+        body.innerHTML += `<tr>
+          <td><div class="org-cell"><div class="org-icon">${s.icon}</div>
+            <div><div class="org-name">${s.org}</div><div class="org-city">${s.city}</div></div></div></td>
+          <td>${planPill(s.plan)}</td>
+          <td><span style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:0.82rem;">${fmt(s.price)}</span></td>
+          <td style="font-size:0.8rem;">${s.method}</td>
+          <td>${statusPill(s.status)}</td>
+          <td style="font-weight:700;">${s.users} / ${s.seats}</td>
+          <td style="font-size:0.8rem;color:var(--text-soft);">${s.started}</td>
+          <td style="font-size:0.8rem;">${s.renewal}</td>
+          <td style="display:flex;gap:8px;">
+            <button class="action-link">Edit</button>
+            <button class="action-link" style="color:var(--accent-red);">Deactivate</button>
+          </td>
+        </tr>`;
+      });
+    }
+
+    /* ── Full tx table ── */
+    function renderFullTx() {
+      const body = document.getElementById("fullTxBody");
+      TRANSACTIONS.forEach(t => {
+        body.innerHTML += `<tr>
+          <td><span style="font-family:'IBM Plex Mono',monospace;font-size:0.74rem;color:var(--text-soft);">${t.id}</span></td>
+          <td style="font-weight:600;">${t.org}</td>
+          <td>${planPill(t.plan)}</td>
+          <td><span style="font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:0.82rem;">${fmt(t.amount)}</span></td>
+          <td style="font-size:0.82rem;">${t.method}</td>
+          <td>${statusPill(t.status)}</td>
+          <td style="font-size:0.8rem;color:var(--text-soft);">${t.date}</td>
+        </tr>`;
+      });
+    }
+
+    /* ── Tx feed sidebar ── */
+    function renderTxFeed() {
+      const feed = document.getElementById("txFeed");
+      TRANSACTIONS.slice(0, 5).forEach(t => {
+        const dot = { Paid:"green", Failed:"red", Pending:"amber" }[t.status] || "blue";
+        feed.innerHTML += `<div class="feed-item">
+          <div class="feed-dot ${dot}"></div>
+          <div class="feed-body">
+            <div class="feed-org">${t.org}</div>
+            <div class="feed-desc">${t.plan} · ${t.method}</div>
+            <div class="feed-time">${t.date}</div>
+          </div>
+          <div class="feed-amount" style="font-size:0.78rem;">${fmt(t.amount)}</div>
+        </div>`;
+      });
+    }
+
+    /* ── Alert feed sidebar ── */
+    function renderAlertFeed() {
+      const feed = document.getElementById("alertFeed");
+      const overdue  = SUBSCRIBERS.filter(s => s.status === "Overdue");
+      const renewals = SUBSCRIBERS.filter(s => { const d = daysUntil(s.renewal); return d !== null && d > 0 && d <= 30; });
+
+      overdue.forEach(s => {
+        feed.innerHTML += `<div class="alert-item">
+          <div class="alert-icon">🚨</div>
+          <div class="alert-text"><strong>${s.org}</strong> — payment overdue<br>
+            <span class="alert-badge" style="background:rgba(220,38,38,0.1);color:#991b1b;">${s.plan} · ${fmt(s.price)}</span>
+          </div>
+        </div>`;
+      });
+
+      renewals.slice(0, 3).forEach(s => {
+        const d = daysUntil(s.renewal);
+        feed.innerHTML += `<div class="alert-item">
+          <div class="alert-icon">⏰</div>
+          <div class="alert-text"><strong>${s.org}</strong> renews in ${d} days<br>
+            <span class="alert-badge" style="background:rgba(245,158,11,0.1);color:#92400e;">${s.plan} · ${fmt(s.price)}</span>
+          </div>
+        </div>`;
+      });
+
+      document.getElementById("alert-count-badge").textContent = overdue.length + renewals.length;
+    }
+
+    /* ── Alerts section ── */
+    function renderAlertTables() {
+      const renewals = SUBSCRIBERS.filter(s => { const d = daysUntil(s.renewal); return d !== null && d > 0 && d <= 30; });
+      const overdue  = SUBSCRIBERS.filter(s => s.status === "Overdue");
+
+      const rb = document.getElementById("renewalBody");
+      renewals.forEach(s => {
+        const d = daysUntil(s.renewal);
+        rb.innerHTML += `<tr>
+          <td style="font-weight:700;">${s.org}</td>
+          <td>${planPill(s.plan)}</td>
+          <td><span style="font-family:'IBM Plex Mono',monospace;">${fmt(s.price)}</span></td>
+          <td style="font-size:0.82rem;">${s.renewal}</td>
+          <td><span class="pill ${d <= 7 ? 'pill-red' : 'pill-amber'}">${d} days</span></td>
+          <td><button class="action-link">Send reminder</button></td>
+        </tr>`;
+      });
+
+      const ob = document.getElementById("overdueBody");
+      overdue.forEach(s => {
+        ob.innerHTML += `<tr>
+          <td style="font-weight:700;">${s.org}</td>
+          <td>${planPill(s.plan)}</td>
+          <td><span style="font-family:'IBM Plex Mono',monospace;">${fmt(s.price)}</span></td>
+          <td style="font-size:0.82rem;">${s.renewal}</td>
+          <td><span class="pill pill-red">Overdue</span></td>
+          <td><button class="action-link" style="color:var(--accent-red);">Escalate</button></td>
+        </tr>`;
+      });
+
+      document.getElementById("alert-renewal-count").textContent = renewals.length;
+      document.getElementById("alert-overdue-count").textContent = overdue.length;
+    }
+
+    /* ── Usage table ── */
+    function renderUsageTable() {
+      const body = document.getElementById("usageBody");
+      SUBSCRIBERS.filter(s => s.status === "Active").forEach(s => {
+        const pct = Math.round((s.users / s.seats) * 100);
+        const health = pct > 80 ? ["Healthy","pill-green"] : s.lastLogin.includes("days") ? ["At risk","pill-amber"] : ["Healthy","pill-green"];
+        body.innerHTML += `<tr>
+          <td><div class="org-cell"><div class="org-icon">${s.icon}</div>
+            <div><div class="org-name">${s.org}</div><div class="org-city">${s.city}</div></div></div></td>
+          <td>${planPill(s.plan)}</td>
+          <td style="font-weight:700;">${s.users}</td>
+          <td style="color:var(--text-soft);">${s.seats}</td>
+          <td style="min-width:120px;">${utilBar(s.users, s.seats)}</td>
+          <td style="font-size:0.8rem;color:var(--text-soft);">${s.lastLogin}</td>
+          <td style="font-weight:700;">${s.requests.toLocaleString("en-IN")}</td>
+          <td><span class="pill ${health[1]}">${health[0]}</span></td>
+        </tr>`;
+      });
+    }
+
+    /* ── Navigation ── */
+    function showSection(id) {
+      document.querySelectorAll(".sa-section").forEach(s => s.classList.remove("is-active"));
+      document.querySelectorAll(".sa-nav-link").forEach(b => b.classList.remove("is-active"));
+      document.getElementById("section-" + id).classList.add("is-active");
+      document.getElementById("nav-" + id).classList.add("is-active");
+    }
+
+    /* ── Export ── */
+    function exportCSV() {
+      const rows = [["Organisation","Plan","Monthly Revenue","Status","Renewal","Users"]];
+      SUBSCRIBERS.forEach(s => rows.push([s.org, s.plan, s.price, s.status, s.renewal, s.users]));
+      const a = document.createElement("a");
+      a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(rows.map(r => r.join(",")).join("\n"));
+      a.download = "infralynx_subscribers.csv";
+      a.click();
+    }
+
+    /* ════════════════════════════════════════════
+       AUTH — Super Admin login gate
+    ════════════════════════════════════════════ */
+    const MASTER_ADMIN = { name: "Platform Owner", email: "admin@infralynx.app", password: "InfraLynx@2026", isMaster: true };
+    const SA_STORE_KEY = "infralynx_sa_admins";
+    const SA_SESSION   = "infralynx_sa_session";
+
+    function getAdmins() {
+      try { return JSON.parse(localStorage.getItem(SA_STORE_KEY)) || []; } catch { return []; }
+    }
+    function saveAdmins(list) { localStorage.setItem(SA_STORE_KEY, JSON.stringify(list)); }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById("loginEmail").value.trim().toLowerCase();
+      const pass  = document.getElementById("loginPassword").value;
+      const err   = document.getElementById("loginError");
+
+      // Check master account
+      const isMaster = email === MASTER_ADMIN.email.toLowerCase() && pass === MASTER_ADMIN.password;
+      // Check additional admins
+      const admins = getAdmins();
+      const found  = admins.find(a => a.email.toLowerCase() === email && a.password === pass);
+
+      if (isMaster || found) {
+        const who = isMaster ? MASTER_ADMIN : found;
+        sessionStorage.setItem(SA_SESSION, JSON.stringify({ name: who.name, email: who.email }));
+        err.classList.remove("show");
+        showDashboard(who);
+      } else {
+        err.classList.add("show");
+        document.getElementById("loginPassword").value = "";
+        document.getElementById("loginPassword").focus();
+      }
+    }
+
+    function showDashboard(user) {
+      document.getElementById("loginGate").classList.add("hidden");
+      document.getElementById("saShell").style.display = "";
+      document.getElementById("activeAdminEmail").textContent = user.email;
+      // Update avatar initial
+      const initial = (user.name || user.email)[0].toUpperCase();
+      document.querySelector(".sa-avatar").textContent = initial;
+      document.querySelector(".sa-admin-name").textContent = user.name || user.email;
+    }
+
+    function handleLogout() {
+      sessionStorage.removeItem(SA_SESSION);
+      document.getElementById("saShell").style.display = "none";
+      document.getElementById("loginGate").classList.remove("hidden");
+      document.getElementById("loginEmail").value = "";
+      document.getElementById("loginPassword").value = "";
+      document.getElementById("loginError").classList.remove("show");
+    }
+
+    /* ── Admin accounts management ── */
+    function renderAdminsGrid() {
+      const grid   = document.getElementById("adminsGrid");
+      const admins = getAdmins();
+      const session = JSON.parse(sessionStorage.getItem(SA_SESSION) || "{}");
+
+      let html = `<div class="admins-grid">
+        <!-- Master admin (you) — cannot be removed -->
+        <div class="admin-row">
+          <div class="admin-row-left">
+            <div class="admin-avatar-sm">${MASTER_ADMIN.name[0]}</div>
+            <div>
+              <div class="admin-row-name">${MASTER_ADMIN.name} <span class="pill pill-violet" style="font-size:0.62rem;margin-left:6px;">Master</span></div>
+              <div class="admin-row-email">${MASTER_ADMIN.email}</div>
+            </div>
+          </div>
+          <div class="admin-row-actions">
+            <span class="pill pill-green">Active</span>
+          </div>
+        </div>`;
+
+      admins.forEach((a, i) => {
+        const isSelf = a.email.toLowerCase() === session.email?.toLowerCase();
+        html += `<div class="admin-row">
+          <div class="admin-row-left">
+            <div class="admin-avatar-sm">${(a.name||a.email)[0].toUpperCase()}</div>
+            <div>
+              <div class="admin-row-name">${a.name || "—"}${isSelf ? ' <span class="pill pill-blue" style="font-size:0.62rem;margin-left:6px;">You</span>' : ''}</div>
+              <div class="admin-row-email">${a.email}</div>
+            </div>
+          </div>
+          <div class="admin-row-actions">
+            <span class="pill pill-green">Active</span>
+            ${!isSelf ? `<button class="action-link" style="color:var(--accent-red);font-size:0.8rem;" onclick="removeAdmin(${i})">Remove</button>` : ""}
+          </div>
+        </div>`;
+      });
+
+      html += `</div>`;
+      grid.innerHTML = html;
+    }
+
+    function removeAdmin(idx) {
+      if (!confirm("Remove this admin? They will lose access immediately.")) return;
+      const list = getAdmins();
+      list.splice(idx, 1);
+      saveAdmins(list);
+      renderAdminsGrid();
+    }
+
+    function addAdmin() {
+      const name  = document.getElementById("newAdminName").value.trim();
+      const email = document.getElementById("newAdminEmail").value.trim().toLowerCase();
+      const pass  = document.getElementById("newAdminPass").value;
+      const msg   = document.getElementById("addAdminMsg");
+
+      msg.className = "add-admin-msg";
+
+      if (!name || !email || !pass) {
+        msg.className = "add-admin-msg error"; msg.textContent = "Please fill in all three fields."; return;
+      }
+      if (pass.length < 8) {
+        msg.className = "add-admin-msg error"; msg.textContent = "Password must be at least 8 characters."; return;
+      }
+      if (email === MASTER_ADMIN.email.toLowerCase()) {
+        msg.className = "add-admin-msg error"; msg.textContent = "This email is already the master admin."; return;
+      }
+
+      const list = getAdmins();
+      if (list.find(a => a.email.toLowerCase() === email)) {
+        msg.className = "add-admin-msg error"; msg.textContent = "An admin with this email already exists."; return;
+      }
+
+      list.push({ name, email, password: pass });
+      saveAdmins(list);
+
+      document.getElementById("newAdminName").value  = "";
+      document.getElementById("newAdminEmail").value = "";
+      document.getElementById("newAdminPass").value  = "";
+
+      msg.className = "add-admin-msg success";
+      msg.textContent = `✓ ${name} (${email}) has been added as Super Admin.`;
+      renderAdminsGrid();
+    }
+
+    /* ── Boot ── */
+    document.addEventListener("DOMContentLoaded", () => {
+      // Check for existing session
+      const session = sessionStorage.getItem(SA_SESSION);
+      if (session) {
+        const user = JSON.parse(session);
+        showDashboard(user);
+      }
+
+      // Always init dashboard data (hidden until auth)
+      calcKPIs();
+      buildMRRChart("12m");
+      buildDonut();
+      buildGeoChart();
+      renderSubTable(SUBSCRIBERS);
+      renderTxFeed();
+      renderAlertFeed();
+      renderAlertTables();
+      renderFullSubTable();
+      renderFullTx();
+      renderUsageTable();
+      renderAdminsGrid();
+    });
+  </script>
+</body>
+</html>
