@@ -1,0 +1,185 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InfraLynx | Subscription Success</title>
+  <meta name="description" content="Subscription activated successfully for the InfraLynx platform.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/base.css">
+  <style>
+    body {
+      min-height: 100vh;
+    }
+
+    .success-page {
+      padding: 60px 0 80px;
+    }
+
+    .success-card {
+      max-width: 760px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(22, 101, 52, 0.08);
+      border-radius: 28px;
+      box-shadow: var(--shadow-lg);
+      padding: 36px 28px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .success-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: 100%;
+      height: 5px;
+      background: linear-gradient(90deg, var(--primary), #34d399, var(--accent-amber));
+    }
+
+    .success-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(34, 197, 94, 0.12);
+      color: var(--primary-darker);
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-family: "Sora", sans-serif;
+      font-size: clamp(2rem, 3vw, 3rem);
+      color: var(--text);
+      margin: 0 0 16px;
+    }
+
+    p {
+      color: var(--text-soft);
+      line-height: 1.8;
+      margin: 0 auto 20px;
+      max-width: 52ch;
+    }
+
+    .details-box {
+      display: inline-grid;
+      gap: 10px;
+      width: min(100%, 420px);
+      background: rgba(22, 163, 74, 0.04);
+      border: 1px solid rgba(22, 163, 74, 0.12);
+      border-radius: 16px;
+      padding: 18px 20px;
+      text-align: left;
+      margin: 18px 0;
+    }
+
+    .details-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--text-soft);
+      font-size: 0.96rem;
+    }
+
+    .details-row strong {
+      color: var(--text);
+    }
+
+    .button-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-weight: 800;
+      text-decoration: none;
+      transition: transform 0.2s ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+    }
+
+    .button-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      box-shadow: 0 10px 22px rgba(22, 163, 74, 0.22);
+    }
+
+    .button-secondary {
+      background: rgba(22, 163, 74, 0.08);
+      color: var(--primary-darker);
+      border: 1px solid rgba(22, 163, 74, 0.12);
+    }
+  </style>
+</head>
+
+<body class="success-page page-shell">
+  <div class="ambient-orb left" aria-hidden="true"></div>
+  <div class="ambient-orb right" aria-hidden="true"></div>
+  <div class="grid-sheen" aria-hidden="true"></div>
+
+  <div class="content-wrap">
+    <div class="success-card">
+      <div class="success-badge">✓</div>
+      <h1>Subscription activated successfully</h1>
+      <p>
+        Your InfraLynx platform access is now active. You can continue to the dashboard and start managing operations.
+      </p>
+
+      <div class="details-box" id="successDetails"></div>
+
+      <div class="button-row">
+        <a class="button button-primary" href="../index.html">Back to home</a>
+        <a class="button button-secondary" href="./auth.html?mode=official">Go to login</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const successDetails = document.getElementById('successDetails');
+
+    function safeReadSelectedPlan() {
+      try {
+        const rawValue = localStorage.getItem('infralynx:selectedPlan');
+        if (!rawValue) return {};
+        return JSON.parse(rawValue);
+      } catch (_error) {
+        return {};
+      }
+    }
+
+    const savedPlan = safeReadSelectedPlan();
+    const formatCurrency = (value) => `₹ ${Number(value || 0).toLocaleString('en-IN')}`;
+
+    const planName = savedPlan.planName || 'Professional';
+    const price = formatCurrency(savedPlan.price || 7999);
+    const payerName = savedPlan.payerName || 'User';
+    const paymentMethod = savedPlan.paymentMethod || 'UPI';
+
+    successDetails.innerHTML = `
+      <div class="details-row"><span>Plan</span><strong>${planName}</strong></div>
+      <div class="details-row"><span>Amount</span><strong>${price}</strong></div>
+      <div class="details-row"><span>Customer</span><strong>${payerName}</strong></div>
+      <div class="details-row"><span>Payment</span><strong>${paymentMethod}</strong></div>
+    `;
+  </script>
+</body>
+
+</html>
