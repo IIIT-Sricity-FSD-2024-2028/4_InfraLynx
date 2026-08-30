@@ -1,4 +1,4 @@
-﻿(function bootstrapAdmin(globalScope) {
+(function bootstrapAdmin(globalScope) {
   const {
     REQUEST_STATUS_STEPS,
     clearSession,
@@ -11,6 +11,7 @@
     getRoleByCode,
     getSession,
     getState,
+    hasActiveAdminSubscription,
     initializeStore,
     upsertAdminRequest,
     upsertWorkOrder,
@@ -907,6 +908,11 @@
 
     if (!session) {
       renderAccessGuard();
+      return;
+    }
+
+    if (typeof hasActiveAdminSubscription === "function" && !hasActiveAdminSubscription()) {
+      globalScope.location.href = "./subscription.html?required=admin";
       return;
     }
 

@@ -1,4 +1,4 @@
-﻿(function bootstrapAuth(globalScope) {
+(function bootstrapAuth(globalScope) {
   const {
     authenticateCitizen,
     authenticateOfficial,
@@ -6,6 +6,7 @@
     getLanguage,
     getRoleByCode,
     getState,
+    hasActiveAdminSubscription,
     initializeStore,
     registerCitizenAccount
   } = globalScope.CRIMS.store;
@@ -186,6 +187,14 @@
 
       try {
         const account = await authenticateOfficial(payload.email, payload.password);
+        
+        // City Admin (ADMINISTRATOR) requires an active subscription
+        if (account.role === "ADMINISTRATOR" && typeof hasActiveAdminSubscription === "function" && !hasActiveAdminSubscription()) {
+          globalScope.location.href = "./subscription.html?required=admin";
+          return;
+        }
+
+        // Officer, Engineer, CFO, QC_Reviewer log in without subscription
         const nextWorkspace = routes ? routes.workspaceForRole(account.role) : `./${account.role.toLowerCase()}.html`;
         if (nextWorkspace) {
           globalScope.location.href = nextWorkspace;

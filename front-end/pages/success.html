@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -146,7 +146,7 @@
       <div class="details-box" id="successDetails"></div>
 
       <div class="button-row">
-        <a class="button button-primary" href="../index.html">Back to home</a>
+        <a class="button button-primary" href="./admin.html">Go to Admin Console</a>
         <a class="button button-secondary" href="./auth.html?mode=official">Go to login</a>
       </div>
     </div>
@@ -157,7 +157,7 @@
 
     function safeReadSelectedPlan() {
       try {
-        const rawValue = localStorage.getItem('infralynx:selectedPlan');
+        const rawValue = localStorage.getItem('infralynx:selectedPlan') || localStorage.getItem('infralynx:admin_subscription');
         if (!rawValue) return {};
         return JSON.parse(rawValue);
       } catch (_error) {
@@ -169,7 +169,7 @@
     const formatCurrency = (value) => `₹ ${Number(value || 0).toLocaleString('en-IN')}`;
 
     const planName = savedPlan.planName || 'Professional';
-    const price = formatCurrency(savedPlan.price || 7999);
+    const price = formatCurrency(savedPlan.price || 29999);
     const payerName = savedPlan.payerName || 'User';
     const paymentMethod = savedPlan.paymentMethod || 'UPI';
 
