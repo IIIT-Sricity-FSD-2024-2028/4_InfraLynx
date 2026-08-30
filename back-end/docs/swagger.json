@@ -29,7 +29,7 @@
           {
             "name": "X-Role",
             "in": "header",
-            "description": "Allowed roles: ENGINEER, OFFICER, ADMINISTRATOR, QC_REVIEWER",
+            "description": "Allowed roles: ENGINEER, OFFICER, ADMINISTRATOR, QC_REVIEWER, CITIZEN",
             "required": true,
             "schema": {
               "type": "string"
@@ -263,7 +263,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -308,7 +318,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -331,7 +348,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -371,7 +395,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -3380,6 +3411,9 @@
               "HIGH",
               "EMERGENCY"
             ]
+          },
+          "photoUrl": {
+            "type": "string"
           }
         },
         "required": [
@@ -3422,6 +3456,9 @@
               "HIGH",
               "EMERGENCY"
             ]
+          },
+          "photoUrl": {
+            "type": "string"
           }
         }
       },

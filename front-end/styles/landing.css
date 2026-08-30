@@ -290,6 +290,7 @@
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--line);
+  min-width: 0;
 }
 
 .ack-item span {
@@ -301,7 +302,10 @@
 .ack-item strong {
   display: block;
   margin-top: 6px;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* ── Tracking ── */

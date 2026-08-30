@@ -285,6 +285,12 @@
 
     elements.planningQueue.innerHTML = queue
       .map((request) => {
+        const fileUrl = request.photoUrl
+          ? (request.photoUrl.startsWith("http") ? request.photoUrl : ((globalScope.CRIMS.api.API_BASE || "") + request.photoUrl))
+          : null;
+        const photoLink = fileUrl
+          ? `<p><a class="text-button" href="${escapeHtml(fileUrl)}" target="_blank" rel="noopener noreferrer">📎 View Photo Evidence</a></p>`
+          : "";
         return `
           <article class="queue-item">
             <div class="queue-item-head">
@@ -293,6 +299,7 @@
             </div>
             <p>${escapeHtml(request.title)}</p>
             <p>${escapeHtml(request.locationText)} / ${escapeHtml(formatStatus(request.urgency))} priority</p>
+            ${photoLink}
           </article>
         `;
       })

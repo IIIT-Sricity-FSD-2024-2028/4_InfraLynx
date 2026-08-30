@@ -237,7 +237,8 @@
       title: payload.title,
       description: payload.description,
       locationText: payload.locationText,
-      urgency: payload.urgency
+      urgency: payload.urgency,
+      photoUrl: payload.photoUrl || ""
     });
     prependActivity("New citizen request", record.publicReferenceNo + " was submitted.");
     return record;
@@ -313,7 +314,7 @@
     let record;
     if (payload.requestId) {
       record = await api.patch("/requests/" + payload.requestId, {
-        status: payload.status, title: payload.title, description: payload.description, urgency: payload.urgency
+        status: payload.status, title: payload.title, description: payload.description, urgency: payload.urgency, photoUrl: payload.photoUrl
       });
       prependActivity("Citizen request updated", (record.publicReferenceNo || payload.requestId) + " was updated.");
     } else {
@@ -322,7 +323,8 @@
         requestType: payload.requestType, categoryId: payload.categoryId,
         requesterName: payload.requesterName, requesterContact: payload.requesterContact,
         requesterEmail: payload.requesterEmail, title: payload.title,
-        description: payload.description, locationText: payload.locationText, urgency: payload.urgency
+        description: payload.description, locationText: payload.locationText, urgency: payload.urgency,
+        photoUrl: payload.photoUrl || ""
       });
       prependActivity("Citizen request added", (record.publicReferenceNo || "") + " was created from administrator console.");
     }

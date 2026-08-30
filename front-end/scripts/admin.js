@@ -402,13 +402,19 @@
     });
 
     if (!filteredRequests.length) {
-      elements.requestTableBody.innerHTML = '<tr><td colspan="6"><div class="empty-state">No requests match the selected filter.</div></td></tr>';
+      elements.requestTableBody.innerHTML = '<tr><td colspan="7"><div class="empty-state">No requests match the selected filter.</div></td></tr>';
       return;
     }
 
     elements.requestTableBody.innerHTML = filteredRequests
       .map((request) => {
         const department = getDepartmentById(request.departmentId);
+        const fileUrl = request.photoUrl
+          ? (request.photoUrl.startsWith("http") ? request.photoUrl : ((globalScope.CRIMS.api.API_BASE || "") + request.photoUrl))
+          : null;
+        const photoCell = fileUrl
+          ? `<a class="text-button" href="${escapeHtml(fileUrl)}" target="_blank" rel="noopener noreferrer">📎 View Photo</a>`
+          : '<span class="mono">-</span>';
         return `
           <tr>
             <td>
@@ -417,6 +423,7 @@
             </td>
             <td>${escapeHtml(request.requesterName)}</td>
             <td>${escapeHtml((department && department.name) || "Unassigned")}</td>
+            <td>${photoCell}</td>
             <td><span class="status-pill ${statusTone(request.status)}">${escapeHtml(formatStatus(request.status))}</span></td>
             <td>${escapeHtml(formatStatus(request.urgency))}</td>
             <td>
