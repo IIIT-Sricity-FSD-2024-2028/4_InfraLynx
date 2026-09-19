@@ -116,30 +116,46 @@ When the project moves beyond the in-memory phase:
 - Replace demo access with secure authentication, hashed passwords, sessions/JWTs, and production RBAC.
 - Add schema/API parity tests so future drift is caught automatically.
 
-## Local Commands
+## Running the Project
 
-Install and run both apps from the root:
+The project consists of a NestJS backend and a plain‑HTML/JS frontend. Follow the steps below from the repository root.
 
+### Prerequisites
+- Node.js (v18 or later) and npm installed.
+- Git installed and configured with your GitHub credentials.
+
+### Install dependencies
 ```bash
 npm install
-npm start
 ```
 
-This starts the backend at `http://localhost:3000` and the frontend at `http://localhost:3001`.
+### Start both backend and frontend locally
+```bash
+npm start
+```
+This runs two npm scripts in parallel:
+- **Backend** — starts the NestJS server on `http://localhost:3000`.
+- **Frontend** – serves the static files under `front-end/` on `http://localhost:3001`.
 
-Backend only:
-
+### Run backend only
 ```bash
 cd back-end
 npm install
-npm run build
-npm test
-npm run start:dev
+npm run build   # compile TypeScript
+npm run start:dev   # start with hot‑reload
 ```
 
-Frontend only:
+### Run frontend only
+Serve the `front-end/` folder with any static HTTP server (e.g., `npx serve front-end`). Directly opening `file://` URLs is not recommended because the frontend expects the backend API at `http://localhost:3000`.
 
-Serve `front-end/` with any static server. Direct `file://` opening is not recommended for Review-4 because the frontend expects the backend API at `http://localhost:3000`.
+### Verify the setup
+1. Open `http://localhost:3001` in a browser.
+2. The UI should load and communicate with the backend (`http://localhost:3000/api/...`).
+3. Use the demo sign‑in pages under `front-end/pages/` to explore the different roles.
+
+### Logs & uploads
+- Logs are written to `back-end/logs/` every 5 seconds.
+- Uploaded files are stored in `back-end/uploads/` (git‑ignored).
 
 ## Project Status
 
