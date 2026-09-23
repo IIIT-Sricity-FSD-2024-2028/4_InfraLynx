@@ -10,7 +10,7 @@ const ACTOR_ROLES = [
   { id: 'coo', label: 'Township COO', email: 'coo@infralynx.com', badge: 'Executive', path: '/portal/coo' },
 ]
 
-export default function AuthModal({ isOpen, onClose, initialRole = 'rwa' }) {
+export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLoginSuccess }) {
   const navigate = useNavigate()
   const [selectedRole, setSelectedRole] = useState(initialRole)
   const [formData, setFormData] = useState({
@@ -61,7 +61,10 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa' }) {
     setTimeout(() => {
       onClose()
       setSubmitted(false)
-    }, 1000)
+      if (onLoginSuccess) {
+        onLoginSuccess(selectedRole)
+      }
+    }, 700)
   }
 
   const activeRoleInfo = ACTOR_ROLES.find((r) => r.id === selectedRole) || ACTOR_ROLES[0]
