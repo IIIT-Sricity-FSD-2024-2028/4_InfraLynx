@@ -52,7 +52,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Official Inquiries</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>advisory@tims-infra.gov.in</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>support@infralynx.com</div>
                 </div>
               </div>
 
@@ -185,7 +185,7 @@ export default function Contact() {
                     <input
                       type="email"
                       required
-                      placeholder="officer@municipal.gov.in"
+                      placeholder="name@infralynx.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       style={fieldStyle}

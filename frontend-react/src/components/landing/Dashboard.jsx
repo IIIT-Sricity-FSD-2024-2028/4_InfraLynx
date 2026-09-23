@@ -133,7 +133,7 @@ export default function Dashboard({ onOpenAuth }) {
               </h3>
             </div>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              Configured by Township System Administrator
+              Configured by Township Executive Authority
             </span>
           </div>
 

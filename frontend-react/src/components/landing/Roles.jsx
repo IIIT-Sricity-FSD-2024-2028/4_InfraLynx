@@ -110,24 +110,6 @@ const ACTORS = [
       quarterlySpend: '₹42.8L',
     },
   },
-  {
-    id: 'admin',
-    title: 'System Administrator',
-    type: 'System & RBAC Governance',
-    summary: 'Platform administrator configuring system topology, user roles, AMC agreements, and security policies.',
-    responsibilities: [
-      'Manage user accounts, authentication security, and granular RBAC role policies.',
-      'Configure township sectors, zones, blocks, asset categories, and location trees.',
-      'Administer contractor empanelment, contract validity dates, and AMC rate cards.',
-      'Set SLA escalation timelines, approval monetary thresholds, and audit review rules.',
-    ],
-    consoleAction: 'Configure AMC Rate Card',
-    mockData: {
-      activeUsers: 84,
-      configuredSectors: 12,
-      auditLogHealth: '100%',
-    },
-  },
 ]
 
 export default function Roles({ onOpenAuth }) {

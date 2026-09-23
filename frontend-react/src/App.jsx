@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import Nav from './components/Nav.jsx'
-import Hero from './components/Hero.jsx'
-import Features from './components/Features.jsx'
-import Workflow from './components/Workflow.jsx'
-import Roles from './components/Roles.jsx'
-import Pricing from './components/Pricing.jsx'
-import Contact from './components/Contact.jsx'
-import Footer from './components/Footer.jsx'
-import AuthModal from './components/AuthModal.jsx'
+import Nav from './components/landing/Nav.jsx'
+import Hero from './components/landing/Hero.jsx'
+import Features from './components/landing/Features.jsx'
+import Workflow from './components/landing/Workflow.jsx'
+import Roles from './components/landing/Roles.jsx'
+import Pricing from './components/landing/Pricing.jsx'
+import Contact from './components/landing/Contact.jsx'
+import Footer from './components/landing/Footer.jsx'
+import AuthModal from './components/auth/AuthModal.jsx'
 
 export default function App() {
   const [authOpen, setAuthOpen] = useState(false)

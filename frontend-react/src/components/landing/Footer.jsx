@@ -74,7 +74,7 @@ export default function Footer({ onOpenAuth }) {
               <li><a href="#roles" onClick={() => onOpenAuth('clerk')} className="footer-link">Desk Clerk Triage</a></li>
               <li><a href="#roles" onClick={() => onOpenAuth('dept_head')} className="footer-link">Department Head Desk</a></li>
               <li><a href="#roles" onClick={() => onOpenAuth('finance')} className="footer-link">Finance & Billing Audit</a></li>
-              <li><a href="#roles" onClick={() => onOpenAuth('admin')} className="footer-link">System Administrator</a></li>
+              <li><a href="#roles" onClick={() => onOpenAuth('coo')} className="footer-link">Township COO Authority</a></li>
             </ul>
           </div>
 
