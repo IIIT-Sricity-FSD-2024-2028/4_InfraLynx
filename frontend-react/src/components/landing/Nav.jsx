@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function Nav({ onOpenAuth }) {
+export default function Nav({ onOpenAuth, onOpenRwaPortal }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (

@@ -1,0 +1,559 @@
+/* RwaDashboard.css - Styles for Screen 1: Dashboard */
+
+.dashboard-root {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Notice Banner */
+.notice-banner {
+  background: linear-gradient(90deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 1.5px solid #34d399;
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-sm);
+}
+
+.notice-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.notice-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.notice-title {
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--primary-darker);
+}
+
+.notice-desc {
+  font-size: 13px;
+  color: var(--primary-dark);
+  margin-top: 2px;
+}
+
+.notice-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notice-btn-track {
+  background: var(--primary-dark);
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.notice-btn-track:hover {
+  background: var(--primary-darker);
+}
+
+.notice-btn-dismiss {
+  background: transparent;
+  border: none;
+  color: var(--primary-darker);
+  font-size: 18px;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0 6px;
+}
+
+/* Welcome Card */
+.dashboard-welcome {
+  padding: 24px 28px;
+  background: linear-gradient(135deg, #ffffff 0%, #f4fbf6 100%);
+  border: 1px solid rgba(22, 163, 74, 0.2);
+  border-radius: var(--radius-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+.welcome-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.welcome-badge {
+  background: var(--primary-subtle);
+  color: var(--primary-darker);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.welcome-jurisdiction {
+  font-size: 13px;
+  color: var(--text-soft);
+}
+
+.welcome-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-top: 6px;
+  color: var(--text);
+}
+
+.welcome-subtitle {
+  font-size: 14px;
+  color: var(--text-soft);
+  margin-top: 2px;
+  max-width: 640px;
+}
+
+.btn-report-quick {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 12px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.28);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-report-quick:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(22, 163, 74, 0.35);
+}
+
+/* Attention Banner */
+.attention-banner {
+  background: linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.attention-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f59e0b;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.attention-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: #92400e;
+}
+
+.attention-desc {
+  font-size: 13px;
+  color: #b45309;
+}
+
+.attention-btn {
+  background: #d97706;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.attention-btn:hover {
+  background: #b45309;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.metric-card {
+  padding: 18px 20px;
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+}
+
+.metric-card.alert {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.metric-label {
+  font-size: 13px;
+  color: var(--text-soft);
+  font-weight: 600;
+}
+
+.metric-card.alert .metric-label {
+  color: #b45309;
+}
+
+.metric-value {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--text);
+  margin-top: 4px;
+  font-family: var(--font-head);
+}
+
+.metric-value.blue {
+  color: var(--accent-blue);
+}
+
+.metric-value.cyan {
+  color: #0284c7;
+}
+
+.metric-value.amber {
+  color: #d97706;
+}
+
+.metric-value.green {
+  color: var(--primary-dark);
+}
+
+.metric-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.metric-card.alert .metric-sub {
+  color: #92400e;
+}
+
+/* Filter Toolbar */
+.filter-toolbar {
+  padding: 16px 20px;
+  background: #ffffff;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.search-box {
+  position: relative;
+  flex: 1 1 260px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 14px 10px 38px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  font-size: 14px;
+  font-family: var(--font-body);
+  outline: none;
+  background: #ffffff;
+}
+
+.search-input:focus {
+  border-color: var(--primary);
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  color: var(--text-muted);
+}
+
+.filter-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-filter-category {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-filter-category.active {
+  border-color: var(--primary);
+  background: var(--primary-subtle);
+  color: var(--primary-darker);
+}
+
+.btn-filter-status {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-filter-status.active {
+  border-color: var(--primary-dark);
+  background: var(--primary-dark);
+  color: #ffffff;
+}
+
+/* Complaints Section */
+.complaints-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.complaints-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.complaints-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.complaints-count-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.empty-card {
+  padding: 48px;
+  text-align: center;
+  background: #ffffff;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--line-strong);
+}
+
+.empty-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.empty-title {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.empty-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Individual Complaint Card */
+.complaint-card {
+  padding: 20px 24px;
+  background: #ffffff;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.complaint-card.pending-card {
+  border: 1.5px solid #f59e0b;
+}
+
+.card-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.badge-cluster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.badge-id {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  background: var(--primary-subtle);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.badge-category {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.badge-category.electrical {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.badge-category.water {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.badge-category.civil {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.badge-severity {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.badge-severity.emergency {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.badge-severity.high {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.badge-severity.normal {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.card-desc {
+  font-size: 13.5px;
+  color: var(--text-soft);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  gap: 12px;
+  font-size: 13px;
+}
+
+.card-info-cluster {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  color: var(--text-soft);
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-track {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  background: #ffffff;
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-track:hover {
+  background: #f8faf8;
+}
+
+.btn-verify-now {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.25);
+  transition: all var(--transition-fast);
+}
+
+.btn-verify-now:hover {
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
+}
