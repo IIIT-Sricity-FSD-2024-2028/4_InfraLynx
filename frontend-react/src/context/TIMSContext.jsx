@@ -6,13 +6,50 @@ import {
   INITIAL_CURRENT_USER,
 } from './initialData.js'
 
+const normStage = (s) => (s || '').toUpperCase().replace(/[\s_-]+/g, '')
+
+const STAGE_RANK_MAP = {
+  REPORTED: 0,
+  UNDERREVIEW: 1,
+  VALIDATED: 2,
+  WORKORDERCREATED: 3,
+  AWAITINGDEPTHEAD: 3,
+  REVISIONREQUESTED: 3,
+  ASSIGNED: 4,
+  CONTRACTORESCALATED: 4,
+  ESCALATEDTOCOO: 4,
+  INPROGRESS: 5,
+  COMPLETED: 6,
+  PENDINGVERIFICATION: 7,
+  CLOSED: 8,
+  DISPUTED: 8,
+}
+
+function sanitizeComplaintHistory(c) {
+  if (!c || !Array.isArray(c.history)) return c
+  const currentRank = STAGE_RANK_MAP[normStage(c.status)] ?? 0
+  const cleanHistory = c.history.filter((evt) => {
+    const rank = STAGE_RANK_MAP[normStage(evt.stage)] ?? 0
+    return rank <= currentRank
+  })
+  return { ...c, history: cleanHistory }
+}
+
 const TIMSContext = createContext(null)
 
 export function TIMSProvider({ children }) {
   const [complaints, setComplaints] = useState(() => {
     localStorage.removeItem('tims_complaints')
     const saved = localStorage.getItem('tims_complaints_v3')
-    return saved ? JSON.parse(saved) : INITIAL_COMPLAINTS
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        return Array.isArray(parsed) ? parsed.map(sanitizeComplaintHistory) : INITIAL_COMPLAINTS
+      } catch {
+        return INITIAL_COMPLAINTS
+      }
+    }
+    return INITIAL_COMPLAINTS
   })
 
   const [contractors] = useState(INITIAL_CONTRACTORS)
@@ -174,16 +211,20 @@ export function TIMSProvider({ children }) {
     setComplaints((prev) =>
       prev.map((c) => {
         if (c.id !== complaintId) return c
+        const newRank = STAGE_RANK_MAP[normStage(newStatus)] ?? 0
+        const cleanHistory = (c.history || []).filter(
+          (evt) => (STAGE_RANK_MAP[normStage(evt.stage)] ?? 0) < newRank
+        )
         return {
           ...c,
           status: newStatus,
           history: [
-            ...c.history,
+            ...cleanHistory,
             {
               stage: newStatus,
               timestamp: now,
               actor: currentUser.name,
-              note: note || `Status updated to ${newStatus}`,
+              note: note || `Status updated to ${newStatus.replace(/_/g, ' ')}`,
             },
           ],
         }
@@ -195,6 +236,7 @@ export function TIMSProvider({ children }) {
    * Reset in-memory state back to original initial data
    */
   function resetDemoData() {
+    localStorage.removeItem('tims_complaints_v3')
     localStorage.removeItem('tims_complaints')
     setComplaints(INITIAL_COMPLAINTS)
   }
@@ -222,3 +264,5 @@ export function useTIMS() {
   }
   return context
 }
+
+
