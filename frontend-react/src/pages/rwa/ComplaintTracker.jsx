@@ -13,8 +13,27 @@ const LIFECYCLE_STAGES = [
   { id: 'PENDING_VERIFICATION', label: 'Pending Verification', desc: 'RWA inspection' },
 ]
 
+const normStage = (s) => (s || '').toUpperCase().replace(/[\s_-]+/g, '')
+
+const STAGE_RANK_MAP = {
+  REPORTED: 0,
+  UNDERREVIEW: 1,
+  VALIDATED: 2,
+  WORKORDERCREATED: 3,
+  AWAITINGDEPTHEAD: 3,
+  REVISIONREQUESTED: 3,
+  ASSIGNED: 4,
+  CONTRACTORESCALATED: 4,
+  ESCALATEDTOCOO: 4,
+  INPROGRESS: 5,
+  COMPLETED: 6,
+  PENDINGVERIFICATION: 7,
+  CLOSED: 8,
+  DISPUTED: 8,
+}
+
 export default function ComplaintTracker({ selectedComplaint, onNavigate, onSelectComplaint }) {
-  const { complaints, updateComplaintStatus } = useTIMS()
+  const { complaints } = useTIMS()
 
   // Fallback to first complaint if none selected
   const activeComplaint = useMemo(() => {
@@ -24,15 +43,19 @@ export default function ComplaintTracker({ selectedComplaint, onNavigate, onSele
     return complaints[0] || null
   }, [complaints, selectedComplaint])
 
-  // Calculate current stage index in 8-stage lifecycle
+  // Calculate current stage index in 8-stage lifecycle (supports both spaces and underscores)
   const currentStageIndex = useMemo(() => {
     if (!activeComplaint) return 0
-    const s = activeComplaint.status
+    const s = normStage(activeComplaint.status)
     if (s === 'CLOSED') return 8
     if (s === 'DISPUTED') return 7
-    const idx = LIFECYCLE_STAGES.findIndex((stage) => stage.id === s)
+    if (s in STAGE_RANK_MAP) {
+      return Math.min(STAGE_RANK_MAP[s], LIFECYCLE_STAGES.length - 1)
+    }
+    const idx = LIFECYCLE_STAGES.findIndex((stage) => normStage(stage.id) === s)
     return idx >= 0 ? idx : 0
   }, [activeComplaint])
+
 
   // Helper for SLA calculation
   const slaInfo = useMemo(() => {
@@ -154,22 +177,12 @@ export default function ComplaintTracker({ selectedComplaint, onNavigate, onSele
             </p>
           </div>
 
-          {/* Quick Demo Lifecycle Stepper for testing */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>Demo Quick-Step:</span>
-            <select
-              value={activeComplaint.status}
-              onChange={(e) => updateComplaintStatus(activeComplaint.id, e.target.value)}
-              className="demo-step-select"
-            >
-              {LIFECYCLE_STAGES.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-              <option value="CLOSED">Closed (Verified)</option>
-              <option value="DISPUTED">Disputed</option>
-            </select>
+          {/* Real Complaint Status Display */}
+          <div className="stepper-live-status">
+            <span className="stepper-live-label">Current Status:</span>
+            <span className="stepper-live-badge">
+              {activeComplaint.status.replace(/_/g, ' ')}
+            </span>
           </div>
         </div>
 
@@ -254,141 +267,56 @@ export default function ComplaintTracker({ selectedComplaint, onNavigate, onSele
               <span className="attr-label">GPS Township Pin</span>
               <span style={{ fontSize: 12, color: 'var(--text-soft)' }}>{activeComplaint.location.gps}</span>
             </div>
-          </div>
 
-          {/* Citizen Photo Evidence */}
-          <div>
-            <span className="attr-label" style={{ marginBottom: 6 }}>
-              Citizen Site Photo
-            </span>
-            <div className="photo-preview-wrap">
-              {activeComplaint.beforePhotos.map((src, i) => (
-                <img
-                  key={i}
-                  src={src}
-                  alt={`Before Proof ${i + 1}`}
-                  className="photo-preview-img"
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Contractor & Work Order Status */}
-        <div className="detail-card">
-          <div className="detail-card-header">
-            <span className="detail-card-tag">Contractor Execution & AMC</span>
-            <h3 className="detail-card-title">
-              {activeComplaint.assignedContractor ? activeComplaint.assignedContractor.name : 'Awaiting Assignment'}
-            </h3>
             {activeComplaint.assignedContractor && (
-              <p style={{ fontSize: 12.5, color: 'var(--text-soft)', marginTop: 4 }}>
-                Lead: {activeComplaint.assignedContractor.lead} • Contact: {activeComplaint.assignedContractor.phone}
-              </p>
+              <div>
+                <span className="attr-label">Assigned Agency</span>
+                <strong>
+                  {activeComplaint.assignedContractor.name} {activeComplaint.assignedContractor.phone ? `(${activeComplaint.assignedContractor.phone})` : ''}
+                </strong>
+              </div>
             )}
           </div>
 
-          {/* Execution details */}
-          <div className="attributes-table">
-            <div>
-              <span className="attr-label">Work Order ID</span>
-              <strong style={{ fontFamily: 'var(--font-mono)' }}>
-                {activeComplaint.workOrderId || 'WO-PENDING'}
-              </strong>
-            </div>
-
-            <div>
-              <span className="attr-label">AMC Contract Ref</span>
-              <strong style={{ fontFamily: 'var(--font-mono)' }}>
-                {activeComplaint.assignedContractor?.amcContractId || 'Pending'}
-              </strong>
-            </div>
-
-            <div>
-              <span className="attr-label">Inspection Status</span>
-              <strong>{activeComplaint.inspectionRemarks ? 'Inspected' : 'Pending Site Visit'}</strong>
-            </div>
-
-            <div>
-              <span className="attr-label">AMC Estimate</span>
-              <strong>{activeComplaint.estimateAmount ? `₹${activeComplaint.estimateAmount.toLocaleString()}` : 'Under Review'}</strong>
-            </div>
-          </div>
-
-          {/* Site Inspection Notes */}
-          {activeComplaint.inspectionRemarks && (
-            <div className="inspection-box">
-              <span style={{ fontSize: 11.5, color: 'var(--text-muted)', display: 'block', fontWeight: 600 }}>
-                Contractor Site Inspection Remarks:
-              </span>
-              <p style={{ fontSize: 13, color: 'var(--text)', marginTop: 4 }}>
-                "{activeComplaint.inspectionRemarks}"
-              </p>
-            </div>
-          )}
-
-          {/* Contractor Completion Remarks */}
-          {activeComplaint.completionRemarks && (
-            <div className="completion-box">
-              <span style={{ fontSize: 11.5, color: '#166534', display: 'block', fontWeight: 600 }}>
-                Completion Summary by Field Contractor:
-              </span>
-              <p style={{ fontSize: 13, color: '#14532d', marginTop: 4 }}>
-                "{activeComplaint.completionRemarks}"
-              </p>
-            </div>
-          )}
-
-          {/* Contractor After Photos */}
-          {activeComplaint.afterPhotos && activeComplaint.afterPhotos.length > 0 && (
+          {/* Photo Evidence */}
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
             <div>
               <span className="attr-label" style={{ marginBottom: 6 }}>
-                Contractor Completion Evidence Photo
+                Citizen Site Photo
               </span>
               <div className="photo-preview-wrap">
-                {activeComplaint.afterPhotos.map((src, i) => (
+                {activeComplaint.beforePhotos.map((src, i) => (
                   <img
                     key={i}
                     src={src}
-                    alt={`After Proof ${i + 1}`}
-                    className="photo-preview-img after"
+                    alt={`Before Proof ${i + 1}`}
+                    className="photo-preview-img"
                   />
                 ))}
               </div>
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Audit History Timeline */}
-      <div className="audit-card">
-        <h3 className="audit-title">
-          Immutable TIMS Audit Log & Event Trail
-        </h3>
-
-        <div className="audit-list">
-          {activeComplaint.history &&
-            activeComplaint.history.map((event, idx) => (
-              <div key={idx} className="audit-item">
-                <div className="audit-dot" />
-                <div style={{ flex: 1 }}>
-                  <div className="audit-header-line">
-                    <span className="audit-stage-pill">
-                      {event.stage}
-                    </span>
-                    <strong style={{ color: 'var(--text)' }}>{event.actor}</strong>
-                    <span className="audit-timestamp">
-                      {new Date(event.timestamp).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="audit-note">
-                    {event.note}
-                  </div>
+            {activeComplaint.afterPhotos && activeComplaint.afterPhotos.length > 0 && (
+              <div>
+                <span className="attr-label" style={{ marginBottom: 6 }}>
+                  Resolution Evidence Photo
+                </span>
+                <div className="photo-preview-wrap">
+                  {activeComplaint.afterPhotos.map((src, i) => (
+                    <img
+                      key={i}
+                      src={src}
+                      alt={`After Proof ${i + 1}`}
+                      className="photo-preview-img after"
+                    />
+                  ))}
                 </div>
               </div>
-            ))}
+            )}
+          </div>
         </div>
       </div>
+
     </div>
   )
 }
