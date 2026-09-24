@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { TIMSProvider } from './context/TIMSContext.jsx'
 import Nav from './components/landing/Nav.jsx'
 import Hero from './components/landing/Hero.jsx'
@@ -11,11 +11,13 @@ import Footer from './components/landing/Footer.jsx'
 import AuthModal from './components/auth/AuthModal.jsx'
 import RwaPortal from './pages/rwa/index.jsx'
 import FinancePortal from './pages/finance/index.jsx'
+import ClerkPortal from './pages/clerk/index.jsx'
 
 export default function App() {
   const [authOpen, setAuthOpen] = useState(false)
   const [authRole, setAuthRole] = useState('rwa')
-  const [viewMode, setViewMode] = useState('landing') // 'landing' | 'rwa' | 'finance'
+  // viewMode: 'landing' | 'rwa' | 'finance' | 'clerk'
+  const [viewMode, setViewMode] = useState('landing')
 
   function handleOpenAuth(role = 'rwa') {
     setAuthRole(typeof role === 'string' ? role : 'rwa')
@@ -27,7 +29,10 @@ export default function App() {
       setViewMode('rwa')
     } else if (role === 'finance') {
       setViewMode('finance')
+    } else if (role === 'clerk') {
+      setViewMode('clerk')
     }
+    setAuthOpen(false)
   }
 
   return (
@@ -40,12 +45,17 @@ export default function App() {
         <FinancePortal onExitToLanding={() => setViewMode('landing')} />
       )}
 
+      {viewMode === 'clerk' && (
+        <ClerkPortal onExitToLanding={() => setViewMode('landing')} />
+      )}
+
       {viewMode === 'landing' && (
         <div className="page-shell" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
           <Nav
             onOpenAuth={handleOpenAuth}
             onOpenRwaPortal={() => setViewMode('rwa')}
             onOpenFinancePortal={() => setViewMode('finance')}
+            onOpenClerkPortal={() => setViewMode('clerk')}
           />
           <main style={{ flex: 1 }}>
             <Hero onOpenAuth={handleOpenAuth} />
