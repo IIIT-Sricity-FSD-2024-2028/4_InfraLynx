@@ -13,11 +13,12 @@ import RwaPortal from './pages/rwa/index.jsx'
 import FinancePortal from './pages/finance/index.jsx'
 import ClerkPortal from './pages/clerk/index.jsx'
 import DeptHeadPortal from './pages/depthead/index.jsx'
+import ContractorPortal from './pages/contractor/index.jsx'
 
 export default function App() {
   const [authOpen, setAuthOpen] = useState(false)
   const [authRole, setAuthRole] = useState('rwa')
-  // viewMode: 'landing' | 'rwa' | 'finance' | 'clerk'
+  // viewMode: 'landing' | 'rwa' | 'finance' | 'clerk' | 'dept_head' | 'contractor'
   const [viewMode, setViewMode] = useState('landing')
 
   function handleOpenAuth(role = 'rwa') {
@@ -34,6 +35,8 @@ export default function App() {
       setViewMode('clerk')
     } else if (role === 'dept_head') {
       setViewMode('dept_head')
+    } else if (role === 'contractor') {
+      setViewMode('contractor')
     }
     setAuthOpen(false)
   }
@@ -56,6 +59,10 @@ export default function App() {
         <DeptHeadPortal onExitToLanding={() => setViewMode('landing')} />
       )}
 
+      {viewMode === 'contractor' && (
+        <ContractorPortal onExitToLanding={() => setViewMode('landing')} />
+      )}
+
       {viewMode === 'landing' && (
         <div className="page-shell" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
           <Nav
@@ -64,6 +71,7 @@ export default function App() {
             onOpenFinancePortal={() => setViewMode('finance')}
             onOpenClerkPortal={() => setViewMode('clerk')}
             onOpenDeptHeadPortal={() => setViewMode('dept_head')}
+            onOpenContractorPortal={() => setViewMode('contractor')}
           />
           <main style={{ flex: 1 }}>
             <Hero onOpenAuth={handleOpenAuth} />
