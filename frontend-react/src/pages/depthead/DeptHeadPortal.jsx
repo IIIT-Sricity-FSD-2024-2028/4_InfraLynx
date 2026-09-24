@@ -118,9 +118,6 @@ export default function DeptHeadPortal({ onExitToLanding }) {
         )}
       </main>
 
-      <footer className="depthead-footer">
-        TIMS &bull; Department Head Module &bull; In-Memory Architecture &bull; Member 4
-      </footer>
     </div>
   )
 }
