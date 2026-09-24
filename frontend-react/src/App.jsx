@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { TIMSProvider } from './context/TIMSContext.jsx'
 import Nav from './components/landing/Nav.jsx'
 import Hero from './components/landing/Hero.jsx'
@@ -12,6 +12,7 @@ import AuthModal from './components/auth/AuthModal.jsx'
 import RwaPortal from './pages/rwa/index.jsx'
 import FinancePortal from './pages/finance/index.jsx'
 import ClerkPortal from './pages/clerk/index.jsx'
+import DeptHeadPortal from './pages/depthead/index.jsx'
 
 export default function App() {
   const [authOpen, setAuthOpen] = useState(false)
@@ -31,6 +32,8 @@ export default function App() {
       setViewMode('finance')
     } else if (role === 'clerk') {
       setViewMode('clerk')
+    } else if (role === 'dept_head') {
+      setViewMode('dept_head')
     }
     setAuthOpen(false)
   }
@@ -49,6 +52,10 @@ export default function App() {
         <ClerkPortal onExitToLanding={() => setViewMode('landing')} />
       )}
 
+      {viewMode === 'dept_head' && (
+        <DeptHeadPortal onExitToLanding={() => setViewMode('landing')} />
+      )}
+
       {viewMode === 'landing' && (
         <div className="page-shell" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
           <Nav
@@ -56,6 +63,7 @@ export default function App() {
             onOpenRwaPortal={() => setViewMode('rwa')}
             onOpenFinancePortal={() => setViewMode('finance')}
             onOpenClerkPortal={() => setViewMode('clerk')}
+            onOpenDeptHeadPortal={() => setViewMode('dept_head')}
           />
           <main style={{ flex: 1 }}>
             <Hero onOpenAuth={handleOpenAuth} />
