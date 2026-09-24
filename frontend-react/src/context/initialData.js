@@ -114,5 +114,47 @@ export const INITIAL_COMPLAINTS = [
       { stage: 'PENDING VERIFICATION', timestamp: new Date(Date.now() - 2 * 3600 * 1000).toISOString(), actor: 'System', note: 'Notified RWA for inspection and digital sign-off.' },
     ],
   },
+  {
+    id: 'CMP-2026-0102',
+    title: 'Major Pipeline Burst at Sector Entrance',
+    category: 'Water',
+    subCategory: 'Pipeline Burst',
+    location: {
+      sector: 'Sector 4',
+      block: 'Main Gate',
+      street: 'Entrance Road',
+      assetId: 'WTR-PL-09',
+      assetName: 'Main Supply Line',
+      landmark: 'Near Security Cabin',
+      gps: '28.5360° N, 77.3920° E',
+    },
+    severity: 'Emergency', // 6 hours SLA
+    slaDeadline: new Date(Date.now() + 4 * 3600 * 1000).toISOString(),
+    status: 'AWAITING_DEPT_HEAD', // Ready for Dept Head Approval
+    description: 'Main water supply line burst. Water is flooding the main entrance. Urgent repair required.',
+    reportedBy: {
+      id: 'usr-rwa-01',
+      name: 'Ravi Sharma',
+      role: 'rwa',
+      sector: 'Sector 4',
+    },
+    createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+    beforePhotos: [SAMPLE_PHOTOS.waterLeakBroken],
+    afterPhotos: [],
+    assignedContractor: INITIAL_CONTRACTORS[2],
+    workOrderId: 'WO-2026-089',
+    inspectionRemarks: 'Excavation required. Large section of pipe is completely ruptured. Requires major civil and water works.',
+    estimateAmount: 14500, // > 10,000 to trigger Dept Head
+    completionRemarks: null,
+    completedAt: null,
+    verification: null,
+    dispute: null,
+    history: [
+      { stage: 'REPORTED', timestamp: new Date(Date.now() - 2 * 3600 * 1000).toISOString(), actor: 'RWA Representative (Ravi Sharma)', note: 'Issue logged with photo evidence.' },
+      { stage: 'UNDER REVIEW', timestamp: new Date(Date.now() - 1.5 * 3600 * 1000).toISOString(), actor: 'Desk Clerk (Pooja Rao)', note: 'Geographic check clear. Validated as Water domain.' },
+      { stage: 'WORK ORDER CREATED', timestamp: new Date(Date.now() - 1 * 3600 * 1000).toISOString(), actor: 'Desk Clerk', note: 'Generated WO-2026-089 under AMC-WTR-2025-11.' },
+      { stage: 'AWAITING_DEPT_HEAD', timestamp: new Date(Date.now() - 0.5 * 3600 * 1000).toISOString(), actor: 'System', note: 'Estimate exceeds threshold. Forwarded to Department Head for approval.' },
+    ],
+  },
 ]
 
