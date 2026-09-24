@@ -10,11 +10,12 @@ import Contact from './components/landing/Contact.jsx'
 import Footer from './components/landing/Footer.jsx'
 import AuthModal from './components/auth/AuthModal.jsx'
 import RwaPortal from './pages/rwa/index.jsx'
+import FinancePortal from './pages/finance/index.jsx'
 
 export default function App() {
   const [authOpen, setAuthOpen] = useState(false)
   const [authRole, setAuthRole] = useState('rwa')
-  const [viewMode, setViewMode] = useState('landing') // 'landing' | 'rwa'
+  const [viewMode, setViewMode] = useState('landing') // 'landing' | 'rwa' | 'finance'
 
   function handleOpenAuth(role = 'rwa') {
     setAuthRole(typeof role === 'string' ? role : 'rwa')
@@ -24,18 +25,27 @@ export default function App() {
   function handleLoginSuccess(role) {
     if (role === 'rwa') {
       setViewMode('rwa')
+    } else if (role === 'finance') {
+      setViewMode('finance')
     }
   }
 
   return (
     <TIMSProvider>
-      {viewMode === 'rwa' ? (
+      {viewMode === 'rwa' && (
         <RwaPortal onExitToLanding={() => setViewMode('landing')} />
-      ) : (
+      )}
+
+      {viewMode === 'finance' && (
+        <FinancePortal onExitToLanding={() => setViewMode('landing')} />
+      )}
+
+      {viewMode === 'landing' && (
         <div className="page-shell" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
           <Nav
             onOpenAuth={handleOpenAuth}
             onOpenRwaPortal={() => setViewMode('rwa')}
+            onOpenFinancePortal={() => setViewMode('finance')}
           />
           <main style={{ flex: 1 }}>
             <Hero onOpenAuth={handleOpenAuth} />
@@ -58,4 +68,3 @@ export default function App() {
     </TIMSProvider>
   )
 }
-
