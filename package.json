@@ -4,6 +4,7 @@
     "private": true,
     "scripts": {
         "postinstall": "npm install --prefix back-end",
-        "start": "node start.js"
+        "start": "node start.js",
+        "start:react": "node start-react.js"
     }
 }

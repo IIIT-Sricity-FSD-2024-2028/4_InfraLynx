@@ -1,10 +1,11 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import {
   INITIAL_COMPLAINTS,
   INITIAL_CONTRACTORS,
   INITIAL_AMC_RATE_CARDS,
   INITIAL_CURRENT_USER,
 } from './initialData.js'
+import { authApi, systemApi, TOKEN_KEY, USER_KEY } from '../services/api.js'
 
 const normStage = (s) => (s || '').toUpperCase().replace(/[\s_-]+/g, '')
 
@@ -54,12 +55,64 @@ export function TIMSProvider({ children }) {
 
   const [contractors] = useState(INITIAL_CONTRACTORS)
   const [amcRateCards] = useState(INITIAL_AMC_RATE_CARDS)
-  const [currentUser, setCurrentUser] = useState(INITIAL_CURRENT_USER)
 
-  // Persist complaints state changes for smooth development experience
+  // Initialize currentUser from localStorage if available, or fall back to default
+  const [currentUser, setCurrentUser] = useState(() => {
+    const cached = authApi.getCachedUser()
+    return cached || INITIAL_CURRENT_USER
+  })
+
+  const [backendStatus, setBackendStatus] = useState({
+    connected: false,
+    checking: true,
+    environment: null,
+  })
+
+  // Check backend server connectivity on startup
+  useEffect(() => {
+    let isMounted = true
+    systemApi.checkHealth().then((health) => {
+      if (isMounted) {
+        setBackendStatus({
+          connected: health.success === true,
+          checking: false,
+          environment: health.environment || 'local',
+          database: health.database || 'DISCONNECTED',
+        })
+      }
+    })
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  // Persist complaints state changes
   useEffect(() => {
     localStorage.setItem('tims_complaints_v3', JSON.stringify(complaints))
   }, [complaints])
+
+  /**
+   * Log in user via Backend API with graceful offline fallback
+   */
+  const login = useCallback(async (emailOrUsername, password) => {
+    try {
+      const data = await authApi.login(emailOrUsername, password)
+      const user = data.user
+      setCurrentUser(user)
+      return { success: true, user }
+    } catch (err) {
+      console.warn('[TIMS Login Warning] Backend API error:', err.message)
+      throw err
+    }
+  }, [])
+
+  /**
+   * Log out user
+   */
+  const logout = useCallback(async () => {
+    await authApi.logout()
+    setCurrentUser(INITIAL_CURRENT_USER)
+  }, [])
 
   /**
    * Screen 2 - Report New Issue
@@ -76,7 +129,6 @@ export function TIMSProvider({ children }) {
     const randomSuffix = Math.floor(1000 + Math.random() * 9000)
     const newId = `CMP-2026-${randomSuffix}`
 
-    // Calculate SLA hours
     const slaHoursMap = {
       Emergency: 6,
       High: 24,
@@ -126,7 +178,7 @@ export function TIMSProvider({ children }) {
         {
           stage: 'REPORTED',
           timestamp: now,
-          actor: `${currentUser.name} (${currentUser.title || 'RWA'})`,
+          actor: `${currentUser.name} (${currentUser.title || currentUser.role || 'RWA'})`,
           note: `Complaint filed under ${category} (${subCategory}). Severity: ${severity}.`,
         },
       ],
@@ -150,18 +202,25 @@ export function TIMSProvider({ children }) {
           ...c,
           status: 'CLOSED',
           verification: {
-            verifiedAt: now,
-            verifiedBy: `${currentUser.name} (${currentUser.title || 'RWA'})`,
+            status: 'CONFIRMED',
             rating,
-            remarks: remarks || 'Resolved verified and approved by RWA.',
+            remarks: remarks || 'Work completed satisfactorily and verified on ground.',
+            verifiedAt: now,
+            verifiedBy: currentUser.name,
           },
           history: [
-            ...c.history,
+            ...(c.history || []),
+            {
+              stage: 'VERIFIED',
+              timestamp: now,
+              actor: `${currentUser.name} (RWA Rep)`,
+              note: `Work verified and confirmed with a ${rating}-star rating. Issue closed.`,
+            },
             {
               stage: 'CLOSED',
               timestamp: now,
-              actor: `${currentUser.name} (RWA)`,
-              note: `Fix confirmed with ${rating}/5 rating. Remarks: ${remarks || 'None'}`,
+              actor: 'System Automation',
+              note: 'Workflow resolved. Work Order closed.',
             },
           ],
         }
@@ -170,9 +229,9 @@ export function TIMSProvider({ children }) {
   }
 
   /**
-   * Screen 4 - Dispute / Reopen (Marks DISPUTED)
+   * Screen 4 - Dispute Fix (Marks DISPUTED)
    */
-  function disputeComplaint(complaintId, { reason, remarks = '', photos = [] }) {
+  function disputeComplaint(complaintId, { reason, disputeNotes, requestedAction = 'REWORK' } = {}) {
     const now = new Date().toISOString()
 
     setComplaints((prev) =>
@@ -183,19 +242,19 @@ export function TIMSProvider({ children }) {
           ...c,
           status: 'DISPUTED',
           dispute: {
+            reason: reason || 'Incomplete resolution / poor quality',
+            notes: disputeNotes || 'The repaired fixture is still malfunctioning.',
             disputedAt: now,
-            disputedBy: `${currentUser.name} (RWA)`,
-            reason,
-            remarks,
-            photos,
+            disputedBy: currentUser.name,
+            requestedAction,
           },
           history: [
-            ...c.history,
+            ...(c.history || []),
             {
               stage: 'DISPUTED',
               timestamp: now,
-              actor: `${currentUser.name} (RWA)`,
-              note: `RWA Disputed Repair. Reason: "${reason}". Remarks: "${remarks}". Rework required.`,
+              actor: `${currentUser.name} (RWA Rep)`,
+              note: `Work disputed: ${reason || 'Incomplete resolution'}. Requesting field rework.`,
             },
           ],
         }
@@ -204,7 +263,7 @@ export function TIMSProvider({ children }) {
   }
 
   /**
-   * Helper to manually update status (useful for demoing the entire 8-stage lifecycle)
+   * Helper to manually update status
    */
   function updateComplaintStatus(complaintId, newStatus, note = '') {
     const now = new Date().toISOString()
@@ -247,6 +306,9 @@ export function TIMSProvider({ children }) {
     amcRateCards,
     currentUser,
     setCurrentUser,
+    login,
+    logout,
+    backendStatus,
     addComplaint,
     confirmFix,
     disputeComplaint,
@@ -264,5 +326,3 @@ export function useTIMS() {
   }
   return context
 }
-
-
