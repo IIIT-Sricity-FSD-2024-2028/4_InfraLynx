@@ -8,6 +8,8 @@ import config from './config/env.js';
 import db from './config/db.js';
 
 import authRoutes from './routes/authRoutes.js';
+import complaintRoutes from './routes/complaintRoutes.js';
+import masterRoutes from './routes/masterRoutes.js';
 import { errorHandler } from './middleware/error.js';
 
 const app = express();
@@ -77,6 +79,8 @@ app.get('/', (req, res) => {
 
 // API Routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/complaints', complaintRoutes);
+app.use('/api/v1/master', masterRoutes);
 
 // 404 Route Handler
 app.use((req, res, next) => {

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function Nav({ onOpenAuth, onOpenRwaPortal }) {
+export default function Nav({ onOpenAuth }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
@@ -83,7 +83,6 @@ export default function Nav({ onOpenAuth, onOpenRwaPortal }) {
             flexShrink: 0,
           }}
         >
-          <a href="#workflow" className="nav-link">14-Step Workflow</a>
           <a href="#roles" className="nav-link">7 Actor Roles</a>
           <a href="#modules" className="nav-link">Modules</a>
           <a href="#pricing" className="nav-link">Subscription</a>
@@ -146,7 +145,6 @@ export default function Nav({ onOpenAuth, onOpenRwaPortal }) {
             fontWeight: 600,
           }}
         >
-          <a href="#workflow" onClick={() => setMobileMenuOpen(false)}>14-Step Workflow</a>
           <a href="#roles" onClick={() => setMobileMenuOpen(false)}>7 Actor Roles</a>
           <a href="#modules" onClick={() => setMobileMenuOpen(false)}>Modules</a>
           <a href="#pricing" onClick={() => setMobileMenuOpen(false)}>Subscription</a>

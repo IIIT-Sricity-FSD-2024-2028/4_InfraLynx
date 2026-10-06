@@ -128,146 +128,121 @@
   color: #991b1b;
 }
 
-/* Stepper Card */
-.stepper-card {
+/* Clean Status Overview Card (Replaces 8-stage stepper) */
+.tracker-status-card {
   background: #ffffff;
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
-  padding: 24px 28px;
+  padding: 22px 28px;
   box-shadow: var(--shadow-sm);
-}
-
-.stepper-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  gap: 20px;
   flex-wrap: wrap;
-  gap: 10px;
 }
 
-.stepper-title {
-  font-size: 16px;
+.tracker-status-main {
+  flex: 1;
+  min-width: 280px;
+}
+
+.tracker-status-tag {
+  font-size: 11.5px;
   font-weight: 700;
-  color: var(--text);
-}
-
-.stepper-subtitle {
-  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--text-soft);
-  margin-top: 2px;
+  margin-bottom: 8px;
 }
 
-.stepper-live-status {
+.tracker-status-badge-row {
   display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.status-pill {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-}
-
-.stepper-live-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-soft);
-}
-
-.stepper-live-badge {
-  font-size: 12px;
-  font-weight: 700;
-  padding: 4px 12px;
+  font-size: 13.5px;
+  font-weight: 800;
+  padding: 6px 16px;
   border-radius: 20px;
-  background: var(--primary-subtle);
-  color: var(--primary-darker);
-  border: 1px solid rgba(22, 163, 74, 0.25);
   font-family: var(--font-mono);
   letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
-.stepper-scroll-wrap {
-  overflow-x: auto;
-  padding-bottom: 10px;
-}
-
-.stepper-track {
-  display: flex;
-  align-items: flex-start;
-  min-width: 780px;
-  position: relative;
-  justify-content: space-between;
-}
-
-.stepper-node-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  flex: 1;
-  position: relative;
-  z-index: 2;
-}
-
-.stepper-line {
-  position: absolute;
-  top: 15px;
-  left: 50%;
-  width: 100%;
-  height: 3px;
-  background: #e2e8f0;
-  z-index: -1;
-}
-
-.stepper-line.completed {
-  background: var(--primary);
-}
-
-.stepper-node {
-  width: 32px;
-  height: 32px;
+.status-dot-pulse {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid #cbd5e1;
-  color: #94a3b8;
-  display: grid;
-  place-items: center;
-  font-weight: 800;
-  font-size: 12px;
-  transition: all 0.2s ease;
+  background: currentColor;
 }
 
-.stepper-node.completed {
-  background: var(--primary);
-  border: 2px solid var(--primary);
-  color: #ffffff;
-}
-
-.stepper-node.active {
-  border: 3px solid #f59e0b;
-  color: #d97706;
-  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
-}
-
-.stepper-node-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-top: 8px;
-  line-height: 1.25;
-  max-width: 90px;
-}
-
-.stepper-node-label.active {
+.status-pending-verification {
+  background: #fef3c7;
   color: #b45309;
-  font-weight: 800;
+  border: 1px solid rgba(245, 158, 11, 0.4);
 }
 
-.stepper-node-label.completed {
+.status-reported,
+.status-review {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.status-validated,
+.status-work-order,
+.status-assigned,
+.status-in-progress {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.status-completed,
+.status-closed {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid rgba(22, 163, 74, 0.3);
+}
+
+.status-disputed {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+.tracker-status-desc {
+  font-size: 13.5px;
+  color: var(--text);
+  margin: 0;
+  font-weight: 500;
+}
+
+.tracker-status-sla {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.tracker-sla-badge {
+  font-size: 14.5px;
+  font-weight: 700;
+  margin-top: 4px;
   color: var(--primary-darker);
 }
 
-.stepper-node-desc {
-  font-size: 10.5px;
-  color: var(--text-muted);
-  margin-top: 2px;
-  max-width: 85px;
+.tracker-sla-badge.urgent {
+  color: #b45309;
+}
+
+.tracker-sla-badge.breached {
+  color: #b91c1c;
 }
 
 /* Two Column Details Layout */

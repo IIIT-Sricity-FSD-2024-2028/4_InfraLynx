@@ -14,7 +14,6 @@ export default function ContractorPortal({ onExitToLanding }) {
   const {
     complaints = [],
     updateComplaintStatus,
-    resetDemoData,
   } = useTIMS()
 
   // Local state for contractor jobs (merges initial baseline with context complaints)
@@ -224,17 +223,7 @@ export default function ContractorPortal({ onExitToLanding }) {
     })
   }
 
-  // Reset local demo data
-  function handleResetContractorData() {
-    if (window.confirm('Reset contractor jobs to default initial demo records?')) {
-      localStorage.removeItem('tims_contractor_jobs_v1')
-      setJobs(INITIAL_CONTRACTOR_JOBS)
-      setSelectedJob(null)
-      setSuccessNotice({ message: 'Contractor data restored to default demo state.' })
-      if (resetDemoData) resetDemoData()
-      handleNavigate('dashboard')
-    }
-  }
+
 
   // Tab Badge counts
   const assignedCount = jobs.filter((j) => j.status === 'ASSIGNED' || j.status === 'WORK_ORDER_CREATED').length
@@ -280,13 +269,7 @@ export default function ContractorPortal({ onExitToLanding }) {
               </div>
             </div>
 
-            <button
-              onClick={handleResetContractorData}
-              title="Reset in-memory contractor data"
-              className="contractor-btn-reset"
-            >
-              ↺ Reset Data
-            </button>
+
 
             {onExitToLanding && (
               <button onClick={onExitToLanding} className="contractor-btn-exit">

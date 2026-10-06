@@ -116,22 +116,7 @@
   color: var(--text-soft);
 }
 
-.depthead-btn-reset {
-  padding: 7px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--line-strong);
-  background: var(--surface-contrast);
-  color: var(--text-soft);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
 
-.depthead-btn-reset:hover {
-  background: var(--surface-muted);
-  color: var(--text);
-}
 
 .depthead-btn-exit {
   padding: 7px 16px;

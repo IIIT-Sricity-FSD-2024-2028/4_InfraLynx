@@ -1,11 +1,133 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import {
-  INITIAL_COMPLAINTS,
-  INITIAL_CONTRACTORS,
-  INITIAL_AMC_RATE_CARDS,
-  INITIAL_CURRENT_USER,
-} from './initialData.js'
-import { authApi, systemApi, TOKEN_KEY, USER_KEY } from '../services/api.js'
+import { authApi, systemApi, complaintApi, TOKEN_KEY, USER_KEY } from '../services/api.js'
+
+// Realistic baseline defaults for offline / initial boot (zero external file dependency)
+const DEFAULT_CONTRACTORS = [
+  {
+    id: 'cnt-01',
+    name: 'Apex Infraworks Ltd.',
+    lead: 'Rajesh Verma',
+    phone: '+91 98112 45012',
+    email: 'rajesh@apexinfra.com',
+    departments: ['Civil'],
+    amcContractId: 'AMC-CIV-2025-08',
+    status: 'Active',
+    rating: 4.8,
+  },
+  {
+    id: 'cnt-02',
+    name: 'Voltech Power & Lights',
+    lead: 'Vikram Singh',
+    phone: '+91 97230 11984',
+    email: 'vikram@voltechpower.in',
+    departments: ['Electrical'],
+    amcContractId: 'AMC-ELE-2025-03',
+    status: 'Active',
+    rating: 4.6,
+  },
+  {
+    id: 'cnt-03',
+    name: 'AquaFlow Utilities Corp',
+    lead: 'Anil Deshmukh',
+    phone: '+91 94500 88219',
+    email: 'anil@aquaflow.org',
+    departments: ['Water'],
+    amcContractId: 'AMC-WTR-2025-11',
+    status: 'Active',
+    rating: 4.9,
+  },
+]
+
+const DEFAULT_AMC_RATE_CARDS = [
+  { id: 'rate-01', service: 'Electrician', unit: 'Hour', rate: 500, department: 'Electrical' },
+  { id: 'rate-02', service: 'General Labour', unit: 'Hour', rate: 300, department: 'Civil' },
+  { id: 'rate-03', service: 'Cable Work', unit: 'Meter', rate: 150, department: 'Electrical' },
+  { id: 'rate-04', service: 'Pipe Repair & Fitting', unit: 'Unit', rate: 800, department: 'Water' },
+  { id: 'rate-05', service: 'Pothole Asphalt Filling', unit: 'Sq.Meter', rate: 1200, department: 'Civil' },
+  { id: 'rate-06', service: 'Streetlight LED Luminaire Replacement', unit: 'Unit', rate: 1800, department: 'Electrical' },
+  { id: 'rate-07', service: 'Sluice Valve Overhaul', unit: 'Unit', rate: 2500, department: 'Water' },
+]
+
+const DEFAULT_CURRENT_USER = {
+  id: 'usr-rwa-01',
+  name: 'Ravi Sharma',
+  role: 'rwa',
+  title: 'RWA Secretary',
+  sector: 'Sector 4',
+  phone: '+91 98765 43210',
+  email: 'rwa@infralynx.com',
+}
+
+const DEFAULT_COMPLAINTS = [
+  {
+    id: 'CMP-2026-0101',
+    title: 'High-Mast Streetlight Failure at Main Junction',
+    category: 'Electrical',
+    subCategory: 'Streetlight Failure',
+    location: {
+      sector: 'Sector 4',
+      block: 'Block B',
+      street: 'Gulmohar Marg',
+      assetId: 'ELE-HM-042',
+      assetName: 'High-Mast Pole #42',
+      landmark: 'Near Sector 4 Community Park Gate 2',
+      gps: '28.5355° N, 77.3910° E',
+    },
+    severity: 'High',
+    slaDeadline: new Date(Date.now() + 14 * 3600 * 1000).toISOString(),
+    status: 'PENDING_VERIFICATION',
+    description: 'High-mast LED cluster completely unlit since yesterday evening causing safety hazards for evening commuters and pedestrians.',
+    reportedBy: {
+      id: 'usr-rwa-01',
+      name: 'Ravi Sharma',
+      role: 'rwa',
+      sector: 'Sector 4',
+    },
+    createdAt: new Date(Date.now() - 36 * 3600 * 1000).toISOString(),
+    beforePhotos: ['https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&w=800&q=80'],
+    afterPhotos: ['https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=800&q=80'],
+    assignedContractor: DEFAULT_CONTRACTORS[1],
+    workOrderId: 'WO-2026-088',
+    inspectionRemarks: 'Found blown LED driver and surge suppressor breakdown due to voltage spike. Requires driver replacement and rewiring.',
+    estimateAmount: 3400,
+    completionRemarks: 'Installed heavy-duty 240W surge-protected driver unit and replaced 4 damaged LED modules. Full cluster calibrated.',
+    completedAt: new Date(Date.now() - 4 * 3600 * 1000).toISOString(),
+    verification: null,
+    dispute: null,
+    history: [
+      {
+        stage: 'REPORTED',
+        timestamp: new Date(Date.now() - 36 * 3600 * 1000).toISOString(),
+        actor: 'Ravi Sharma (RWA Secretary)',
+        note: 'High-mast failure filed with night photograph.',
+      },
+      {
+        stage: 'UNDER REVIEW',
+        timestamp: new Date(Date.now() - 34 * 3600 * 1000).toISOString(),
+        actor: 'Desk Clerk (Pooja Rao)',
+        note: 'Issue verified. Validated under Electrical domain.',
+      },
+      {
+        stage: 'WORK ORDER CREATED',
+        timestamp: new Date(Date.now() - 32 * 3600 * 1000).toISOString(),
+        actor: 'Desk Clerk (Pooja Rao)',
+        note: 'WO-2026-088 issued to Voltech Power & Lights under AMC-ELE-2025-03.',
+      },
+      {
+        stage: 'IN PROGRESS',
+        timestamp: new Date(Date.now() - 20 * 3600 * 1000).toISOString(),
+        actor: 'Field Contractor (Vikram Singh)',
+        note: 'Site inspection completed. Estimate ₹3,400 auto-approved. Crew mobilized.',
+      },
+      {
+        stage: 'COMPLETED',
+        timestamp: new Date(Date.now() - 4 * 3600 * 1000).toISOString(),
+        actor: 'Field Contractor (Vikram Singh)',
+        note: 'Driver replaced and all 16 LED luminaires tested. Awaiting RWA verification.',
+      },
+    ],
+  },
+]
 
 const normStage = (s) => (s || '').toUpperCase().replace(/[\s_-]+/g, '')
 
@@ -27,13 +149,35 @@ const STAGE_RANK_MAP = {
 }
 
 function sanitizeComplaintHistory(c) {
-  if (!c || !Array.isArray(c.history)) return c
+  if (!c) return c
   const currentRank = STAGE_RANK_MAP[normStage(c.status)] ?? 0
-  const cleanHistory = c.history.filter((evt) => {
-    const rank = STAGE_RANK_MAP[normStage(evt.stage)] ?? 0
-    return rank <= currentRank
-  })
-  return { ...c, history: cleanHistory }
+  const cleanHistory = Array.isArray(c.history)
+    ? c.history.filter((evt) => {
+        const rank = STAGE_RANK_MAP[normStage(evt.stage)] ?? 0
+        return rank <= currentRank
+      })
+    : []
+
+  const loc = c.location || {}
+  const location = {
+    sector: loc.sector || c.sector || 'Sector 4',
+    block: loc.block || c.block || 'Block B',
+    street: loc.street || c.street || 'Main Street',
+    assetId: loc.assetId || c.asset_id || 'ASSET-GEN-01',
+    assetName: loc.assetName || c.asset_name || c.location_details || 'Township Infrastructure Fixture',
+    landmark: loc.landmark || c.location_details || '',
+    gps: loc.gps || c.gps || '28.5355° N, 77.3910° E',
+  }
+
+  return {
+    ...c,
+    id: c.complaint_code || c.id,
+    complaint_code: c.complaint_code || c.id,
+    location,
+    history: cleanHistory,
+    beforePhotos: Array.isArray(c.beforePhotos) ? c.beforePhotos : [],
+    afterPhotos: Array.isArray(c.afterPhotos) ? c.afterPhotos : [],
+  }
 }
 
 const TIMSContext = createContext(null)
@@ -45,21 +189,21 @@ export function TIMSProvider({ children }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        return Array.isArray(parsed) ? parsed.map(sanitizeComplaintHistory) : INITIAL_COMPLAINTS
+        return Array.isArray(parsed) ? parsed.map(sanitizeComplaintHistory) : DEFAULT_COMPLAINTS
       } catch {
-        return INITIAL_COMPLAINTS
+        return DEFAULT_COMPLAINTS
       }
     }
-    return INITIAL_COMPLAINTS
+    return DEFAULT_COMPLAINTS
   })
 
-  const [contractors] = useState(INITIAL_CONTRACTORS)
-  const [amcRateCards] = useState(INITIAL_AMC_RATE_CARDS)
+  const [contractors] = useState(DEFAULT_CONTRACTORS)
+  const [amcRateCards] = useState(DEFAULT_AMC_RATE_CARDS)
 
   // Initialize currentUser from localStorage if available, or fall back to default
   const [currentUser, setCurrentUser] = useState(() => {
     const cached = authApi.getCachedUser()
-    return cached || INITIAL_CURRENT_USER
+    return cached || DEFAULT_CURRENT_USER
   })
 
   const [backendStatus, setBackendStatus] = useState({
@@ -86,7 +230,25 @@ export function TIMSProvider({ children }) {
     }
   }, [])
 
-  // Persist complaints state changes
+  // Sync live complaints from backend API when available
+  useEffect(() => {
+    let isMounted = true
+    complaintApi
+      .getComplaints()
+      .then((data) => {
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          setComplaints(data.map(sanitizeComplaintHistory))
+        }
+      })
+      .catch(() => {
+        // Fallback to local state if backend is offline
+      })
+    return () => {
+      isMounted = false
+    }
+  }, [backendStatus.connected, currentUser])
+
+  // Persist complaints state changes in browser localStorage
   useEffect(() => {
     localStorage.setItem('tims_complaints_v3', JSON.stringify(complaints))
   }, [complaints])
@@ -111,11 +273,11 @@ export function TIMSProvider({ children }) {
    */
   const logout = useCallback(async () => {
     await authApi.logout()
-    setCurrentUser(INITIAL_CURRENT_USER)
+    setCurrentUser(DEFAULT_CURRENT_USER)
   }, [])
 
   /**
-   * Screen 2 - Report New Issue
+   * Screen 2 - Report New Issue (In-Memory + API Sync)
    */
   function addComplaint({
     title,
@@ -141,6 +303,7 @@ export function TIMSProvider({ children }) {
 
     const newRecord = {
       id: newId,
+      complaint_code: newId,
       title: title || `${category} - ${subCategory}`,
       category,
       subCategory,
@@ -185,6 +348,22 @@ export function TIMSProvider({ children }) {
     }
 
     setComplaints((prev) => [newRecord, ...prev])
+
+    // Asynchronously sync with Backend API
+    complaintApi
+      .createComplaint({
+        title: newRecord.title,
+        category: newRecord.category,
+        subCategory: newRecord.subCategory,
+        location: newRecord.location,
+        severity: newRecord.severity,
+        description: newRecord.description,
+        photos: newRecord.beforePhotos,
+      })
+      .catch((err) => {
+        console.warn('[Offline Mode] Saved complaint locally:', err.message)
+      })
+
     return newRecord
   }
 
@@ -196,7 +375,7 @@ export function TIMSProvider({ children }) {
 
     setComplaints((prev) =>
       prev.map((c) => {
-        if (c.id !== complaintId) return c
+        if (c.id !== complaintId && c.complaint_code !== complaintId) return c
 
         return {
           ...c,
@@ -226,24 +405,32 @@ export function TIMSProvider({ children }) {
         }
       })
     )
+
+    // Sync with backend API
+    complaintApi
+      .verifyComplaint(complaintId, { rating, remarks })
+      .catch((err) => console.warn('[Offline Mode] Verification saved locally:', err.message))
   }
 
   /**
    * Screen 4 - Dispute Fix (Marks DISPUTED)
    */
-  function disputeComplaint(complaintId, { reason, disputeNotes, requestedAction = 'REWORK' } = {}) {
+  function disputeComplaint(complaintId, { reason, disputeNotes, remarks, requestedAction = 'REWORK' } = {}) {
     const now = new Date().toISOString()
+    const activeReason = reason || 'Incomplete resolution / poor quality'
+    const activeRemarks = disputeNotes || remarks || 'The repaired fixture is still malfunctioning.'
 
     setComplaints((prev) =>
       prev.map((c) => {
-        if (c.id !== complaintId) return c
+        if (c.id !== complaintId && c.complaint_code !== complaintId) return c
 
         return {
           ...c,
           status: 'DISPUTED',
           dispute: {
-            reason: reason || 'Incomplete resolution / poor quality',
-            notes: disputeNotes || 'The repaired fixture is still malfunctioning.',
+            reason: activeReason,
+            notes: activeRemarks,
+            remarks: activeRemarks,
             disputedAt: now,
             disputedBy: currentUser.name,
             requestedAction,
@@ -254,12 +441,17 @@ export function TIMSProvider({ children }) {
               stage: 'DISPUTED',
               timestamp: now,
               actor: `${currentUser.name} (RWA Rep)`,
-              note: `Work disputed: ${reason || 'Incomplete resolution'}. Requesting field rework.`,
+              note: `Work disputed: ${activeReason}. Requesting field rework.`,
             },
           ],
         }
       })
     )
+
+    // Sync with backend API
+    complaintApi
+      .disputeComplaint(complaintId, { reason: activeReason, remarks: activeRemarks })
+      .catch((err) => console.warn('[Offline Mode] Dispute saved locally:', err.message))
   }
 
   /**
@@ -269,7 +461,7 @@ export function TIMSProvider({ children }) {
     const now = new Date().toISOString()
     setComplaints((prev) =>
       prev.map((c) => {
-        if (c.id !== complaintId) return c
+        if (c.id !== complaintId && c.complaint_code !== complaintId) return c
         const newRank = STAGE_RANK_MAP[normStage(newStatus)] ?? 0
         const cleanHistory = (c.history || []).filter(
           (evt) => (STAGE_RANK_MAP[normStage(evt.stage)] ?? 0) < newRank
@@ -291,15 +483,6 @@ export function TIMSProvider({ children }) {
     )
   }
 
-  /**
-   * Reset in-memory state back to original initial data
-   */
-  function resetDemoData() {
-    localStorage.removeItem('tims_complaints_v3')
-    localStorage.removeItem('tims_complaints')
-    setComplaints(INITIAL_COMPLAINTS)
-  }
-
   const value = {
     complaints,
     contractors,
@@ -313,7 +496,6 @@ export function TIMSProvider({ children }) {
     confirmFix,
     disputeComplaint,
     updateComplaintStatus,
-    resetDemoData,
   }
 
   return <TIMSContext.Provider value={value}>{children}</TIMSContext.Provider>

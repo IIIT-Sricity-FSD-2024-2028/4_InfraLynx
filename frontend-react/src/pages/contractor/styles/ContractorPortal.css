@@ -129,22 +129,7 @@
   color: var(--text-soft);
 }
 
-.contractor-btn-reset {
-  background: transparent;
-  border: 1px solid var(--line-strong);
-  color: var(--text-soft);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
 
-.contractor-btn-reset:hover {
-  background: var(--surface-muted);
-  color: var(--text);
-}
 
 .contractor-btn-exit {
   background: #0284c7;

@@ -285,6 +285,43 @@ const SEED_DATA = {
       created_at: new Date().toISOString(),
     },
   ],
+
+  complaint_evidence: [
+    {
+      id: 'ev-001',
+      complaint_id: 'e0000000-0000-0000-0000-000000000001',
+      evidence_type: 'BEFORE',
+      file_url: 'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&w=800&q=80',
+      caption: 'Initial dark street junction photo',
+      uploaded_by: '10000000-0000-0000-0000-000000000001',
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: 'ev-002',
+      complaint_id: 'e0000000-0000-0000-0000-000000000001',
+      evidence_type: 'AFTER',
+      file_url: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=800&q=80',
+      caption: 'Luminaire replaced and illuminated',
+      uploaded_by: '10000000-0000-0000-0000-000000000003',
+      created_at: new Date().toISOString(),
+    },
+  ],
+
+  audit_logs: [
+    {
+      id: 'aud-001',
+      township_id: 'b0000000-0000-0000-0000-000000000001',
+      entity_type: 'COMPLAINT',
+      entity_id: 'e0000000-0000-0000-0000-000000000001',
+      actor_id: '10000000-0000-0000-0000-000000000001',
+      actor_role: 'RWA',
+      action: 'REPORTED',
+      from_state: null,
+      to_state: 'REPORTED',
+      notes: 'Initial issue reported by resident representative.',
+      timestamp: new Date().toISOString(),
+    },
+  ],
 };
 
 // In-Memory mutable tables initialized from seed
@@ -302,6 +339,67 @@ class InMemoryStore {
       this.tables[name] = [];
     }
     return this.tables[name];
+  }
+
+  find(tableName, predicate = () => true) {
+    const table = this.getTable(tableName);
+    return table.filter(predicate);
+  }
+
+  findOne(tableName, predicate) {
+    const table = this.getTable(tableName);
+    return table.find(predicate) || null;
+  }
+
+  findById(tableName, id) {
+    const table = this.getTable(tableName);
+    return table.find((row) => row.id === id || row.complaint_code === id) || null;
+  }
+
+  insert(tableName, record) {
+    const table = this.getTable(tableName);
+    const item = {
+      id: record.id || crypto.randomUUID(),
+      created_at: record.created_at || new Date().toISOString(),
+      ...record,
+    };
+    table.unshift(item);
+    return item;
+  }
+
+  update(tableName, id, updates) {
+    const table = this.getTable(tableName);
+    const index = table.findIndex((row) => row.id === id || row.complaint_code === id);
+    if (index === -1) return null;
+    table[index] = {
+      ...table[index],
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
+    return table[index];
+  }
+
+  delete(tableName, id) {
+    const table = this.getTable(tableName);
+    const index = table.findIndex((row) => row.id === id || row.complaint_code === id);
+    if (index === -1) return false;
+    table.splice(index, 1);
+    return true;
+  }
+
+  logAudit({ township_id, entity_type, entity_id, actor_id, actor_role, action, from_state, to_state, notes }) {
+    return this.insert('audit_logs', {
+      township_id,
+      entity_type,
+      entity_id,
+      actor_id,
+      actor_role,
+      action,
+      from_state,
+      to_state,
+      notes,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   /**
