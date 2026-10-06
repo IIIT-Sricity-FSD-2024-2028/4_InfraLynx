@@ -1,22 +1,24 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useTIMS } from '../../context/TIMSContext.jsx'
 
 const ACTOR_ROLES = [
-  { id: 'rwa', label: 'RWA Representative', email: 'rwa@infralynx.com', badge: 'External', path: '/portal/rwa' },
-  { id: 'contractor', label: 'Field Contractor', email: 'contractor@infralynx.com', badge: 'External', path: '/portal/contractor' },
-  { id: 'clerk', label: 'Desk Clerk', email: 'clerk@infralynx.com', badge: 'Internal', path: '/portal/clerk' },
-  { id: 'dept_head', label: 'Department Head', email: 'head@infralynx.com', badge: 'Internal', path: '/portal/dept-head' },
-  { id: 'finance', label: 'Finance Clerk', email: 'finance@infralynx.com', badge: 'Internal', path: '/portal/finance' },
-  { id: 'coo', label: 'Township COO', email: 'coo@infralynx.com', badge: 'Executive', path: '/portal/coo' },
+  { id: 'rwa', label: 'RWA Representative', email: 'rwa@infralynx.com', role: 'rwa', badge: 'External' },
+  { id: 'contractor', label: 'Field Contractor', email: 'contractor@infralynx.com', role: 'contractor', badge: 'External' },
+  { id: 'clerk', label: 'Desk Clerk', email: 'clerk@infralynx.com', role: 'clerk', badge: 'Internal' },
+  { id: 'dept_head', label: 'Department Head', email: 'head@infralynx.com', role: 'dept_head', badge: 'Internal' },
+  { id: 'finance', label: 'Finance Clerk', email: 'finance@infralynx.com', role: 'finance', badge: 'Internal' },
+  { id: 'coo', label: 'Township COO', email: 'coo@infralynx.com', role: 'coo', badge: 'Executive' },
 ]
 
 export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLoginSuccess }) {
-  const navigate = useNavigate()
+  const { login, setCurrentUser, backendStatus } = useTIMS()
   const [selectedRole, setSelectedRole] = useState(initialRole)
   const [formData, setFormData] = useState({
     email: 'rwa@infralynx.com',
-    password: '••••••••••••',
+    password: 'Password@123',
   })
+  const [loading, setLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState(null)
   const [submitted, setSubmitted] = useState(false)
 
   useEffect(() => {
@@ -25,9 +27,11 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
     setSelectedRole(validRole)
     setFormData({
       email: roleObj.email,
-      password: '••••••••••••',
+      password: 'Password@123',
     })
+    setErrorMsg(null)
     setSubmitted(false)
+    setLoading(false)
   }, [initialRole, isOpen])
 
   useEffect(() => {
@@ -51,12 +55,21 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
     setSelectedRole(roleId)
     setFormData({
       email: roleObj.email,
-      password: '••••••••••••',
+      password: 'Password@123',
     })
+    setErrorMsg(null)
   }
 
-  function handleSubmit(e) {
-    e.preventDefault()
+  function handleDemoBypass() {
+    const roleObj = ACTOR_ROLES.find((r) => r.id === selectedRole) || ACTOR_ROLES[0]
+    setCurrentUser({
+      id: `usr-${selectedRole}-demo`,
+      name: roleObj.label,
+      email: roleObj.email,
+      role: selectedRole,
+      sector: 'Sector 4',
+      title: roleObj.label,
+    })
     setSubmitted(true)
     setTimeout(() => {
       onClose()
@@ -64,7 +77,32 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
       if (onLoginSuccess) {
         onLoginSuccess(selectedRole)
       }
-    }, 700)
+    }, 400)
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setLoading(true)
+    setErrorMsg(null)
+
+    try {
+      // 1. Attempt live login with backend REST API
+      await login(formData.email, formData.password)
+      setSubmitted(true)
+
+      setTimeout(() => {
+        onClose()
+        setSubmitted(false)
+        setLoading(false)
+        if (onLoginSuccess) {
+          onLoginSuccess(selectedRole)
+        }
+      }, 500)
+    } catch (err) {
+      console.warn('[AuthModal] Live login attempt failed:', err.message)
+      setErrorMsg(err.message || 'Authentication error. Database may need connection configuration.')
+      setLoading(false)
+    }
   }
 
   const activeRoleInfo = ACTOR_ROLES.find((r) => r.id === selectedRole) || ACTOR_ROLES[0]
@@ -97,18 +135,40 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <img
-              src="/assets/CRIMS_logo.png"
-              alt="CRIMS logo"
-              style={{ width: 38, height: 38, borderRadius: 8, objectFit: 'contain' }}
-            />
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 8,
+                background: 'var(--primary-dark)',
+                color: '#ffffff',
+                display: 'grid',
+                placeItems: 'center',
+                fontWeight: 800,
+                fontSize: 16,
+              }}
+            >
+              TL
+            </div>
             <div>
               <h3 style={{ fontSize: 18, color: 'var(--text)', margin: 0, fontWeight: 700, fontFamily: 'var(--font-head)' }}>
                 Official Portal Sign In
               </h3>
-              <p style={{ fontSize: 12.5, color: 'var(--text-soft)', margin: '2px 0 0' }}>
-                Township Infrastructure Platform
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: backendStatus.connected ? '#16a34a' : '#ea580c',
+                  }}
+                />
+                <p style={{ fontSize: 12, color: 'var(--text-soft)', margin: 0 }}>
+                  {backendStatus.connected
+                    ? `${backendStatus.mode === 'POSTGRESQL' ? 'PostgreSQL' : 'In-Memory RAM'} API Connected`
+                    : 'Local Standalone Mode'}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -162,6 +222,48 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
             </div>
           ) : (
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              {/* Error Banner with One-Click Demo Mode Button */}
+              {errorMsg && (
+                <div
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 8,
+                    background: '#fff7ed',
+                    border: '1px solid #ffedd5',
+                    color: '#9a3412',
+                    fontSize: 13,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                    ⚠️ Notice: {errorMsg}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDemoBypass}
+                    style={{
+                      marginTop: 8,
+                      width: '100%',
+                      padding: '8px 12px',
+                      background: '#ea580c',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: 6,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <span>⚡ Click to Enter Portal in Preview / Demo Mode</span>
+                    <span>→</span>
+                  </button>
+                </div>
+              )}
+
               {/* Select Actor Role Dropdown */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -250,11 +352,11 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
               {/* Email */}
               <div>
                 <label htmlFor="auth-email" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
-                  Official Registered Email
+                  Official Registered Email / Username
                 </label>
                 <input
                   id="auth-email"
-                  type="email"
+                  type="text"
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -268,16 +370,9 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
                   <label htmlFor="auth-password" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
                     Security Password
                   </label>
-                  <a
-                    href="#reset"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      alert('Please contact Township Municipal Authority to reset access credentials.')
-                    }}
-                    style={{ fontSize: 12, color: 'var(--primary-dark)', textDecoration: 'none', fontWeight: 600 }}
-                  >
-                    Forgot password?
-                  </a>
+                  <span style={{ fontSize: 12, color: 'var(--text-soft)' }}>
+                    Default: <code>Password@123</code>
+                  </span>
                 </div>
                 <input
                   id="auth-password"
@@ -292,6 +387,7 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
               {/* Submit Button */}
               <button
                 type="submit"
+                disabled={loading}
                 className="button button-primary"
                 style={{
                   marginTop: 4,
@@ -303,11 +399,38 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
                   justifyContent: 'center',
                   alignItems: 'center',
                   gap: 8,
+                  opacity: loading ? 0.7 : 1,
+                  cursor: loading ? 'not-allowed' : 'pointer',
                 }}
               >
-                <span>Sign In as {activeRoleInfo.label}</span>
-                <span>→</span>
+                {loading ? (
+                  <span>Verifying Credentials...</span>
+                ) : (
+                  <>
+                    <span>Sign In as {activeRoleInfo.label}</span>
+                    <span>→</span>
+                  </>
+                )}
               </button>
+
+              {/* Direct Demo Link */}
+              <div style={{ textAlign: 'center', marginTop: 2 }}>
+                <button
+                  type="button"
+                  onClick={handleDemoBypass}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--primary-dark)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  ⚡ Or click here to explore {activeRoleInfo.label} Portal directly
+                </button>
+              </div>
             </form>
           )}
         </div>
