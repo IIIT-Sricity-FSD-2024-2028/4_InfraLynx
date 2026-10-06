@@ -1,35 +1,58 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 import './styles/ComplaintTracker.css'
 
-const LIFECYCLE_STAGES = [
-  { id: 'REPORTED', label: 'Reported', desc: 'RWA logs issue' },
-  { id: 'UNDER REVIEW', label: 'Under Review', desc: 'Clerk triage' },
-  { id: 'VALIDATED', label: 'Validated', desc: 'Domain confirmed' },
-  { id: 'WORK ORDER CREATED', label: 'Work Order Created', desc: 'WO generated' },
-  { id: 'ASSIGNED', label: 'Assigned', desc: 'Contractor dispatched' },
-  { id: 'IN PROGRESS', label: 'In Progress', desc: 'Ground execution' },
-  { id: 'COMPLETED', label: 'Completed', desc: 'Repair executed' },
-  { id: 'PENDING_VERIFICATION', label: 'Pending Verification', desc: 'RWA inspection' },
-]
-
-const normStage = (s) => (s || '').toUpperCase().replace(/[\s_-]+/g, '')
-
-const STAGE_RANK_MAP = {
-  REPORTED: 0,
-  UNDERREVIEW: 1,
-  VALIDATED: 2,
-  WORKORDERCREATED: 3,
-  AWAITINGDEPTHEAD: 3,
-  REVISIONREQUESTED: 3,
-  ASSIGNED: 4,
-  CONTRACTORESCALATED: 4,
-  ESCALATEDTOCOO: 4,
-  INPROGRESS: 5,
-  COMPLETED: 6,
-  PENDINGVERIFICATION: 7,
-  CLOSED: 8,
-  DISPUTED: 8,
+const STATUS_CONFIG = {
+  PENDING_VERIFICATION: {
+    label: 'Pending Verification',
+    badgeClass: 'status-pending-verification',
+    desc: 'Contractor has submitted work completion proof. Awaiting RWA on-site inspection and sign-off.',
+  },
+  REPORTED: {
+    label: 'Reported',
+    badgeClass: 'status-reported',
+    desc: 'Complaint officially filed. Queued for Desk Clerk triage and domain confirmation.',
+  },
+  UNDER_REVIEW: {
+    label: 'Under Review',
+    badgeClass: 'status-review',
+    desc: 'Desk Clerk is verifying domain alignment and spatial duplicate checks.',
+  },
+  VALIDATED: {
+    label: 'Validated',
+    badgeClass: 'status-validated',
+    desc: 'Issue validated. Ready for contractor work order dispatch.',
+  },
+  WORK_ORDER_CREATED: {
+    label: 'Work Order Created',
+    badgeClass: 'status-work-order',
+    desc: 'Work order dispatched to empaneled AMC contractor with target SLA schedule.',
+  },
+  ASSIGNED: {
+    label: 'Assigned',
+    badgeClass: 'status-assigned',
+    desc: 'Assigned to field contractor team. Site inspection & estimate preparation underway.',
+  },
+  IN_PROGRESS: {
+    label: 'In Progress',
+    badgeClass: 'status-in-progress',
+    desc: 'Contractor crew is currently on-site executing necessary repairs and replacements.',
+  },
+  COMPLETED: {
+    label: 'Completed',
+    badgeClass: 'status-completed',
+    desc: 'Field repair executed. Contractor has submitted final photo proof for sign-off.',
+  },
+  CLOSED: {
+    label: 'Closed',
+    badgeClass: 'status-closed',
+    desc: 'Work verified and approved by RWA. Ticket officially closed.',
+  },
+  DISPUTED: {
+    label: 'Disputed',
+    badgeClass: 'status-disputed',
+    desc: 'Work rejected during verification. Routed back to contractor for mandatory rework.',
+  },
 }
 
 export default function ComplaintTracker({ selectedComplaint, onNavigate, onSelectComplaint }) {
@@ -42,20 +65,6 @@ export default function ComplaintTracker({ selectedComplaint, onNavigate, onSele
     }
     return complaints[0] || null
   }, [complaints, selectedComplaint])
-
-  // Calculate current stage index in 8-stage lifecycle (supports both spaces and underscores)
-  const currentStageIndex = useMemo(() => {
-    if (!activeComplaint) return 0
-    const s = normStage(activeComplaint.status)
-    if (s === 'CLOSED') return 8
-    if (s === 'DISPUTED') return 7
-    if (s in STAGE_RANK_MAP) {
-      return Math.min(STAGE_RANK_MAP[s], LIFECYCLE_STAGES.length - 1)
-    }
-    const idx = LIFECYCLE_STAGES.findIndex((stage) => normStage(stage.id) === s)
-    return idx >= 0 ? idx : 0
-  }, [activeComplaint])
-
 
   // Helper for SLA calculation
   const slaInfo = useMemo(() => {
@@ -82,7 +91,13 @@ export default function ComplaintTracker({ selectedComplaint, onNavigate, onSele
     )
   }
 
-  const prioClass = activeComplaint.severity === 'Emergency' ? 'emergency' : 'high'
+  const prioClass = (activeComplaint.severity || '').toLowerCase() === 'emergency' ? 'emergency' : 'high'
+  const normStatusKey = (activeComplaint.status || 'REPORTED').toUpperCase().replace(/[\s-]+/g, '_')
+  const statusMeta = STATUS_CONFIG[normStatusKey] || {
+    label: activeComplaint.status.replace(/_/g, ' '),
+    badgeClass: 'status-reported',
+    desc: `Current status is ${activeComplaint.status.replace(/_/g, ' ')}.`,
+  }
 
   return (
     <div className="tracker-root">
@@ -165,57 +180,25 @@ export default function ComplaintTracker({ selectedComplaint, onNavigate, onSele
         </div>
       )}
 
-      {/* Stepper Card */}
-      <div className="stepper-card">
-        <div className="stepper-header">
-          <div>
-            <h2 className="stepper-title">
-              Official TIMS 8-Stage Lifecycle Progress
-            </h2>
-            <p className="stepper-subtitle">
-              Synchronized in real-time across Desk Clerk, Contractor, and Department Head
-            </p>
-          </div>
-
-          {/* Real Complaint Status Display */}
-          <div className="stepper-live-status">
-            <span className="stepper-live-label">Current Status:</span>
-            <span className="stepper-live-badge">
-              {activeComplaint.status.replace(/_/g, ' ')}
+      {/* Clean Current Status Card (Replaces the 8-stage stepper) */}
+      <div className="tracker-status-card">
+        <div className="tracker-status-main">
+          <div className="tracker-status-tag">Current Live Status</div>
+          <div className="tracker-status-badge-row">
+            <span className={`status-pill ${statusMeta.badgeClass}`}>
+              <span className="status-dot-pulse" />
+              {statusMeta.label}
             </span>
+            <p className="tracker-status-desc">
+              {statusMeta.desc}
+            </p>
           </div>
         </div>
 
-        {/* Stepper Bar Container */}
-        <div className="stepper-scroll-wrap">
-          <div className="stepper-track">
-            {LIFECYCLE_STAGES.map((stage, idx) => {
-              const isPast = idx < currentStageIndex
-              const isCurrent = idx === currentStageIndex
-
-              return (
-                <div key={stage.id} className="stepper-node-container">
-                  {/* Connecting Line to next item */}
-                  {idx < LIFECYCLE_STAGES.length - 1 && (
-                    <div className={`stepper-line ${isPast ? 'completed' : ''}`} />
-                  )}
-
-                  {/* Node Circle */}
-                  <div className={`stepper-node ${isPast ? 'completed' : isCurrent ? 'active' : ''}`}>
-                    {isPast ? '✓' : idx + 1}
-                  </div>
-
-                  {/* Stage Label */}
-                  <div className={`stepper-node-label ${isCurrent ? 'active' : isPast ? 'completed' : ''}`}>
-                    {stage.label}
-                  </div>
-
-                  <div className="stepper-node-desc">
-                    {stage.desc}
-                  </div>
-                </div>
-              )
-            })}
+        <div className="tracker-status-sla">
+          <div className="tracker-status-tag">Target Resolution SLA</div>
+          <div className={`tracker-sla-badge ${slaInfo.status}`}>
+            ⏱️ {slaInfo.text}
           </div>
         </div>
       </div>
@@ -250,22 +233,22 @@ export default function ComplaintTracker({ selectedComplaint, onNavigate, onSele
 
             <div>
               <span className="attr-label">Sector / Block</span>
-              <strong>{activeComplaint.location.sector} • {activeComplaint.location.block}</strong>
+              <strong>{activeComplaint.location?.sector || activeComplaint.sector || 'Sector 4'} • {activeComplaint.location?.block || activeComplaint.block || 'Block'}</strong>
             </div>
 
             <div>
               <span className="attr-label">Street</span>
-              <strong>{activeComplaint.location.street}</strong>
+              <strong>{activeComplaint.location?.street || activeComplaint.street || 'Main St'}</strong>
             </div>
 
             <div>
               <span className="attr-label">Asset ID</span>
-              <strong style={{ fontFamily: 'var(--font-mono)' }}>{activeComplaint.location.assetId}</strong>
+              <strong style={{ fontFamily: 'var(--font-mono)' }}>{activeComplaint.location?.assetId || activeComplaint.asset_id || 'ASSET-01'}</strong>
             </div>
 
             <div>
               <span className="attr-label">GPS Township Pin</span>
-              <span style={{ fontSize: 12, color: 'var(--text-soft)' }}>{activeComplaint.location.gps}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-soft)' }}>{activeComplaint.location?.gps || activeComplaint.gps || '28.5355° N, 77.3910° E'}</span>
             </div>
 
             {activeComplaint.assignedContractor && (
@@ -285,7 +268,7 @@ export default function ComplaintTracker({ selectedComplaint, onNavigate, onSele
                 Citizen Site Photo
               </span>
               <div className="photo-preview-wrap">
-                {activeComplaint.beforePhotos.map((src, i) => (
+                {(activeComplaint.beforePhotos || []).map((src, i) => (
                   <img
                     key={i}
                     src={src}
@@ -316,7 +299,6 @@ export default function ComplaintTracker({ selectedComplaint, onNavigate, onSele
           </div>
         </div>
       </div>
-
     </div>
   )
 }

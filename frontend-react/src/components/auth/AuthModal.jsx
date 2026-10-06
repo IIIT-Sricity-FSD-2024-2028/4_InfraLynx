@@ -86,8 +86,8 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
     setErrorMsg(null)
 
     try {
-      // 1. Attempt live login with backend REST API
-      await login(formData.email, formData.password)
+      const result = await login(formData.email, formData.password)
+      const roleToRoute = result?.user?.role || selectedRole
       setSubmitted(true)
 
       setTimeout(() => {
@@ -95,9 +95,9 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
         setSubmitted(false)
         setLoading(false)
         if (onLoginSuccess) {
-          onLoginSuccess(selectedRole)
+          onLoginSuccess(roleToRoute)
         }
-      }, 500)
+      }, 400)
     } catch (err) {
       console.warn('[AuthModal] Live login attempt failed:', err.message)
       setErrorMsg(err.message || 'Authentication error. Database may need connection configuration.')

@@ -67,14 +67,7 @@ export default function FinancePortal({ onExitToLanding }) {
     setNotice(`Variance discrepancy flagged for ${invoiceId}. Clarification request sent to Contractor & Department Head.`)
   }
 
-  function handleResetFinanceData() {
-    if (window.confirm('Reset all in-memory invoice and financial records to default demo data?')) {
-      setInvoices(INITIAL_INVOICES)
-      setActiveInvoiceModal(null)
-      setNotice(null)
-      setCurrentScreen('dashboard')
-    }
-  }
+
 
   return (
     <div className="finance-shell">
@@ -110,14 +103,6 @@ export default function FinancePortal({ onExitToLanding }) {
               <div className="finance-user-name">Sunil Agrawal</div>
               <div className="finance-user-role">Senior Finance Officer • AMC Accounts</div>
             </div>
-
-            <button
-              onClick={handleResetFinanceData}
-              title="Reset in-memory finance records"
-              className="finance-btn-reset"
-            >
-              ↺ Reset Data
-            </button>
 
             {onExitToLanding && (
               <button

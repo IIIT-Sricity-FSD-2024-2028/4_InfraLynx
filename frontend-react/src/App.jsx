@@ -3,7 +3,6 @@ import { TIMSProvider } from './context/TIMSContext.jsx'
 import Nav from './components/landing/Nav.jsx'
 import Hero from './components/landing/Hero.jsx'
 import Features from './components/landing/Features.jsx'
-import Workflow from './components/landing/Workflow.jsx'
 import Roles from './components/landing/Roles.jsx'
 import Pricing from './components/landing/Pricing.jsx'
 import Contact from './components/landing/Contact.jsx'
@@ -27,16 +26,19 @@ export default function App() {
   }
 
   function handleLoginSuccess(role) {
-    if (role === 'rwa') {
+    const r = (role || '').toLowerCase()
+    if (r === 'rwa') {
       setViewMode('rwa')
-    } else if (role === 'finance') {
+    } else if (r === 'finance' || r === 'finance_clerk') {
       setViewMode('finance')
-    } else if (role === 'clerk') {
+    } else if (r === 'clerk' || r === 'desk_clerk') {
       setViewMode('clerk')
-    } else if (role === 'dept_head') {
+    } else if (r === 'dept_head' || r === 'department_head') {
       setViewMode('dept_head')
-    } else if (role === 'contractor') {
+    } else if (r === 'contractor' || r === 'field_contractor') {
       setViewMode('contractor')
+    } else {
+      setViewMode('rwa') // Default to RWA portal on successful authentication
     }
     setAuthOpen(false)
   }
@@ -67,15 +69,9 @@ export default function App() {
         <div className="page-shell" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
           <Nav
             onOpenAuth={handleOpenAuth}
-            onOpenRwaPortal={() => setViewMode('rwa')}
-            onOpenFinancePortal={() => setViewMode('finance')}
-            onOpenClerkPortal={() => setViewMode('clerk')}
-            onOpenDeptHeadPortal={() => setViewMode('dept_head')}
-            onOpenContractorPortal={() => setViewMode('contractor')}
           />
           <main style={{ flex: 1 }}>
             <Hero onOpenAuth={handleOpenAuth} />
-            <Workflow />
             <Roles onOpenAuth={handleOpenAuth} />
             <Features />
             <Pricing onOpenAuth={handleOpenAuth} />

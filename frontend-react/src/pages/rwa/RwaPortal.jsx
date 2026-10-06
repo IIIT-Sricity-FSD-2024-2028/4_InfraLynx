@@ -7,7 +7,7 @@ import VerificationDispute from './VerificationDispute.jsx'
 import './styles/RwaPortal.css'
 
 export default function RwaPortal({ onExitToLanding }) {
-  const { complaints, currentUser, resetDemoData } = useTIMS()
+  const { complaints, currentUser } = useTIMS()
 
   // Current screen: 'dashboard' | 'report' | 'track' | 'verify'
   const [currentScreen, setCurrentScreen] = useState('dashboard')
@@ -71,26 +71,13 @@ export default function RwaPortal({ onExitToLanding }) {
           <div className="rwa-user-actions">
             {/* User identity badge */}
             <div className="rwa-user-badge">
-              <div className="rwa-user-name">{currentUser.name}</div>
+              <div className="rwa-user-name">{currentUser?.name || 'RWA Representative'}</div>
               <div className="rwa-user-role">
-                {currentUser.title} • {currentUser.sector}
+                {currentUser?.title || currentUser?.role || 'RWA Representative'} • {currentUser?.sector || 'Sector 4'}
               </div>
             </div>
 
-            {/* Reset Demo Data button */}
-            <button
-              onClick={() => {
-                if (window.confirm('Reset all in-memory complaints to default demo records?')) {
-                  resetDemoData()
-                  setSuccessNotice(null)
-                  handleNavigate('dashboard')
-                }
-              }}
-              title="Reset in-memory mock data"
-              className="rwa-btn-reset"
-            >
-              ↺ Reset Data
-            </button>
+
 
             {/* Exit to Landing Page */}
             {onExitToLanding && (

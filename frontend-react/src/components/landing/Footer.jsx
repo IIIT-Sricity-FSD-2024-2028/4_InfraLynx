@@ -55,7 +55,6 @@ export default function Footer({ onOpenAuth }) {
               Platform Core
             </h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13.5 }}>
-              <li><a href="#workflow" className="footer-link">14-Step Workflow</a></li>
               <li><a href="#roles" className="footer-link">7 Actor Roles</a></li>
               <li><a href="#modules" className="footer-link">13 Core Modules</a></li>
               <li><a href="#pricing" className="footer-link">Subscription Plans</a></li>

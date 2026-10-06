@@ -30,12 +30,15 @@ export default function RwaDashboard({ onNavigate, onSelectComplaint, successNot
   // Filter complaints
   const filteredComplaints = useMemo(() => {
     return complaints.filter((c) => {
+      const loc = c.location || {}
+      const assetName = loc.assetName || c.asset_name || ''
+      const street = loc.street || c.street || ''
       const matchSearch =
         !searchQuery ||
-        c.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.location.assetName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.location.street.toLowerCase().includes(searchQuery.toLowerCase())
+        (c.id && c.id.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (c.title && c.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        assetName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        street.toLowerCase().includes(searchQuery.toLowerCase())
 
       const matchCategory =
         selectedCategory === 'ALL' || c.category.toUpperCase() === selectedCategory
@@ -374,7 +377,7 @@ export default function RwaDashboard({ onNavigate, onSelectComplaint, successNot
                 <div className="card-footer">
                   <div className="card-info-cluster">
                     <div>
-                      📍 <strong>{c.location.block}, {c.location.street}</strong> ({c.location.assetName})
+                      📍 <strong>{c.location?.block || c.block || 'Block'}, {c.location?.street || c.street || 'Main St'}</strong> ({c.location?.assetName || c.asset_name || 'Asset'})
                     </div>
                     <div>
                       ⏱️ SLA: <strong style={{ color: sla.isBreached ? 'var(--accent-red)' : sla.isUrgent ? 'var(--accent-amber)' : 'inherit' }}>{sla.text}</strong>

@@ -12,7 +12,7 @@ import './styles/DeptHeadPortal.css'
  * Mirrors ClerkPortal.jsx but with a purple/indigo theme and Department Head features.
  */
 export default function DeptHeadPortal({ onExitToLanding }) {
-  const { complaints, currentUser, resetDemoData } = useTIMS()
+  const { complaints, currentUser } = useTIMS()
 
   const [currentScreen, setCurrentScreen] = useState('dashboard')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
@@ -55,17 +55,7 @@ export default function DeptHeadPortal({ onExitToLanding }) {
               <div className="depthead-user-name">{currentUser.name || 'Dept Head'}</div>
               <div className="depthead-user-role">{currentUser.title || 'Director'} &bull; {currentUser.department || 'Civil'}</div>
             </div>
-            <button
-              onClick={() => {
-                if (window.confirm('Reset all complaints to default demo data?')) {
-                  resetDemoData()
-                  handleNavigate('dashboard')
-                }
-              }}
-              className="depthead-btn-reset"
-            >
-              &#8634; Reset Data
-            </button>
+
             {onExitToLanding && (
               <button onClick={onExitToLanding} className="depthead-btn-exit">
                 Exit Portal &#8599;

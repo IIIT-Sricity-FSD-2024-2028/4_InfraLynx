@@ -1,19 +1,20 @@
 import React, { useState } from 'react'
-import { INITIAL_CONTRACTORS, INITIAL_AMC_RATE_CARDS } from '../../context/initialData.js'
+import { useTIMS } from '../../context/TIMSContext.jsx'
 import './styles/RateCardViewer.css'
 
 export default function RateCardViewer() {
+  const { contractors = [], amcRateCards = [] } = useTIMS()
   const [selectedDept, setSelectedDept] = useState('ALL')
   const [calcService, setCalcService] = useState('rate-01')
   const [calcQuantity, setCalcQuantity] = useState(4)
 
-  const filteredRateCards = INITIAL_AMC_RATE_CARDS.filter((rc) => {
+  const filteredRateCards = amcRateCards.filter((rc) => {
     if (selectedDept !== 'ALL' && rc.department !== selectedDept) return false
     return true
   })
 
-  const selectedRateItem = INITIAL_AMC_RATE_CARDS.find((r) => r.id === calcService) || INITIAL_AMC_RATE_CARDS[0]
-  const calculatedTotal = selectedRateItem.rate * (Number(calcQuantity) || 0)
+  const selectedRateItem = amcRateCards.find((r) => r.id === calcService) || amcRateCards[0] || { rate: 500, service: 'Electrician', unit: 'Hour' }
+  const calculatedTotal = (selectedRateItem?.rate || 0) * (Number(calcQuantity) || 0)
 
   return (
     <div className="rate-card-root">
@@ -29,7 +30,7 @@ export default function RateCardViewer() {
         </div>
 
         <div className="contracts-grid">
-          {INITIAL_CONTRACTORS.map((c) => (
+          {contractors.map((c) => (
             <div key={c.id} className="contract-card">
               <div className="contract-header">
                 <div>
@@ -153,7 +154,7 @@ export default function RateCardViewer() {
               onChange={(e) => setCalcService(e.target.value)}
               className="calc-select"
             >
-              {INITIAL_AMC_RATE_CARDS.map((r) => (
+              {amcRateCards.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.service} (₹{r.rate}/{r.unit})
                 </option>

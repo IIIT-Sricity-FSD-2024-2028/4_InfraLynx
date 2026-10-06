@@ -125,6 +125,47 @@ export const authApi = {
 };
 
 /**
+ * Complaints API Service (Member 1 - RWA Endpoints)
+ */
+export const complaintApi = {
+  async getComplaints(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = `/complaints${query ? `?${query}` : ''}`;
+    const res = await apiRequest(endpoint);
+    return res.data;
+  },
+
+  async getComplaintById(id) {
+    const res = await apiRequest(`/complaints/${id}`);
+    return res.data;
+  },
+
+  async createComplaint(data) {
+    const res = await apiRequest('/complaints', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res.data;
+  },
+
+  async verifyComplaint(id, payload) {
+    const res = await apiRequest(`/complaints/${id}/verify`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async disputeComplaint(id, payload) {
+    const res = await apiRequest(`/complaints/${id}/dispute`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+};
+
+/**
  * Health and diagnostics API
  */
 export const systemApi = {
@@ -141,5 +182,6 @@ export const systemApi = {
 export default {
   apiRequest,
   authApi,
+  complaintApi,
   systemApi,
 };

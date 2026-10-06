@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 import ClerkDashboard from './ClerkDashboard.jsx'
 import TriageValidation from './TriageValidation.jsx'
@@ -25,7 +25,7 @@ import './styles/ClerkPortal.css'
  *   onDismissNotice()             - called by ClerkDashboard to clear toast
  */
 export default function ClerkPortal({ onExitToLanding }) {
-  const { complaints, currentUser, resetDemoData } = useTIMS()
+  const { complaints, currentUser } = useTIMS()
 
   const [currentScreen, setCurrentScreen]         = useState('dashboard')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
@@ -87,18 +87,6 @@ export default function ClerkPortal({ onExitToLanding }) {
               <div className="clerk-user-name">{currentUser.name}</div>
               <div className="clerk-user-role">{currentUser.title} &bull; {currentUser.sector}</div>
             </div>
-            <button
-              onClick={() => {
-                if (window.confirm('Reset all complaints to default demo data?')) {
-                  resetDemoData()
-                  setSuccessNotice(null)
-                  handleNavigate('dashboard')
-                }
-              }}
-              className="clerk-btn-reset"
-            >
-              &#8634; Reset Data
-            </button>
             {onExitToLanding && (
               <button onClick={onExitToLanding} className="clerk-btn-exit">
                 Exit Portal &#8599;
