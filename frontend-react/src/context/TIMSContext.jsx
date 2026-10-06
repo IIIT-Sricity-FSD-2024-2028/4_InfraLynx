@@ -1,53 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { authApi, systemApi, complaintApi, TOKEN_KEY, USER_KEY } from '../services/api.js'
+import { authApi, systemApi, complaintApi, masterApi } from '../services/api.js'
 
-// Realistic baseline defaults for offline / initial boot (zero external file dependency)
-const DEFAULT_CONTRACTORS = [
-  {
-    id: 'cnt-01',
-    name: 'Apex Infraworks Ltd.',
-    lead: 'Rajesh Verma',
-    phone: '+91 98112 45012',
-    email: 'rajesh@apexinfra.com',
-    departments: ['Civil'],
-    amcContractId: 'AMC-CIV-2025-08',
-    status: 'Active',
-    rating: 4.8,
-  },
-  {
-    id: 'cnt-02',
-    name: 'Voltech Power & Lights',
-    lead: 'Vikram Singh',
-    phone: '+91 97230 11984',
-    email: 'vikram@voltechpower.in',
-    departments: ['Electrical'],
-    amcContractId: 'AMC-ELE-2025-03',
-    status: 'Active',
-    rating: 4.6,
-  },
-  {
-    id: 'cnt-03',
-    name: 'AquaFlow Utilities Corp',
-    lead: 'Anil Deshmukh',
-    phone: '+91 94500 88219',
-    email: 'anil@aquaflow.org',
-    departments: ['Water'],
-    amcContractId: 'AMC-WTR-2025-11',
-    status: 'Active',
-    rating: 4.9,
-  },
-]
-
-const DEFAULT_AMC_RATE_CARDS = [
-  { id: 'rate-01', service: 'Electrician', unit: 'Hour', rate: 500, department: 'Electrical' },
-  { id: 'rate-02', service: 'General Labour', unit: 'Hour', rate: 300, department: 'Civil' },
-  { id: 'rate-03', service: 'Cable Work', unit: 'Meter', rate: 150, department: 'Electrical' },
-  { id: 'rate-04', service: 'Pipe Repair & Fitting', unit: 'Unit', rate: 800, department: 'Water' },
-  { id: 'rate-05', service: 'Pothole Asphalt Filling', unit: 'Sq.Meter', rate: 1200, department: 'Civil' },
-  { id: 'rate-06', service: 'Streetlight LED Luminaire Replacement', unit: 'Unit', rate: 1800, department: 'Electrical' },
-  { id: 'rate-07', service: 'Sluice Valve Overhaul', unit: 'Unit', rate: 2500, department: 'Water' },
-]
-
+// Minimal baseline fallback for current user if not authenticated
 const DEFAULT_CURRENT_USER = {
   id: 'usr-rwa-01',
   name: 'Ravi Sharma',
@@ -57,77 +11,6 @@ const DEFAULT_CURRENT_USER = {
   phone: '+91 98765 43210',
   email: 'rwa@infralynx.com',
 }
-
-const DEFAULT_COMPLAINTS = [
-  {
-    id: 'CMP-2026-0101',
-    title: 'High-Mast Streetlight Failure at Main Junction',
-    category: 'Electrical',
-    subCategory: 'Streetlight Failure',
-    location: {
-      sector: 'Sector 4',
-      block: 'Block B',
-      street: 'Gulmohar Marg',
-      assetId: 'ELE-HM-042',
-      assetName: 'High-Mast Pole #42',
-      landmark: 'Near Sector 4 Community Park Gate 2',
-      gps: '28.5355° N, 77.3910° E',
-    },
-    severity: 'High',
-    slaDeadline: new Date(Date.now() + 14 * 3600 * 1000).toISOString(),
-    status: 'PENDING_VERIFICATION',
-    description: 'High-mast LED cluster completely unlit since yesterday evening causing safety hazards for evening commuters and pedestrians.',
-    reportedBy: {
-      id: 'usr-rwa-01',
-      name: 'Ravi Sharma',
-      role: 'rwa',
-      sector: 'Sector 4',
-    },
-    createdAt: new Date(Date.now() - 36 * 3600 * 1000).toISOString(),
-    beforePhotos: ['https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&w=800&q=80'],
-    afterPhotos: ['https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=800&q=80'],
-    assignedContractor: DEFAULT_CONTRACTORS[1],
-    workOrderId: 'WO-2026-088',
-    inspectionRemarks: 'Found blown LED driver and surge suppressor breakdown due to voltage spike. Requires driver replacement and rewiring.',
-    estimateAmount: 3400,
-    completionRemarks: 'Installed heavy-duty 240W surge-protected driver unit and replaced 4 damaged LED modules. Full cluster calibrated.',
-    completedAt: new Date(Date.now() - 4 * 3600 * 1000).toISOString(),
-    verification: null,
-    dispute: null,
-    history: [
-      {
-        stage: 'REPORTED',
-        timestamp: new Date(Date.now() - 36 * 3600 * 1000).toISOString(),
-        actor: 'Ravi Sharma (RWA Secretary)',
-        note: 'High-mast failure filed with night photograph.',
-      },
-      {
-        stage: 'UNDER REVIEW',
-        timestamp: new Date(Date.now() - 34 * 3600 * 1000).toISOString(),
-        actor: 'Desk Clerk (Pooja Rao)',
-        note: 'Issue verified. Validated under Electrical domain.',
-      },
-      {
-        stage: 'WORK ORDER CREATED',
-        timestamp: new Date(Date.now() - 32 * 3600 * 1000).toISOString(),
-        actor: 'Desk Clerk (Pooja Rao)',
-        note: 'WO-2026-088 issued to Voltech Power & Lights under AMC-ELE-2025-03.',
-      },
-      {
-        stage: 'IN PROGRESS',
-        timestamp: new Date(Date.now() - 20 * 3600 * 1000).toISOString(),
-        actor: 'Field Contractor (Vikram Singh)',
-        note: 'Site inspection completed. Estimate ₹3,400 auto-approved. Crew mobilized.',
-      },
-      {
-        stage: 'COMPLETED',
-        timestamp: new Date(Date.now() - 4 * 3600 * 1000).toISOString(),
-        actor: 'Field Contractor (Vikram Singh)',
-        note: 'Driver replaced and all 16 LED luminaires tested. Awaiting RWA verification.',
-      },
-    ],
-  },
-]
 
 const normStage = (s) => (s || '').toUpperCase().replace(/[\s_-]+/g, '')
 
@@ -189,16 +72,39 @@ export function TIMSProvider({ children }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        return Array.isArray(parsed) ? parsed.map(sanitizeComplaintHistory) : DEFAULT_COMPLAINTS
+        return Array.isArray(parsed) ? parsed.map(sanitizeComplaintHistory) : []
       } catch {
-        return DEFAULT_COMPLAINTS
+        return []
       }
     }
-    return DEFAULT_COMPLAINTS
+    return []
   })
 
-  const [contractors] = useState(DEFAULT_CONTRACTORS)
-  const [amcRateCards] = useState(DEFAULT_AMC_RATE_CARDS)
+  const [contractors, setContractors] = useState(() => {
+    const saved = localStorage.getItem('tims_contractors')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
+      }
+    }
+    return []
+  })
+
+  const [amcRateCards, setAmcRateCards] = useState(() => {
+    const saved = localStorage.getItem('tims_rate_cards')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
+      }
+    }
+    return []
+  })
 
   // Initialize currentUser from localStorage if available, or fall back to default
   const [currentUser, setCurrentUser] = useState(() => {
@@ -230,19 +136,62 @@ export function TIMSProvider({ children }) {
     }
   }, [])
 
+  // Auto-authenticate default user session if backend is running but token is missing
+  useEffect(() => {
+    if (backendStatus.connected && !authApi.isAuthenticated()) {
+      authApi
+        .login('rwa@infralynx.com', 'Password@123')
+        .then((data) => {
+          if (data?.user) setCurrentUser(data.user)
+        })
+        .catch(() => {})
+    }
+  }, [backendStatus.connected])
+
+  // Sync live contractors & rate cards from backend master in-memory API
+  useEffect(() => {
+    let isMounted = true
+    if (backendStatus.connected) {
+      masterApi
+        .getContractors()
+        .then((data) => {
+          if (isMounted && Array.isArray(data) && data.length > 0) {
+            setContractors(data)
+            localStorage.setItem('tims_contractors', JSON.stringify(data))
+          }
+        })
+        .catch((err) => console.warn('[TIMSContext] Master contractors error:', err.message))
+
+      masterApi
+        .getAmcRates()
+        .then((data) => {
+          if (isMounted && Array.isArray(data) && data.length > 0) {
+            setAmcRateCards(data)
+            localStorage.setItem('tims_rate_cards', JSON.stringify(data))
+          }
+        })
+        .catch((err) => console.warn('[TIMSContext] Master AMC rates error:', err.message))
+    }
+    return () => {
+      isMounted = false
+    }
+  }, [backendStatus.connected])
+
   // Sync live complaints from backend API when available
   useEffect(() => {
     let isMounted = true
-    complaintApi
-      .getComplaints()
-      .then((data) => {
-        if (isMounted && Array.isArray(data) && data.length > 0) {
-          setComplaints(data.map(sanitizeComplaintHistory))
-        }
-      })
-      .catch(() => {
-        // Fallback to local state if backend is offline
-      })
+    if (backendStatus.connected) {
+      complaintApi
+        .getComplaints()
+        .then((data) => {
+          if (isMounted && Array.isArray(data) && data.length > 0) {
+            setComplaints(data.map(sanitizeComplaintHistory))
+          }
+        })
+        .catch(() => {
+          // Fallback to local state if backend is offline
+        })
+    }
     return () => {
       isMounted = false
     }
