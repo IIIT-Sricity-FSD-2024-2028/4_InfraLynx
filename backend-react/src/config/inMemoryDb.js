@@ -220,6 +220,17 @@ const SEED_DATA = {
       end_date: '2026-03-31',
       status: 'ACTIVE',
     },
+    {
+      id: '20000000-0000-0000-0000-000000000003',
+      township_id: 'b0000000-0000-0000-0000-000000000001',
+      contractor_id: 'c0000000-0000-0000-0000-000000000003',
+      contract_number: 'AMC-WTR-2025-11',
+      department_id: 'd0000000-0000-0000-0000-000000000003',
+      title: 'Annual Water Supply, Piping & Sewage Maintenance 2025–26',
+      start_date: '2025-04-01',
+      end_date: '2026-03-31',
+      status: 'ACTIVE',
+    },
   ],
 
   amc_rates: [
@@ -228,6 +239,8 @@ const SEED_DATA = {
     { id: '3', amc_id: '20000000-0000-0000-0000-000000000001', item_code: 'RATE-03', item_name: 'Cable Work', service_type: 'Material & Service', unit: 'Meter', rate: 150.0 },
     { id: '4', amc_id: '20000000-0000-0000-0000-000000000001', item_code: 'RATE-06', item_name: 'Streetlight LED Luminaire Replacement', service_type: 'Hardware', unit: 'Unit', rate: 1800.0 },
     { id: '5', amc_id: '20000000-0000-0000-0000-000000000002', item_code: 'RATE-05', item_name: 'Pothole Asphalt Filling', service_type: 'Civil Works', unit: 'Sq.Meter', rate: 1200.0 },
+    { id: '6', amc_id: '20000000-0000-0000-0000-000000000003', item_code: 'RATE-04', item_name: 'Pipe Repair & Fitting', service_type: 'Plumbing Works', unit: 'Unit', rate: 800.0 },
+    { id: '7', amc_id: '20000000-0000-0000-0000-000000000003', item_code: 'RATE-07', item_name: 'Sluice Valve Overhaul', service_type: 'Plumbing Works', unit: 'Unit', rate: 2500.0 },
   ],
 
   complaints: [
