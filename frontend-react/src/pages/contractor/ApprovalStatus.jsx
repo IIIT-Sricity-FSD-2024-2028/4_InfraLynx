@@ -202,8 +202,8 @@ export default function ApprovalStatus({
                 borderLeft: isRevision
                   ? '5px solid #ea580c'
                   : isAwaiting
-                  ? '5px solid #8b5cf6'
-                  : '5px solid #16a34a',
+                    ? '5px solid #8b5cf6'
+                    : '5px solid #16a34a',
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>

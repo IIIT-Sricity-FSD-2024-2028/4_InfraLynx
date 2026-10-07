@@ -150,10 +150,9 @@ export default function AmcEstimateBuilder({
     onSubmitEstimate(currentJob.id, estimateData, nextStatus)
 
     setSubmittedMessage(
-      `Estimate of ₹${totalEstimate.toLocaleString('en-IN')} submitted for ${currentJob.workOrderId || currentJob.id}. ${
-        exceedsThreshold
-          ? 'Forwarded to Department Head (exceeds ₹10,000 threshold).'
-          : 'Ready for work execution.'
+      `Estimate of ₹${totalEstimate.toLocaleString('en-IN')} submitted for ${currentJob.workOrderId || currentJob.id}. ${exceedsThreshold
+        ? 'Forwarded to Department Head (exceeds ₹10,000 threshold).'
+        : 'Ready for work execution.'
       }`
     )
 
