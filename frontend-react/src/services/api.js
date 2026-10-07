@@ -308,6 +308,55 @@ export const deptHeadApi = {
 };
 
 /**
+ * Field Contractor API Service (Member 3)
+ */
+export const contractorApi = {
+  async getJobs(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = `/contractor/jobs${query ? `?${query}` : ''}`;
+    const res = await apiRequest(endpoint);
+    return res.data || [];
+  },
+
+  async getJobById(id) {
+    const res = await apiRequest(`/contractor/jobs/${id}`);
+    return res.data;
+  },
+
+  async submitInspection(payload) {
+    const res = await apiRequest('/contractor/inspection', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async submitEstimate(payload) {
+    const res = await apiRequest('/contractor/estimates', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async updateJobStatus(id, payload) {
+    const res = await apiRequest(`/contractor/jobs/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async uploadEvidence(payload) {
+    const res = await apiRequest('/contractor/evidence', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+};
+
+/**
  * Health and diagnostics API
  */
 export const systemApi = {
@@ -326,6 +375,7 @@ export default {
   authApi,
   complaintApi,
   clerkApi,
+  contractorApi,
   deptHeadApi,
   masterApi,
   systemApi,
