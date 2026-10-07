@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -10,6 +10,7 @@ import db from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import complaintRoutes from './routes/complaintRoutes.js';
 import masterRoutes from './routes/masterRoutes.js';
+import clerkRoutes from './routes/clerkRoutes.js';   // Member 2 — Desk Clerk
 import { errorHandler } from './middleware/error.js';
 
 const app = express();
@@ -74,13 +75,20 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     documentation: '/api/v1/docs',
     health: '/health',
+    routes: {
+      auth:       '/api/v1/auth',
+      complaints: '/api/v1/complaints',   // Member 1 — RWA
+      clerk:      '/api/v1/clerk',        // Member 2 — Desk Clerk
+      master:     '/api/v1/master',       // Shared reference data
+    },
   });
 });
 
-// API Routes
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/complaints', complaintRoutes);
-app.use('/api/v1/master', masterRoutes);
+// ── API Routes ──────────────────────────────────────────────────────────────
+app.use('/api/v1/auth',       authRoutes);
+app.use('/api/v1/complaints', complaintRoutes);  // Member 1 — RWA
+app.use('/api/v1/clerk',      clerkRoutes);       // Member 2 — Desk Clerk
+app.use('/api/v1/master',     masterRoutes);       // Shared reference data
 
 // 404 Route Handler
 app.use((req, res, next) => {
