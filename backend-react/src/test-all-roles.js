@@ -160,6 +160,41 @@ async function testAllRoleEndpoints() {
   const analytics = await req('/dept-head/analytics', 'GET', null, headToken);
   report('GET /dept-head/analytics (Dept Performance & SLAs)', analytics.status === 200, `Dept: ${analytics.data?.data?.departmentName}, Total WOs: ${analytics.data?.data?.summary?.totalTickets}`);
 
+  // 7. Test Member 3 — Field Contractor Lifecycle
+  console.log('\n─── 7. MEMBER 3: FIELD CONTRACTOR JOBS, ESTIMATES & EXECUTION ──────────');
+  const contractorJobs = await req('/contractor/jobs', 'GET', null, contractorToken);
+  report('GET /contractor/jobs (Assigned Work Orders)', contractorJobs.status === 200 && Array.isArray(contractorJobs.data?.data), `Assigned Jobs: ${contractorJobs.data?.count}`);
+
+  const inspRes = await req('/contractor/inspection', 'POST', {
+    complaintId: cmpId,
+    inspectionNotes: 'Verified pipeline rupture at site.',
+  }, contractorToken);
+  report('POST /contractor/inspection (Ground Inspection)', inspRes.status === 200);
+
+  const estimatePayload = {
+    complaintId: cmpId,
+    lineItems: [
+      { itemCode: 'RATE-04', quantity: 2 }, // Pipe repair: 2 * 800 = 1600
+      { itemCode: 'RATE-01', quantity: 3 }, // Electrician: 3 * 500 = 1500
+    ],
+  };
+  const estimateRes = await req('/contractor/estimates', 'POST', estimatePayload, contractorToken);
+  report('POST /contractor/estimates (AMC Rates Engine)', estimateRes.status === 201, `Estimate: ₹${estimateRes.data?.data?.estimateTotal}`);
+
+  const statusUpdateRes = await req('/contractor/jobs/40000000-0000-0000-0000-000000000001/status', 'PATCH', {
+    status: 'IN_PROGRESS',
+    remarks: 'Field crew deployed.',
+  }, contractorToken);
+  report('PATCH /contractor/jobs/:id/status (Mark In Progress)', statusUpdateRes.status === 200);
+
+  const evidenceRes = await req('/contractor/evidence', 'POST', {
+    complaintId: cmpId,
+    evidenceType: 'AFTER',
+    photos: ['https://images.unsplash.com/photo-after-pipe-fix.jpg'],
+    caption: 'Pipeline welded and pressure tested.',
+  }, contractorToken);
+  report('POST /contractor/evidence (Upload Proof)', evidenceRes.status === 201);
+
   // Close server
   await new Promise((resolve) => server.close(resolve));
 
