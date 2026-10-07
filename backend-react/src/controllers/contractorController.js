@@ -54,9 +54,9 @@ export const getAssignedJobs = async (req, res, next) => {
         slaDeadline: complaint?.slaDeadline || wo.sla_deadline,
         createdAt: wo.created_at,
         location: complaint?.location || {
-          sector: complaint?.sector || 'Sector 4',
+          sector: complaint?.sector || 'Sector 54',
           block: complaint?.block || 'Block A',
-          street: complaint?.street || 'Main Road',
+          street: complaint?.street || 'Gulmohar Marg',
         },
         evidence: inMemoryDb.findAll('complaint_evidence', (ev) => ev.complaint_id === wo.complaint_id),
         contractorName: contractor?.company_name || 'Assigned AMC Partner',

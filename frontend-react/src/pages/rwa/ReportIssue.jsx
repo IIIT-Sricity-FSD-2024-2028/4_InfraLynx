@@ -54,9 +54,9 @@ export default function ReportIssue({ onNavigate, onSelectComplaint, onComplaint
   // Form State
   const [category, setCategory] = useState('Civil')
   const [subCategory, setSubCategory] = useState(CATEGORY_DATA.Civil.subcategories[0].name)
-  const [sector, setSector] = useState(currentUser.sector || 'Sector 4')
-  const [block, setBlock] = useState('Block A')
-  const [street, setStreet] = useState('Oak Avenue')
+  const [sector, setSector] = useState(currentUser.sector || 'Sector 54')
+  const [block, setBlock] = useState('Block B')
+  const [street, setStreet] = useState('Gulmohar Marg')
   const [assetName, setAssetName] = useState(CATEGORY_DATA.Civil.subcategories[0].defaultAsset)
   const [landmark, setLandmark] = useState('')
   const [severity, setSeverity] = useState('Medium')
@@ -227,10 +227,10 @@ export default function ReportIssue({ onNavigate, onSelectComplaint, onComplaint
                 onChange={(e) => setSector(e.target.value)}
                 className="form-select"
               >
-                <option value="Sector 2">Sector 2 (North Enclave)</option>
-                <option value="Sector 4">Sector 4 (Central Greens)</option>
-                <option value="Sector 7">Sector 7 (South Valley)</option>
-                <option value="Sector 9">Sector 9 (East Meadows)</option>
+                <option value="Sector 54">Sector 54 (Golf Course Road Hub)</option>
+                <option value="Sector 53">Sector 53 (DLF Phase 5)</option>
+                <option value="Sector 42">Sector 42 (CyberCity Connect)</option>
+                <option value="Sector 56">Sector 56 (Aralias Enclave)</option>
               </select>
             </div>
 
@@ -242,10 +242,10 @@ export default function ReportIssue({ onNavigate, onSelectComplaint, onComplaint
                 onChange={(e) => setBlock(e.target.value)}
                 className="form-select"
               >
-                <option value="Block A">Block A (Villas 1-40)</option>
-                <option value="Block B">Block B (Apts 101-160)</option>
-                <option value="Block C">Block C (Street 14 Enclave)</option>
-                <option value="Block D">Block D (Commercial Hub)</option>
+                <option value="Block A">Block A (The Aralias & Villas)</option>
+                <option value="Block B">Block B (The Magnolias Towers)</option>
+                <option value="Block C">Block C (Cyber Terraces)</option>
+                <option value="Block D">Block D (Commercial Galleria)</option>
               </select>
             </div>
 
@@ -256,7 +256,7 @@ export default function ReportIssue({ onNavigate, onSelectComplaint, onComplaint
                 type="text"
                 value={street}
                 onChange={(e) => setStreet(e.target.value)}
-                placeholder="e.g. Oak Avenue"
+                placeholder="e.g. Gulmohar Marg, Palm Avenue, Amaltas Drive"
                 className="location-input"
               />
             </div>

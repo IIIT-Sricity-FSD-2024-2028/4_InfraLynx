@@ -15,13 +15,20 @@ export default function WorkOrderDetails({ complaint, onBack }) {
     )
   }
 
-  // Mock AMC Items (ideally this comes from the estimate object if it were structured)
-  const amcItems = [
-    { item: 'Electrician (Hourly)', qty: 2, rate: 500, total: 1000 },
-    { item: 'Cable Replacement (m)', qty: 10, rate: 150, total: 1500 },
-    { item: 'Diagnostic Fee', qty: 1, rate: 900, total: 900 }
-  ]
-  const mockTotal = 3400
+  // Synchronized CPWD AMC Items
+  const amcItems = (complaint.lineItems && complaint.lineItems.length > 0)
+    ? complaint.lineItems.map(it => ({
+        item: it.description || it.service || it.item || 'AMC Service Item',
+        qty: it.qty || it.quantity || 1,
+        rate: it.rate || it.amcRate || 500,
+        total: (it.qty || it.quantity || 1) * (it.rate || it.amcRate || 500),
+      }))
+    : [
+        { item: 'Senior Electrical Technician / Wireman', qty: 2, rate: 500, total: 1000 },
+        { item: 'Armoured 3-Core Copper Cable 16 sq.mm', qty: 10, rate: 150, total: 1500 },
+        { item: 'General Labour (Semi-Skilled / Safety Assist)', qty: 3, rate: 300, total: 900 }
+      ]
+  const mockTotal = complaint.estimateAmount || amcItems.reduce((acc, curr) => acc + curr.total, 0)
 
   function handleApprove() {
     // Approve and send to IN_PROGRESS or ASSIGNED for execution

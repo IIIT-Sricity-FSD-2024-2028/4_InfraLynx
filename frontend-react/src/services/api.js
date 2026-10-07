@@ -357,6 +357,62 @@ export const contractorApi = {
 };
 
 /**
+ * Finance & AMC API Service (Member 5)
+ */
+export const financeApi = {
+  async getInvoices(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = `/finance/invoices${query ? `?${query}` : ''}`;
+    const res = await apiRequest(endpoint);
+    return res.data || [];
+  },
+
+  async getInvoiceById(id) {
+    const res = await apiRequest(`/finance/invoices/${id}`);
+    return res.data;
+  },
+
+  async get3WayCheck(id) {
+    const res = await apiRequest(`/finance/invoices/${id}/3-way-check`);
+    return res.data;
+  },
+
+  async authorizeInvoice(id, payload = {}) {
+    const res = await apiRequest(`/finance/invoices/${id}/authorize`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async flagVariance(id, reason) {
+    const res = await apiRequest(`/finance/invoices/${id}/flag-variance`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+    return res.data;
+  },
+
+  async releasePayment(id, payload = {}) {
+    const res = await apiRequest(`/finance/invoices/${id}/pay`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async getRateCards() {
+    const res = await apiRequest('/finance/rate-cards');
+    return res.data || [];
+  },
+
+  async getAnalytics() {
+    const res = await apiRequest('/finance/analytics');
+    return res.data || {};
+  },
+};
+
+/**
  * Health and diagnostics API
  */
 export const systemApi = {
@@ -377,6 +433,7 @@ export default {
   clerkApi,
   contractorApi,
   deptHeadApi,
+  financeApi,
   masterApi,
   systemApi,
 };

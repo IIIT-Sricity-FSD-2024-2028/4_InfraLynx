@@ -3,9 +3,9 @@ import { useState } from 'react'
 const INITIAL_MAJOR_APPROVALS = [
   {
     id: 'TIMS-2026-0811',
-    sector: 'Sector 5 & 6 Arterial Junction',
+    sector: 'Sector 54 & CyberCity Arterial Junction',
     title: 'Replacement of 400kVA Burned Transformer Unit',
-    contractor: 'Voltex Power Systems (AMC-2026-E02)',
+    contractor: 'Voltech Power & Electrical Systems Ltd. (AMC-ELE-2025-03)',
     amount: '₹3,45,000',
     threshold: 'Exceeds ₹2,00,000 Major Threshold',
     deptApprovedBy: 'Dept Head (Electrical)',
@@ -13,9 +13,9 @@ const INITIAL_MAJOR_APPROVALS = [
   },
   {
     id: 'TIMS-2026-0794',
-    sector: 'Sector 9 Outer Ring Drain',
+    sector: 'Sector 54 Outer Stormwater Drainage Channel',
     title: 'Reinforced Concrete Culvert Reconstruction',
-    contractor: 'Apex Civil Infra (AMC-2026-C04)',
+    contractor: 'Larsen & Toubro Urban Infra Works Ltd. (AMC-CIV-2025-08)',
     amount: '₹4,80,000',
     threshold: 'Exceeds ₹2,00,000 Major Threshold',
     deptApprovedBy: 'Dept Head (Civil)',

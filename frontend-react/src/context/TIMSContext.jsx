@@ -3,12 +3,12 @@ import { authApi, systemApi, complaintApi, masterApi } from '../services/api.js'
 
 // Minimal baseline fallback for current user if not authenticated
 const DEFAULT_CURRENT_USER = {
-  id: 'usr-rwa-01',
-  name: 'Ravi Sharma',
+  id: '10000000-0000-0000-0000-000000000001',
+  name: 'Dr. Arvind Swaminathan',
   role: 'rwa',
   title: 'RWA Secretary',
-  sector: 'Sector 4',
-  phone: '+91 98765 43210',
+  sector: 'Sector 54',
+  phone: '+91 98101 22345',
   email: 'rwa@infralynx.com',
 }
 
@@ -43,9 +43,9 @@ function sanitizeComplaintHistory(c) {
 
   const loc = c.location || {}
   const location = {
-    sector: loc.sector || c.sector || 'Sector 4',
+    sector: loc.sector || c.sector || 'Sector 54',
     block: loc.block || c.block || 'Block B',
-    street: loc.street || c.street || 'Main Street',
+    street: loc.street || c.street || 'Gulmohar Marg',
     assetId: loc.assetId || c.asset_id || 'ASSET-GEN-01',
     assetName: loc.assetName || c.asset_name || c.location_details || 'Township Infrastructure Fixture',
     landmark: loc.landmark || c.location_details || '',
@@ -284,9 +284,9 @@ export function TIMSProvider({ children }) {
       category,
       subCategory,
       location: {
-        sector: location?.sector || currentUser.sector || 'Sector 4',
+        sector: location?.sector || currentUser.sector || 'Sector 54',
         block: location?.block || 'Block A',
-        street: location?.street || '',
+        street: location?.street || 'Gulmohar Marg',
         assetId: location?.assetId || 'ASSET-GEN-01',
         assetName: location?.assetName || 'General Infrastructure Asset',
         landmark: location?.landmark || '',

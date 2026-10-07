@@ -73,7 +73,7 @@ export default function RwaPortal({ onExitToLanding }) {
             <div className="rwa-user-badge">
               <div className="rwa-user-name">{currentUser?.name || 'RWA Representative'}</div>
               <div className="rwa-user-role">
-                {currentUser?.title || currentUser?.role || 'RWA Representative'} • {currentUser?.sector || 'Sector 4'}
+                {currentUser?.title || currentUser?.role || 'RWA Representative'} • {currentUser?.sector || 'Sector 54'}
               </div>
             </div>
 

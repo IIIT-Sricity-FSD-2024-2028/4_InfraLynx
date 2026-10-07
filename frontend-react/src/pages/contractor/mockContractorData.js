@@ -1,43 +1,44 @@
 // mockContractorData.js - Realistic baseline jobs for Member 3 Field Contractor
-// Pre-populated to demonstrate all 7 screens with complete fidelity
+// Location: DLF CyberCity & Aralias Smart Township, Sector 54, Gurugram (NCR), India
+// 100% Constant & Synchronized with Database-react/seed.sql and backend-react
 
 export const CONTRACTOR_PROFILE = {
-  id: 'cnt-02',
-  name: 'Voltech Power & Lights',
-  lead: 'Vikram Singh',
+  id: 'c0000000-0000-0000-0000-000000000002',
+  name: 'Voltech Power & Electrical Systems Ltd.',
+  lead: 'Vikram Singh Rathore',
   title: 'Lead Field Project Engineer',
   phone: '+91 97230 11984',
-  email: 'vikram@voltechpower.in',
-  departments: ['Electrical', 'Civil'],
+  email: 'vikram.singh@voltechpower.in',
+  departments: ['Electrical & Power Distribution', 'Civil Infrastructure & Roads'],
   amcContractId: 'AMC-ELE-2025-03',
   status: 'Active',
-  rating: 4.8,
-  complianceScore: '98.4%',
+  rating: 4.92,
+  complianceScore: '98.8%',
   crewsDeployed: 5,
-}
+};
 
 export const INITIAL_CONTRACTOR_JOBS = [
   {
     id: 'CMP-2026-0104',
     workOrderId: 'WO-2026-090',
-    title: 'Transformer Substation Feed Cable Burnout & Ground Fault',
+    title: '11kV Transformer Substation Feeder Cable Ground Fault & Sparking',
     category: 'Electrical',
     subCategory: 'Distribution Failure',
     location: {
-      sector: 'Sector 4',
+      sector: 'Sector 54',
       block: 'Block C',
       street: 'Substation Road',
       assetId: 'ELE-SUB-12',
       assetName: 'Feeder Substation 12B',
-      landmark: 'Behind Community Center Transformer Yard',
+      landmark: 'Feeder Substation 12B Yard behind Community Hall',
       gps: '28.5372° N, 77.3945° E',
     },
-    severity: 'High',
+    severity: 'Emergency',
     slaDeadline: new Date(Date.now() + 18 * 3600 * 1000).toISOString(),
-    status: 'ASSIGNED', // Screen 3 & 4: Needs Site Inspection & AMC Estimate
-    description: 'Underground armoured cable heating up with periodic smoke emission and spark noises near junction box.',
-    reportedBy: { name: 'Sector 4 RWA', role: 'RWA Representative' },
-    createdAt: new Date(Date.now() - 4 * 3600 * 1000).toISOString(),
+    status: 'ASSIGNED',
+    description: 'Underground armoured XLPE cable sparking intermittently with smoke emission near the main transformer isolator switch.',
+    reportedBy: { name: 'Dr. Arvind Swaminathan', role: 'RWA Secretary' },
+    createdAt: new Date(Date.now() - 20 * 3600 * 1000).toISOString(),
     beforePhotos: ['https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?auto=format&fit=crop&w=800&q=80'],
     afterPhotos: [],
     inspection: null,
@@ -52,7 +53,7 @@ export const INITIAL_CONTRACTOR_JOBS = [
     category: 'Electrical',
     subCategory: 'Streetlight Failure',
     location: {
-      sector: 'Sector 4',
+      sector: 'Sector 54',
       block: 'Block A',
       street: 'Neem Boulevard',
       assetId: 'ELE-SL-89',
@@ -62,10 +63,10 @@ export const INITIAL_CONTRACTOR_JOBS = [
     },
     severity: 'Medium',
     slaDeadline: new Date(Date.now() + 28 * 3600 * 1000).toISOString(),
-    status: 'REVISION_REQUESTED', // Screen 5: Dept Head requested revision
+    status: 'REVISION_REQUESTED',
     description: 'Armoured feeder cable short-circuit inside base inspection hatch causing total circuit trip.',
-    reportedBy: { name: 'Ravi Sharma', role: 'RWA' },
-    createdAt: new Date(Date.now() - 14 * 3600 * 1000).toISOString(),
+    reportedBy: { name: 'Dr. Arvind Swaminathan', role: 'RWA Secretary' },
+    createdAt: new Date(Date.now() - 36 * 3600 * 1000).toISOString(),
     beforePhotos: ['https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&w=800&q=80'],
     afterPhotos: [],
     inspection: {
@@ -73,14 +74,14 @@ export const INITIAL_CONTRACTOR_JOBS = [
       equipmentCondition: 'Moderate - busbar requires wire brush de-oxidation and 2x gland replacement.',
       requiredWork: 'Re-crimp terminals, replace 5m damaged cable, install IP65 weather seal gland.',
       inspectionPhoto: 'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&w=800&q=80',
-      remarks: 'Inspected by Vikram Singh on site. Recommended moisture barrier enclosure.',
+      remarks: 'Inspected by Vikram Singh Rathore on site. Recommended moisture barrier enclosure.',
       inspectedAt: new Date(Date.now() - 10 * 3600 * 1000).toISOString(),
     },
     estimate: {
       items: [
-        { rateCardId: 'rate-01', service: 'Electrician', unit: 'Hour', rate: 500, qty: 4, subtotal: 2000 },
-        { rateCardId: 'rate-02', service: 'General Labour', unit: 'Hour', rate: 300, qty: 6, subtotal: 1800 },
-        { rateCardId: 'rate-03', service: 'Cable Work', unit: 'Meter', rate: 150, qty: 15, subtotal: 2250 },
+        { rateCardId: 'RATE-01', service: 'Senior Electrical Technician / Wireman', unit: 'Hour', rate: 500, qty: 4, subtotal: 2000 },
+        { rateCardId: 'RATE-02', service: 'General Labour (Semi-Skilled / Safety Assist)', unit: 'Hour', rate: 300, qty: 6, subtotal: 1800 },
+        { rateCardId: 'RATE-03', service: 'Armoured 3-Core Copper Cable 16 sq.mm', unit: 'Meter', rate: 150, qty: 15, subtotal: 2250 },
       ],
       total: 6050,
       justification: 'Requires excavation alongside walkway for 15 meters cable trenching.',
@@ -94,11 +95,11 @@ export const INITIAL_CONTRACTOR_JOBS = [
   {
     id: 'CMP-2026-0105',
     workOrderId: 'WO-2026-091',
-    title: 'Sector 4 Community Center Perimeter Floodlight Failure',
+    title: 'Sector 54 Community Center Perimeter Floodlight Failure',
     category: 'Electrical',
     subCategory: 'Floodlight Luminaire',
     location: {
-      sector: 'Sector 4',
+      sector: 'Sector 54',
       block: 'Block D',
       street: 'Clubhouse Road',
       assetId: 'ELE-FL-07',
@@ -108,10 +109,10 @@ export const INITIAL_CONTRACTOR_JOBS = [
     },
     severity: 'Medium',
     slaDeadline: new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
-    status: 'IN_PROGRESS', // Screen 6: Work Execution active
+    status: 'IN_PROGRESS',
     description: 'Two 200W LED floodlights flickering intermittently and finally died during evening hours.',
-    reportedBy: { name: 'Facility Manager', role: 'RWA' },
-    createdAt: new Date(Date.now() - 22 * 3600 * 1000).toISOString(),
+    reportedBy: { name: 'Dr. Arvind Swaminathan', role: 'RWA Secretary' },
+    createdAt: new Date(Date.now() - 50 * 3600 * 1000).toISOString(),
     beforePhotos: ['https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&w=800&q=80'],
     afterPhotos: [],
     inspection: {
@@ -124,8 +125,8 @@ export const INITIAL_CONTRACTOR_JOBS = [
     },
     estimate: {
       items: [
-        { rateCardId: 'rate-01', service: 'Electrician', unit: 'Hour', rate: 500, qty: 3, subtotal: 1500 },
-        { rateCardId: 'rate-06', service: 'Streetlight LED Luminaire Replacement', unit: 'Unit', rate: 1800, qty: 1, subtotal: 1800 },
+        { rateCardId: 'RATE-01', service: 'Senior Electrical Technician / Wireman', unit: 'Hour', rate: 500, qty: 3, subtotal: 1500 },
+        { rateCardId: 'RATE-06', service: 'Streetlight 120W LED Luminaire & Surge Driver Replacement', unit: 'Unit', rate: 1800, qty: 1, subtotal: 1800 },
       ],
       total: 3300,
       status: 'APPROVED',
@@ -144,7 +145,7 @@ export const INITIAL_CONTRACTOR_JOBS = [
     category: 'Civil',
     subCategory: 'Drainage Failure',
     location: {
-      sector: 'Sector 4',
+      sector: 'Sector 54',
       block: 'Block B',
       street: 'Pine Street',
       assetId: 'CIV-DR-19',
@@ -154,9 +155,9 @@ export const INITIAL_CONTRACTOR_JOBS = [
     },
     severity: 'High',
     slaDeadline: new Date(Date.now() + 5 * 3600 * 1000).toISOString(),
-    status: 'DISPUTED', // Screen 7: RWA Disputed, needs Rework
+    status: 'DISPUTED',
     description: 'Gully chamber overflowing with sludge and causing water accumulation during drizzle.',
-    reportedBy: { name: 'Ravi Sharma', role: 'RWA' },
+    reportedBy: { name: 'Dr. Arvind Swaminathan', role: 'RWA Secretary' },
     createdAt: new Date(Date.now() - 40 * 3600 * 1000).toISOString(),
     beforePhotos: ['https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80'],
     afterPhotos: ['https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=800&q=80'],
@@ -164,7 +165,7 @@ export const INITIAL_CONTRACTOR_JOBS = [
       reason: 'Incomplete silt extraction and debris left on sidewalk',
       remarks: 'Contractor cleared top 6 inches of mud but the 12-inch connecting drain line remains 80% choked with hardened sand. Water pooled immediately after 20 mins of rain. Sidewalk also littered with sludge.',
       disputedAt: new Date(Date.now() - 4 * 3600 * 1000).toISOString(),
-      disputedBy: 'Ravi Sharma (RWA Secretary)',
+      disputedBy: 'Dr. Arvind Swaminathan (RWA Secretary)',
       photos: ['https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80'],
     },
     inspection: {
@@ -176,7 +177,7 @@ export const INITIAL_CONTRACTOR_JOBS = [
     },
     estimate: {
       items: [
-        { rateCardId: 'rate-02', service: 'General Labour', unit: 'Hour', rate: 300, qty: 5, subtotal: 1500 },
+        { rateCardId: 'RATE-02', service: 'General Labour (Semi-Skilled / Safety Assist)', unit: 'Hour', rate: 300, qty: 5, subtotal: 1500 },
       ],
       total: 1500,
       status: 'APPROVED',
@@ -186,24 +187,24 @@ export const INITIAL_CONTRACTOR_JOBS = [
   {
     id: 'CMP-2026-0101',
     workOrderId: 'WO-2026-088',
-    title: 'High-Mast Streetlight Failure at Main Junction',
+    title: 'High-Mast Streetlight Failure at Main Sector 54 Junction',
     category: 'Electrical',
     subCategory: 'Streetlight Failure',
     location: {
-      sector: 'Sector 4',
+      sector: 'Sector 54',
       block: 'Block B',
       street: 'Gulmohar Marg',
       assetId: 'ELE-HM-042',
       assetName: 'High-Mast Pole #42',
-      landmark: 'Near Sector 4 Community Park Gate 2',
+      landmark: 'Near Central Roundabout Fountain',
       gps: '28.5355° N, 77.3910° E',
     },
     severity: 'High',
     slaDeadline: new Date(Date.now() + 14 * 3600 * 1000).toISOString(),
-    status: 'COMPLETED', // Completed / Pending verification
-    description: 'High-mast LED cluster completely unlit since yesterday evening.',
-    reportedBy: { name: 'Ravi Sharma', role: 'RWA' },
-    createdAt: new Date(Date.now() - 36 * 3600 * 1000).toISOString(),
+    status: 'COMPLETED',
+    description: 'High-mast LED cluster completely unlit since evening peak hours, creating severe hazard for evening commuter traffic.',
+    reportedBy: { name: 'Dr. Arvind Swaminathan', role: 'RWA Secretary' },
+    createdAt: new Date(Date.now() - 72 * 3600 * 1000).toISOString(),
     beforePhotos: ['https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&w=800&q=80'],
     afterPhotos: ['https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=800&q=80'],
     inspection: {
@@ -212,23 +213,23 @@ export const INITIAL_CONTRACTOR_JOBS = [
       requiredWork: 'Install new 150W driver, fit miniature circuit breaker, re-align luminaires.',
       inspectionPhoto: 'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&w=800&q=80',
       remarks: 'Work order executed under AMC schedule.',
-      inspectedAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+      inspectedAt: new Date(Date.now() - 60 * 3600 * 1000).toISOString(),
     },
     estimate: {
       items: [
-        { rateCardId: 'rate-01', service: 'Electrician', unit: 'Hour', rate: 500, qty: 2, subtotal: 1000 },
-        { rateCardId: 'rate-02', service: 'General Labour', unit: 'Hour', rate: 300, qty: 3, subtotal: 900 },
-        { rateCardId: 'rate-03', service: 'Cable Work', unit: 'Meter', rate: 150, qty: 10, subtotal: 1500 },
+        { rateCardId: 'RATE-01', service: 'Senior Electrical Technician / Wireman', unit: 'Hour', rate: 500, qty: 2, subtotal: 1000 },
+        { rateCardId: 'RATE-02', service: 'General Labour (Semi-Skilled / Safety Assist)', unit: 'Hour', rate: 300, qty: 3, subtotal: 900 },
+        { rateCardId: 'RATE-03', service: 'Armoured 3-Core Copper Cable 16 sq.mm', unit: 'Meter', rate: 150, qty: 10, subtotal: 1500 },
       ],
       total: 3400,
       status: 'APPROVED',
     },
     execution: {
-      completedAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-      actualLabourDetails: 'Senior Technician Vikram Singh + 3 labour assistants.',
+      completedAt: new Date(Date.now() - 40 * 3600 * 1000).toISOString(),
+      actualLabourDetails: 'Senior Technician Vikram Singh Rathore + 3 labour assistants.',
       actualWorkSummary: 'Replaced 150W industrial driver, installed new MCB protection and re-calibrated twilight timer. All 6 luminaires fully operational.',
       afterPhoto: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=800&q=80',
     },
     rework: null,
   },
-]
+];
