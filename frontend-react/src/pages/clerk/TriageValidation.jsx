@@ -1,5 +1,6 @@
-﻿import { useState, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
+import { clerkApi } from '../../services/api.js'
 import './styles/TriageValidation.css'
 
 /**
@@ -45,6 +46,7 @@ export default function TriageValidation({ selectedComplaint, onNavigate, onSele
   function handleOpen(complaint) {
     onSelectComplaint(complaint)
     if (complaint.status === 'REPORTED') {
+      clerkApi.triageComplaint(complaint.id).catch(() => {})
       updateComplaintStatus(
         complaint.id, 'UNDER_REVIEW',
         `Desk Clerk (${currentUser.name}) opened complaint for review.`
@@ -55,6 +57,7 @@ export default function TriageValidation({ selectedComplaint, onNavigate, onSele
   /** Validate the active complaint -> VALIDATED */
   function handleValidate() {
     if (!active) return
+    clerkApi.validateComplaint(active.id).catch(() => {})
     updateComplaintStatus(
       active.id, 'VALIDATED',
       `Validated by Desk Clerk (${currentUser.name}). All fields verified. Ready for Work Order creation.`
@@ -66,6 +69,7 @@ export default function TriageValidation({ selectedComplaint, onNavigate, onSele
   function handleReject(e) {
     e.preventDefault()
     if (!active) return
+    clerkApi.rejectComplaint(active.id, { reason: rejectionReason, remarks: rejectionRemarks }).catch(() => {})
     updateComplaintStatus(
       active.id, 'REJECTED',
       `Rejected by ${currentUser.name}. Reason: "${rejectionReason}". Remarks: "${rejectionRemarks || 'None'}".`

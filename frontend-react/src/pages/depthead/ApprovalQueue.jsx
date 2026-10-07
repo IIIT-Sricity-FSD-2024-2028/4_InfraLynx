@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
+import { deptHeadApi } from '../../services/api.js'
 
 export default function ApprovalQueue({ onSelectComplaint }) {
   const { complaints, updateComplaintStatus } = useTIMS()
@@ -10,12 +11,14 @@ export default function ApprovalQueue({ onSelectComplaint }) {
   const pendingApprovals = complaints.filter(c => c.status === 'AWAITING_DEPT_HEAD')
 
   function handleApprove(complaint) {
+    deptHeadApi.processApproval(complaint.id, { action: 'APPROVE' }).catch(() => {})
     updateComplaintStatus(complaint.id, 'ASSIGNED', 'Estimate approved by Department Head.')
   }
 
   function handleRequestRevision(e) {
     e.preventDefault()
     if (!revisionReason.trim()) return
+    deptHeadApi.processApproval(selectedComplaint.id, { action: 'REQUEST_REVISION', notes: revisionReason }).catch(() => {})
     updateComplaintStatus(selectedComplaint.id, 'REVISION_REQUESTED', `Revision Requested: ${revisionReason}`)
     setShowRevisionModal(false)
     setRevisionReason('')

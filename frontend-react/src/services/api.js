@@ -191,6 +191,123 @@ export const masterApi = {
 };
 
 /**
+ * Desk Clerk API Service (Member 2)
+ */
+export const clerkApi = {
+  async getTriageQueue() {
+    const res = await apiRequest('/clerk/triage-queue');
+    return res.data || [];
+  },
+
+  async getDuplicateCheck(complaintId) {
+    const res = await apiRequest(`/clerk/duplicate-check?complaintId=${encodeURIComponent(complaintId)}`);
+    return res;
+  },
+
+  async linkDuplicate(duplicateId, masterComplaintId, notes = '') {
+    const res = await apiRequest(`/clerk/duplicate-link/${duplicateId}`, {
+      method: 'POST',
+      body: JSON.stringify({ masterComplaintId, notes }),
+    });
+    return res.data;
+  },
+
+  async triageComplaint(id) {
+    const res = await apiRequest(`/clerk/complaints/${id}/triage`, {
+      method: 'PATCH',
+    });
+    return res.data;
+  },
+
+  async validateComplaint(id) {
+    const res = await apiRequest(`/clerk/complaints/${id}/validate`, {
+      method: 'PATCH',
+    });
+    return res.data;
+  },
+
+  async rejectComplaint(id, payload) {
+    const res = await apiRequest(`/clerk/complaints/${id}/reject`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async createWorkOrder(payload) {
+    const res = await apiRequest('/clerk/work-orders', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async getWorkOrders(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = `/clerk/work-orders${query ? `?${query}` : ''}`;
+    const res = await apiRequest(endpoint);
+    return res.data || [];
+  },
+
+  async getWorkOrderById(id) {
+    const res = await apiRequest(`/clerk/work-orders/${id}`);
+    return res.data;
+  },
+
+  async escalate(id, payload) {
+    const res = await apiRequest(`/clerk/escalate/${id}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+};
+
+/**
+ * Department Head API Service (Member 4)
+ */
+export const deptHeadApi = {
+  async getApprovals() {
+    const res = await apiRequest('/dept-head/approvals');
+    return res.data || [];
+  },
+
+  async processApproval(id, { action = 'APPROVE', notes = '' } = {}) {
+    const res = await apiRequest(`/dept-head/approvals/${id}`, {
+      method: 'POST',
+      body: JSON.stringify({ action, notes }),
+    });
+    return res.data;
+  },
+
+  async getStaff() {
+    const res = await apiRequest('/dept-head/staff');
+    return res.data || [];
+  },
+
+  async createStaff(payload) {
+    const res = await apiRequest('/dept-head/staff', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async updateStaffStatus(id, status) {
+    const res = await apiRequest(`/dept-head/staff/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+    return res.data;
+  },
+
+  async getAnalytics() {
+    const res = await apiRequest('/dept-head/analytics');
+    return res.data || {};
+  },
+};
+
+/**
  * Health and diagnostics API
  */
 export const systemApi = {
@@ -208,6 +325,8 @@ export default {
   apiRequest,
   authApi,
   complaintApi,
+  clerkApi,
+  deptHeadApi,
   masterApi,
   systemApi,
 };

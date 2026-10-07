@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -11,6 +11,7 @@ import authRoutes from './routes/authRoutes.js';
 import complaintRoutes from './routes/complaintRoutes.js';
 import masterRoutes from './routes/masterRoutes.js';
 import clerkRoutes from './routes/clerkRoutes.js';   // Member 2 — Desk Clerk
+import deptHeadRoutes from './routes/deptHeadRoutes.js'; // Member 4 — Dept Head
 import { errorHandler } from './middleware/error.js';
 
 const app = express();
@@ -79,6 +80,7 @@ app.get('/', (req, res) => {
       auth:       '/api/v1/auth',
       complaints: '/api/v1/complaints',   // Member 1 — RWA
       clerk:      '/api/v1/clerk',        // Member 2 — Desk Clerk
+      deptHead:   '/api/v1/dept-head',    // Member 4 — Department Head
       master:     '/api/v1/master',       // Shared reference data
     },
   });
@@ -88,6 +90,7 @@ app.get('/', (req, res) => {
 app.use('/api/v1/auth',       authRoutes);
 app.use('/api/v1/complaints', complaintRoutes);  // Member 1 — RWA
 app.use('/api/v1/clerk',      clerkRoutes);       // Member 2 — Desk Clerk
+app.use('/api/v1/dept-head',   deptHeadRoutes);    // Member 4 — Department Head
 app.use('/api/v1/master',     masterRoutes);       // Shared reference data
 
 // 404 Route Handler
