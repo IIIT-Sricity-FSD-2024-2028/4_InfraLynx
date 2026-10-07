@@ -412,6 +412,10 @@ class InMemoryStore {
     return table.filter(predicate);
   }
 
+  findAll(tableName, predicate = () => true) {
+    return this.find(tableName, predicate);
+  }
+
   findOne(tableName, predicate) {
     const table = this.getTable(tableName);
     return table.find(predicate) || null;

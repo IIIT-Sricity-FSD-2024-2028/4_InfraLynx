@@ -1,39 +1,105 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
+import { deptHeadApi } from '../../services/api.js'
 
 export default function EmployeeManagement() {
-  const { currentUser } = useTIMS()
-  const departmentName = currentUser.department || 'Civil'
+  const { currentUser, backendStatus } = useTIMS()
+  const departmentName = currentUser.department || currentUser.departmentName || 'Civil & Electrical Infrastructure'
   
   const [employees, setEmployees] = useState([
-    { id: 'EMP-101', name: 'Ravi Kumar', role: 'Desk Clerk', status: 'Active' },
-    { id: 'EMP-102', name: 'Anita Sharma', role: 'Desk Clerk', status: 'Active' },
-    { id: 'EMP-103', name: 'Suresh Patel', role: 'Desk Clerk', status: 'Suspended' }
+    { id: 'EMP-101', name: 'Pooja Rao', email: 'clerk@infralynx.com', role: 'Desk Clerk', status: 'Active' },
+    { id: 'EMP-102', name: 'Anita Sharma', email: 'anita.sharma@infralynx.com', role: 'Desk Clerk', status: 'Active' },
+    { id: 'EMP-103', name: 'Suresh Patel', email: 'suresh.patel@infralynx.com', role: 'Desk Clerk', status: 'Suspended' }
   ])
 
   const [showAddModal, setShowAddModal] = useState(false)
   const [newEmpName, setNewEmpName] = useState('')
+  const [newEmpEmail, setNewEmpEmail] = useState('')
 
-  function handleAddEmployee(e) {
+  useEffect(() => {
+    if (backendStatus?.connected) {
+      deptHeadApi
+        .getStaff()
+        .then((staff) => {
+          if (Array.isArray(staff) && staff.length > 0) {
+            setEmployees(
+              staff.map((s) => ({
+                id: s.id,
+                name: s.name,
+                email: s.email,
+                role: 'Desk Clerk',
+                status: s.status === 'ACTIVE' ? 'Active' : 'Suspended',
+              }))
+            )
+          }
+        })
+        .catch(() => {})
+    }
+  }, [backendStatus?.connected])
+
+  async function handleAddEmployee(e) {
     e.preventDefault()
     if (!newEmpName.trim()) return
-    const newEmp = {
-      id: `EMP-${Math.floor(100 + Math.random() * 900)}`,
-      name: newEmpName,
-      role: 'Desk Clerk',
-      status: 'Active'
+
+    const emailToUse = newEmpEmail.trim() || `${newEmpName.toLowerCase().replace(/\s+/g, '.')}@infralynx.com`
+
+    try {
+      if (backendStatus?.connected) {
+        const created = await deptHeadApi.createStaff({
+          name: newEmpName.trim(),
+          email: emailToUse,
+          password: 'Password@123',
+        })
+        if (created?.data) {
+          setEmployees((prev) => [
+            {
+              id: created.data.id || `EMP-${Math.floor(100 + Math.random() * 900)}`,
+              name: created.data.name,
+              email: created.data.email,
+              role: 'Desk Clerk',
+              status: 'Active',
+            },
+            ...prev,
+          ])
+        }
+      } else {
+        const newEmp = {
+          id: `EMP-${Math.floor(100 + Math.random() * 900)}`,
+          name: newEmpName,
+          email: emailToUse,
+          role: 'Desk Clerk',
+          status: 'Active',
+        }
+        setEmployees([newEmp, ...employees])
+      }
+    } catch (err) {
+      console.warn('Could not save staff to live API, saved locally:', err.message)
+      const newEmp = {
+        id: `EMP-${Math.floor(100 + Math.random() * 900)}`,
+        name: newEmpName,
+        email: emailToUse,
+        role: 'Desk Clerk',
+        status: 'Active',
+      }
+      setEmployees([newEmp, ...employees])
     }
-    setEmployees([...employees, newEmp])
+
     setNewEmpName('')
+    setNewEmpEmail('')
     setShowAddModal(false)
   }
 
   function toggleStatus(id) {
-    setEmployees(emps => emps.map(emp => 
-      emp.id === id 
-        ? { ...emp, status: emp.status === 'Active' ? 'Suspended' : 'Active' } 
-        : emp
-    ))
+    setEmployees((emps) =>
+      emps.map((emp) => {
+        if (emp.id !== id) return emp
+        const nextStatus = emp.status === 'Active' ? 'Suspended' : 'Active'
+        if (backendStatus?.connected) {
+          deptHeadApi.updateStaffStatus(id, nextStatus.toUpperCase()).catch(() => {})
+        }
+        return { ...emp, status: nextStatus }
+      })
+    )
   }
 
   return (

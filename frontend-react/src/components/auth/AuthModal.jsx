@@ -1,18 +1,39 @@
 import { useState, useEffect } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 
-const ACTOR_ROLES = [
-  { id: 'rwa', label: 'RWA Representative', email: 'rwa@infralynx.com', role: 'rwa', badge: 'External' },
-  { id: 'contractor', label: 'Field Contractor', email: 'contractor@infralynx.com', role: 'contractor', badge: 'External' },
-  { id: 'clerk', label: 'Desk Clerk', email: 'clerk@infralynx.com', role: 'clerk', badge: 'Internal' },
-  { id: 'dept_head', label: 'Department Head', email: 'head@infralynx.com', role: 'dept_head', badge: 'Internal' },
-  { id: 'finance', label: 'Finance Clerk', email: 'finance@infralynx.com', role: 'finance', badge: 'Internal' },
-  { id: 'coo', label: 'Township COO', email: 'coo@infralynx.com', role: 'coo', badge: 'Executive' },
-]
+// Helper to map DB roles and emails to frontend portal keys
+function mapRoleToPortal(role, email = '') {
+  const r = (role || '').toUpperCase()
+  if (r === 'DESK_CLERK') return 'clerk'
+  if (r === 'DEPARTMENT_HEAD') return 'dept_head'
+  if (r === 'FIELD_CONTRACTOR') return 'contractor'
+  if (r === 'FINANCE_CLERK') return 'finance'
+  if (r === 'RWA') return 'rwa'
+  if (r === 'TOWNSHIP_COO') return 'dept_head'
 
-export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLoginSuccess }) {
+  // Intelligent fallback from email pattern
+  const em = (email || '').toLowerCase()
+  if (em.includes('clerk') || em.includes('pooja')) return 'clerk'
+  if (em.includes('head') || em.includes('sandeep') || em.includes('dept')) return 'dept_head'
+  if (em.includes('contractor') || em.includes('vikram') || em.includes('voltech') || em.includes('apex')) return 'contractor'
+  if (em.includes('finance') || em.includes('sunil')) return 'finance'
+  if (em.includes('coo')) return 'dept_head'
+  return 'rwa'
+}
+
+function getPortalTitle(portalKey) {
+  switch (portalKey) {
+    case 'clerk': return 'Desk Clerk Portal'
+    case 'dept_head': return 'Department Head Workspace'
+    case 'contractor': return 'Contractor Management'
+    case 'finance': return 'Finance & Audit Console'
+    case 'rwa': return 'RWA Representative Portal'
+    default: return 'Township Portal'
+  }
+}
+
+export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
   const { login, setCurrentUser, backendStatus } = useTIMS()
-  const [selectedRole, setSelectedRole] = useState(initialRole)
   const [formData, setFormData] = useState({
     email: 'rwa@infralynx.com',
     password: 'Password@123',
@@ -20,19 +41,14 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState(null)
   const [submitted, setSubmitted] = useState(false)
+  const [detectedPortal, setDetectedPortal] = useState('rwa')
+  const [detectedUserName, setDetectedUserName] = useState('')
 
   useEffect(() => {
-    const validRole = ACTOR_ROLES.some((r) => r.id === initialRole) ? initialRole : 'rwa'
-    const roleObj = ACTOR_ROLES.find((r) => r.id === validRole) || ACTOR_ROLES[0]
-    setSelectedRole(validRole)
-    setFormData({
-      email: roleObj.email,
-      password: 'Password@123',
-    })
     setErrorMsg(null)
     setSubmitted(false)
     setLoading(false)
-  }, [initialRole, isOpen])
+  }, [isOpen])
 
   useEffect(() => {
     function handleKeyDown(e) {
@@ -50,34 +66,27 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
 
   if (!isOpen) return null
 
-  function handleRoleChange(roleId) {
-    const roleObj = ACTOR_ROLES.find((r) => r.id === roleId) || ACTOR_ROLES[0]
-    setSelectedRole(roleId)
-    setFormData({
-      email: roleObj.email,
-      password: 'Password@123',
-    })
-    setErrorMsg(null)
-  }
-
   function handleDemoBypass() {
-    const roleObj = ACTOR_ROLES.find((r) => r.id === selectedRole) || ACTOR_ROLES[0]
+    const portal = mapRoleToPortal(null, formData.email)
+    const displayName = formData.email.split('@')[0]
     setCurrentUser({
-      id: `usr-${selectedRole}-demo`,
-      name: roleObj.label,
-      email: roleObj.email,
-      role: selectedRole,
+      id: `usr-${portal}-demo`,
+      name: displayName.charAt(0).toUpperCase() + displayName.slice(1),
+      email: formData.email,
+      role: portal,
       sector: 'Sector 4',
-      title: roleObj.label,
+      title: getPortalTitle(portal),
     })
+    setDetectedPortal(portal)
+    setDetectedUserName(displayName)
     setSubmitted(true)
     setTimeout(() => {
       onClose()
       setSubmitted(false)
       if (onLoginSuccess) {
-        onLoginSuccess(selectedRole)
+        onLoginSuccess(portal)
       }
-    }, 400)
+    }, 450)
   }
 
   async function handleSubmit(e) {
@@ -86,8 +95,11 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
     setErrorMsg(null)
 
     try {
-      const result = await login(formData.email, formData.password)
-      const roleToRoute = result?.user?.role || selectedRole
+      const result = await login(formData.email.trim(), formData.password)
+      const user = result?.user
+      const portal = mapRoleToPortal(user?.role, formData.email)
+      setDetectedPortal(portal)
+      setDetectedUserName(user?.name || user?.email || 'Authorized User')
       setSubmitted(true)
 
       setTimeout(() => {
@@ -95,17 +107,15 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
         setSubmitted(false)
         setLoading(false)
         if (onLoginSuccess) {
-          onLoginSuccess(roleToRoute)
+          onLoginSuccess(portal)
         }
-      }, 400)
+      }, 500)
     } catch (err) {
-      console.warn('[AuthModal] Live login attempt failed:', err.message)
-      setErrorMsg(err.message || 'Authentication error. Database may need connection configuration.')
+      console.warn('[AuthModal] Login attempt failed:', err.message)
+      setErrorMsg(err.message || 'Invalid email or password.')
       setLoading(false)
     }
   }
-
-  const activeRoleInfo = ACTOR_ROLES.find((r) => r.id === selectedRole) || ACTOR_ROLES[0]
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -114,7 +124,7 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
-          maxWidth: 480,
+          maxWidth: 460,
           background: '#ffffff',
           border: '1px solid rgba(22, 101, 52, 0.22)',
           boxShadow: '0 24px 64px rgba(0, 0, 0, 0.18)',
@@ -165,8 +175,8 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
                 />
                 <p style={{ fontSize: 12, color: 'var(--text-soft)', margin: 0 }}>
                   {backendStatus.connected
-                    ? `${backendStatus.mode === 'POSTGRESQL' ? 'PostgreSQL' : 'In-Memory RAM'} API Connected`
-                    : 'Local Standalone Mode'}
+                    ? `${backendStatus.database || 'Live'} API Connected`
+                    : 'Standalone / Local Engine'}
                 </p>
               </div>
             </div>
@@ -196,11 +206,11 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
         {/* Form Content */}
         <div style={{ padding: '24px 26px 28px' }}>
           {submitted ? (
-            <div style={{ textAlign: 'center', padding: '36px 12px' }}>
+            <div style={{ textAlign: 'center', padding: '32px 12px' }}>
               <div
                 style={{
-                  width: 54,
-                  height: 54,
+                  width: 52,
+                  height: 52,
                   borderRadius: '50%',
                   background: 'var(--primary-subtle)',
                   color: 'var(--primary-dark)',
@@ -214,15 +224,15 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
                 ✓
               </div>
               <h4 style={{ fontSize: 19, color: 'var(--text)', fontFamily: 'var(--font-head)' }}>
-                Authenticated Successfully
+                Welcome, {detectedUserName || 'Authorized User'}
               </h4>
               <p style={{ marginTop: 6, fontSize: 14, color: 'var(--text-soft)' }}>
-                Directing to <strong>{activeRoleInfo.label}</strong> workspace...
+                Auto-detected role: <strong>{getPortalTitle(detectedPortal)}</strong>. Directing now...
               </p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {/* Error Banner with One-Click Demo Mode Button */}
+              {/* Error Notice */}
               {errorMsg && (
                 <div
                   style={{
@@ -236,7 +246,7 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
                   }}
                 >
                   <div style={{ fontWeight: 700, marginBottom: 4 }}>
-                    ⚠️ Notice: {errorMsg}
+                    ⚠️ {errorMsg}
                   </div>
                   <button
                     type="button"
@@ -258,119 +268,45 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
                       gap: 6,
                     }}
                   >
-                    <span>⚡ Click to Enter Portal in Preview / Demo Mode</span>
+                    <span>⚡ Enter in Demo / Standalone Mode</span>
                     <span>→</span>
                   </button>
                 </div>
               )}
 
-              {/* Select Actor Role Dropdown */}
+              {/* Single Official Email Entry */}
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <label htmlFor="role-select" style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
-                    Select Actor Role
-                  </label>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontFamily: 'var(--font-mono)',
-                      color: 'var(--primary-dark)',
-                      fontWeight: 600,
-                      background: 'var(--primary-subtle)',
-                      padding: '2px 8px',
-                      borderRadius: 4,
-                    }}
-                  >
-                    {activeRoleInfo.badge} ACCESS
-                  </span>
-                </div>
-
-                <div style={{ position: 'relative' }}>
-                  <select
-                    id="role-select"
-                    value={selectedRole}
-                    onChange={(e) => handleRoleChange(e.target.value)}
-                    style={{
-                      ...inputStyle,
-                      appearance: 'none',
-                      WebkitAppearance: 'none',
-                      MozAppearance: 'none',
-                      paddingRight: 36,
-                      fontWeight: 600,
-                      color: 'var(--text)',
-                      cursor: 'pointer',
-                      background: '#ffffff',
-                    }}
-                  >
-                    {ACTOR_ROLES.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      right: 14,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      pointerEvents: 'none',
-                      color: 'var(--primary-dark)',
-                      fontSize: 13,
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    ▼
-                  </div>
-                </div>
-
-                {/* Role detail highlight */}
-                <div
-                  style={{
-                    marginTop: 6,
-                    padding: '8px 12px',
-                    borderRadius: 6,
-                    background: '#f8faf8',
-                    border: '1px solid var(--line)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    fontSize: 12,
-                    color: 'var(--text-soft)',
-                  }}
+                <label
+                  htmlFor="auth-email"
+                  style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}
                 >
-                  <span>
-                    Workspace: <strong>{activeRoleInfo.label}</strong>
-                  </span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--primary-darker)' }}>
-                    {activeRoleInfo.email}
-                  </span>
-                </div>
-              </div>
-
-              {/* Email */}
-              <div>
-                <label htmlFor="auth-email" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
-                  Official Registered Email / Username
+                  Official Registered Email or Username
                 </label>
                 <input
                   id="auth-email"
                   type="text"
                   required
+                  placeholder="e.g. clerk@infralynx.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   style={inputStyle}
+                  autoComplete="username"
                 />
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 5 }}>
+                  The system automatically detects your department and role from your credentials.
+                </div>
               </div>
 
               {/* Password */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <label htmlFor="auth-password" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-                    Security Password
+                  <label
+                    htmlFor="auth-password"
+                    style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}
+                  >
+                    Password
                   </label>
-                  <span style={{ fontSize: 12, color: 'var(--text-soft)' }}>
+                  <span style={{ fontSize: 11.5, color: 'var(--text-soft)' }}>
                     Default: <code>Password@123</code>
                   </span>
                 </div>
@@ -381,6 +317,7 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   style={inputStyle}
+                  autoComplete="current-password"
                 />
               </div>
 
@@ -390,7 +327,7 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
                 disabled={loading}
                 className="button button-primary"
                 style={{
-                  marginTop: 4,
+                  marginTop: 6,
                   padding: '12px',
                   fontSize: 14.5,
                   fontWeight: 700,
@@ -404,32 +341,55 @@ export default function AuthModal({ isOpen, onClose, initialRole = 'rwa', onLogi
                 }}
               >
                 {loading ? (
-                  <span>Verifying Credentials...</span>
+                  <span>Authenticating & Detecting Role...</span>
                 ) : (
                   <>
-                    <span>Sign In as {activeRoleInfo.label}</span>
+                    <span>Sign In to System</span>
                     <span>→</span>
                   </>
                 )}
               </button>
 
-              {/* Direct Demo Link */}
-              <div style={{ textAlign: 'center', marginTop: 2 }}>
-                <button
-                  type="button"
-                  onClick={handleDemoBypass}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--primary-dark)',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                  }}
-                >
-                  ⚡ Or click here to explore {activeRoleInfo.label} Portal directly
-                </button>
+              {/* Quick Fill Test Accounts Pills */}
+              <div
+                style={{
+                  marginTop: 10,
+                  padding: '12px 14px',
+                  background: '#f8faf8',
+                  borderRadius: 8,
+                  border: '1px solid var(--line)',
+                }}
+              >
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-soft)', marginBottom: 8 }}>
+                  QUICK PREFILL ACCOUNTS (CLICK TO TEST):
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {[
+                    { label: 'Desk Clerk', email: 'clerk@infralynx.com' },
+                    { label: 'Dept Head', email: 'head@infralynx.com' },
+                    { label: 'Contractor', email: 'contractor@infralynx.com' },
+                    { label: 'RWA Rep', email: 'rwa@infralynx.com' },
+                    { label: 'Finance', email: 'finance@infralynx.com' },
+                  ].map((acc) => (
+                    <button
+                      key={acc.email}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, email: acc.email })}
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: 11.5,
+                        borderRadius: 4,
+                        border: '1px solid var(--line-strong)',
+                        background: formData.email === acc.email ? 'var(--primary-subtle)' : '#ffffff',
+                        color: formData.email === acc.email ? 'var(--primary-darker)' : 'var(--text-soft)',
+                        fontWeight: formData.email === acc.email ? 700 : 500,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {acc.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </form>
           )}
@@ -450,3 +410,4 @@ const inputStyle = {
   fontFamily: 'inherit',
   outline: 'none',
 }
+

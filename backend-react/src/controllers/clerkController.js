@@ -1,4 +1,4 @@
-﻿/**
+/**
  * clerkController.js — TIMS Desk Clerk Backend (Member 2)
  *
  * Handles:
@@ -17,6 +17,7 @@
 
 import inMemoryDb from '../config/inMemoryDb.js';
 import { AppError } from '../middleware/error.js';
+import { findNearbyDuplicates } from '../services/duplicateService.js';
 
 /** ₹ threshold above which Dept Head approval is required */
 const DEPT_HEAD_THRESHOLD = 10000;
@@ -492,6 +493,187 @@ export const getWorkOrderById = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc   Get complaints awaiting desk clerk triage & validation
+ * @route  GET /api/v1/clerk/triage-queue
+ * @access Private (DESK_CLERK, TOWNSHIP_COO)
+ */
+export const getTriageQueue = async (req, res, next) => {
+  try {
+    const townshipId = req.user.townshipId;
+    const complaints = inMemoryDb.findAll('complaints', (c) => {
+      const matchTownship = !townshipId || c.township_id === townshipId;
+      const awaiting = c.status === 'REPORTED' || c.status === 'UNDER_REVIEW';
+      return matchTownship && awaiting;
+    });
+
+    res.status(200).json({
+      success: true,
+      count: complaints.length,
+      data: complaints,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc   Check potential duplicates using 100m radius & category matching
+ * @route  GET /api/v1/clerk/duplicate-check
+ * @query  ?complaintId=...
+ * @access Private (DESK_CLERK, TOWNSHIP_COO)
+ */
+export const checkDuplicates = async (req, res, next) => {
+  try {
+    const { complaintId } = req.query;
+    if (!complaintId) {
+      return next(new AppError('Query parameter complaintId is required.', 400, 'VALIDATION_ERROR'));
+    }
+
+    const target = inMemoryDb.findOne(
+      'complaints',
+      (c) => c.id === complaintId || c.complaint_code === complaintId
+    );
+    if (!target) {
+      return next(new AppError(`Complaint '${complaintId}' not found.`, 404, 'NOT_FOUND'));
+    }
+
+    const allComplaints = inMemoryDb.findAll('complaints', (c) => {
+      return !req.user.townshipId || c.township_id === req.user.townshipId;
+    });
+
+    const duplicates = findNearbyDuplicates(target, allComplaints, 100);
+
+    res.status(200).json({
+      success: true,
+      targetComplaintId: target.id,
+      duplicateCount: duplicates.length,
+      hasNearbyDuplicate: duplicates.length > 0,
+      data: duplicates,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc   Link duplicate complaint to a master ticket
+ * @route  POST /api/v1/clerk/duplicate-link/:id
+ * @body   { masterComplaintId: string, notes?: string }
+ * @access Private (DESK_CLERK, TOWNSHIP_COO)
+ */
+export const linkDuplicate = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { masterComplaintId, notes } = req.body;
+
+    if (!masterComplaintId) {
+      return next(new AppError('masterComplaintId is required in request body.', 400, 'VALIDATION_ERROR'));
+    }
+
+    const duplicate = inMemoryDb.findOne('complaints', (c) => c.id === id || c.complaint_code === id);
+    if (!duplicate) {
+      return next(new AppError(`Duplicate complaint '${id}' not found.`, 404, 'NOT_FOUND'));
+    }
+
+    const master = inMemoryDb.findOne(
+      'complaints',
+      (c) => c.id === masterComplaintId || c.complaint_code === masterComplaintId
+    );
+    if (!master) {
+      return next(new AppError(`Master complaint '${masterComplaintId}' not found.`, 404, 'NOT_FOUND'));
+    }
+
+    const now = new Date().toISOString();
+    const updated = inMemoryDb.update('complaints', duplicate.id, {
+      status: 'DUPLICATE_LINKED',
+      master_complaint_id: master.id,
+      duplicate_notes: notes || `Merged into master ticket ${master.complaint_code || master.id}`,
+      history: [
+        ...(duplicate.history || []),
+        {
+          stage: 'DUPLICATE_LINKED',
+          timestamp: now,
+          actor: req.user.name,
+          note: `Linked as duplicate to master issue ${master.complaint_code || master.id}. ${notes || ''}`,
+        },
+      ],
+    });
+
+    inMemoryDb.logAudit({
+      township_id: duplicate.township_id,
+      entity_type: 'COMPLAINT',
+      entity_id: duplicate.id,
+      actor_id: req.user.id,
+      actor_role: req.user.role,
+      action: 'DUPLICATE_LINKED',
+      from_state: duplicate.status,
+      to_state: 'DUPLICATE_LINKED',
+      notes: `Linked to master ${master.complaint_code || master.id}`,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Complaint linked to master issue ${master.complaint_code || master.id}.`,
+      data: updated,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc   Escalate complaint / work order due to SLA breach or contractor delay
+ * @route  POST /api/v1/clerk/escalate/:id
+ * @body   { reason: string, escalateTo?: 'CONTRACTOR' | 'DEPT_HEAD' | 'COO' }
+ * @access Private (DESK_CLERK, TOWNSHIP_COO)
+ */
+export const escalateComplaint = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { reason, escalateTo = 'DEPT_HEAD' } = req.body;
+
+    const complaint = inMemoryDb.findOne('complaints', (c) => c.id === id || c.complaint_code === id);
+    if (!complaint) {
+      return next(new AppError(`Complaint '${id}' not found.`, 404, 'NOT_FOUND'));
+    }
+
+    const nextStatus = escalateTo === 'COO' ? 'ESCALATED_TO_COO' : 'CONTRACTOR_ESCALATED';
+    const now = new Date().toISOString();
+    const note = `Escalated by Desk Clerk ${req.user.name} to ${escalateTo}. Reason: "${reason || 'SLA breach detected'}"`;
+
+    const updated = inMemoryDb.update('complaints', complaint.id, {
+      status: nextStatus,
+      escalation_reason: reason || 'SLA breached / execution delay',
+      escalated_at: now,
+      history: [
+        ...(complaint.history || []),
+        { stage: nextStatus, timestamp: now, actor: req.user.name, note },
+      ],
+    });
+
+    inMemoryDb.logAudit({
+      township_id: complaint.township_id,
+      entity_type: 'COMPLAINT',
+      entity_id: complaint.id,
+      actor_id: req.user.id,
+      actor_role: req.user.role,
+      action: 'ESCALATION',
+      from_state: complaint.status,
+      to_state: nextStatus,
+      notes: note,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Ticket successfully escalated. Status is now ${nextStatus}.`,
+      data: updated,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export default {
   triageComplaint,
   validateComplaint,
@@ -499,4 +681,8 @@ export default {
   createWorkOrder,
   getWorkOrders,
   getWorkOrderById,
+  getTriageQueue,
+  checkDuplicates,
+  linkDuplicate,
+  escalateComplaint,
 };

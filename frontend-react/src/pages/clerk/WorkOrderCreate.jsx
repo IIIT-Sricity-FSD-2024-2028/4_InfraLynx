@@ -1,5 +1,6 @@
-﻿import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
+import { clerkApi } from '../../services/api.js'
 import './styles/WorkOrderCreate.css'
 
 /** Estimate above this requires Dept Head approval before contractor dispatch */
@@ -130,6 +131,17 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
     const note = requiresDeptHead
       ? `WO ${workOrderId} created, forwarded to Dept Head (estimate Rs.${estimateTotal.toLocaleString()} > Rs.${DEPT_HEAD_THRESHOLD.toLocaleString()}). Contractor: ${contractor?.name || 'TBD'}.`
       : `WO ${workOrderId} dispatched to ${contractor?.name || 'contractor'}. Estimate: Rs.${estimateTotal.toLocaleString()}. Priority: ${priority}.`
+
+    // Asynchronously sync created Work Order with backend API
+    clerkApi
+      .createWorkOrder({
+        complaintId: active.id,
+        contractorId: selectedContractorId,
+        lineItems: resolvedLines,
+        priority,
+        specialInstructions,
+      })
+      .catch(() => {})
 
     updateComplaintStatus(active.id, newStatus, note)
 
