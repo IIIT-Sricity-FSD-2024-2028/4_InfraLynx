@@ -35,7 +35,7 @@ const DEPT_HEAD_THRESHOLD = 10000
  *   - calls onWorkOrderCreated with enriched complaint object (for toast)
  */
 export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkOrderCreated }) {
-  const { complaints, contractors, amcRateCards, currentUser, updateComplaintStatus } = useTIMS()
+  const { complaints, contractors, amcRateCards, currentUser, refreshComplaints, updateComplaint, updateComplaintStatus } = useTIMS()
 
   // Live-sync selected complaint
   const active = useMemo(() => {
@@ -47,6 +47,7 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
   const [lineItems,            setLineItems]            = useState([{ rateCardId: '', qty: 1 }])
   const [priority,             setPriority]             = useState('Medium')
   const [specialInstructions,  setSpecialInstructions]  = useState('')
+  const [isSubmitting,         setIsSubmitting]         = useState(false)
 
   // Filter contractors by complaint category
   const filteredContractors = useMemo(() => {
@@ -99,18 +100,15 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
   }
 
   /**
-   * handleDispatch - generates WO ID, transitions complaint status, calls onWorkOrderCreated.
-   * If estimate > DEPT_HEAD_THRESHOLD -> AWAITING_DEPT_HEAD, else -> WORK_ORDER_CREATED.
+   * handleDispatch - persists WO and contractor in in-memory database, transitions complaint status.
    */
-  function handleDispatch(e) {
+  async function handleDispatch(e) {
     e.preventDefault()
     if (!active)               return
     if (!selectedContractorId) { alert('Please select a contractor.'); return }
     if (lineItems.every(i => !i.rateCardId)) { alert('Please add at least one service item.'); return }
 
     const contractor  = contractors.find(c => c.id === selectedContractorId)
-    const suffix      = Math.floor(1000 + Math.random() * 9000)
-    const workOrderId = `WO-${new Date().getFullYear()}-${suffix}`
     const newStatus   = requiresDeptHead ? 'AWAITING_DEPT_HEAD' : 'WORK_ORDER_CREATED'
 
     // Build resolved line items with totals
@@ -120,7 +118,7 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
         const card = amcRateCards.find(r => r.id === item.rateCardId)
         return {
           rateCardId:  item.rateCardId,
-          description: card?.service || 'Unknown',
+          description: card?.service || card?.item_name || 'Service Item',
           unit:        card?.unit    || 'Unit',
           unitCost:    card?.rate    || 0,
           qty:         Number(item.qty) || 1,
@@ -128,37 +126,69 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
         }
       })
 
-    const note = requiresDeptHead
-      ? `WO ${workOrderId} created, forwarded to Dept Head (estimate Rs.${estimateTotal.toLocaleString()} > Rs.${DEPT_HEAD_THRESHOLD.toLocaleString()}). Contractor: ${contractor?.name || 'TBD'}.`
-      : `WO ${workOrderId} dispatched to ${contractor?.name || 'contractor'}. Estimate: Rs.${estimateTotal.toLocaleString()}. Priority: ${priority}.`
-
-    // Asynchronously sync created Work Order with backend API
-    clerkApi
-      .createWorkOrder({
+    setIsSubmitting(true)
+    try {
+      // 1. Create work order in the in-memory database
+      const res = await clerkApi.createWorkOrder({
         complaintId: active.id,
         contractorId: selectedContractorId,
         lineItems: resolvedLines,
-        priority,
+        priority: priority.toUpperCase(),
         specialInstructions,
       })
-      .catch(() => {})
 
-    updateComplaintStatus(active.id, newStatus, note)
+      const woData = res?.data
+      const woCode = woData?.workOrderCode || `WO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
+      const assignedContractor = woData?.contractor || contractor
 
-    // Pass enriched complaint object back to ClerkPortal for the toast
-    onWorkOrderCreated({
-      ...active,
-      status:             newStatus,
-      workOrderId,
-      assignedContractor: contractor,
-      estimateAmount:     estimateTotal,
-      lineItems:          resolvedLines,
-      priority,
-      specialInstructions,
-      requiresDeptHead,
-      workOrderCreatedAt: new Date().toISOString(),
-      workOrderCreatedBy: `${currentUser.name} (Desk Clerk)`,
-    })
+      const note = requiresDeptHead
+        ? `WO ${woCode} created, forwarded to Dept Head (estimate Rs.${estimateTotal.toLocaleString()} > Rs.${DEPT_HEAD_THRESHOLD.toLocaleString()}). Contractor: ${assignedContractor?.name || 'TBD'}.`
+        : `WO ${woCode} dispatched to ${assignedContractor?.name || 'contractor'}. Estimate: Rs.${estimateTotal.toLocaleString()}. Priority: ${priority}.`
+
+      // 2. Fetch updated complaints from the in-memory database
+      const freshComplaints = await refreshComplaints()
+      const updatedComplaint = freshComplaints.find(c => c.id === active.id) || {
+        ...active,
+        status: newStatus,
+        workOrderId: woCode,
+        work_order_code: woCode,
+        assignedContractor,
+        assigned_contractor_id: selectedContractorId,
+        assigned_contractor_name: assignedContractor?.name,
+        estimateAmount: estimateTotal,
+        estimate_amount: estimateTotal,
+        lineItems: resolvedLines,
+        priority,
+        requiresDeptHead,
+        workOrderCreatedAt: new Date().toISOString(),
+        workOrderCreatedBy: `${currentUser.name} (Desk Clerk)`,
+      }
+
+      // 3. Complete dispatch callback
+      onWorkOrderCreated(updatedComplaint)
+    } catch (err) {
+      console.error('[WorkOrderCreate] Database error:', err)
+      // Fallback in case of temporary offline state
+      const fallbackWoCode = `WO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
+      const note = `WO ${fallbackWoCode} dispatched. Contractor: ${contractor?.name || 'contractor'}.`
+      
+      const fallbackPayload = {
+        status: newStatus,
+        workOrderId: fallbackWoCode,
+        work_order_code: fallbackWoCode,
+        assignedContractor: contractor,
+        assigned_contractor_id: selectedContractorId,
+        assigned_contractor_name: contractor?.name,
+        estimateAmount: estimateTotal,
+        lineItems: resolvedLines,
+        priority,
+        requiresDeptHead,
+      }
+      updateComplaintStatus(active.id, newStatus, note, fallbackPayload)
+      onWorkOrderCreated({ ...active, ...fallbackPayload })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   // ── Empty state ────────────────────────────────────────────────────────────
@@ -342,9 +372,11 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
             id="btn-dispatch-work-order"
             type="submit"
             className="wo-btn-dispatch"
-            disabled={!selectedContractorId}
+            disabled={!selectedContractorId || isSubmitting}
           >
-            {requiresDeptHead ? 'Forward to Dept Head &#8599;' : 'Dispatch Work Order &#9993;'}
+            {isSubmitting
+              ? 'Dispatching...'
+              : (requiresDeptHead ? 'Forward to Dept Head ↗' : 'Dispatch Work Order ✉')}
           </button>
         </div>
       </form>

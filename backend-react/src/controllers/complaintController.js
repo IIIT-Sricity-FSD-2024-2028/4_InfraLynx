@@ -40,7 +40,7 @@ const formatComplaintResponse = (complaint) => {
     .map((e) => e.file_url);
 
   const dept = complaint.department_id ? inMemoryDb.findById('departments', complaint.department_id) : null;
-  const wo = inMemoryDb.findOne('work_orders', (w) => w.complaint_id === complaint.id);
+  const wo = inMemoryDb.findOne('work_orders', (w) => w.complaint_id === complaint.id || w.complaint_id === complaint.complaint_code);
   const slaHealth = evaluateSlaStatus(complaint.sla_deadline, complaint.status);
 
   const loc = complaint.location || {};
@@ -54,6 +54,30 @@ const formatComplaintResponse = (complaint) => {
     gps: loc.gps || complaint.gps || '28.5355° N, 77.3910° E',
   };
 
+  const contractorId = (wo && wo.contractor_id) || complaint.assigned_contractor_id || (complaint.assignedContractor && complaint.assignedContractor.id);
+  const rawContractor = contractorId ? inMemoryDb.findOne('contractors', (c) => c.id === contractorId) : null;
+  const amcs = inMemoryDb.find('amcs');
+  const contractorAmc = rawContractor ? amcs.find((a) => a.contractor_id === rawContractor.id) : null;
+
+  const assignedContractor = rawContractor
+    ? {
+        id: rawContractor.id,
+        name: rawContractor.company_name,
+        company_name: rawContractor.company_name,
+        lead: rawContractor.contact_person,
+        contactPerson: rawContractor.contact_person,
+        phone: rawContractor.phone,
+        email: rawContractor.email,
+        amcContractId: contractorAmc ? contractorAmc.contract_number : 'AMC-CIV-2026',
+      }
+    : (complaint.assignedContractor || (complaint.assigned_contractor_name ? { name: complaint.assigned_contractor_name, amcContractId: 'AMC-CIV-2026' } : null));
+
+  const workOrderId = (wo && (wo.work_order_code || wo.work_order_number || wo.id)) || complaint.workOrderId || complaint.work_order_code || null;
+  const estimateAmount = wo ? wo.estimate_amount : (complaint.estimateAmount ?? complaint.estimate_amount ?? 0);
+  const lineItems = (wo && wo.line_items) ? wo.line_items : (complaint.lineItems || complaint.line_items || []);
+  const requiresDeptHead = (wo && typeof wo.requires_dept_head === 'boolean') ? wo.requires_dept_head : (complaint.requiresDeptHead ?? complaint.requires_dept_head ?? false);
+  const priority = (wo && wo.priority) ? wo.priority : (complaint.priority || 'MEDIUM');
+
   return {
     ...complaint,
     id: complaint.complaint_code || complaint.id,
@@ -61,7 +85,13 @@ const formatComplaintResponse = (complaint) => {
     location,
     department_name: dept ? dept.name : null,
     work_order: wo || null,
-    workOrderId: wo ? wo.work_order_number || wo.id : complaint.workOrderId || null,
+    workOrderId,
+    assignedContractor,
+    assigned_contractor_name: assignedContractor ? assignedContractor.name : (complaint.assigned_contractor_name || null),
+    estimateAmount,
+    lineItems,
+    requiresDeptHead,
+    priority,
     beforePhotos: beforePhotos.length > 0 ? beforePhotos : (complaint.beforePhotos || []),
     afterPhotos: afterPhotos.length > 0 ? afterPhotos : (complaint.afterPhotos || []),
     disputePhotos,

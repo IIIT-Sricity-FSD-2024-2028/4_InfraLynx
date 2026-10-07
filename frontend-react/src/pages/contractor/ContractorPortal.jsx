@@ -279,39 +279,39 @@ export default function ContractorPortal({ onExitToLanding }) {
           </div>
         </div>
 
-        {/* ── Screen Tabs Navigation Bar ─────────────────────────── */}
+        {/* ── Tabs Navigation Bar ───────────────────────────────── */}
         <div className="contractor-tabs-wrapper">
           <div className="contractor-tabs-container">
             {[
-              { id: 'dashboard', label: 'Screen 1: Dashboard' },
+              { id: 'dashboard', label: 'Dashboard' },
               {
                 id: 'workorders',
-                label: 'Screen 2: Assigned Work Orders',
+                label: 'Assigned Work Orders',
                 badge: assignedCount > 0 ? assignedCount : null,
                 badgeType: 'blue',
               },
               {
                 id: 'inspection',
-                label: 'Screen 3: Site Inspection',
+                label: 'Site Inspection',
                 badge: inspectionNeeded > 0 ? inspectionNeeded : null,
                 badgeType: 'amber',
               },
-              { id: 'estimate', label: 'Screen 4: AMC Estimate Builder' },
+              { id: 'estimate', label: 'AMC Estimate Builder' },
               {
                 id: 'approvals',
-                label: 'Screen 5: Approval Status',
+                label: 'Approval Status',
                 badge: revisionCount > 0 ? `${revisionCount} Rev` : null,
                 badgeType: 'amber',
               },
               {
                 id: 'execution',
-                label: 'Screen 6: Work Execution',
+                label: 'Work Execution',
                 badge: inProgressCount > 0 ? inProgressCount : null,
                 badgeType: 'blue',
               },
               {
                 id: 'rework',
-                label: 'Screen 7: Rework / Dispute',
+                label: 'Rework / Dispute',
                 badge: disputedCount > 0 ? `${disputedCount} Rework` : null,
                 badgeType: 'red',
               },

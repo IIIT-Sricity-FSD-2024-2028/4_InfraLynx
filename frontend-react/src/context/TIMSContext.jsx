@@ -52,12 +52,37 @@ function sanitizeComplaintHistory(c) {
     gps: loc.gps || c.gps || '28.5355° N, 77.3910° E',
   }
 
+  // Resolve contractor entity purely from in-memory database record
+  const assignedContractor = c.assignedContractor || (c.assigned_contractor_name ? {
+    id: c.assigned_contractor_id || null,
+    name: c.assigned_contractor_name,
+    company_name: c.assigned_contractor_name,
+    lead: c.assigned_contractor_lead || c.contact_person || null,
+    phone: c.assigned_contractor_phone || null,
+    email: c.assigned_contractor_email || null,
+    amcContractId: c.amc_contract_id || null,
+  } : null)
+
+  const workOrderId = c.workOrderId || c.work_order_code || c.work_order?.work_order_code || c.work_order?.id || null
+  const estimateAmount = c.estimateAmount ?? c.estimate_amount ?? c.work_order?.estimate_amount ?? 0
+  const lineItems = c.lineItems || c.line_items || c.work_order?.line_items || []
+  const requiresDeptHead = c.requiresDeptHead ?? c.requires_dept_head ?? c.work_order?.requires_dept_head ?? false
+  const priority = c.priority || c.work_order?.priority || 'Medium'
+  const createdAt = c.createdAt || c.created_at || new Date().toISOString()
+
   return {
     ...c,
     id: c.complaint_code || c.id,
     complaint_code: c.complaint_code || c.id,
     location,
     history: cleanHistory,
+    assignedContractor,
+    workOrderId,
+    estimateAmount,
+    lineItems,
+    requiresDeptHead,
+    priority,
+    createdAt,
     beforePhotos: Array.isArray(c.beforePhotos) ? c.beforePhotos : [],
     afterPhotos: Array.isArray(c.afterPhotos) ? c.afterPhotos : [],
   }
@@ -177,25 +202,27 @@ export function TIMSProvider({ children }) {
     }
   }, [backendStatus.connected])
 
+  // Refresh complaints from in-memory database
+  const refreshComplaints = useCallback(async () => {
+    try {
+      const data = await complaintApi.getComplaints()
+      if (Array.isArray(data)) {
+        const sanitized = data.map(sanitizeComplaintHistory)
+        setComplaints(sanitized)
+        return sanitized
+      }
+    } catch (err) {
+      console.warn('[TIMSContext] Master in-memory DB complaints sync error:', err.message)
+    }
+    return []
+  }, [])
+
   // Sync live complaints from backend API when available
   useEffect(() => {
-    let isMounted = true
     if (backendStatus.connected) {
-      complaintApi
-        .getComplaints()
-        .then((data) => {
-          if (isMounted && Array.isArray(data) && data.length > 0) {
-            setComplaints(data.map(sanitizeComplaintHistory))
-          }
-        })
-        .catch(() => {
-          // Fallback to local state if backend is offline
-        })
+      refreshComplaints()
     }
-    return () => {
-      isMounted = false
-    }
-  }, [backendStatus.connected, currentUser])
+  }, [backendStatus.connected, currentUser, refreshComplaints])
 
   // Persist complaints state changes in browser localStorage
   useEffect(() => {
@@ -404,9 +431,24 @@ export function TIMSProvider({ children }) {
   }
 
   /**
-   * Helper to manually update status
+   * Helper to manually update any fields on a complaint
    */
-  function updateComplaintStatus(complaintId, newStatus, note = '') {
+  function updateComplaint(complaintId, updates = {}) {
+    setComplaints((prev) =>
+      prev.map((c) => {
+        if (c.id !== complaintId && c.complaint_code !== complaintId) return c
+        return sanitizeComplaintHistory({
+          ...c,
+          ...updates,
+        })
+      })
+    )
+  }
+
+  /**
+   * Helper to manually update status and optional extra fields
+   */
+  function updateComplaintStatus(complaintId, newStatus, note = '', extraFields = {}) {
     const now = new Date().toISOString()
     setComplaints((prev) =>
       prev.map((c) => {
@@ -415,8 +457,9 @@ export function TIMSProvider({ children }) {
         const cleanHistory = (c.history || []).filter(
           (evt) => (STAGE_RANK_MAP[normStage(evt.stage)] ?? 0) < newRank
         )
-        return {
+        return sanitizeComplaintHistory({
           ...c,
+          ...extraFields,
           status: newStatus,
           history: [
             ...cleanHistory,
@@ -427,7 +470,7 @@ export function TIMSProvider({ children }) {
               note: note || `Status updated to ${newStatus.replace(/_/g, ' ')}`,
             },
           ],
-        }
+        })
       })
     )
   }
@@ -441,9 +484,11 @@ export function TIMSProvider({ children }) {
     login,
     logout,
     backendStatus,
+    refreshComplaints,
     addComplaint,
     confirmFix,
     disputeComplaint,
+    updateComplaint,
     updateComplaintStatus,
   }
 

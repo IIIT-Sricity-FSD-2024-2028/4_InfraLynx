@@ -41,10 +41,13 @@ function generateWoCode() {
 function formatWoResponse(wo) {
   if (!wo) return null;
 
-  // Attach contractor details if available
+  // Attach contractor details if available from in-memory database
   const contractor = wo.contractor_id
     ? inMemoryDb.findOne('contractors', (c) => c.id === wo.contractor_id)
     : null;
+
+  const amcs = inMemoryDb.find('amcs');
+  const contractorAmc = contractor ? amcs.find((a) => a.contractor_id === contractor.id) : null;
 
   return {
     id:                   wo.id,
@@ -60,9 +63,12 @@ function formatWoResponse(wo) {
       ? {
           id:            contractor.id,
           name:          contractor.company_name,
+          companyName:   contractor.company_name,
           contactPerson: contractor.contact_person,
+          lead:          contractor.contact_person,
           phone:         contractor.phone,
           email:         contractor.email,
+          amcContractId: contractorAmc ? contractorAmc.contract_number : null,
         }
       : null,
     createdBy:  wo.created_by_name,
@@ -324,16 +330,21 @@ export const createWorkOrder = async (req, res, next) => {
 
     for (const item of lineItems) {
       if (!item.rateCardId) continue;
-      const card = inMemoryDb.findOne('amc_rates', (r) => r.id === item.rateCardId);
+      const card = inMemoryDb.findOne(
+        'amc_rates',
+        (r) =>
+          r.id === item.rateCardId ||
+          r.item_code?.toUpperCase() === String(item.rateCardId).toUpperCase()
+      );
       if (!card) {
         return next(new AppError(`AMC Rate Card '${item.rateCardId}' not found.`, 404, 'NOT_FOUND'));
       }
       const qty   = Number(item.qty) || 1;
-      const total = card.rate * qty;
+      const total = (Number(card.rate) || 0) * qty;
       estimateTotal += total;
       resolvedLines.push({
         rateCardId:  card.id,
-        service:     card.service,
+        service:     card.item_name || card.service || 'Service Item',
         unit:        card.unit,
         unitCost:    card.rate,
         qty,
@@ -375,12 +386,19 @@ export const createWorkOrder = async (req, res, next) => {
       : `WO ${woCode} dispatched to ${contractor.company_name}. Estimate: ₹${estimateTotal.toLocaleString()}. Priority: ${priority.toUpperCase()}.`;
 
     inMemoryDb.update('complaints', complaint.id, {
-      status:      woStatus,
-      work_order_id: workOrder.id,
-      work_order_code: woCode,
-      assigned_contractor_id: contractorId,
+      status:                   woStatus,
+      work_order_id:            workOrder.id,
+      work_order_code:          woCode,
+      workOrderId:              woCode,
+      assigned_contractor_id:   contractorId,
       assigned_contractor_name: contractor.company_name,
-      estimate_amount: estimateTotal,
+      estimate_amount:          estimateTotal,
+      estimateAmount:           estimateTotal,
+      line_items:               resolvedLines,
+      lineItems:                resolvedLines,
+      priority:                 priority.toUpperCase(),
+      requires_dept_head:       requiresDeptHead,
+      requiresDeptHead:         requiresDeptHead,
       history: [
         ...(complaint.history || []),
         { stage: woStatus, timestamp: now, actor: req.user.name, note: complaintNote },

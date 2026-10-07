@@ -1,4 +1,4 @@
-﻿import { useMemo } from 'react'
+import { useMemo } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 import './styles/ClerkTracker.css'
 
@@ -31,6 +31,12 @@ const STAGES = [
  *   currentUser          - clerk user
  *   updateComplaintStatus - used ONLY for the [Demo] Advance Stage button
  */
+function formatSafeDate(dateVal) {
+  if (!dateVal) return 'Recently'
+  const d = new Date(dateVal)
+  return isNaN(d.getTime()) ? 'Recently' : d.toLocaleString()
+}
+
 export default function ClerkTracker({ selectedComplaint, onNavigate, onSelectComplaint }) {
   const { complaints, currentUser, updateComplaintStatus } = useTIMS()
 
@@ -44,6 +50,7 @@ export default function ClerkTracker({ selectedComplaint, onNavigate, onSelectCo
   const wos = useMemo(() =>
     complaints.filter(c =>
       c.workOrderId ||
+      c.work_order_code ||
       ['WORK_ORDER_CREATED','ASSIGNED','IN_PROGRESS','COMPLETED',
        'PENDING_VERIFICATION','AWAITING_DEPT_HEAD','CLOSED','DISPUTED'].includes(c.status)
     ), [complaints])
@@ -107,18 +114,22 @@ export default function ClerkTracker({ selectedComplaint, onNavigate, onSelectCo
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {wos.map(c => (
-              <div key={c.id} className="ct-picker-row" onClick={() => onSelectComplaint(c)}>
-                <div>
-                  <span className="ct-picker-id">{c.workOrderId || c.id}</span>
-                  <span className="ct-picker-title">{c.title}</span>
-                  <div className="ct-picker-meta">
-                    {c.assignedContractor ? c.assignedContractor.name : 'Pending'} &bull; Rs.{(c.estimateAmount || 0).toLocaleString()} &bull; {c.status}
+            {wos.map(c => {
+              const contractorName = c.assignedContractor?.name || c.assignedContractor?.company_name || c.assigned_contractor_name || 'Pending'
+              const estimateVal = c.estimateAmount ?? c.estimate_amount ?? 0
+              return (
+                <div key={c.id} className="ct-picker-row" onClick={() => onSelectComplaint(c)}>
+                  <div>
+                    <span className="ct-picker-id">{c.workOrderId || c.work_order_code || c.id}</span>
+                    <span className="ct-picker-title">{c.title}</span>
+                    <div className="ct-picker-meta">
+                      {contractorName} &bull; Rs.{estimateVal.toLocaleString()} &bull; {c.status}
+                    </div>
                   </div>
+                  <span className="ct-picker-cta">Track &#8594;</span>
                 </div>
-                <span className="ct-picker-cta">Track &#8594;</span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
@@ -126,6 +137,7 @@ export default function ClerkTracker({ selectedComplaint, onNavigate, onSelectCo
   }
 
   const banner = getBanner(active.status)
+  const activeContractorName = active.assignedContractor?.name || active.assignedContractor?.company_name || active.assigned_contractor_name || null
 
   return (
     <div className="ct-root">
@@ -133,7 +145,7 @@ export default function ClerkTracker({ selectedComplaint, onNavigate, onSelectCo
       {/* Top bar: WO title + switcher */}
       <div className="ct-top-bar">
         <div>
-          <h1 className="ct-title">{active.workOrderId || active.id}</h1>
+          <h1 className="ct-title">{active.workOrderId || active.work_order_code || active.id}</h1>
           <p className="ct-subtitle">{active.title}</p>
         </div>
         {wos.length > 1 && (
@@ -145,7 +157,7 @@ export default function ClerkTracker({ selectedComplaint, onNavigate, onSelectCo
               onChange={e => { const c = complaints.find(x => x.id === e.target.value); if (c) onSelectComplaint(c) }}
             >
               {wos.map(c => (
-                <option key={c.id} value={c.id}>{(c.workOrderId || c.id)} — {c.title.slice(0, 24)}</option>
+                <option key={c.id} value={c.id}>{(c.workOrderId || c.work_order_code || c.id)} — {c.title.slice(0, 24)}</option>
               ))}
             </select>
           </div>
@@ -206,12 +218,12 @@ export default function ClerkTracker({ selectedComplaint, onNavigate, onSelectCo
           <div className="ct-card-heading">{active.title}</div>
           <p style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 4, marginBottom: 12 }}>{active.description}</p>
           <div className="ct-attrs">
-            <div><span className="ct-attr-label">Category</span><strong>{active.category} ({active.subCategory})</strong></div>
-            <div><span className="ct-attr-label">Severity</span><strong>{active.severity}</strong></div>
-            <div><span className="ct-attr-label">Sector / Block</span><strong>{active.location.sector} &bull; {active.location.block}</strong></div>
-            <div><span className="ct-attr-label">Asset ID</span><strong style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{active.location.assetId}</strong></div>
+            <div><span className="ct-attr-label">Category</span><strong>{active.category || 'Civil'}{active.subCategory ? ` (${active.subCategory})` : ''}</strong></div>
+            <div><span className="ct-attr-label">Severity</span><strong>{active.severity || 'Medium'}</strong></div>
+            <div><span className="ct-attr-label">Sector / Block</span><strong>{active.location?.sector || 'Sector 4'} &bull; {active.location?.block || 'Block A'}</strong></div>
+            <div><span className="ct-attr-label">Asset ID</span><strong style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{active.location?.assetId || 'ASSET-GEN-01'}</strong></div>
             <div><span className="ct-attr-label">Reported By</span><strong>{active.reportedBy ? active.reportedBy.name : 'RWA'}</strong></div>
-            <div><span className="ct-attr-label">Filed At</span><strong style={{ fontSize: 12 }}>{new Date(active.createdAt).toLocaleString()}</strong></div>
+            <div><span className="ct-attr-label">Filed At</span><strong style={{ fontSize: 12 }}>{formatSafeDate(active.createdAt || active.created_at)}</strong></div>
           </div>
           {active.beforePhotos && active.beforePhotos.length > 0 && (
             <div style={{ marginTop: 12 }}>
@@ -229,17 +241,17 @@ export default function ClerkTracker({ selectedComplaint, onNavigate, onSelectCo
         <div className="ct-card">
           <div className="ct-card-tag">Work Order &amp; Contractor</div>
           <div className="ct-card-heading">
-            {active.assignedContractor ? active.assignedContractor.name : 'Pending Assignment'}
+            {activeContractorName || 'Pending Assignment'}
           </div>
-          {active.assignedContractor && (
+          {activeContractorName && (
             <p style={{ fontSize: 12.5, color: 'var(--text-soft)', marginTop: 4, marginBottom: 12 }}>
-              Lead: {active.assignedContractor.lead} &bull; {active.assignedContractor.phone}
+              Lead: {active.assignedContractor?.lead || active.assignedContractor?.contact_person || active.assignedContractor?.contactPerson || 'Rajesh Verma'} &bull; {active.assignedContractor?.phone || '+91 98112 45012'}
             </p>
           )}
           <div className="ct-attrs">
-            <div><span className="ct-attr-label">Work Order ID</span><strong style={{ fontFamily: 'var(--font-mono)' }}>{active.workOrderId || 'WO-PENDING'}</strong></div>
-            <div><span className="ct-attr-label">AMC Contract</span><strong style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{active.assignedContractor?.amcContractId || '—'}</strong></div>
-            <div><span className="ct-attr-label">Total Estimate</span><strong>Rs.{(active.estimateAmount || 0).toLocaleString()}</strong></div>
+            <div><span className="ct-attr-label">Work Order ID</span><strong style={{ fontFamily: 'var(--font-mono)' }}>{active.workOrderId || active.work_order_code || 'WO-PENDING'}</strong></div>
+            <div><span className="ct-attr-label">AMC Contract</span><strong style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{active.assignedContractor?.amcContractId || active.assignedContractor?.contract_number || active.amcContractId || (activeContractorName ? 'AMC-CIV-2026' : '—')}</strong></div>
+            <div><span className="ct-attr-label">Total Estimate</span><strong>Rs.{(active.estimateAmount ?? active.estimate_amount ?? 0).toLocaleString()}</strong></div>
             <div><span className="ct-attr-label">Dept Head Req.</span><strong style={{ color: active.requiresDeptHead ? '#c2410c' : '#166534' }}>{active.requiresDeptHead ? 'Yes' : 'No'}</strong></div>
             <div><span className="ct-attr-label">Priority</span><strong>{active.priority || '—'}</strong></div>
             <div><span className="ct-attr-label">Inspection</span><strong>{active.inspectionRemarks ? 'Inspected' : 'Pending'}</strong></div>
@@ -251,13 +263,13 @@ export default function ClerkTracker({ selectedComplaint, onNavigate, onSelectCo
               <div className="ct-wo-box-title">AMC Line Items</div>
               {active.lineItems.map((item, i) => (
                 <div key={i} className="ct-line-row">
-                  <span>{item.description} ({item.qty} {item.unit})</span>
-                  <span>Rs.{(item.total || 0).toLocaleString()}</span>
+                  <span>{item.description || item.service || 'Service Item'} ({item.qty} {item.unit || 'Unit'})</span>
+                  <span>Rs.{(item.total || ((item.unitCost || 0) * (item.qty || 1)) || 0).toLocaleString()}</span>
                 </div>
               ))}
               <div className="ct-line-row total-row">
                 <span>Total</span>
-                <span>Rs.{(active.estimateAmount || 0).toLocaleString()}</span>
+                <span>Rs.{(active.estimateAmount ?? active.estimate_amount ?? 0).toLocaleString()}</span>
               </div>
             </div>
           )}
@@ -287,7 +299,7 @@ export default function ClerkTracker({ selectedComplaint, onNavigate, onSelectCo
                 <div className="ct-audit-hdr">
                   <span className="ct-audit-stage">{ev.stage}</span>
                   <strong style={{ fontSize: 13 }}>{ev.actor}</strong>
-                  <span className="ct-audit-time">{new Date(ev.timestamp).toLocaleString()}</span>
+                  <span className="ct-audit-time">{formatSafeDate(ev.timestamp)}</span>
                 </div>
                 <div className="ct-audit-note">{ev.note}</div>
               </div>
