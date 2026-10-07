@@ -261,8 +261,61 @@ const SEED_DATA = {
       location_details: 'Near Sector 4 Community Park Gate 2',
       status: 'PENDING_VERIFICATION',
       created_at: new Date().toISOString(),
+      history: [
+        { stage: 'REPORTED', timestamp: new Date().toISOString(), actor: 'Ravi Sharma (RWA)', note: 'Issue logged.' },
+        { stage: 'PENDING_VERIFICATION', timestamp: new Date().toISOString(), actor: 'Vikram Singh (FIELD_CONTRACTOR)', note: 'Work completed.' },
+      ],
+    },
+    // Seed complaint 2: REPORTED ? awaiting Desk Clerk triage
+    {
+      id: 'e0000000-0000-0000-0000-000000000002',
+      complaint_code: 'CMP-2026-0102',
+      township_id: 'b0000000-0000-0000-0000-000000000001',
+      reported_by: '10000000-0000-0000-0000-000000000001',
+      department_id: 'd0000000-0000-0000-0000-000000000001',
+      category: 'Civil',
+      subcategory: 'Road Pothole',
+      title: 'Large Pothole on Sector 4 Main Road',
+      description: 'A 2-foot pothole near school gate. Vehicles swerving dangerously.',
+      severity: 'HIGH',
+      sector: 'Sector 4',
+      block: 'Block A',
+      street: 'School Avenue',
+      location_details: 'Opposite Block A primary school entrance',
+      asset_id: 'ASSET-ROAD-001',
+      asset_name: 'Sector 4 Arterial Road',
+      status: 'REPORTED',
+      created_at: new Date().toISOString(),
+      history: [
+        { stage: 'REPORTED', timestamp: new Date().toISOString(), actor: 'Ravi Sharma (RWA)', note: 'Road pothole reported. High severity ? school zone.' },
+      ],
+    },
+    // Seed complaint 3: REPORTED ? awaiting Desk Clerk triage (EMERGENCY)
+    {
+      id: 'e0000000-0000-0000-0000-000000000003',
+      complaint_code: 'CMP-2026-0103',
+      township_id: 'b0000000-0000-0000-0000-000000000001',
+      reported_by: '10000000-0000-0000-0000-000000000001',
+      department_id: 'd0000000-0000-0000-0000-000000000003',
+      category: 'Water',
+      subcategory: 'Pipe Leakage',
+      title: 'Burst Water Main Near Sector 7 Park',
+      description: 'Underground water main has burst ? water flooding footpath near park entrance.',
+      severity: 'EMERGENCY',
+      sector: 'Sector 7',
+      block: 'Block C',
+      street: 'Park Lane',
+      location_details: 'Near Sector 7 central park north entrance',
+      asset_id: 'ASSET-WATER-007',
+      asset_name: 'Sector 7 Water Main',
+      status: 'REPORTED',
+      created_at: new Date().toISOString(),
+      history: [
+        { stage: 'REPORTED', timestamp: new Date().toISOString(), actor: 'Ravi Sharma (RWA)', note: 'Emergency: burst water main. Immediate attention required.' },
+      ],
     },
   ],
+
 
   work_orders: [
     {
