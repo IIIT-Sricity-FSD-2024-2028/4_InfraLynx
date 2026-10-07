@@ -166,6 +166,31 @@ export const complaintApi = {
 };
 
 /**
+ * Master Data API Service (Contractors, AMC Rates, Departments)
+ */
+export const masterApi = {
+  async getContractors() {
+    const res = await apiRequest('/master/contractors');
+    return res.data || [];
+  },
+
+  async getDepartments() {
+    const res = await apiRequest('/master/departments');
+    return res.data || [];
+  },
+
+  async getAmcRates() {
+    const res = await apiRequest('/master/amc-rates');
+    return res.data || [];
+  },
+
+  async resetMaster() {
+    const res = await apiRequest('/master/reset', { method: 'POST' });
+    return res;
+  },
+};
+
+/**
  * Health and diagnostics API
  */
 export const systemApi = {
@@ -183,5 +208,6 @@ export default {
   apiRequest,
   authApi,
   complaintApi,
+  masterApi,
   systemApi,
 };
