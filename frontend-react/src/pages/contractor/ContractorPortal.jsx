@@ -18,7 +18,7 @@ export default function ContractorPortal({ onExitToLanding }) {
 
   // Local state for contractor jobs (merges initial baseline with context complaints)
   const [jobs, setJobs] = useState(() => {
-    const saved = localStorage.getItem('tims_contractor_jobs_v1')
+    const saved = sessionStorage.getItem('tims_contractor_jobs_v1')
     if (saved) {
       try {
         return JSON.parse(saved)
@@ -34,9 +34,9 @@ export default function ContractorPortal({ onExitToLanding }) {
   const [selectedJob, setSelectedJob] = useState(null)
   const [successNotice, setSuccessNotice] = useState(null)
 
-  // Persist contractor local jobs
+  // Persist contractor local jobs in tab-isolated sessionStorage
   useEffect(() => {
-    localStorage.setItem('tims_contractor_jobs_v1', JSON.stringify(jobs))
+    sessionStorage.setItem('tims_contractor_jobs_v1', JSON.stringify(jobs))
   }, [jobs])
 
   // Real-time synchronization: If a complaint in shared context was updated or assigned, reflect here

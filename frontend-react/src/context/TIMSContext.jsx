@@ -1,16 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { authApi, systemApi, complaintApi, masterApi } from '../services/api.js'
 
-// Minimal baseline fallback for current user if not authenticated
-const DEFAULT_CURRENT_USER = {
-  id: '10000000-0000-0000-0000-000000000001',
-  name: 'Dr. Arvind Swaminathan',
-  role: 'rwa',
-  title: 'RWA Secretary',
-  sector: 'Sector 54',
-  phone: '+91 98101 22345',
-  email: 'rwa@infralynx.com',
-}
+// Default initial state for unauthenticated visitor is null
+const INITIAL_CURRENT_USER = null
 
 const normStage = (s) => (s || '').toUpperCase().replace(/[\s_-]+/g, '')
 
@@ -92,49 +84,47 @@ const TIMSContext = createContext(null)
 
 export function TIMSProvider({ children }) {
   const [complaints, setComplaints] = useState(() => {
-    localStorage.removeItem('tims_complaints')
-    const saved = localStorage.getItem('tims_complaints_v3')
-    if (saved) {
-      try {
+    try {
+      const saved = sessionStorage.getItem('tims_complaints_v3')
+      if (saved) {
         const parsed = JSON.parse(saved)
         return Array.isArray(parsed) ? parsed.map(sanitizeComplaintHistory) : []
-      } catch {
-        return []
       }
+    } catch {
+      return []
     }
     return []
   })
 
   const [contractors, setContractors] = useState(() => {
-    const saved = localStorage.getItem('tims_contractors')
-    if (saved) {
-      try {
+    try {
+      const saved = sessionStorage.getItem('tims_contractors')
+      if (saved) {
         const parsed = JSON.parse(saved)
         return Array.isArray(parsed) ? parsed : []
-      } catch {
-        return []
       }
+    } catch {
+      return []
     }
     return []
   })
 
   const [amcRateCards, setAmcRateCards] = useState(() => {
-    const saved = localStorage.getItem('tims_rate_cards')
-    if (saved) {
-      try {
+    try {
+      const saved = sessionStorage.getItem('tims_rate_cards')
+      if (saved) {
         const parsed = JSON.parse(saved)
         return Array.isArray(parsed) ? parsed : []
-      } catch {
-        return []
       }
+    } catch {
+      return []
     }
     return []
   })
 
-  // Initialize currentUser from localStorage if available, or fall back to default
+  // Initialize currentUser ONLY from active sessionStorage token; defaults to null if unauthenticated
   const [currentUser, setCurrentUser] = useState(() => {
-    const cached = authApi.getCachedUser()
-    return cached || DEFAULT_CURRENT_USER
+    return authApi.getCachedUser() || INITIAL_CURRENT_USER
   })
 
   const [backendStatus, setBackendStatus] = useState({
@@ -142,6 +132,22 @@ export function TIMSProvider({ children }) {
     checking: true,
     environment: null,
   })
+
+  // Listen for session expiration or unauthorized events from API layer
+  useEffect(() => {
+    const handleRevocation = () => {
+      setCurrentUser(null)
+      setComplaints([])
+    }
+    window.addEventListener('tims_auth_session_expired', handleRevocation)
+    window.addEventListener('tims_auth_unauthorized', handleRevocation)
+    window.addEventListener('tims_auth_logout', handleRevocation)
+    return () => {
+      window.removeEventListener('tims_auth_session_expired', handleRevocation)
+      window.removeEventListener('tims_auth_unauthorized', handleRevocation)
+      window.removeEventListener('tims_auth_logout', handleRevocation)
+    }
+  }, [])
 
   // Check backend server connectivity on startup
   useEffect(() => {
@@ -161,18 +167,6 @@ export function TIMSProvider({ children }) {
     }
   }, [])
 
-  // Auto-authenticate default user session if backend is running but token is missing
-  useEffect(() => {
-    if (backendStatus.connected && !authApi.isAuthenticated()) {
-      authApi
-        .login('rwa@infralynx.com', 'Password@123')
-        .then((data) => {
-          if (data?.user) setCurrentUser(data.user)
-        })
-        .catch(() => {})
-    }
-  }, [backendStatus.connected])
-
   // Sync live contractors & rate cards from backend master in-memory API
   useEffect(() => {
     let isMounted = true
@@ -182,7 +176,7 @@ export function TIMSProvider({ children }) {
         .then((data) => {
           if (isMounted && Array.isArray(data) && data.length > 0) {
             setContractors(data)
-            localStorage.setItem('tims_contractors', JSON.stringify(data))
+            sessionStorage.setItem('tims_contractors', JSON.stringify(data))
           }
         })
         .catch((err) => console.warn('[TIMSContext] Master contractors error:', err.message))
@@ -192,7 +186,7 @@ export function TIMSProvider({ children }) {
         .then((data) => {
           if (isMounted && Array.isArray(data) && data.length > 0) {
             setAmcRateCards(data)
-            localStorage.setItem('tims_rate_cards', JSON.stringify(data))
+            sessionStorage.setItem('tims_rate_cards', JSON.stringify(data))
           }
         })
         .catch((err) => console.warn('[TIMSContext] Master AMC rates error:', err.message))
@@ -224,9 +218,9 @@ export function TIMSProvider({ children }) {
     }
   }, [backendStatus.connected, currentUser, refreshComplaints])
 
-  // Persist complaints state changes in browser localStorage
+  // Persist complaints state changes in tab-isolated sessionStorage
   useEffect(() => {
-    localStorage.setItem('tims_complaints_v3', JSON.stringify(complaints))
+    sessionStorage.setItem('tims_complaints_v3', JSON.stringify(complaints))
   }, [complaints])
 
   /**
@@ -245,11 +239,17 @@ export function TIMSProvider({ children }) {
   }, [])
 
   /**
-   * Log out user
+   * Secure log out: terminates backend session, clears credentials, and purges state
    */
   const logout = useCallback(async () => {
     await authApi.logout()
-    setCurrentUser(DEFAULT_CURRENT_USER)
+    setCurrentUser(null)
+    setComplaints([])
+    try {
+      sessionStorage.clear()
+    } catch {
+      // Ignore
+    }
   }, [])
 
   /**
@@ -264,6 +264,9 @@ export function TIMSProvider({ children }) {
     description,
     photos = [],
   }) {
+    if (!currentUser) {
+      throw new Error('Authentication required: Please sign in to submit a complaint.')
+    }
     const randomSuffix = Math.floor(1000 + Math.random() * 9000)
     const newId = `CMP-2026-${randomSuffix}`
 

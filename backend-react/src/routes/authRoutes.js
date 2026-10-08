@@ -1,15 +1,16 @@
 import express from 'express';
 import { login, getMe, logout } from '../controllers/authController.js';
 import { authenticate } from '../middleware/auth.js';
+import { authRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
 /**
  * @route   POST /api/v1/auth/login
- * @desc    Authenticate user & retrieve token
+ * @desc    Authenticate user & retrieve token (Rate limited against brute-force attacks)
  * @access  Public
  */
-router.post('/login', login);
+router.post('/login', authRateLimiter, login);
 
 /**
  * @route   GET /api/v1/auth/me

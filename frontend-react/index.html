@@ -15,6 +15,13 @@
       rel="stylesheet"
     />
     <link rel="icon" type="image/png" href="/assets/CRIMS_logo.png" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <!-- Anti-Clickjacking Frame-Busting Protection -->
+    <script>
+      if (window.top !== window.self) {
+        window.top.location = window.self.location;
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

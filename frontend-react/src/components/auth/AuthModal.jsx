@@ -66,27 +66,12 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
 
   if (!isOpen) return null
 
-  function handleDemoBypass() {
-    const portal = mapRoleToPortal(null, formData.email)
-    const displayName = formData.email.split('@')[0]
-    setCurrentUser({
-      id: `usr-${portal}-demo`,
-      name: displayName.charAt(0).toUpperCase() + displayName.slice(1),
-      email: formData.email,
-      role: portal,
-      sector: 'Sector 54',
-      title: getPortalTitle(portal),
+  function handleQuickFill(email) {
+    setFormData({
+      email,
+      password: 'Password@123',
     })
-    setDetectedPortal(portal)
-    setDetectedUserName(displayName)
-    setSubmitted(true)
-    setTimeout(() => {
-      onClose()
-      setSubmitted(false)
-      if (onLoginSuccess) {
-        onLoginSuccess(portal)
-      }
-    }, 450)
+    setErrorMsg(null)
   }
 
   async function handleSubmit(e) {
@@ -94,10 +79,19 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
     setLoading(true)
     setErrorMsg(null)
 
+    const trimmedEmail = (formData.email || '').trim()
+    const password = formData.password || ''
+
+    if (!trimmedEmail || !password) {
+      setErrorMsg('Please enter both email and password.')
+      setLoading(false)
+      return
+    }
+
     try {
-      const result = await login(formData.email.trim(), formData.password)
+      const result = await login(trimmedEmail, password)
       const user = result?.user
-      const portal = mapRoleToPortal(user?.role, formData.email)
+      const portal = mapRoleToPortal(user?.role, trimmedEmail)
       setDetectedPortal(portal)
       setDetectedUserName(user?.name || user?.email || 'Authorized User')
       setSubmitted(true)
@@ -112,7 +106,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
       }, 500)
     } catch (err) {
       console.warn('[AuthModal] Login attempt failed:', err.message)
-      setErrorMsg(err.message || 'Invalid email or password.')
+      setErrorMsg(err.message || 'Invalid email or password. Please verify your credentials.')
       setLoading(false)
     }
   }
@@ -233,29 +227,36 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
                   <div style={{ fontWeight: 700, marginBottom: 4 }}>
                     ⚠️ {errorMsg}
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleDemoBypass}
-                    style={{
-                      marginTop: 8,
-                      width: '100%',
-                      padding: '8px 12px',
-                      background: '#ea580c',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: 6,
-                      fontSize: 13,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                    }}
-                  >
-                    <span>⚡ Enter in Demo / Standalone Mode</span>
-                    <span>→</span>
-                  </button>
+                  <div style={{ fontSize: 12, color: '#7c2d12', marginTop: 4 }}>
+                    Quick-select official account credentials:
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                    {[
+                      { label: 'RWA', email: 'rwa@infralynx.com' },
+                      { label: 'Clerk', email: 'clerk@infralynx.com' },
+                      { label: 'Dept Head', email: 'head@infralynx.com' },
+                      { label: 'Contractor', email: 'contractor@infralynx.com' },
+                      { label: 'Finance', email: 'finance@infralynx.com' },
+                    ].map((acc) => (
+                      <button
+                        key={acc.label}
+                        type="button"
+                        onClick={() => handleQuickFill(acc.email)}
+                        style={{
+                          padding: '4px 8px',
+                          background: '#fff',
+                          border: '1px solid #fdba74',
+                          borderRadius: 4,
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          color: '#9a3412',
+                        }}
+                      >
+                        {acc.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 

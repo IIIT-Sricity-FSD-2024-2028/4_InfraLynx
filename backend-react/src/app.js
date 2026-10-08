@@ -23,12 +23,20 @@ if (!fs.existsSync(config.upload.dir)) {
   fs.mkdirSync(config.upload.dir, { recursive: true });
 }
 
-// Security Headers
+import { apiRateLimiter } from './middleware/rateLimiter.js';
+
+// Security Headers (Clickjacking, MIME sniffing, and cross-origin protection)
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allows React frontend to display uploaded images
+    frameguard: { action: 'deny' }, // Anti-clickjacking: Prevents embedding in iframes
+    noSniff: true, // Prevents MIME-type sniffing
+    xssFilter: true, // Legacy XSS browser filter
   })
 );
+
+// Apply sliding window rate limiter to API routes
+app.use('/api/', apiRateLimiter);
 
 // CORS Setup
 app.use(
