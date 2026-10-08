@@ -196,7 +196,7 @@ export default function ClerkTracker({ selectedComplaint, onNavigate, onSelectCo
           <div className="ct-attrs">
             <div><span className="ct-attr-label">Category</span><strong>{active.category || 'Civil'}{active.subCategory ? ` (${active.subCategory})` : ''}</strong></div>
             <div><span className="ct-attr-label">Severity</span><strong>{active.severity || 'Medium'}</strong></div>
-            <div><span className="ct-attr-label">Sector / Block</span><strong>{active.location?.sector || 'Sector 4'} &bull; {active.location?.block || 'Block A'}</strong></div>
+            <div><span className="ct-attr-label">Sector / Block</span><strong>{active.location?.sector || 'Sector 54'} &bull; {active.location?.block || 'Block B'}</strong></div>
             <div><span className="ct-attr-label">Asset ID</span><strong style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{active.location?.assetId || 'ASSET-GEN-01'}</strong></div>
             <div><span className="ct-attr-label">Reported By</span><strong>{active.reportedBy ? active.reportedBy.name : 'RWA'}</strong></div>
             <div><span className="ct-attr-label">Filed At</span><strong style={{ fontSize: 12 }}>{formatSafeDate(active.createdAt || active.created_at)}</strong></div>

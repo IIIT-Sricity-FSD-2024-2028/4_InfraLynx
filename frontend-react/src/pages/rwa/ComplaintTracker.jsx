@@ -233,12 +233,12 @@ export default function ComplaintTracker({ selectedComplaint, onNavigate, onSele
 
             <div>
               <span className="attr-label">Sector / Block</span>
-              <strong>{activeComplaint.location?.sector || activeComplaint.sector || 'Sector 4'} • {activeComplaint.location?.block || activeComplaint.block || 'Block'}</strong>
+              <strong>{activeComplaint.location?.sector || activeComplaint.sector || 'Sector 54'} • {activeComplaint.location?.block || activeComplaint.block || 'Block B'}</strong>
             </div>
 
             <div>
               <span className="attr-label">Street</span>
-              <strong>{activeComplaint.location?.street || activeComplaint.street || 'Main St'}</strong>
+              <strong>{activeComplaint.location?.street || activeComplaint.street || 'Gulmohar Marg'}</strong>
             </div>
 
             <div>

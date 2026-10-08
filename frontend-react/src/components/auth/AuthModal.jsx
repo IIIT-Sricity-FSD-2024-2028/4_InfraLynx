@@ -74,7 +74,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
       name: displayName.charAt(0).toUpperCase() + displayName.slice(1),
       email: formData.email,
       role: portal,
-      sector: 'Sector 4',
+      sector: 'Sector 54',
       title: getPortalTitle(portal),
     })
     setDetectedPortal(portal)
@@ -164,21 +164,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
               <h3 style={{ fontSize: 18, color: 'var(--text)', margin: 0, fontWeight: 700, fontFamily: 'var(--font-head)' }}>
                 Official Portal Sign In
               </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                <span
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
-                    background: backendStatus.connected ? '#16a34a' : '#ea580c',
-                  }}
-                />
-                <p style={{ fontSize: 12, color: 'var(--text-soft)', margin: 0 }}>
-                  {backendStatus.connected
-                    ? `${backendStatus.database || 'Live'} API Connected`
-                    : 'Standalone / Local Engine'}
-                </p>
-              </div>
             </div>
           </div>
 
@@ -286,29 +271,23 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
                   id="auth-email"
                   type="text"
                   required
-                  placeholder="e.g. clerk@infralynx.com"
+                  placeholder="e.g. name@infralynx.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   style={inputStyle}
                   autoComplete="username"
                 />
-                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 5 }}>
-                  The system automatically detects your department and role from your credentials.
-                </div>
               </div>
 
               {/* Password */}
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <div style={{ marginBottom: 6 }}>
                   <label
                     htmlFor="auth-password"
                     style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}
                   >
                     Password
                   </label>
-                  <span style={{ fontSize: 11.5, color: 'var(--text-soft)' }}>
-                    Default: <code>Password@123</code>
-                  </span>
                 </div>
                 <input
                   id="auth-password"
@@ -341,7 +320,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
                 }}
               >
                 {loading ? (
-                  <span>Authenticating & Detecting Role...</span>
+                  <span>Signing In...</span>
                 ) : (
                   <>
                     <span>Sign In to System</span>
@@ -349,48 +328,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
                   </>
                 )}
               </button>
-
-              {/* Quick Fill Test Accounts Pills */}
-              <div
-                style={{
-                  marginTop: 10,
-                  padding: '12px 14px',
-                  background: '#f8faf8',
-                  borderRadius: 8,
-                  border: '1px solid var(--line)',
-                }}
-              >
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text-soft)', marginBottom: 8 }}>
-                  QUICK PREFILL ACCOUNTS (CLICK TO TEST):
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {[
-                    { label: 'Desk Clerk', email: 'clerk@infralynx.com' },
-                    { label: 'Dept Head', email: 'head@infralynx.com' },
-                    { label: 'Contractor', email: 'contractor@infralynx.com' },
-                    { label: 'RWA Rep', email: 'rwa@infralynx.com' },
-                    { label: 'Finance', email: 'finance@infralynx.com' },
-                  ].map((acc) => (
-                    <button
-                      key={acc.email}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, email: acc.email })}
-                      style={{
-                        padding: '4px 8px',
-                        fontSize: 11.5,
-                        borderRadius: 4,
-                        border: '1px solid var(--line-strong)',
-                        background: formData.email === acc.email ? 'var(--primary-subtle)' : '#ffffff',
-                        color: formData.email === acc.email ? 'var(--primary-darker)' : 'var(--text-soft)',
-                        fontWeight: formData.email === acc.email ? 700 : 500,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {acc.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </form>
           )}
         </div>

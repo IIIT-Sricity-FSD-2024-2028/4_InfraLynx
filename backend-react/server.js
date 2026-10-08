@@ -7,11 +7,11 @@ const PORT = config.port || 5000;
 const startServer = async () => {
   try {
     console.log('---------------------------------------------------------');
-    console.log('  TIMS Backend API Server (Express + In-Memory Engine)   ');
+    console.log(`  TIMS Backend API Server (Express + ${config.dbMode === 'POSTGRES' ? 'Neon PostgreSQL' : 'In-Memory Engine'})   `);
     console.log('---------------------------------------------------------');
     console.log(`[Config] Environment: ${config.nodeEnv}`);
     console.log(`[Config] Port: ${PORT}`);
-    console.log(`[Config] Database Engine: 100% In-Memory RAM Store (Zero-Install)`);
+    console.log(`[Config] Database Engine: ${config.dbMode === 'POSTGRES' ? 'PostgreSQL (Neon Cloud Connected)' : '100% In-Memory RAM Store'}`);
     console.log(`[Config] Upload Directory: ${config.upload.dir}`);
     console.log('---------------------------------------------------------');
 
