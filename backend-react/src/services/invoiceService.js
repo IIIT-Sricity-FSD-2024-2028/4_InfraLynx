@@ -7,7 +7,7 @@
  * 3. Registered AMC Contract Rate Card
  */
 
-import inMemoryDb from '../config/inMemoryDb.js';
+import db from '../config/db.js';
 
 /**
  * Perform 3-Way Reconciliation Audit on an invoice
@@ -16,7 +16,7 @@ import inMemoryDb from '../config/inMemoryDb.js';
  */
 export const perform3WayCheck = async (invoiceId) => {
   // 1. Locate Invoice
-  const invoice = inMemoryDb.findOne('invoices', (inv) => inv.id === invoiceId || inv.invoice_code === invoiceId);
+  const invoice = db.findOne('invoices', (inv) => inv.id === invoiceId || inv.invoice_code === invoiceId);
   if (!invoice) {
     const error = new Error(`Invoice '${invoiceId}' not found.`);
     error.statusCode = 404;
@@ -25,24 +25,24 @@ export const perform3WayCheck = async (invoiceId) => {
 
   // 2. Fetch linked Work Order
   const workOrder = invoice.work_order_id
-    ? inMemoryDb.findById('work_orders', invoice.work_order_id)
+    ? db.findById('work_orders', invoice.work_order_id)
     : null;
 
   // 3. Fetch linked Complaint
   const complaint = workOrder && workOrder.complaint_id
-    ? inMemoryDb.findById('complaints', workOrder.complaint_id)
+    ? db.findById('complaints', workOrder.complaint_id)
     : null;
 
   // 4. Fetch Contractor
   const contractor = invoice.contractor_id
-    ? inMemoryDb.findById('contractors', invoice.contractor_id)
+    ? db.findById('contractors', invoice.contractor_id)
     : null;
 
   // 5. Fetch Invoice Items
-  const items = inMemoryDb.findAll('invoice_items', (item) => item.invoice_id === invoice.id);
+  const items = db.findAll('invoice_items', (item) => item.invoice_id === invoice.id);
 
   // 6. Fetch AMC rates for contractor/department
-  const allRates = inMemoryDb.findAll('amc_rates');
+  const allRates = db.findAll('amc_rates');
 
   // Audit Line Items against AMC Rate Cards
   let allRatesMatch = true;

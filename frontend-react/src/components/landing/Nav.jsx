@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function Nav({ onOpenAuth }) {
+export default function Nav({ onOpenAuth, currentUser, onLogout, onGoToPortal }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
@@ -89,23 +89,57 @@ export default function Nav({ onOpenAuth }) {
           <a href="#contact" className="nav-link">Contact</a>
         </nav>
 
-        {/* Single Sign In Action */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-          <button
-            type="button"
-            onClick={onOpenAuth}
-            className="button button-primary"
-            style={{
-              fontSize: 14,
-              padding: '10px 20px',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
-            </svg>
-            Official Sign In
-          </button>
+        {/* User Session / Sign In Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          {currentUser ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                type="button"
+                onClick={onGoToPortal}
+                className="button button-primary"
+                style={{
+                  fontSize: 13.5,
+                  padding: '8px 16px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Go to Portal ↗
+              </button>
+              <button
+                type="button"
+                onClick={onLogout}
+                style={{
+                  padding: '8px 14px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  background: '#fef2f2',
+                  color: '#dc2626',
+                  border: '1px solid #fecaca',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpenAuth}
+              className="button button-primary"
+              style={{
+                fontSize: 14,
+                padding: '10px 20px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
+              </svg>
+              Official Sign In
+            </button>
+          )}
 
           {/* Mobile menu toggle */}
           <button

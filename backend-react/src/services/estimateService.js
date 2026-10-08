@@ -6,7 +6,7 @@
  * The backend calculates (quantity × official_rate) and rejects or overrides arbitrary rates from the frontend.
  */
 
-import inMemoryDb from '../config/inMemoryDb.js';
+import db from '../config/db.js';
 
 /**
  * Calculates a verified estimate from official AMC rate cards
@@ -20,7 +20,7 @@ export function calculateVerifiedEstimate(lineItems = [], contractorId = null) {
   }
 
   // Fetch all official rate cards
-  const allRates = inMemoryDb.findAll('amc_rates');
+  const allRates = db.findAll('amc_rates');
 
   let totalAmount = 0;
   const verifiedLineItems = [];

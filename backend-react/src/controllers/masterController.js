@@ -3,13 +3,13 @@
  * Exposes reference data: Contractors, Departments, AMC Rate Cards, and DB Reset.
  */
 
-import inMemoryDb from '../config/inMemoryDb.js';
+import db from '../config/db.js';
 
 export const getContractors = async (req, res, next) => {
   try {
-    const rawContractors = inMemoryDb.find('contractors');
-    const amcs = inMemoryDb.find('amcs');
-    const departments = inMemoryDb.find('departments');
+    const rawContractors = db.find('contractors');
+    const amcs = db.find('amcs');
+    const departments = db.find('departments');
 
     const ratingsMap = {
       'c0000000-0000-0000-0000-000000000001': 4.8,
@@ -56,7 +56,7 @@ export const getContractors = async (req, res, next) => {
 
 export const getDepartments = async (req, res, next) => {
   try {
-    const departments = inMemoryDb.find('departments');
+    const departments = db.find('departments');
     res.status(200).json({ success: true, count: departments.length, data: departments });
   } catch (error) {
     next(error);
@@ -65,9 +65,9 @@ export const getDepartments = async (req, res, next) => {
 
 export const getAmcRates = async (req, res, next) => {
   try {
-    const rawRates = inMemoryDb.find('amc_rates');
-    const amcs = inMemoryDb.find('amcs');
-    const departments = inMemoryDb.find('departments');
+    const rawRates = db.find('amc_rates');
+    const amcs = db.find('amcs');
+    const departments = db.find('departments');
 
     const rates = rawRates.map((r) => {
       const amc = amcs.find((a) => a.id === r.amc_id);
@@ -103,7 +103,7 @@ export const getAmcRates = async (req, res, next) => {
 
 export const resetDatabase = async (req, res, next) => {
   try {
-    inMemoryDb.reset();
+    db.reset();
     res.status(200).json({ success: true, message: 'In-Memory database reset to initial seeds.' });
   } catch (error) {
     next(error);

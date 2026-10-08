@@ -3,7 +3,7 @@
  * 100% In-Memory Architecture - Zero external PostgreSQL daemon required.
  */
 
-import inMemoryDb from '../config/inMemoryDb.js';
+import db from '../config/db.js';
 import { generateComplaintCode } from '../utils/generateId.js';
 import { calculateSlaDeadline, evaluateSlaStatus } from '../services/slaService.js';
 import { verifyComplaint as verifyService, disputeComplaint as disputeService } from '../services/verificationService.js';
@@ -14,7 +14,7 @@ import { AppError } from '../middleware/error.js';
  */
 const findDepartmentByCategory = (category = '') => {
   const norm = category.toLowerCase();
-  const departments = inMemoryDb.find('departments');
+  const departments = db.find('departments');
   return departments.find((d) => {
     const dName = d.name.toLowerCase();
     if (norm.includes('civil') && dName.includes('civil')) return true;
@@ -28,7 +28,7 @@ const findDepartmentByCategory = (category = '') => {
  * Format complaint with full evidence and SLA status for response
  */
 const formatComplaintResponse = (complaint) => {
-  const allEvidence = inMemoryDb.find('complaint_evidence', (e) => e.complaint_id === complaint.id);
+  const allEvidence = db.find('complaint_evidence', (e) => e.complaint_id === complaint.id);
   const beforePhotos = allEvidence
     .filter((e) => e.evidence_type === 'BEFORE')
     .map((e) => e.file_url);
@@ -39,8 +39,8 @@ const formatComplaintResponse = (complaint) => {
     .filter((e) => e.evidence_type === 'DISPUTE')
     .map((e) => e.file_url);
 
-  const dept = complaint.department_id ? inMemoryDb.findById('departments', complaint.department_id) : null;
-  const wo = inMemoryDb.findOne('work_orders', (w) => w.complaint_id === complaint.id || w.complaint_id === complaint.complaint_code);
+  const dept = complaint.department_id ? db.findById('departments', complaint.department_id) : null;
+  const wo = db.findOne('work_orders', (w) => w.complaint_id === complaint.id || w.complaint_id === complaint.complaint_code);
   const slaHealth = evaluateSlaStatus(complaint.sla_deadline, complaint.status);
 
   const loc = complaint.location || {};
@@ -55,8 +55,8 @@ const formatComplaintResponse = (complaint) => {
   };
 
   const contractorId = (wo && wo.contractor_id) || complaint.assigned_contractor_id || (complaint.assignedContractor && complaint.assignedContractor.id);
-  const rawContractor = contractorId ? inMemoryDb.findOne('contractors', (c) => c.id === contractorId) : null;
-  const amcs = inMemoryDb.find('amcs');
+  const rawContractor = contractorId ? db.findOne('contractors', (c) => c.id === contractorId) : null;
+  const amcs = db.find('amcs');
   const contractorAmc = rawContractor ? amcs.find((a) => a.contractor_id === rawContractor.id) : null;
 
   const assignedContractor = rawContractor
@@ -154,7 +154,7 @@ export const createComplaint = async (req, res, next) => {
     const bodyPhotos = Array.isArray(rawPhotos) ? rawPhotos : (rawPhotos ? [rawPhotos] : []);
     const photoUrls = [...uploadedFileUrls, ...bodyPhotos];
 
-    const newComplaint = inMemoryDb.insert('complaints', {
+    const newComplaint = db.insert('complaints', {
       complaint_code: complaintCode,
       township_id: req.user.townshipId || 'b0000000-0000-0000-0000-000000000001',
       reported_by: req.user.id,
@@ -189,7 +189,7 @@ export const createComplaint = async (req, res, next) => {
     // Save evidence photos to complaint_evidence table
     if (photoUrls.length > 0) {
       for (const url of photoUrls) {
-        inMemoryDb.insert('complaint_evidence', {
+        db.insert('complaint_evidence', {
           complaint_id: newComplaint.id,
           evidence_type: 'BEFORE',
           file_url: url,
@@ -201,7 +201,7 @@ export const createComplaint = async (req, res, next) => {
     }
 
     // Record Audit Log Entry
-    inMemoryDb.logAudit({
+    db.logAudit({
       township_id: newComplaint.township_id,
       entity_type: 'COMPLAINT',
       entity_id: newComplaint.id,
@@ -234,7 +234,7 @@ export const getComplaints = async (req, res, next) => {
 
     const userTownshipId = req.user.townshipId;
 
-    let complaints = inMemoryDb.find('complaints', (c) => {
+    let complaints = db.find('complaints', (c) => {
       // 1. Township isolation
       if (userTownshipId && c.township_id !== userTownshipId) return false;
 
@@ -276,7 +276,7 @@ export const getComplaints = async (req, res, next) => {
 export const getComplaintById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const complaint = inMemoryDb.findById('complaints', id);
+    const complaint = db.findById('complaints', id);
 
     if (!complaint) {
       return next(new AppError(`Complaint with identifier '${id}' not found.`, 404, 'NOT_FOUND'));

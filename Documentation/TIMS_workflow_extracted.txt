@@ -1,0 +1,306 @@
+=== PAGE 1 ===
+TIMS — Township Infrastructure Management System
+Page 1
+ Township Infrastructure Management System
+ (TIMS)
+ Complete Actor Roles, Functionalities, Modules & End-to-End Workflow
+Project Scope
+TIMS is a township-level infrastructure management platform that manages the complete lifecycle of infrastructure
+issues: reporting, validation, triage, contractor estimation, AMC-based approval, execution, billing, payment
+authorization, and resident verification.
+The system uses Annual Maintenance Contracts (AMCs) with predefined contractor rates. TIMS therefore manages
+contractual rates, work quantities, approvals and billing rather than township-owned inventory.
+1. System Actors
+ Actor
+Type
+Primary Responsibility
+RWA Representative
+External
+Report infrastructure issues, track progress, and verify completed work.
+Field Contractor
+External
+Inspect issues, prepare AMC-based estimates, execute repairs, and submit completion evidence.
+Desk Clerk
+Internal
+Validate complaints, perform triage, create work orders, assign contractors, and monitor queues.
+Department Head
+Internal
+Supervise department operations, handle escalations, and approve applicable budgets.
+Finance Clerk
+Internal
+Verify estimates/invoices against AMC rates and authorize payment.
+Township COO
+Internal
+Monitor township-wide KPIs, expenditure and approve major financial requests.
+System Administrator
+Internal
+Manage users, roles, departments, township configuration, contractors, AMCs and system settings.
+2. RWA Representative
+The RWA Representative is the external representative connecting residents with township infrastructure operations.
+Report an Issue
+  Create a complaint with category, description, location, severity and photographs.
+  Select the relevant infrastructure domain such as Civil, Electrical or Water.
+ 
+Track Complaints
+  View the current ticket status, assigned contractor, expected completion and progress.
+ 
+View Resolution Evidence
+  View before/after photographs and completion information submitted by the contractor.
+ 
+Verify Completed Work
+  Confirm that the issue has been resolved.
+  Dispute or reopen the ticket if the work is incomplete or unsatisfactory.
+  A defined auto-close period can be used when the RWA does not respond.
+ 
+3. Field Contractor
+
+
+=== PAGE 2 ===
+TIMS — Township Infrastructure Management System
+Page 2
+The Field Contractor performs technical inspection and ground-level execution under the applicable AMC.
+Receive Work Orders
+  View assigned work orders and their priority/SLA information.
+ 
+Inspect the Site
+  Visit the location and determine the actual problem and required work.
+  Record required labour, work quantities and applicable contractual items.
+ 
+Prepare AMC-Based Estimate
+  Select predefined contractual rate items from the applicable AMC.
+  Enter quantities or labour hours; TIMS calculates the estimate using the contractual rate.
+  The contractor does not arbitrarily enter a new rate for an AMC-covered item.
+ 
+Execute Work
+  Update the work through Assigned → In Progress → Completed.
+  Record actual work/quantities and upload mandatory before/after evidence.
+ 
+Handle Reopened Work
+  Respond to RWA disputes and perform corrective work when a completed ticket is reopened.
+ 
+4. Desk Clerk
+Desk Clerks are operational users responsible for departmental triage and work-order coordination. Separate clerks
+may operate for Civil, Electrical and Water.
+Complaint Validation
+  Review incoming complaints, photographs, location and selected category.
+  Check whether the complaint belongs to the correct department.
+ 
+Duplicate Detection
+  Use location-based duplicate detection to associate nearby reports with an existing master ticket when appropriate.
+ 
+Work Order Creation
+  Convert a validated complaint into a work order.
+  Assign the work to an appropriate empanelled AMC contractor.
+ 
+Queue Monitoring
+  Monitor pending, assigned, in-progress, completed and SLA-at-risk work.
+ 
+Escalation
+  Escalate SLA breaches, technical exceptions, contractor delays and other issues to the Department Head.
+ 
+5. Department Head
+The Department Head manages one infrastructure department and acts as the main managerial approval/escalation
+layer.
+
+
+=== PAGE 3 ===
+TIMS — Township Infrastructure Management System
+Page 3
+Department Monitoring
+  Monitor open work, SLA compliance, pending approvals, completion and expenditure.
+ 
+Escalation Handling
+  Resolve field exceptions, contractor issues and SLA breaches.
+ 
+Budget Approval
+  Approve estimates that fall within the department's configured financial authority.
+  Authorize budget overrides where required.
+ 
+Major Approval
+  For requests above the configured major-expenditure threshold, participate in joint approval with the Township
+ COO.
+6. Finance Clerk
+The Finance Clerk performs financial verification after work is completed.
+Estimate and Invoice Verification
+  Compare the approved estimate, actual work/quantity and invoice.
+ 
+AMC Rate Verification
+  Check that billed rates correspond to the applicable AMC/rate card.
+ 
+Variance Handling
+  Flag differences between expected and actual quantities or costs for investigation.
+ 
+Payment Authorization
+  Once financial checks pass, authorize the invoice for payment processing.
+ 
+7. Township COO
+The Township COO is the top operational management role and focuses on township-wide performance rather than
+individual routine tickets.
+Township Dashboard
+  View total complaints, open work, SLA compliance, resolution times, departmental performance and expenditure.
+ 
+Major Financial Approval
+  Approve major expenditure requests that require COO-level authorization.
+ 
+Performance Monitoring
+  Review department and contractor performance using aggregated operational data.
+ 
+Strategic Oversight
+  Monitor township-wide trends in infrastructure issues, spending and service performance.
+ 
+8. System Administrator
+
+
+=== PAGE 4 ===
+TIMS — Township Infrastructure Management System
+Page 4
+The System Administrator manages the TIMS platform and its configuration rather than day-to-day infrastructure
+execution.
+User and RBAC Management
+  Create, disable and manage user accounts.
+  Assign roles and permissions.
+ 
+Township Configuration
+  Manage township sectors, blocks, departments, categories and system-level configuration.
+ 
+Contractor and AMC Administration
+  Maintain contractor profiles, AMC validity, contract details and contractual rate cards.
+ 
+Workflow Configuration
+  Configure SLA rules, severity rules and approval thresholds.
+ 
+Audit and Security
+  Review important system actions, status changes, approvals and configuration changes.
+ 
+9. Township & Location Hierarchy
+Township → Sector/Zone → Block/Street → Infrastructure Asset → Complaint → Work Order
+  The township is the top-level operational boundary.
+  Sectors/zones and blocks provide more precise geographic organization.
+  Infrastructure assets can be associated with a location and department.
+  Complaints can be linked to the relevant asset/location.
+ 
+10. Infrastructure / Asset Management
+TIMS should maintain a basic record of township infrastructure so that complaints are connected to known assets
+rather than existing only as isolated tickets.
+  Civil: roads, drains, footpaths, manholes and public structures.
+  Electrical: street lights, transformers, electrical panels and related infrastructure.
+  Water: pipelines, pumps, valves, tanks and leakage-related infrastructure.
+  Asset information can include Asset ID, type, location, department, condition, installation information and
+ maintenance history.
+11. Annual Maintenance Contract (AMC) Management
+AMC management is a central part of the financial model. Contractors provide predefined rates in their signed
+contract with the township.
+  Contractor name and contract number.
+  Department/service domain.
+  Contract start and end dates.
+  Rate card containing labour, service and work-item rates.
+  Applicable terms and conditions.
+ 
+
+=== PAGE 5 ===
+TIMS — Township Infrastructure Management System
+Page 5
+ Contract status and renewal/expiry information.
+  Historical AMC versions so older work orders continue referencing the contract/rates applicable at the time.
+ 
+Example AMC Rate Calculation
+ Item
+Quantity
+Contract Rate
+Amount
+Electrician
+2 hours
+■500/hour
+■1,000
+General Labour
+3 hours
+■300/hour
+■900
+Cable Work
+10 m
+■150/m
+■1,500
+Total
+■3,400
+
+
+=== PAGE 6 ===
+TIMS — Township Infrastructure Management System
+Page 6
+12. Complete End-to-End Workflow
+1. Reporting
+RWA Representative submits a complaint with category, description, location, severity and photographs.
+2. Location & Duplicate Check
+TIMS validates the location and checks whether a nearby existing issue should be associated with the new report.
+3. Desk Triage
+The relevant departmental Desk Clerk validates the complaint and determines whether a work order should be
+created.
+4. Work Order Creation
+A validated issue becomes a work order and is assigned to an appropriate AMC contractor.
+5. Contractor Inspection
+The contractor visits the site, inspects the issue and records the required work/quantities.
+6. AMC-Based Estimation
+The contractor selects applicable contractual rate items. TIMS calculates cost using AMC rates and entered
+quantities/hours.
+7. Financial Approval
+The system evaluates the estimate against configured approval thresholds and routes it to the appropriate authority.
+8. Work Execution
+After approval, the contractor moves the work to In Progress, performs the repair and records actual work/quantities.
+9. Completion Evidence
+The contractor uploads after-work evidence and marks the work Completed.
+10. Finance Verification
+Finance compares approved estimate, actual quantities and invoice against the applicable AMC rate card.
+11. Payment Authorization
+A financially valid invoice is authorized for payment.
+12. RWA Verification
+The RWA Representative confirms the repair or disputes/reopens it.
+13. Closure
+Confirmed work is closed. A defined no-response period may trigger automatic closure.
+14. Rework Loop
+A disputed ticket returns to the contractor for corrective action and repeats the completion/verification process.
+13. Suggested Approval Flow
+
+
+=== PAGE 7 ===
+TIMS — Township Infrastructure Management System
+Page 7
+Estimated Amount
+Approval Route
+Within configured auto-approval threshold
+System auto-approval, if permitted by policy.
+Department-level threshold
+Department Head approval.
+Major expenditure threshold
+Department Head + Township COO joint approval.
+The exact monetary thresholds should be treated as configurable system parameters and finalized according to the township's
+requirements.
+14. Work Order Status Lifecycle
+REPORTED → UNDER_REVIEW → VALIDATED → WORK_ORDER_CREATED → ASSIGNED → INSPECTION
+→ ESTIMATE_SUBMITTED → PENDING_APPROVAL → APPROVED → IN_PROGRESS → COMPLETED →
+PENDING_VERIFICATION → VERIFIED → CLOSED
+Exception path: PENDING_VERIFICATION → DISPUTED → REOPENED → IN_PROGRESS → COMPLETED.
+15. Core TIMS Modules
+ 1. User & Role-Based Access Control (RBAC)
+ 2. Township, Sector, Block and Location Management
+ 3. Infrastructure / Asset Management
+ 4. Complaint Management
+ 5. Work Order Management
+ 6. Contractor Management
+ 7. Annual Maintenance Contract (AMC) Management
+ 8. Approval Management
+ 9. Finance & Billing
+ 10. RWA Verification & Dispute Management
+ 11. Notifications and SLA Alerts
+ 12. Analytics & Dashboards
+ 13. Audit Logs
+ 
+16. Scope Boundary
+Included: infrastructure issue lifecycle, AMC-based pricing, contractor work orders, approvals, financial verification,
+payment authorization, RWA verification, analytics, RBAC and auditability.
+Not a core module: township-owned inventory/warehouse/resource-stock management. The contractor operates
+under the AMC and bills according to the applicable contractual rates and actual approved work.
+17. Overall System Chain
+Township → Sector → Block → Infrastructure Asset → Complaint → Work Order → AMC Estimate →
+Approval → Execution → Invoice → Finance Verification → RWA Verification → Closure
+
+

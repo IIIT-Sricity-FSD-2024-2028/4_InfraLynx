@@ -8,7 +8,7 @@
  *   4. Department Analytics — Track expenditure, tickets, contractor performance & SLA health
  */
 
-import inMemoryDb from '../config/inMemoryDb.js';
+import db from '../config/db.js';
 import { AppError } from '../middleware/error.js';
 import { hashPassword } from '../utils/auth.js';
 import { canApproveWorkOrder } from '../services/approvalService.js';
@@ -28,7 +28,7 @@ export const getPendingApprovals = async (req, res, next) => {
     const userDeptId = req.user.deptId || req.user.department_id;
 
     // Fetch work orders requiring Dept Head sign-off
-    const pendingWOs = inMemoryDb.findAll('work_orders', (wo) => {
+    const pendingWOs = db.findAll('work_orders', (wo) => {
       const matchTownship = !townshipId || wo.township_id === townshipId;
       const awaiting = wo.status === 'AWAITING_DEPT_HEAD' || wo.requires_dept_head === true;
       return matchTownship && awaiting && wo.status !== 'ASSIGNED' && wo.status !== 'COMPLETED';
@@ -36,9 +36,9 @@ export const getPendingApprovals = async (req, res, next) => {
 
     // Enrich with complaint and contractor context
     const enriched = pendingWOs.map((wo) => {
-      const complaint = inMemoryDb.findOne('complaints', (c) => c.id === wo.complaint_id);
+      const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
       const contractor = wo.contractor_id
-        ? inMemoryDb.findOne('contractors', (cnt) => cnt.id === wo.contractor_id)
+        ? db.findOne('contractors', (cnt) => cnt.id === wo.contractor_id)
         : null;
 
       return {
@@ -76,7 +76,7 @@ export const getPendingApprovals = async (req, res, next) => {
     });
 
     // Also include any complaints directly in AWAITING_DEPT_HEAD status without WO object yet
-    const rawComplaints = inMemoryDb.findAll('complaints', (c) => {
+    const rawComplaints = db.findAll('complaints', (c) => {
       const matchTownship = !townshipId || c.township_id === townshipId;
       const alreadyInWO = pendingWOs.some((w) => w.complaint_id === c.id);
       return matchTownship && c.status === 'AWAITING_DEPT_HEAD' && !alreadyInWO;
@@ -129,16 +129,16 @@ export const processApproval = async (req, res, next) => {
     }
 
     // Try finding work order or complaint
-    let wo = inMemoryDb.findOne(
+    let wo = db.findOne(
       'work_orders',
       (w) => w.id === id || w.work_order_code === id || w.complaint_id === id
     );
 
     let complaint = null;
     if (wo) {
-      complaint = inMemoryDb.findOne('complaints', (c) => c.id === wo.complaint_id);
+      complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
     } else {
-      complaint = inMemoryDb.findOne(
+      complaint = db.findOne(
         'complaints',
         (c) => c.id === id || c.complaint_code === id || c.workOrderId === id
       );
@@ -156,7 +156,7 @@ export const processApproval = async (req, res, next) => {
       const historyNote = `Estimate approved by Department Head ${actorName}. Work Order assigned for contractor dispatch. ${notes ? `Notes: "${notes}"` : ''}`;
 
       if (wo) {
-        wo = inMemoryDb.update('work_orders', wo.id, {
+        wo = db.update('work_orders', wo.id, {
           status: targetStatus,
           approved_by_id: req.user.id,
           approved_by_name: actorName,
@@ -166,7 +166,7 @@ export const processApproval = async (req, res, next) => {
       }
 
       if (complaint) {
-        complaint = inMemoryDb.update('complaints', complaint.id, {
+        complaint = db.update('complaints', complaint.id, {
           status: targetStatus,
           history: [
             ...(complaint.history || []),
@@ -175,7 +175,7 @@ export const processApproval = async (req, res, next) => {
         });
       }
 
-      inMemoryDb.logAudit({
+      db.logAudit({
         township_id: req.user.townshipId || complaint?.township_id || wo?.township_id,
         entity_type: 'WORK_ORDER',
         entity_id: wo?.id || complaint?.id,
@@ -203,7 +203,7 @@ export const processApproval = async (req, res, next) => {
       const historyNote = `Revision Requested by Department Head ${actorName}: "${revisionReason}"`;
 
       if (wo) {
-        wo = inMemoryDb.update('work_orders', wo.id, {
+        wo = db.update('work_orders', wo.id, {
           status: targetStatus,
           revision_notes: revisionReason,
           revision_requested_at: now,
@@ -212,7 +212,7 @@ export const processApproval = async (req, res, next) => {
       }
 
       if (complaint) {
-        complaint = inMemoryDb.update('complaints', complaint.id, {
+        complaint = db.update('complaints', complaint.id, {
           status: targetStatus,
           history: [
             ...(complaint.history || []),
@@ -221,7 +221,7 @@ export const processApproval = async (req, res, next) => {
         });
       }
 
-      inMemoryDb.logAudit({
+      db.logAudit({
         township_id: req.user.townshipId || complaint?.township_id || wo?.township_id,
         entity_type: 'WORK_ORDER',
         entity_id: wo?.id || complaint?.id,
@@ -262,7 +262,7 @@ export const getStaff = async (req, res, next) => {
     const userDeptId = req.user.deptId || req.user.department_id;
 
     // Find all DESK_CLERK users in the township
-    const staffMembers = inMemoryDb.findAll('users', (u) => {
+    const staffMembers = db.findAll('users', (u) => {
       const isClerk = u.role === 'DESK_CLERK';
       const matchTownship = !townshipId || u.township_id === townshipId;
       const matchDept = !userDeptId || !u.department_id || u.department_id === userDeptId;
@@ -270,7 +270,7 @@ export const getStaff = async (req, res, next) => {
     });
 
     const sanitized = staffMembers.map((u) => {
-      const dept = u.department_id ? inMemoryDb.findById('departments', u.department_id) : null;
+      const dept = u.department_id ? db.findById('departments', u.department_id) : null;
       return {
         id: u.id,
         name: u.name,
@@ -314,7 +314,7 @@ export const createStaff = async (req, res, next) => {
     }
 
     // Check duplicate email or username
-    const existing = inMemoryDb.findOne(
+    const existing = db.findOne(
       'users',
       (u) =>
         u.email.toLowerCase() === email.toLowerCase() ||
@@ -329,7 +329,7 @@ export const createStaff = async (req, res, next) => {
     const deptId = req.user.deptId || req.user.department_id || 'd0000000-0000-0000-0000-000000000001';
     const townshipId = req.user.townshipId || 'b0000000-0000-0000-0000-000000000001';
 
-    const newClerk = inMemoryDb.insert('users', {
+    const newClerk = db.insert('users', {
       township_id: townshipId,
       name: name.trim(),
       email: email.trim().toLowerCase(),
@@ -346,7 +346,7 @@ export const createStaff = async (req, res, next) => {
       created_at: new Date().toISOString(),
     });
 
-    inMemoryDb.logAudit({
+    db.logAudit({
       township_id: townshipId,
       entity_type: 'USER',
       entity_id: newClerk.id,
@@ -392,7 +392,7 @@ export const updateStaffStatus = async (req, res, next) => {
       return next(new AppError("Status must be 'ACTIVE' or 'SUSPENDED'.", 400, 'VALIDATION_ERROR'));
     }
 
-    const employee = inMemoryDb.findById('users', id);
+    const employee = db.findById('users', id);
     if (!employee) {
       return next(new AppError(`Employee '${id}' not found.`, 404, 'NOT_FOUND'));
     }
@@ -402,9 +402,9 @@ export const updateStaffStatus = async (req, res, next) => {
       return next(new AppError('Only Desk Clerk employees can be managed here.', 403, 'FORBIDDEN'));
     }
 
-    const updated = inMemoryDb.update('users', id, { status: normalized });
+    const updated = db.update('users', id, { status: normalized });
 
-    inMemoryDb.logAudit({
+    db.logAudit({
       township_id: employee.township_id,
       entity_type: 'USER',
       entity_id: id,
@@ -443,11 +443,11 @@ export const getAnalytics = async (req, res, next) => {
   try {
     const townshipId = req.user.townshipId;
 
-    const complaints = inMemoryDb.findAll('complaints', (c) => {
+    const complaints = db.findAll('complaints', (c) => {
       return !townshipId || c.township_id === townshipId;
     });
 
-    const workOrders = inMemoryDb.findAll('work_orders', (w) => {
+    const workOrders = db.findAll('work_orders', (w) => {
       return !townshipId || w.township_id === townshipId;
     });
 
@@ -464,7 +464,7 @@ export const getAnalytics = async (req, res, next) => {
     }, 0);
 
     // Contractor summary
-    const contractors = inMemoryDb.findAll('contractors', (c) => !townshipId || c.township_id === townshipId);
+    const contractors = db.findAll('contractors', (c) => !townshipId || c.township_id === townshipId);
     const contractorMetrics = contractors.map((cnt) => {
       const assignedWOs = workOrders.filter((w) => w.contractor_id === cnt.id);
       const totalAmount = assignedWOs.reduce((acc, w) => acc + (Number(w.estimate_amount) || 0), 0);
