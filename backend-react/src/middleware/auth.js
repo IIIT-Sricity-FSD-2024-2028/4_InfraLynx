@@ -149,6 +149,8 @@ export const requireRole = (...allowedRoles) => {
   };
 };
 
+export const authorize = requireRole;
+
 /**
  * Multi-Township Isolation Middleware
  * Enforces that operations targeting a specific township belong to the authenticated user's township.

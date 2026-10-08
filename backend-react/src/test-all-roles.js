@@ -55,6 +55,10 @@ async function testAllRoleEndpoints() {
   const contractorToken = contractorLogin.data?.data?.token;
   report('Contractor Login', contractorLogin.status === 200 && !!contractorToken, `Role: ${contractorLogin.data?.data?.user?.role}`);
 
+  const financeLogin = await req('/auth/login', 'POST', { email: 'finance@infralynx.com', password: 'Password@123' });
+  const financeToken = financeLogin.data?.data?.token;
+  report('Finance Clerk Login', financeLogin.status === 200 && !!financeToken, `Role: ${financeLogin.data?.data?.user?.role}`);
+
   // 2. Test Master Data Routes (Shared reference data)
   console.log('\n─── 2. MASTER & CONTRACTOR REFERENCE DATA ──────────────────────────────');
   const masterContractors = await req('/master/contractors', 'GET', null, clerkToken);
@@ -73,8 +77,8 @@ async function testAllRoleEndpoints() {
     category: 'Water & Sanitation',
     subCategory: 'Pipe Burst',
     severity: 'High',
-    description: 'Freshwater line leaking profusely at Sector 4 Junction A.',
-    location: { sector: 'Sector 4', block: 'Block B', street: 'MG Road' },
+    description: 'Freshwater line leaking profusely at Sector 54 Junction A.',
+    location: { sector: 'Sector 54', block: 'Block B', street: 'Gulmohar Marg' },
   };
   const createdCmp = await req('/complaints', 'POST', newComplaintPayload, rwaToken);
   const cmpId = createdCmp.data?.data?.id;
@@ -194,6 +198,32 @@ async function testAllRoleEndpoints() {
     caption: 'Pipeline welded and pressure tested.',
   }, contractorToken);
   report('POST /contractor/evidence (Upload Proof)', evidenceRes.status === 201);
+
+  // 8. Test Member 5 — Finance & AMC Reconciliation
+  console.log('\n─── 8. MEMBER 5: FINANCE & AMC RECONCILIATION ───────────────────────────');
+  const invoicesRes = await req('/finance/invoices', 'GET', null, financeToken);
+  report('GET /finance/invoices (Pending Invoices List)', invoicesRes.status === 200 && Array.isArray(invoicesRes.data?.data), `Invoices Count: ${invoicesRes.data?.count}`);
+
+  const singleInv = invoicesRes.data?.data?.[0];
+  const invoiceId = singleInv?.rawId || '50000000-0000-0000-0000-000000000001';
+
+  const checkRes = await req(`/finance/invoices/${invoiceId}/3-way-check`, 'GET', null, financeToken);
+  report('GET /finance/invoices/:id/3-way-check (3-Way Reconciliation)', checkRes.status === 200, `Result: ${checkRes.data?.data?.compliance?.reconciliationStatus}`);
+
+  const flagRes = await req(`/finance/invoices/${invoiceId}/flag-variance`, 'POST', { reason: 'Material unit cost discrepancy reported.' }, financeToken);
+  report('POST /finance/invoices/:id/flag-variance (Flag Variance)', flagRes.status === 200, `Status: ${flagRes.data?.data?.status}`);
+
+  const authRes = await req(`/finance/invoices/${invoiceId}/authorize`, 'POST', { notes: 'Variance cleared, verified against rate cards.' }, financeToken);
+  report('POST /finance/invoices/:id/authorize (Approve Payment)', authRes.status === 200, `Status: ${authRes.data?.data?.status}`);
+
+  const payRes = await req(`/finance/invoices/${invoiceId}/pay`, 'POST', { paymentMode: 'Township Escrow RTGS', paymentReference: 'UTR-9876543210' }, financeToken);
+  report('POST /finance/invoices/:id/pay (Staged Payment Release)', payRes.status === 200, `Status: ${payRes.data?.data?.invoice?.status}`);
+
+  const rateCardsRes = await req('/finance/rate-cards', 'GET', null, financeToken);
+  report('GET /finance/rate-cards (AMC Contract Master)', rateCardsRes.status === 200, `Total Items: ${rateCardsRes.data?.count}`);
+
+  const finAnalyticsRes = await req('/finance/analytics', 'GET', null, financeToken);
+  report('GET /finance/analytics (Financial Summary & Paid)', finAnalyticsRes.status === 200, `Total Billed: ₹${finAnalyticsRes.data?.data?.totalBilledAmount}`);
 
   // Close server
   await new Promise((resolve) => server.close(resolve));

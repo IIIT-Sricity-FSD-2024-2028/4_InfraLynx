@@ -74,7 +74,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
       name: displayName.charAt(0).toUpperCase() + displayName.slice(1),
       email: formData.email,
       role: portal,
-      sector: 'Sector 4',
+      sector: 'Sector 54',
       title: getPortalTitle(portal),
     })
     setDetectedPortal(portal)

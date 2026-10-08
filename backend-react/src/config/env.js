@@ -15,8 +15,9 @@ export const config = {
   isDev: (process.env.NODE_ENV || 'development') === 'development',
   isProd: process.env.NODE_ENV === 'production',
 
-  // Database mode: 100% In-Memory RAM Store
-  dbMode: 'IN_MEMORY',
+  // Database mode: PostgreSQL when DATABASE_URL is set, otherwise In-Memory
+  dbMode: process.env.DATABASE_URL ? 'POSTGRES' : 'IN_MEMORY',
+  databaseUrl: process.env.DATABASE_URL || null,
 
   // JWT configuration
   jwt: {

@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import FinanceDashboard from './FinanceDashboard.jsx'
 import InvoiceAudit from './InvoiceAudit.jsx'
 import RateCardViewer from './RateCardViewer.jsx'
 import PaymentReleases from './PaymentReleases.jsx'
 import { INITIAL_INVOICES } from './mockFinanceData.js'
+import { financeApi } from '../../services/api.js'
 import './styles/FinancePortal.css'
 
 export default function FinancePortal({ onExitToLanding }) {
@@ -14,6 +15,21 @@ export default function FinancePortal({ onExitToLanding }) {
   const [invoices, setInvoices] = useState(INITIAL_INVOICES)
   const [activeInvoiceModal, setActiveInvoiceModal] = useState(null)
   const [notice, setNotice] = useState(null)
+
+  // Fetch live invoices from backend on mount
+  useEffect(() => {
+    async function loadInvoices() {
+      try {
+        const liveInvoices = await financeApi.getInvoices();
+        if (Array.isArray(liveInvoices) && liveInvoices.length > 0) {
+          setInvoices(liveInvoices);
+        }
+      } catch (err) {
+        // Retain initial fallback data
+      }
+    }
+    loadInvoices();
+  }, []);
 
   const pendingAuditCount = invoices.filter((i) => i.auditStatus === 'PENDING_AUDIT').length
   const varianceCount = invoices.filter((i) => i.auditStatus === 'VARIANCE_FLAGGED').length
@@ -31,7 +47,13 @@ export default function FinancePortal({ onExitToLanding }) {
     setActiveInvoiceModal(null)
   }
 
-  function handleAuthorizeInvoice(invoiceId) {
+  async function handleAuthorizeInvoice(invoiceId) {
+    try {
+      await financeApi.authorizeInvoice(invoiceId);
+    } catch (err) {
+      console.warn('Backend authorization sync note:', err.message);
+    }
+
     setInvoices((prev) =>
       prev.map((inv) =>
         inv.id === invoiceId
@@ -50,7 +72,13 @@ export default function FinancePortal({ onExitToLanding }) {
     setNotice(`Invoice ${invoiceId} (₹${targeted?.billedAmount?.toLocaleString('en-IN')}) successfully verified and authorized for staged payment release!`)
   }
 
-  function handleFlagVariance(invoiceId, reason) {
+  async function handleFlagVariance(invoiceId, reason) {
+    try {
+      await financeApi.flagVariance(invoiceId, reason);
+    } catch (err) {
+      console.warn('Backend flag variance sync note:', err.message);
+    }
+
     setInvoices((prev) =>
       prev.map((inv) =>
         inv.id === invoiceId

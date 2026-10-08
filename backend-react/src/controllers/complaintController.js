@@ -45,9 +45,9 @@ const formatComplaintResponse = (complaint) => {
 
   const loc = complaint.location || {};
   const location = {
-    sector: loc.sector || complaint.sector || 'Sector 4',
+    sector: loc.sector || complaint.sector || 'Sector 54',
     block: loc.block || complaint.block || 'Block B',
-    street: loc.street || complaint.street || 'Main Street',
+    street: loc.street || complaint.street || 'Gulmohar Marg',
     assetId: loc.assetId || complaint.asset_id || 'ASSET-GEN-01',
     assetName: loc.assetName || complaint.asset_name || complaint.location_details || 'Township Infrastructure Fixture',
     landmark: loc.landmark || complaint.location_details || '',
@@ -133,9 +133,9 @@ export const createComplaint = async (req, res, next) => {
     }
 
     // Resolve location parameters
-    const locSector = location.sector || sector || req.user.sector || 'Sector 4';
+    const locSector = location.sector || sector || req.user.sector || 'Sector 54';
     const locBlock = location.block || block || 'Block A';
-    const locStreet = location.street || street || 'Main Boulevard';
+    const locStreet = location.street || street || 'Gulmohar Marg';
     const locAssetId = location.assetId || assetId || 'ASSET-GEN-01';
     const locAssetName = location.assetName || assetName || 'Township Infrastructure Fixture';
     const locLandmark = location.landmark || landmark || `Near ${locBlock} entrance`;

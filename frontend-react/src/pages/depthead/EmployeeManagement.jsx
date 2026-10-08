@@ -7,9 +7,9 @@ export default function EmployeeManagement() {
   const departmentName = currentUser.department || currentUser.departmentName || 'Civil & Electrical Infrastructure'
   
   const [employees, setEmployees] = useState([
-    { id: 'EMP-101', name: 'Pooja Rao', email: 'clerk@infralynx.com', role: 'Desk Clerk', status: 'Active' },
-    { id: 'EMP-102', name: 'Anita Sharma', email: 'anita.sharma@infralynx.com', role: 'Desk Clerk', status: 'Active' },
-    { id: 'EMP-103', name: 'Suresh Patel', email: 'suresh.patel@infralynx.com', role: 'Desk Clerk', status: 'Suspended' }
+    { id: '10000000-0000-0000-0000-000000000002', name: 'Pooja Verma', email: 'clerk@infralynx.com', role: 'Desk Clerk', status: 'Active' },
+    { id: '10000000-0000-0000-0000-000000000007', name: 'Anjali Gupta', email: 'anjali.gupta@infralynx.com', role: 'Desk Clerk', status: 'Active' },
+    { id: '10000000-0000-0000-0000-000000000008', name: 'Suresh Yadav', email: 'suresh.yadav@infralynx.com', role: 'Desk Clerk', status: 'Suspended' }
   ])
 
   const [showAddModal, setShowAddModal] = useState(false)

@@ -75,11 +75,11 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
           <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Top performing contractors and active jobs.</p>
           <ul style={{ marginTop: '16px', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <li style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>BuildIt Civil Contractors</span>
+              <span>Larsen & Toubro Urban Infra Works Ltd.</span>
               <span className="badge-eyebrow">4 Active</span>
             </li>
             <li style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>UrbanFix Solutions</span>
+              <span>Voltech Power & Electrical Systems Ltd.</span>
               <span className="badge-eyebrow">2 Active</span>
             </li>
           </ul>

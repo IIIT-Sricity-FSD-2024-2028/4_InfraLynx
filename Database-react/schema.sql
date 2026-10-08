@@ -6,6 +6,49 @@
 -- Enable UUID extension for secure, distributed primary keys
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Drop existing tables in reverse dependency order if recreating
+DROP TABLE IF EXISTS audit_logs CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS township_settings CASCADE;
+DROP TABLE IF EXISTS payments CASCADE;
+DROP TABLE IF EXISTS invoice_items CASCADE;
+DROP TABLE IF EXISTS invoices CASCADE;
+DROP TABLE IF EXISTS verifications CASCADE;
+DROP TABLE IF EXISTS work_completion_items CASCADE;
+DROP TABLE IF EXISTS work_completions CASCADE;
+DROP TABLE IF EXISTS approvals CASCADE;
+DROP TABLE IF EXISTS approval_rules CASCADE;
+DROP TABLE IF EXISTS estimate_items CASCADE;
+DROP TABLE IF EXISTS estimates CASCADE;
+DROP TABLE IF EXISTS work_evidence CASCADE;
+DROP TABLE IF EXISTS work_orders CASCADE;
+DROP TABLE IF EXISTS amc_rates CASCADE;
+DROP TABLE IF EXISTS amcs CASCADE;
+DROP TABLE IF EXISTS complaint_photos CASCADE;
+DROP TABLE IF EXISTS complaints CASCADE;
+DROP TABLE IF EXISTS assets CASCADE;
+DROP TABLE IF EXISTS slas CASCADE;
+DROP TABLE IF EXISTS contractor_services CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS contractors CASCADE;
+DROP TABLE IF EXISTS departments CASCADE;
+DROP TABLE IF EXISTS township_subscriptions CASCADE;
+DROP TABLE IF EXISTS townships CASCADE;
+DROP TABLE IF EXISTS subscription_plans CASCADE;
+
+-- Drop existing types if recreating
+DROP TYPE IF EXISTS payment_status CASCADE;
+DROP TYPE IF EXISTS invoice_status CASCADE;
+DROP TYPE IF EXISTS approval_status CASCADE;
+DROP TYPE IF EXISTS approval_level CASCADE;
+DROP TYPE IF EXISTS estimate_status CASCADE;
+DROP TYPE IF EXISTS verification_status CASCADE;
+DROP TYPE IF EXISTS evidence_type CASCADE;
+DROP TYPE IF EXISTS work_order_status CASCADE;
+DROP TYPE IF EXISTS complaint_status CASCADE;
+DROP TYPE IF EXISTS complaint_severity CASCADE;
+DROP TYPE IF EXISTS user_role CASCADE;
+
 -- ------------------------------------------------------------------------------
 -- 1. ENUM TYPES
 -- ------------------------------------------------------------------------------
