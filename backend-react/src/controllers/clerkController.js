@@ -15,7 +15,7 @@
  * All data is persisted in the shared in-memory store.
  */
 
-import inMemoryDb from '../config/inMemoryDb.js';
+import db from '../config/db.js';
 import { AppError } from '../middleware/error.js';
 import { findNearbyDuplicates } from '../services/duplicateService.js';
 
@@ -43,10 +43,10 @@ function formatWoResponse(wo) {
 
   // Attach contractor details if available from in-memory database
   const contractor = wo.contractor_id
-    ? inMemoryDb.findOne('contractors', (c) => c.id === wo.contractor_id)
+    ? db.findOne('contractors', (c) => c.id === wo.contractor_id)
     : null;
 
-  const amcs = inMemoryDb.find('amcs');
+  const amcs = db.find('amcs');
   const contractorAmc = contractor ? amcs.find((a) => a.contractor_id === contractor.id) : null;
 
   return {
@@ -90,7 +90,7 @@ export const triageComplaint = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const complaint = inMemoryDb.findById('complaints', id);
+    const complaint = db.findById('complaints', id);
     if (!complaint) {
       return next(new AppError(`Complaint '${id}' not found.`, 404, 'NOT_FOUND'));
     }
@@ -110,7 +110,7 @@ export const triageComplaint = async (req, res, next) => {
     const note = `Desk Clerk ${req.user.name} opened complaint for triage review.`;
 
     // Update status + append history entry
-    const updated = inMemoryDb.update('complaints', complaint.id, {
+    const updated = db.update('complaints', complaint.id, {
       status: 'UNDER_REVIEW',
       history: [
         ...(complaint.history || []),
@@ -119,7 +119,7 @@ export const triageComplaint = async (req, res, next) => {
     });
 
     // Audit log
-    inMemoryDb.logAudit({
+    db.logAudit({
       township_id:  complaint.township_id,
       entity_type:  'COMPLAINT',
       entity_id:    complaint.id,
@@ -150,7 +150,7 @@ export const validateComplaint = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const complaint = inMemoryDb.findById('complaints', id);
+    const complaint = db.findById('complaints', id);
     if (!complaint) {
       return next(new AppError(`Complaint '${id}' not found.`, 404, 'NOT_FOUND'));
     }
@@ -168,7 +168,7 @@ export const validateComplaint = async (req, res, next) => {
     const now  = new Date().toISOString();
     const note = `Validated by Desk Clerk ${req.user.name}. All fields verified. Ready for Work Order creation.`;
 
-    const updated = inMemoryDb.update('complaints', complaint.id, {
+    const updated = db.update('complaints', complaint.id, {
       status: 'VALIDATED',
       history: [
         ...(complaint.history || []),
@@ -176,7 +176,7 @@ export const validateComplaint = async (req, res, next) => {
       ],
     });
 
-    inMemoryDb.logAudit({
+    db.logAudit({
       township_id:  complaint.township_id,
       entity_type:  'COMPLAINT',
       entity_id:    complaint.id,
@@ -213,7 +213,7 @@ export const rejectComplaint = async (req, res, next) => {
       return next(new AppError('A rejection reason is required.', 400, 'VALIDATION_ERROR'));
     }
 
-    const complaint = inMemoryDb.findById('complaints', id);
+    const complaint = db.findById('complaints', id);
     if (!complaint) {
       return next(new AppError(`Complaint '${id}' not found.`, 404, 'NOT_FOUND'));
     }
@@ -231,7 +231,7 @@ export const rejectComplaint = async (req, res, next) => {
     const now  = new Date().toISOString();
     const note = `Rejected by ${req.user.name}. Reason: "${reason}". Remarks: "${remarks || 'None'}".`;
 
-    const updated = inMemoryDb.update('complaints', complaint.id, {
+    const updated = db.update('complaints', complaint.id, {
       status:           'REJECTED',
       rejection_reason: reason,
       rejection_remarks: remarks || null,
@@ -241,7 +241,7 @@ export const rejectComplaint = async (req, res, next) => {
       ],
     });
 
-    inMemoryDb.logAudit({
+    db.logAudit({
       township_id:  complaint.township_id,
       entity_type:  'COMPLAINT',
       entity_id:    complaint.id,
@@ -304,7 +304,7 @@ export const createWorkOrder = async (req, res, next) => {
     }
 
     // ── Resolve complaint ─────────────────────────────────────────────────
-    const complaint = inMemoryDb.findById('complaints', complaintId);
+    const complaint = db.findById('complaints', complaintId);
     if (!complaint) {
       return next(new AppError(`Complaint '${complaintId}' not found.`, 404, 'NOT_FOUND'));
     }
@@ -319,7 +319,7 @@ export const createWorkOrder = async (req, res, next) => {
     }
 
     // ── Resolve contractor ────────────────────────────────────────────────
-    const contractor = inMemoryDb.findOne('contractors', (c) => c.id === contractorId);
+    const contractor = db.findOne('contractors', (c) => c.id === contractorId);
     if (!contractor) {
       return next(new AppError(`Contractor '${contractorId}' not found.`, 404, 'NOT_FOUND'));
     }
@@ -330,7 +330,7 @@ export const createWorkOrder = async (req, res, next) => {
 
     for (const item of lineItems) {
       if (!item.rateCardId) continue;
-      const card = inMemoryDb.findOne(
+      const card = db.findOne(
         'amc_rates',
         (r) =>
           r.id === item.rateCardId ||
@@ -363,7 +363,7 @@ export const createWorkOrder = async (req, res, next) => {
     const now              = new Date().toISOString();
 
     // ── Insert work order ─────────────────────────────────────────────────
-    const workOrder = inMemoryDb.insert('work_orders', {
+    const workOrder = db.insert('work_orders', {
       work_order_code:      woCode,
       township_id:          complaint.township_id,
       complaint_id:         complaint.id,
@@ -385,7 +385,7 @@ export const createWorkOrder = async (req, res, next) => {
       ? `WO ${woCode} created, forwarded to Dept Head (estimate ₹${estimateTotal.toLocaleString()} > ₹${DEPT_HEAD_THRESHOLD.toLocaleString()} threshold). Contractor: ${contractor.company_name}.`
       : `WO ${woCode} dispatched to ${contractor.company_name}. Estimate: ₹${estimateTotal.toLocaleString()}. Priority: ${priority.toUpperCase()}.`;
 
-    inMemoryDb.update('complaints', complaint.id, {
+    db.update('complaints', complaint.id, {
       status:                   woStatus,
       work_order_id:            workOrder.id,
       work_order_code:          woCode,
@@ -406,7 +406,7 @@ export const createWorkOrder = async (req, res, next) => {
     });
 
     // ── Audit log ─────────────────────────────────────────────────────────
-    inMemoryDb.logAudit({
+    db.logAudit({
       township_id:  complaint.township_id,
       entity_type:  'WORK_ORDER',
       entity_id:    workOrder.id,
@@ -441,7 +441,7 @@ export const getWorkOrders = async (req, res, next) => {
     const { status, priority, contractorId } = req.query;
     const townshipId = req.user.townshipId;
 
-    const workOrders = inMemoryDb.find('work_orders', (wo) => {
+    const workOrders = db.find('work_orders', (wo) => {
       // Township isolation
       if (townshipId && wo.township_id !== townshipId) return false;
       // Optional filters
@@ -471,7 +471,7 @@ export const getWorkOrderById = async (req, res, next) => {
     const { id } = req.params;
 
     // Find by UUID or by WO code (e.g. WO-2026-4921)
-    const wo = inMemoryDb.findOne(
+    const wo = db.findOne(
       'work_orders',
       (w) => w.id === id || w.work_order_code === id
     );
@@ -486,7 +486,7 @@ export const getWorkOrderById = async (req, res, next) => {
     }
 
     // Fetch associated complaint for context
-    const complaint = inMemoryDb.findOne('complaints', (c) => c.id === wo.complaint_id);
+    const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
 
     res.status(200).json({
       success: true,
@@ -519,7 +519,7 @@ export const getWorkOrderById = async (req, res, next) => {
 export const getTriageQueue = async (req, res, next) => {
   try {
     const townshipId = req.user.townshipId;
-    const complaints = inMemoryDb.findAll('complaints', (c) => {
+    const complaints = db.findAll('complaints', (c) => {
       const matchTownship = !townshipId || c.township_id === townshipId;
       const awaiting = c.status === 'REPORTED' || c.status === 'UNDER_REVIEW';
       return matchTownship && awaiting;
@@ -548,7 +548,7 @@ export const checkDuplicates = async (req, res, next) => {
       return next(new AppError('Query parameter complaintId is required.', 400, 'VALIDATION_ERROR'));
     }
 
-    const target = inMemoryDb.findOne(
+    const target = db.findOne(
       'complaints',
       (c) => c.id === complaintId || c.complaint_code === complaintId
     );
@@ -556,7 +556,7 @@ export const checkDuplicates = async (req, res, next) => {
       return next(new AppError(`Complaint '${complaintId}' not found.`, 404, 'NOT_FOUND'));
     }
 
-    const allComplaints = inMemoryDb.findAll('complaints', (c) => {
+    const allComplaints = db.findAll('complaints', (c) => {
       return !req.user.townshipId || c.township_id === req.user.townshipId;
     });
 
@@ -589,12 +589,12 @@ export const linkDuplicate = async (req, res, next) => {
       return next(new AppError('masterComplaintId is required in request body.', 400, 'VALIDATION_ERROR'));
     }
 
-    const duplicate = inMemoryDb.findOne('complaints', (c) => c.id === id || c.complaint_code === id);
+    const duplicate = db.findOne('complaints', (c) => c.id === id || c.complaint_code === id);
     if (!duplicate) {
       return next(new AppError(`Duplicate complaint '${id}' not found.`, 404, 'NOT_FOUND'));
     }
 
-    const master = inMemoryDb.findOne(
+    const master = db.findOne(
       'complaints',
       (c) => c.id === masterComplaintId || c.complaint_code === masterComplaintId
     );
@@ -603,7 +603,7 @@ export const linkDuplicate = async (req, res, next) => {
     }
 
     const now = new Date().toISOString();
-    const updated = inMemoryDb.update('complaints', duplicate.id, {
+    const updated = db.update('complaints', duplicate.id, {
       status: 'DUPLICATE_LINKED',
       master_complaint_id: master.id,
       duplicate_notes: notes || `Merged into master ticket ${master.complaint_code || master.id}`,
@@ -618,7 +618,7 @@ export const linkDuplicate = async (req, res, next) => {
       ],
     });
 
-    inMemoryDb.logAudit({
+    db.logAudit({
       township_id: duplicate.township_id,
       entity_type: 'COMPLAINT',
       entity_id: duplicate.id,
@@ -651,7 +651,7 @@ export const escalateComplaint = async (req, res, next) => {
     const { id } = req.params;
     const { reason, escalateTo = 'DEPT_HEAD' } = req.body;
 
-    const complaint = inMemoryDb.findOne('complaints', (c) => c.id === id || c.complaint_code === id);
+    const complaint = db.findOne('complaints', (c) => c.id === id || c.complaint_code === id);
     if (!complaint) {
       return next(new AppError(`Complaint '${id}' not found.`, 404, 'NOT_FOUND'));
     }
@@ -660,7 +660,7 @@ export const escalateComplaint = async (req, res, next) => {
     const now = new Date().toISOString();
     const note = `Escalated by Desk Clerk ${req.user.name} to ${escalateTo}. Reason: "${reason || 'SLA breach detected'}"`;
 
-    const updated = inMemoryDb.update('complaints', complaint.id, {
+    const updated = db.update('complaints', complaint.id, {
       status: nextStatus,
       escalation_reason: reason || 'SLA breached / execution delay',
       escalated_at: now,
@@ -670,7 +670,7 @@ export const escalateComplaint = async (req, res, next) => {
       ],
     });
 
-    inMemoryDb.logAudit({
+    db.logAudit({
       township_id: complaint.township_id,
       entity_type: 'COMPLAINT',
       entity_id: complaint.id,

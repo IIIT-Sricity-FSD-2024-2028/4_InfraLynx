@@ -10,7 +10,7 @@
  *   6. Evidence Proof     — Upload geo-tagged before/after proof for RWA verification
  */
 
-import inMemoryDb from '../config/inMemoryDb.js';
+import db from '../config/db.js';
 import { AppError } from '../middleware/error.js';
 import { calculateVerifiedEstimate } from '../services/estimateService.js';
 
@@ -26,21 +26,25 @@ export const getAssignedJobs = async (req, res, next) => {
     const contractorId = req.user.contractorId;
     const { status } = req.query;
 
-    const workOrders = inMemoryDb.findAll('work_orders', (wo) => {
+    const workOrders = db.findAll('work_orders', (wo) => {
       const matchContractor = !contractorId || wo.contractor_id === contractorId;
       const matchStatus = !status || wo.status === status.toUpperCase();
       return matchContractor && matchStatus;
     });
 
     const enriched = workOrders.map((wo) => {
-      const complaint = inMemoryDb.findOne('complaints', (c) => c.id === wo.complaint_id);
-      const contractor = inMemoryDb.findOne('contractors', (cnt) => cnt.id === wo.contractor_id);
+      const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id || c.complaint_code === wo.complaint_id);
+      const contractor = db.findOne('contractors', (cnt) => cnt.id === wo.contractor_id);
+      const evidence = db.findAll('complaint_evidence', (ev) => ev.complaint_id === wo.complaint_id);
+      const beforeEvidence = evidence.filter((e) => (e.evidence_type || e.type) === 'BEFORE').map((e) => e.file_url || e.fileUrl);
+      const afterEvidence = evidence.filter((e) => (e.evidence_type || e.type) === 'AFTER').map((e) => e.file_url || e.fileUrl);
 
       return {
         id: wo.id,
         workOrderId: wo.work_order_code || wo.work_order_number || wo.id,
         workOrderCode: wo.work_order_code || wo.work_order_number || wo.id,
         complaintId: wo.complaint_id,
+        complaintCode: complaint?.complaint_code || complaint?.id,
         title: complaint?.title || 'Field Work Order',
         category: complaint?.category || 'General',
         subCategory: complaint?.subcategory || complaint?.subCategory || '',
@@ -48,7 +52,7 @@ export const getAssignedJobs = async (req, res, next) => {
         priority: wo.priority || complaint?.severity || 'Medium',
         status: wo.status,
         complaintStatus: complaint?.status || wo.status,
-        estimateAmount: wo.estimate_amount || wo.estimatedAmount || 0,
+        estimateAmount: wo.estimate_amount || wo.estimatedAmount || wo.estimated_cost || 0,
         lineItems: wo.line_items || [],
         specialInstructions: wo.special_instructions || '',
         slaDeadline: complaint?.slaDeadline || wo.sla_deadline,
@@ -57,8 +61,20 @@ export const getAssignedJobs = async (req, res, next) => {
           sector: complaint?.sector || 'Sector 54',
           block: complaint?.block || 'Block A',
           street: complaint?.street || 'Gulmohar Marg',
+          assetId: complaint?.asset_id || 'ASSET-GEN-01',
+          assetName: complaint?.location_details || 'Township Infrastructure Fixture',
+          landmark: complaint?.location_details || '',
         },
-        evidence: inMemoryDb.findAll('complaint_evidence', (ev) => ev.complaint_id === wo.complaint_id),
+        description: complaint?.description || wo.special_instructions || '',
+        reportedBy: complaint?.reported_by || { name: 'Dr. Arvind Swaminathan', role: 'RWA Secretary' },
+        beforePhotos: (complaint?.beforePhotos && complaint.beforePhotos.length > 0) ? complaint.beforePhotos : beforeEvidence,
+        afterPhotos: (complaint?.afterPhotos && complaint.afterPhotos.length > 0) ? complaint.afterPhotos : afterEvidence,
+        inspectionNotes: wo.inspection_notes || null,
+        inspectedAt: wo.inspected_at || null,
+        inspectedBy: wo.inspected_by || null,
+        completionRemarks: wo.completion_remarks || null,
+        completedAt: wo.completed_at || null,
+        evidence,
         contractorName: contractor?.company_name || 'Assigned AMC Partner',
       };
     });
@@ -82,7 +98,7 @@ export const getJobById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const wo = inMemoryDb.findOne(
+    const wo = db.findOne(
       'work_orders',
       (w) => w.id === id || w.work_order_code === id || w.work_order_number === id
     );
@@ -91,9 +107,9 @@ export const getJobById = async (req, res, next) => {
       return next(new AppError(`Work order '${id}' not found.`, 404, 'NOT_FOUND'));
     }
 
-    const complaint = inMemoryDb.findOne('complaints', (c) => c.id === wo.complaint_id);
-    const evidence = inMemoryDb.findAll('complaint_evidence', (ev) => ev.complaint_id === wo.complaint_id);
-    const amcRates = inMemoryDb.findAll('amc_rates');
+    const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
+    const evidence = db.findAll('complaint_evidence', (ev) => ev.complaint_id === wo.complaint_id);
+    const amcRates = db.findAll('amc_rates');
 
     res.status(200).json({
       success: true,
@@ -130,9 +146,14 @@ export const submitSiteInspection = async (req, res, next) => {
   try {
     const { workOrderId, complaintId, inspectionNotes, severityConfirmed } = req.body;
 
-    const wo = inMemoryDb.findOne(
+    const wo = db.findOne(
       'work_orders',
-      (w) => w.id === workOrderId || w.work_order_code === workOrderId || w.complaint_id === complaintId
+      (w) =>
+        w.id === workOrderId ||
+        w.work_order_code === workOrderId ||
+        w.work_order_number === workOrderId ||
+        w.complaint_id === complaintId ||
+        w.complaint_id === workOrderId
     );
 
     if (!wo) {
@@ -143,15 +164,15 @@ export const submitSiteInspection = async (req, res, next) => {
     const actorName = req.user.name || 'Contractor Lead';
     const note = `Site inspected by ${actorName}. Findings: "${inspectionNotes || 'Ground inspection completed.'}"`;
 
-    const updatedWo = inMemoryDb.update('work_orders', wo.id, {
+    const updatedWo = db.update('work_orders', wo.id, {
       inspection_notes: inspectionNotes,
       inspected_at: now,
       inspected_by: actorName,
     });
 
-    const complaint = inMemoryDb.findOne('complaints', (c) => c.id === wo.complaint_id);
+    const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
     if (complaint) {
-      inMemoryDb.update('complaints', complaint.id, {
+      db.update('complaints', complaint.id, {
         history: [
           ...(complaint.history || []),
           { stage: 'SITE_INSPECTED', timestamp: now, actor: actorName, note },
@@ -159,7 +180,7 @@ export const submitSiteInspection = async (req, res, next) => {
       });
     }
 
-    inMemoryDb.logAudit({
+    db.logAudit({
       township_id: wo.township_id,
       entity_type: 'WORK_ORDER',
       entity_id: wo.id,
@@ -195,9 +216,14 @@ export const submitEstimate = async (req, res, next) => {
       return next(new AppError('Estimate must include at least one AMC service line item.', 400, 'VALIDATION_ERROR'));
     }
 
-    const wo = inMemoryDb.findOne(
+    const wo = db.findOne(
       'work_orders',
-      (w) => w.id === workOrderId || w.work_order_code === workOrderId || w.complaint_id === complaintId
+      (w) =>
+        w.id === workOrderId ||
+        w.work_order_code === workOrderId ||
+        w.work_order_number === workOrderId ||
+        w.complaint_id === complaintId ||
+        w.complaint_id === workOrderId
     );
 
     if (!wo) {
@@ -215,7 +241,7 @@ export const submitEstimate = async (req, res, next) => {
       requiresDeptHead ? 'Threshold exceeded (> ₹10k) → Forwarded to Dept Head for approval.' : 'Ready for execution.'
     }`;
 
-    const updatedWo = inMemoryDb.update('work_orders', wo.id, {
+    const updatedWo = db.update('work_orders', wo.id, {
       status: nextStatus,
       estimate_amount: verified.totalAmount,
       line_items: verified.lineItems,
@@ -224,9 +250,9 @@ export const submitEstimate = async (req, res, next) => {
       estimate_submitted_by: actorName,
     });
 
-    const complaint = inMemoryDb.findOne('complaints', (c) => c.id === wo.complaint_id);
+    const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
     if (complaint) {
-      inMemoryDb.update('complaints', complaint.id, {
+      db.update('complaints', complaint.id, {
         status: nextStatus,
         estimateAmount: verified.totalAmount,
         history: [
@@ -236,7 +262,7 @@ export const submitEstimate = async (req, res, next) => {
       });
     }
 
-    inMemoryDb.logAudit({
+    db.logAudit({
       township_id: wo.township_id,
       entity_type: 'WORK_ORDER',
       entity_id: wo.id,
@@ -281,7 +307,7 @@ export const updateJobStatus = async (req, res, next) => {
       );
     }
 
-    const wo = inMemoryDb.findOne(
+    const wo = db.findOne(
       'work_orders',
       (w) => w.id === id || w.work_order_code === id || w.work_order_number === id || w.complaint_id === id
     );
@@ -299,15 +325,15 @@ export const updateJobStatus = async (req, res, next) => {
 
     const note = `Contractor ${actorName} marked work '${normalizedStatus}'. ${remarks ? `Remarks: "${remarks}"` : ''}`;
 
-    const updatedWo = inMemoryDb.update('work_orders', wo.id, {
+    const updatedWo = db.update('work_orders', wo.id, {
       status: woNextStatus,
       completion_remarks: remarks || null,
       completed_at: normalizedStatus === 'COMPLETED' ? now : wo.completed_at,
     });
 
-    const complaint = inMemoryDb.findOne('complaints', (c) => c.id === wo.complaint_id);
+    const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
     if (complaint) {
-      inMemoryDb.update('complaints', complaint.id, {
+      db.update('complaints', complaint.id, {
         status: complaintNextStatus,
         completionRemarks: remarks || null,
         completedAt: normalizedStatus === 'COMPLETED' ? now : complaint.completedAt,
@@ -318,7 +344,7 @@ export const updateJobStatus = async (req, res, next) => {
       });
     }
 
-    inMemoryDb.logAudit({
+    db.logAudit({
       township_id: wo.township_id,
       entity_type: 'WORK_ORDER',
       entity_id: wo.id,
@@ -361,10 +387,19 @@ export const uploadEvidence = async (req, res, next) => {
     const type = (evidenceType || 'AFTER').toUpperCase();
     const now = new Date().toISOString();
 
+    let targetComplaintId = complaintId;
+    if (!targetComplaintId && workOrderId) {
+      const wo = db.findOne(
+        'work_orders',
+        (w) => w.id === workOrderId || w.work_order_code === workOrderId || w.work_order_number === workOrderId
+      );
+      if (wo) targetComplaintId = wo.complaint_id;
+    }
+
     const createdEvidence = [];
     for (const url of photoList) {
-      const rec = inMemoryDb.insert('complaint_evidence', {
-        complaint_id: complaintId,
+      const rec = db.insert('complaint_evidence', {
+        complaint_id: targetComplaintId || workOrderId,
         evidence_type: type,
         file_url: url,
         caption: caption || `${type} repair photo evidence`,
@@ -375,18 +410,18 @@ export const uploadEvidence = async (req, res, next) => {
     }
 
     // Attach to complaint object
-    if (complaintId) {
-      const complaint = inMemoryDb.findOne('complaints', (c) => c.id === complaintId);
+    if (targetComplaintId) {
+      const complaint = db.findOne('complaints', (c) => c.id === targetComplaintId || c.complaint_code === targetComplaintId);
       if (complaint) {
         const updateField = type === 'AFTER' ? 'afterPhotos' : 'beforePhotos';
         const existing = Array.isArray(complaint[updateField]) ? complaint[updateField] : [];
-        inMemoryDb.update('complaints', complaint.id, {
+        db.update('complaints', complaint.id, {
           [updateField]: [...existing, ...photoList],
         });
       }
     }
 
-    inMemoryDb.logAudit({
+    db.logAudit({
       township_id: req.user.townshipId,
       entity_type: 'EVIDENCE',
       entity_id: complaintId || workOrderId,

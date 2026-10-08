@@ -6,7 +6,7 @@
  */
 
 import crypto from 'crypto';
-import inMemoryDb from '../config/inMemoryDb.js';
+import db from '../config/db.js';
 import invoiceService from '../services/invoiceService.js';
 
 /**
@@ -19,7 +19,7 @@ export const getInvoices = async (req, res, next) => {
     const townshipId = req.user.township_id;
     const { status, contractorId } = req.query;
 
-    const invoices = inMemoryDb.findAll('invoices', (inv) => {
+    const invoices = db.findAll('invoices', (inv) => {
       if (townshipId && inv.township_id !== townshipId) return false;
       if (status && status !== 'ALL' && inv.status !== status) return false;
       if (contractorId && inv.contractor_id !== contractorId) return false;
@@ -29,18 +29,18 @@ export const getInvoices = async (req, res, next) => {
     // Hydrate each invoice with contractor, work order, and complaint information
     const formattedInvoices = invoices.map((inv) => {
       const contractor = inv.contractor_id
-        ? inMemoryDb.findById('contractors', inv.contractor_id)
+        ? db.findById('contractors', inv.contractor_id)
         : null;
       const workOrder = inv.work_order_id
-        ? inMemoryDb.findById('work_orders', inv.work_order_id)
+        ? db.findById('work_orders', inv.work_order_id)
         : null;
       const complaint = workOrder && workOrder.complaint_id
-        ? inMemoryDb.findById('complaints', workOrder.complaint_id)
+        ? db.findById('complaints', workOrder.complaint_id)
         : null;
       const department = complaint && complaint.department_id
-        ? inMemoryDb.findById('departments', complaint.department_id)
+        ? db.findById('departments', complaint.department_id)
         : null;
-      const items = inMemoryDb.findAll('invoice_items', (item) => item.invoice_id === inv.id);
+      const items = db.findAll('invoice_items', (item) => item.invoice_id === inv.id);
 
       const billedAmount = Number(inv.total_amount || 0);
       const estimateAmount = Number(inv.approved_estimate_amount || (workOrder?.estimated_cost || billedAmount));
@@ -95,7 +95,7 @@ export const getInvoices = async (req, res, next) => {
 export const getInvoiceById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const invoice = inMemoryDb.findOne('invoices', (inv) => inv.id === id || inv.invoice_code === id);
+    const invoice = db.findOne('invoices', (inv) => inv.id === id || inv.invoice_code === id);
 
     if (!invoice) {
       return res.status(404).json({
@@ -147,7 +147,7 @@ export const authorizeInvoice = async (req, res, next) => {
     const { id } = req.params;
     const { notes } = req.body;
 
-    const invoice = inMemoryDb.findOne('invoices', (inv) => inv.id === id || inv.invoice_code === id);
+    const invoice = db.findOne('invoices', (inv) => inv.id === id || inv.invoice_code === id);
     if (!invoice) {
       return res.status(404).json({
         success: false,
@@ -155,14 +155,14 @@ export const authorizeInvoice = async (req, res, next) => {
       });
     }
 
-    const updated = inMemoryDb.update('invoices', invoice.id, {
+    const updated = db.update('invoices', invoice.id, {
       status: 'AUTHORIZED',
       authorized_by: req.user.id,
       authorized_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
 
-    inMemoryDb.logAudit({
+    db.logAudit({
       township_id: invoice.township_id,
       entity_type: 'INVOICE',
       entity_id: invoice.id,
@@ -201,7 +201,7 @@ export const flagVariance = async (req, res, next) => {
       });
     }
 
-    const invoice = inMemoryDb.findOne('invoices', (inv) => inv.id === id || inv.invoice_code === id);
+    const invoice = db.findOne('invoices', (inv) => inv.id === id || inv.invoice_code === id);
     if (!invoice) {
       return res.status(404).json({
         success: false,
@@ -209,13 +209,13 @@ export const flagVariance = async (req, res, next) => {
       });
     }
 
-    const updated = inMemoryDb.update('invoices', invoice.id, {
+    const updated = db.update('invoices', invoice.id, {
       status: 'VARIANCE_FLAGGED',
       variance_reason: reason.trim(),
       updated_at: new Date().toISOString(),
     });
 
-    inMemoryDb.logAudit({
+    db.logAudit({
       township_id: invoice.township_id,
       entity_type: 'INVOICE',
       entity_id: invoice.id,
@@ -247,7 +247,7 @@ export const releasePayment = async (req, res, next) => {
     const { id } = req.params;
     const { paymentMode, paymentReference } = req.body;
 
-    const invoice = inMemoryDb.findOne('invoices', (inv) => inv.id === id || inv.invoice_code === id);
+    const invoice = db.findOne('invoices', (inv) => inv.id === id || inv.invoice_code === id);
     if (!invoice) {
       return res.status(404).json({
         success: false,
@@ -263,7 +263,7 @@ export const releasePayment = async (req, res, next) => {
     }
 
     const reference = paymentReference || `UTR-${Date.now()}`;
-    const paymentRecord = inMemoryDb.insert('payments', {
+    const paymentRecord = db.insert('payments', {
       id: crypto.randomUUID(),
       township_id: invoice.township_id,
       invoice_id: invoice.id,
@@ -277,20 +277,20 @@ export const releasePayment = async (req, res, next) => {
       created_at: new Date().toISOString(),
     });
 
-    const updatedInvoice = inMemoryDb.update('invoices', invoice.id, {
+    const updatedInvoice = db.update('invoices', invoice.id, {
       status: 'PAID',
       updated_at: new Date().toISOString(),
     });
 
     // Update linked work order
     if (invoice.work_order_id) {
-      inMemoryDb.update('work_orders', invoice.work_order_id, {
+      db.update('work_orders', invoice.work_order_id, {
         status: 'SETTLED',
         updated_at: new Date().toISOString(),
       });
     }
 
-    inMemoryDb.logAudit({
+    db.logAudit({
       township_id: invoice.township_id,
       entity_type: 'PAYMENT',
       entity_id: paymentRecord.id,
@@ -322,10 +322,10 @@ export const releasePayment = async (req, res, next) => {
  */
 export const getRateCards = async (req, res, next) => {
   try {
-    const rawRates = inMemoryDb.findAll('amc_rates');
-    const amcs = inMemoryDb.findAll('amcs');
-    const departments = inMemoryDb.findAll('departments');
-    const contractors = inMemoryDb.findAll('contractors');
+    const rawRates = db.findAll('amc_rates');
+    const amcs = db.findAll('amcs');
+    const departments = db.findAll('departments');
+    const contractors = db.findAll('contractors');
 
     const rates = rawRates.map((r) => {
       const amc = amcs.find((a) => a.id === r.amc_id);
@@ -363,7 +363,7 @@ export const getRateCards = async (req, res, next) => {
 export const getFinanceAnalytics = async (req, res, next) => {
   try {
     const townshipId = req.user.township_id;
-    const invoices = inMemoryDb.findAll('invoices', (inv) => !townshipId || inv.township_id === townshipId);
+    const invoices = db.findAll('invoices', (inv) => !townshipId || inv.township_id === townshipId);
 
     const pendingAudit = invoices.filter((i) => i.status === 'PENDING_AUDIT').length;
     const authorized = invoices.filter((i) => i.status === 'AUTHORIZED').length;

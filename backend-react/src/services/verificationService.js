@@ -4,7 +4,7 @@
  * and routing tickets back for mandatory rework.
  */
 
-import inMemoryDb from '../config/inMemoryDb.js';
+import db from '../config/db.js';
 import { AppError } from '../middleware/error.js';
 
 /**
@@ -17,7 +17,7 @@ import { AppError } from '../middleware/error.js';
  * @returns {object} Updated complaint record
  */
 export const verifyComplaint = async (complaintId, user, { rating = 5, remarks = '' } = {}) => {
-  const complaint = inMemoryDb.findById('complaints', complaintId);
+  const complaint = db.findById('complaints', complaintId);
   if (!complaint) {
     throw new AppError(`Complaint with ID '${complaintId}' not found.`, 404, 'NOT_FOUND');
   }
@@ -66,7 +66,7 @@ export const verifyComplaint = async (complaintId, user, { rating = 5, remarks =
     },
   ];
 
-  const updatedComplaint = inMemoryDb.update('complaints', complaint.id, {
+  const updatedComplaint = db.update('complaints', complaint.id, {
     status: 'CLOSED',
     verification: verificationRecord,
     history: updatedHistory,
@@ -75,7 +75,7 @@ export const verifyComplaint = async (complaintId, user, { rating = 5, remarks =
   });
 
   // Log in Audit Trail
-  inMemoryDb.logAudit({
+  db.logAudit({
     township_id: complaint.township_id,
     entity_type: 'COMPLAINT',
     entity_id: complaint.id,
@@ -100,7 +100,7 @@ export const verifyComplaint = async (complaintId, user, { rating = 5, remarks =
  * @returns {object} Updated complaint record
  */
 export const disputeComplaint = async (complaintId, user, { reason = '', remarks = '', notes = '', photos = [] } = {}) => {
-  const complaint = inMemoryDb.findById('complaints', complaintId);
+  const complaint = db.findById('complaints', complaintId);
   if (!complaint) {
     throw new AppError(`Complaint with ID '${complaintId}' not found.`, 404, 'NOT_FOUND');
   }
@@ -128,7 +128,7 @@ export const disputeComplaint = async (complaintId, user, { reason = '', remarks
   // Save attached dispute photo evidence into complaint_evidence table
   if (Array.isArray(photos) && photos.length > 0) {
     for (const photoUrl of photos) {
-      inMemoryDb.insert('complaint_evidence', {
+      db.insert('complaint_evidence', {
         complaint_id: complaint.id,
         evidence_type: 'DISPUTE',
         file_url: photoUrl,
@@ -158,14 +158,14 @@ export const disputeComplaint = async (complaintId, user, { reason = '', remarks
     },
   ];
 
-  const updatedComplaint = inMemoryDb.update('complaints', complaint.id, {
+  const updatedComplaint = db.update('complaints', complaint.id, {
     status: 'DISPUTED',
     dispute: disputeRecord,
     history: updatedHistory,
   });
 
   // Log in Audit Trail
-  inMemoryDb.logAudit({
+  db.logAudit({
     township_id: complaint.township_id,
     entity_type: 'COMPLAINT',
     entity_id: complaint.id,
