@@ -28,8 +28,6 @@ const STAGES = [
  *
  * Context:
  *   complaints           - live list (synced via useMemo)
- *   currentUser          - clerk user
- *   updateComplaintStatus - used ONLY for the [Demo] Advance Stage button
  */
 function formatSafeDate(dateVal) {
   if (!dateVal) return 'Recently'
@@ -38,7 +36,7 @@ function formatSafeDate(dateVal) {
 }
 
 export default function ClerkTracker({ selectedComplaint, onNavigate, onSelectComplaint }) {
-  const { complaints, currentUser, updateComplaintStatus } = useTIMS()
+  const { complaints } = useTIMS()
 
   // Live-sync selected complaint
   const active = useMemo(() => {
@@ -65,20 +63,6 @@ export default function ClerkTracker({ selectedComplaint, onNavigate, onSelectCo
     return i >= 0 ? i : 0
   }, [active])
 
-  /**
-   * handleDemoAdvance - advance to next lifecycle stage for demo/testing.
-   * In production each stage is triggered by the relevant actor (contractor, finance, RWA).
-   */
-  function handleDemoAdvance() {
-    if (!active || stageIdx >= STAGES.length - 1) return
-    const next = STAGES[stageIdx + 1]
-    if (next && next.id !== active.status) {
-      updateComplaintStatus(
-        active.id, next.id,
-        `[Demo] Stage advanced by Desk Clerk (${currentUser.name}) for testing.`
-      )
-    }
-  }
 
   // Status-specific info banner
   function getBanner(status) {
@@ -168,11 +152,6 @@ export default function ClerkTracker({ selectedComplaint, onNavigate, onSelectCo
       {banner && (
         <div className={`ct-banner ${banner.cls}`}>
           <div className="ct-banner-text">{banner.text}</div>
-          {active.status !== 'CLOSED' && active.status !== 'DISPUTED' && (
-            <button className="ct-demo-btn" onClick={handleDemoAdvance}>
-              [Demo] Advance Stage &#8594;
-            </button>
-          )}
         </div>
       )}
 
@@ -183,9 +162,6 @@ export default function ClerkTracker({ selectedComplaint, onNavigate, onSelectCo
             <div className="ct-stepper-title">TIMS Lifecycle Progress</div>
             <div className="ct-stepper-sub">Current: <strong>{active.status}</strong></div>
           </div>
-          {active.status !== 'CLOSED' && (
-            <button className="ct-demo-btn" onClick={handleDemoAdvance}>[Demo] Advance Stage</button>
-          )}
         </div>
         <div className="ct-stepper-scroll">
           <div className="ct-stepper-track">
