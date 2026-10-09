@@ -1,8 +1,7 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 import ClerkDashboard from './ClerkDashboard.jsx'
 import TriageValidation from './TriageValidation.jsx'
-import ContractorVerification from './ContractorVerification.jsx'
 import WorkOrderCreate from './WorkOrderCreate.jsx'
 import ClerkTracker from './ClerkTracker.jsx'
 import './styles/ClerkPortal.css'
@@ -15,7 +14,7 @@ import './styles/ClerkPortal.css'
  *   onExitToLanding   - () => void   go back to the landing page
  *
  * State:
- *   currentScreen     - 'dashboard' | 'triage' | 'verification' | 'workorder' | 'tracker'
+ *   currentScreen     - 'dashboard' | 'triage' | 'workorder' | 'tracker'
  *   selectedComplaint - the complaint object currently being worked on
  *   successNotice     - { id, message } toast shown after WO dispatch
  *
@@ -33,9 +32,8 @@ export default function ClerkPortal({ onExitToLanding }) {
   const [successNotice, setSuccessNotice]         = useState(null)
 
   // Badge counts for tabs
-  const pendingTriageCount       = complaints.filter(c => c.status === 'REPORTED' || c.status === 'UNDER_REVIEW').length
-  const pendingVerificationCount = complaints.filter(c => !c.workOrderId && c.status !== 'CLOSED' && c.status !== 'REJECTED').length
-  const awaitingDeptHeadCount    = complaints.filter(c => c.status === 'AWAITING_DEPT_HEAD').length
+  const pendingTriageCount    = complaints.filter(c => c.status === 'REPORTED' || c.status === 'UNDER_REVIEW').length
+  const awaitingDeptHeadCount = complaints.filter(c => c.status === 'AWAITING_DEPT_HEAD').length
 
   function handleNavigate(screen) {
     setCurrentScreen(screen)
@@ -64,7 +62,7 @@ export default function ClerkPortal({ onExitToLanding }) {
   return (
     <div className="clerk-shell">
 
-      {/* -- Sticky header -- */}
+      {/* ── Sticky header ── */}
       <header className="clerk-header">
         <div className="clerk-header-top">
 
@@ -97,15 +95,14 @@ export default function ClerkPortal({ onExitToLanding }) {
           </div>
         </div>
 
-        {/* -- Tab navigation bar -- */}
+        {/* ── Tab navigation bar ── */}
         <div className="clerk-tabs-wrapper">
           <div className="clerk-tabs-container">
             {[
-              { id: 'dashboard',    label: 'Dashboard',             badge: pendingTriageCount > 0 ? pendingTriageCount : null },
-              { id: 'triage',       label: 'Triage & Validate',     badge: null },
-              { id: 'verification', label: 'Verify Complaint',      badge: pendingVerificationCount > 0 ? pendingVerificationCount : null },
-              { id: 'workorder',    label: 'Create Work Order',     badge: null },
-              { id: 'tracker',      label: 'WO Tracker',            badge: awaitingDeptHeadCount > 0 ? awaitingDeptHeadCount : null },
+              { id: 'dashboard', label: 'Dashboard',          badge: pendingTriageCount > 0 ? pendingTriageCount : null },
+              { id: 'triage',    label: 'Triage & Validate',  badge: null },
+              { id: 'workorder', label: 'Create Work Order',  badge: null },
+              { id: 'tracker',   label: 'WO Tracker',         badge: awaitingDeptHeadCount > 0 ? awaitingDeptHeadCount : null },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -120,7 +117,7 @@ export default function ClerkPortal({ onExitToLanding }) {
         </div>
       </header>
 
-      {/* -- Active screen -- */}
+      {/* ── Active screen ── */}
       <main className="clerk-main-container">
         {currentScreen === 'dashboard' && (
           <ClerkDashboard
@@ -132,13 +129,6 @@ export default function ClerkPortal({ onExitToLanding }) {
         )}
         {currentScreen === 'triage' && (
           <TriageValidation
-            selectedComplaint={selectedComplaint}
-            onNavigate={handleNavigate}
-            onSelectComplaint={handleSelectComplaint}
-          />
-        )}
-        {currentScreen === 'verification' && (
-          <ContractorVerification
             selectedComplaint={selectedComplaint}
             onNavigate={handleNavigate}
             onSelectComplaint={handleSelectComplaint}

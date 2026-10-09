@@ -10,10 +10,11 @@ import db from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import complaintRoutes from './routes/complaintRoutes.js';
 import masterRoutes from './routes/masterRoutes.js';
-import clerkRoutes from './routes/clerkRoutes.js';   // Member 2 — Desk Clerk
-import contractorRoutes from './routes/contractorRoutes.js'; // Member 3 — Field Contractor
-import deptHeadRoutes from './routes/deptHeadRoutes.js'; // Member 4 — Dept Head
-import financeRoutes from './routes/financeRoutes.js';   // Member 5 — Finance & AMC
+import clerkRoutes from './routes/clerkRoutes.js';         // Member 2  Desk Clerk
+import workOrderRoutes from './routes/workOrderRoutes.js'; // Member 2  Work Orders
+import contractorRoutes from './routes/contractorRoutes.js'; // Member 3  Field Contractor
+import deptHeadRoutes from './routes/deptHeadRoutes.js';   // Member 4  Dept Head
+import financeRoutes from './routes/financeRoutes.js';     // Member 5  Finance & AMC
 import { errorHandler } from './middleware/error.js';
 
 const app = express();
@@ -87,25 +88,27 @@ app.get('/', (req, res) => {
     documentation: '/api/v1/docs',
     health: '/health',
     routes: {
-      auth:       '/api/v1/auth',
-      complaints: '/api/v1/complaints',   // Member 1 — RWA
-      clerk:      '/api/v1/clerk',        // Member 2 — Desk Clerk
-      contractor: '/api/v1/contractor',   // Member 3 — Field Contractor
-      deptHead:   '/api/v1/dept-head',    // Member 4 — Department Head
-      finance:    '/api/v1/finance',      // Member 5 — Finance & AMC
-      master:     '/api/v1/master',       // Shared reference data
+      auth:        '/api/v1/auth',
+      complaints:  '/api/v1/complaints',   // Member 1  RWA
+      clerk:       '/api/v1/clerk',        // Member 2  Desk Clerk
+      workOrders:  '/api/v1/work-orders',  // Member 2  Work Orders
+      contractor:  '/api/v1/contractor',   // Member 3  Field Contractor
+      deptHead:    '/api/v1/dept-head',    // Member 4  Department Head
+      finance:     '/api/v1/finance',      // Member 5  Finance & AMC
+      master:      '/api/v1/master',       // Shared reference data
     },
   });
 });
 
-// ── API Routes ──────────────────────────────────────────────────────────────
-app.use('/api/v1/auth',       authRoutes);
-app.use('/api/v1/complaints', complaintRoutes);  // Member 1 — RWA
-app.use('/api/v1/clerk',      clerkRoutes);       // Member 2 — Desk Clerk
-app.use('/api/v1/contractor', contractorRoutes);  // Member 3 — Field Contractor
-app.use('/api/v1/dept-head',   deptHeadRoutes);    // Member 4 — Department Head
-app.use('/api/v1/finance',    financeRoutes);     // Member 5 — Finance & AMC
-app.use('/api/v1/master',     masterRoutes);       // Shared reference data
+// -- API Routes --------------------------------------------------------------
+app.use('/api/v1/auth',        authRoutes);
+app.use('/api/v1/complaints',  complaintRoutes);   // Member 1  RWA
+app.use('/api/v1/clerk',       clerkRoutes);        // Member 2  Desk Clerk
+app.use('/api/v1/work-orders', workOrderRoutes);   // Member 2  Work Orders
+app.use('/api/v1/contractor',  contractorRoutes);   // Member 3  Field Contractor
+app.use('/api/v1/dept-head',   deptHeadRoutes);     // Member 4  Department Head
+app.use('/api/v1/finance',     financeRoutes);      // Member 5  Finance & AMC
+app.use('/api/v1/master',      masterRoutes);        // Shared reference data
 
 // 404 Route Handler
 app.use((req, res, next) => {
