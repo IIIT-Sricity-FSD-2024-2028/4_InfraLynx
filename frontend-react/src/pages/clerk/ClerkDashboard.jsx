@@ -241,25 +241,6 @@ export default function ClerkDashboard({
                         Triage &amp; Validate &#10003;
                       </button>
                     )}
-                    {/* Verify Complaint button - shown for VALIDATED complaints */}
-                    {!c.workOrderId && c.status !== 'CLOSED' && c.status !== 'REJECTED' && (
-                      <button
-                        onClick={() => { onSelectComplaint(c); onNavigate('verification') }}
-                        className="cd-btn-verify"
-                        style={{
-                          padding: '6px 12px',
-                          borderRadius: 'var(--radius-sm)',
-                          border: '1px solid #d97706',
-                          background: '#fffbeb',
-                          color: '#b45309',
-                          fontSize: '12.5px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Verify Complaint &#8594;
-                      </button>
-                    )}
                     {/* Create WO button — shown only for VALIDATED complaints */}
                     {c.status === 'VALIDATED' && (
                       <button

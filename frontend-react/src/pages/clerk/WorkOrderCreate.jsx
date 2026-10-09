@@ -256,42 +256,6 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
         <div className="wo-ref-item"><span className="wo-ref-label">Status</span><span className="wo-ref-val" style={{ color: '#166534', fontWeight: 700 }}>VALIDATED &#10003;</span></div>
       </div>
 
-      {/* Verified on-site inspection strip (from Contractor Verification) */}
-      {active.inspection && (
-        <div style={{
-          background: '#f0fdf4',
-          border: '1.5px solid #86efac',
-          borderRadius: 'var(--radius-md)',
-          padding: '12px 16px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 10,
-        }}>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#166534' }}>
-              ✓ Verified On-Site Inspection by {active.inspection.inspectedBy || active.assignedContractor?.name || 'Contractor'}
-            </div>
-            <div style={{ fontSize: 12.5, color: '#15803d', marginTop: 2 }}>
-              Ground Findings: &ldquo;{active.inspection.observedProblem}&rdquo;
-            </div>
-            {active.inspection.requiredWork && (
-              <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 2 }}>
-                Scope: {active.inspection.requiredWork}
-              </div>
-            )}
-          </div>
-          {active.inspection.inspectionPhoto && (
-            <img
-              src={active.inspection.inspectionPhoto}
-              alt="Verified Inspection"
-              style={{ width: 68, height: 48, objectFit: 'cover', borderRadius: 6, border: '1px solid #86efac' }}
-            />
-          )}
-        </div>
-      )}
-
       {/* Dept Head threshold warning */}
       {requiresDeptHead && (
         <div className="wo-depthead-banner">

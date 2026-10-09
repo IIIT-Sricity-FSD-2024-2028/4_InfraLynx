@@ -1,11 +1,14 @@
-/**
+﻿/**
  * duplicateService.js — TIMS Duplicate Complaint Detection Service (Member 2)
  *
  * Implements the 100m radius duplicate detection rule specified for TIMS:
  * - Distance calculation using Haversine formula (<= 100 meters)
  * - Category / Sub-category similarity matching
  * - Status awareness (active issues within the same township)
+ * - Linking duplicate complaints to a master complaint
  */
+
+import db from '../config/db.js';
 
 /**
  * Parses GPS strings like "28.5355° N, 77.3910° E" or numeric coordinates
@@ -68,7 +71,8 @@ export function findNearbyDuplicates(targetComplaint, allComplaints = [], radius
   if (!targetComplaint) return [];
 
   const targetCoords = parseCoordinates(
-    targetComplaint.location?.gps || targetComplaint.gps || targetComplaint.location_details
+    targetComplaint.location?.gps || targetComplaint.gps || targetComplaint.location_details ||
+    (targetComplaint.latitude && targetComplaint.longitude ? { lat: targetComplaint.latitude, lng: targetComplaint.longitude } : null)
   );
   const targetCategory = (targetComplaint.category || '').toLowerCase();
   const targetSector = (targetComplaint.location?.sector || targetComplaint.sector || '').toLowerCase();
@@ -88,7 +92,10 @@ export function findNearbyDuplicates(targetComplaint, allComplaints = [], radius
     const categoryMatch = targetCategory && itemCategory && targetCategory === itemCategory;
     const sectorMatch = targetSector && itemSector && targetSector === itemSector;
 
-    const itemCoords = parseCoordinates(item.location?.gps || item.gps || item.location_details);
+    const itemCoords = parseCoordinates(
+      item.location?.gps || item.gps || item.location_details ||
+      (item.latitude && item.longitude ? { lat: item.latitude, lng: item.longitude } : null)
+    );
 
     let distanceMeters = null;
     let isWithinRadius = false;
@@ -111,7 +118,7 @@ export function findNearbyDuplicates(targetComplaint, allComplaints = [], radius
       }
     }
 
-    if (isWithinRadius || (categoryMatch && sectorMatch && distanceMeters !== null && distanceMeters <= 200)) {
+    if (isWithinRadius || (categoryMatch && sectorMatch && distanceMeters !== null && distanceMeters <= 150)) {
       // Calculate confidence score (0 to 100%)
       let confidence = 50;
       if (categoryMatch) confidence += 30;
@@ -120,12 +127,23 @@ export function findNearbyDuplicates(targetComplaint, allComplaints = [], radius
       confidence = Math.min(100, confidence);
 
       duplicates.push({
-        complaint: item,
-        distanceMeters: distanceMeters ?? 'Sector Match (~50m)',
+        complaint: {
+          id: item.id,
+          complaintCode: item.complaint_code || item.id,
+          title: item.title,
+          category: item.category,
+          subcategory: item.subcategory,
+          severity: item.severity,
+          status: item.status,
+          sector: item.sector || item.location?.sector,
+          block: item.block || item.location?.block,
+          createdAt: item.created_at || item.createdAt,
+        },
+        distanceMeters: distanceMeters !== null ? distanceMeters : 'Sector Proximity (~50m)',
         isWithin100m: isWithinRadius,
         categoryMatch,
         confidence,
-        reason: `${isWithinRadius ? 'Within 100m proximity' : 'Same Sector'}${categoryMatch ? ' & Identical category' : ''}`,
+        reason: `${isWithinRadius ? 'Within 100m radius' : 'Same Sector'}${categoryMatch ? ' & Identical category' : ''}`,
       });
     }
   }
@@ -134,8 +152,65 @@ export function findNearbyDuplicates(targetComplaint, allComplaints = [], radius
   return duplicates.sort((a, b) => b.confidence - a.confidence);
 }
 
+/**
+ * Links a duplicate complaint to a master complaint
+ * @param {string} masterId - Master complaint ID
+ * @param {string} duplicateId - Duplicate complaint ID
+ * @param {string} notes - Optional linking remarks
+ * @param {object} actor - User linking the duplicate
+ */
+export function linkDuplicateComplaints(masterId, duplicateId, notes = '', actor = { name: 'Desk Clerk' }) {
+  const master = db.findOne('complaints', (c) => c.id === masterId || c.complaint_code === masterId);
+  const duplicate = db.findOne('complaints', (c) => c.id === duplicateId || c.complaint_code === duplicateId);
+
+  if (!master) throw new Error(`Master complaint "${masterId}" not found.`);
+  if (!duplicate) throw new Error(`Duplicate complaint "${duplicateId}" not found.`);
+  if (master.id === duplicate.id) throw new Error('Cannot link a complaint to itself as duplicate.');
+
+  const now = new Date().toISOString();
+  const masterCode = master.complaint_code || master.id;
+
+  // 1. Mark duplicate complaint
+  const updatedDuplicate = db.update('complaints', duplicate.id, {
+    is_duplicate: true,
+    master_complaint_id: master.id,
+    status: 'REJECTED',
+    rejection_reason: `Duplicate of master complaint ${masterCode}`,
+    rejection_remarks: notes || `Linked as duplicate to ${masterCode} by ${actor.name}`,
+    rejected_at: now,
+    history: [
+      ...(duplicate.history || []),
+      {
+        stage: 'REJECTED',
+        timestamp: now,
+        actor: actor.name,
+        note: `Marked as duplicate of ${masterCode}. ${notes ? `Remarks: "${notes}"` : ''}`,
+      },
+    ],
+  });
+
+  // 2. Update master complaint linked count
+  const currentLinked = Array.isArray(master.linked_duplicates) ? master.linked_duplicates : [];
+  const updatedMaster = db.update('complaints', master.id, {
+    duplicate_count: (master.duplicate_count || 0) + 1,
+    linked_duplicates: [...currentLinked, duplicate.id],
+    history: [
+      ...(master.history || []),
+      {
+        stage: master.status,
+        timestamp: now,
+        actor: actor.name,
+        note: `Linked duplicate complaint ${duplicate.complaint_code || duplicate.id} to this master issue.`,
+      },
+    ],
+  });
+
+  return { master: updatedMaster, duplicate: updatedDuplicate };
+}
+
 export default {
   parseCoordinates,
   haversineDistanceMeters,
   findNearbyDuplicates,
+  linkDuplicateComplaints,
 };

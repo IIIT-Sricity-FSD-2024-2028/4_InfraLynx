@@ -165,12 +165,12 @@ export default function TriageValidation({ selectedComplaint, onNavigate, onSele
         <div className={`tv-acted-banner${active.status === 'VALIDATED' ? ' validated' : ' rejected'}`}>
           <strong>
             {active.status === 'VALIDATED'
-              ? '&#10003; Validated — ready for contractor site verification.'
+              ? '&#10003; Validated — ready for Work Order creation.'
               : '&#10007; Complaint rejected.'}
           </strong>
           {active.status === 'VALIDATED' && (
-            <button onClick={() => { onSelectComplaint(active); onNavigate('verification') }} className="tv-go-wo-btn">
-              Send Contractor to Verify &#8594;
+            <button onClick={() => { onSelectComplaint(active); onNavigate('workorder') }} className="tv-go-wo-btn">
+              Create Work Order &#8594;
             </button>
           )}
         </div>
