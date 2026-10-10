@@ -489,6 +489,96 @@ export const financeApi = {
 };
 
 /**
+ * Township COO API Service (Executive Governance)
+ */
+export const cooApi = {
+  async getDashboard() {
+    const res = await apiRequest('/coo/dashboard');
+    return res.data || {};
+  },
+
+  async getDepartments() {
+    const res = await apiRequest('/coo/departments');
+    return res.data || [];
+  },
+
+  async createDepartment(payload) {
+    const res = await apiRequest('/coo/departments', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async updateDepartment(id, payload) {
+    const res = await apiRequest(`/coo/departments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async updateDepartmentStatus(id, status) {
+    const res = await apiRequest(`/coo/departments/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+    return res.data;
+  },
+
+  async assignDepartmentHead(deptId, departmentHeadId) {
+    const res = await apiRequest(`/coo/departments/${deptId}/head`, {
+      method: 'PATCH',
+      body: JSON.stringify({ departmentHeadId }),
+    });
+    return res.data;
+  },
+
+  async getDepartmentHeads() {
+    const res = await apiRequest('/coo/department-heads');
+    return res.data || [];
+  },
+
+  async getDepartmentStaff(deptId) {
+    const res = await apiRequest(`/coo/departments/${deptId}/staff`);
+    return res.data || [];
+  },
+
+  async getWorkOrders(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = `/coo/work-orders${query ? `?${query}` : ''}`;
+    const res = await apiRequest(endpoint);
+    return res.data || [];
+  },
+
+  async getWorkOrderById(id) {
+    const res = await apiRequest(`/coo/work-orders/${id}`);
+    return res.data;
+  },
+
+  async escalateWorkOrder(id, payload = {}) {
+    const res = await apiRequest(`/coo/work-orders/${id}/escalate`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async getApprovals() {
+    const res = await apiRequest('/coo/approvals');
+    return res.data || [];
+  },
+
+  async processApproval(id, payload = {}) {
+    const res = await apiRequest(`/coo/approvals/${id}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+};
+
+/**
  * Health and diagnostics API
  */
 export const systemApi = {
@@ -510,6 +600,7 @@ export default {
   contractorApi,
   deptHeadApi,
   financeApi,
+  cooApi,
   masterApi,
   systemApi,
 };

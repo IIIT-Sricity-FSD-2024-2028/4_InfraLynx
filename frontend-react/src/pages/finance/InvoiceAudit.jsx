@@ -177,12 +177,31 @@ export default function InvoiceAudit({
                         </button>
 
                         {isPending && (
-                          <button
-                            onClick={() => handleAuthorizeClick(inv.id)}
-                            className="btn-audit-action"
-                          >
-                            Authorize
-                          </button>
+                          inv.rwaVerified === false ? (
+                            <button
+                              onClick={() => onOpenInvoice(inv)}
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: '4px',
+                                background: '#fef3c7',
+                                color: '#92400e',
+                                border: '1px solid #fde68a',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                              title="Work awaiting on-ground RWA verification before authorization"
+                            >
+                              ⏳ Awaiting RWA
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleAuthorizeClick(inv.id)}
+                              className="btn-audit-action"
+                            >
+                              Authorize
+                            </button>
+                          )
                         )}
                       </div>
                     </td>
@@ -385,6 +404,28 @@ export default function InvoiceAudit({
                   </div>
                 </form>
               ) : null}
+
+              {/* RWA Verification Notice */}
+              {activeInvoiceModal.auditStatus === 'PENDING_AUDIT' && activeInvoiceModal.rwaVerified === false && (
+                <div style={{
+                  marginTop: '16px',
+                  padding: '12px 14px',
+                  borderRadius: '6px',
+                  background: '#fffbeb',
+                  border: '1px solid #fde68a',
+                  color: '#92400e',
+                  fontSize: '12.5px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  lineHeight: '1.4',
+                }}>
+                  <span style={{ fontSize: '18px' }}>⚠️</span>
+                  <div>
+                    <strong>RWA Verification Pending:</strong> Physical on-ground inspection and confirmation by the RWA Representative is mandatory. Payment authorization is locked until RWA verifies the fix.
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Modal Footer */}
@@ -423,11 +464,27 @@ export default function InvoiceAudit({
                   </button>
 
                   <button
-                    onClick={() => handleAuthorizeClick(activeInvoiceModal.id)}
+                    onClick={() => {
+                      if (activeInvoiceModal.rwaVerified === false) {
+                        alert('Cannot authorize payment: RWA / Citizen on-ground verification is mandatory prior to financial payment authorization.');
+                        return;
+                      }
+                      handleAuthorizeClick(activeInvoiceModal.id);
+                    }}
+                    disabled={activeInvoiceModal.rwaVerified === false}
                     className="btn-audit-action"
-                    style={{ padding: '9px 18px', fontSize: '13px' }}
+                    style={{
+                      padding: '9px 18px',
+                      fontSize: '13px',
+                      opacity: activeInvoiceModal.rwaVerified === false ? 0.55 : 1,
+                      cursor: activeInvoiceModal.rwaVerified === false ? 'not-allowed' : 'pointer',
+                      background: activeInvoiceModal.rwaVerified === false ? '#94a3b8' : undefined,
+                    }}
+                    title={activeInvoiceModal.rwaVerified === false ? 'Locked: Awaiting RWA Ground Verification' : 'Authorize payment'}
                   >
-                    Authorize Payment (₹{activeInvoiceModal.billedAmount.toLocaleString('en-IN')}) ✓
+                    {activeInvoiceModal.rwaVerified === false
+                      ? '🔒 Locked (Awaiting RWA)'
+                      : `Authorize Payment (₹${activeInvoiceModal.billedAmount.toLocaleString('en-IN')}) ✓`}
                   </button>
                 </>
               )}

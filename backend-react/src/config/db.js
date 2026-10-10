@@ -113,7 +113,7 @@ export const withTransaction = async (callback) => {
       await client.query('COMMIT');
       return result;
     } catch (err) {
-      if (client) await client.query('ROLLBACK').catch(() => {});
+      if (client) await client.query('ROLLBACK').catch(() => { });
       console.warn('[Transaction Warning]: PostgreSQL transaction failed, using in-memory fallback:', err.message);
     } finally {
       if (client) client.release();
@@ -145,7 +145,7 @@ export const testConnection = async () => {
  */
 export const closePool = async () => {
   if (pool) {
-    await pool.end().catch(() => {});
+    await pool.end().catch(() => { });
     pool = null;
     isPostgresConnected = false;
   }
@@ -234,7 +234,7 @@ export const update = (table, id, updates) => {
 export const deleteRecord = (table, id) => {
   const deleted = inMemoryDb.delete(table, id);
   if (pool && TABLE_COLUMNS[table]) {
-    pool.query(`DELETE FROM ${table} WHERE id = $1`, [id]).catch(() => {});
+    pool.query(`DELETE FROM ${table} WHERE id = $1`, [id]).catch(() => { });
   }
   return deleted;
 };
@@ -254,7 +254,7 @@ export const logAudit = (auditData) => {
     });
     const keys = Object.keys(sanitized);
     const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
-    pool.query(`INSERT INTO audit_logs (${keys.join(', ')}) VALUES (${placeholders})`, keys.map(k => sanitized[k])).catch(() => {});
+    pool.query(`INSERT INTO audit_logs (${keys.join(', ')}) VALUES (${placeholders})`, keys.map(k => sanitized[k])).catch(() => { });
   }
   return logged;
 };

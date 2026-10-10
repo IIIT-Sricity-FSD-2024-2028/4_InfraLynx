@@ -48,10 +48,20 @@ export default function FinancePortal({ onExitToLanding }) {
   }
 
   async function handleAuthorizeInvoice(invoiceId) {
+    const targeted = invoices.find((i) => i.id === invoiceId)
+    if (targeted && targeted.rwaVerified === false) {
+      alert('Cannot authorize invoice: RWA / Citizen on-ground verification is mandatory prior to financial payment authorization.')
+      return
+    }
+
     try {
       await financeApi.authorizeInvoice(invoiceId);
     } catch (err) {
-      console.warn('Backend authorization sync note:', err.message);
+      console.warn('Backend authorization notice:', err.message);
+      if (err.message && (err.message.includes('RWA') || err.message.includes('verification'))) {
+        alert(err.message);
+        return;
+      }
     }
 
     setInvoices((prev) =>
@@ -67,7 +77,6 @@ export default function FinancePortal({ onExitToLanding }) {
       )
     )
 
-    const targeted = invoices.find((i) => i.id === invoiceId)
     setActiveInvoiceModal(null)
     setNotice(`Invoice ${invoiceId} (₹${targeted?.billedAmount?.toLocaleString('en-IN')}) successfully verified and authorized for staged payment release!`)
   }

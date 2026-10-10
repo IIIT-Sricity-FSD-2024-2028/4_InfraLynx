@@ -155,6 +155,24 @@ export const authorizeInvoice = async (req, res, next) => {
       });
     }
 
+    // Strict Rule: Finance cannot authorize payment until RWA/Citizen verifies the completed work
+    const workOrder = invoice.work_order_id ? db.findById('work_orders', invoice.work_order_id) : null;
+    const complaint = workOrder && workOrder.complaint_id ? db.findById('complaints', workOrder.complaint_id) : null;
+
+    const isRwaVerified = complaint
+      ? complaint.status === 'CLOSED' || complaint.is_resolved_by_resident === true || complaint.verification?.status === 'CONFIRMED'
+      : invoice.rwa_verified === true;
+
+    if (!isRwaVerified) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'RWA_VERIFICATION_REQUIRED',
+          message: 'Cannot authorize invoice. RWA / Citizen on-ground verification is mandatory prior to financial payment authorization.',
+        },
+      });
+    }
+
     const updated = db.update('invoices', invoice.id, {
       status: 'AUTHORIZED',
       authorized_by: req.user.id,
