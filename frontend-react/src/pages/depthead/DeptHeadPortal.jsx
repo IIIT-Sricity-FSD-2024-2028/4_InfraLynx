@@ -4,7 +4,7 @@ import DeptDashboard from './DeptDashboard.jsx'
 import EmployeeManagement from './EmployeeManagement.jsx'
 import ApprovalQueue from './ApprovalQueue.jsx'
 import WorkOrderDetails from './WorkOrderDetails.jsx'
-import EscalationManagement from './EscalationManagement.jsx'
+import WorkOrders from './WorkOrders.jsx'
 import './styles/DeptHeadPortal.css'
 
 /**
@@ -19,8 +19,6 @@ export default function DeptHeadPortal({ onExitToLanding }) {
   
   // Pending approvals (status AWAITING_DEPT_HEAD)
   const pendingApprovalsCount = complaints.filter(c => c.status === 'AWAITING_DEPT_HEAD').length
-  // SLA breaches (mock criteria for demo: status 'SLA_BREACHED' or simply some escalated items)
-  const escalatedCount = complaints.filter(c => c.status === 'ESCALATED' || c.status === 'SLA_BREACHED').length
 
   function handleNavigate(screen) {
     setCurrentScreen(screen)
@@ -70,7 +68,7 @@ export default function DeptHeadPortal({ onExitToLanding }) {
               { id: 'dashboard', label: 'Dashboard', badge: null },
               { id: 'employees', label: 'Employees', badge: null },
               { id: 'approvals', label: 'Approvals', badge: pendingApprovalsCount > 0 ? pendingApprovalsCount : null },
-              { id: 'escalations', label: 'Escalations', badge: escalatedCount > 0 ? escalatedCount : null },
+              { id: 'work-orders', label: 'Work Orders', badge: null },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -103,8 +101,8 @@ export default function DeptHeadPortal({ onExitToLanding }) {
             onBack={() => handleNavigate('approvals')}
           />
         )}
-        {currentScreen === 'escalations' && (
-          <EscalationManagement onSelectComplaint={handleSelectComplaint} />
+        {currentScreen === 'work-orders' && (
+          <WorkOrders onSelectComplaint={handleSelectComplaint} />
         )}
       </main>
 

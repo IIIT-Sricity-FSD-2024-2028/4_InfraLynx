@@ -9,13 +9,22 @@
 
 import express from 'express';
 import {
-  getPendingApprovals,
-  processApproval,
   getStaff,
   createStaff,
+  updateStaff,
   updateStaffStatus,
-  getAnalytics,
+  getDashboard,
 } from '../controllers/deptHeadController.js';
+import {
+  getPendingApprovals,
+  getApprovalDetails,
+  processApproval,
+} from '../controllers/approvalController.js';
+import {
+  getWorkOrders,
+  getWorkOrderDetails,
+  escalateWorkOrder,
+} from '../controllers/deptHeadWorkOrderController.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -39,13 +48,25 @@ router.get(
 );
 
 /**
- * @route  POST /api/v1/dept-head/approvals/:id
+ * @route  GET /api/v1/dept-head/approvals/:id
+ * @desc   Fetch estimate details
+ * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
+ */
+router.get(
+  '/approvals/:id',
+  authenticate,
+  requireRole(...DEPT_HEAD_ROLES),
+  getApprovalDetails
+);
+
+/**
+ * @route  POST /api/v1/dept-head/approvals/:id/decision
  * @desc   Authorize estimate or request contractor revision
- * @body   { action: 'APPROVE' | 'REQUEST_REVISION', notes?: string }
+ * @body   { action: 'APPROVE' | 'REQUEST_REVISION' | 'FORWARD_TO_COO', notes?: string }
  * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
  */
 router.post(
-  '/approvals/:id',
+  '/approvals/:id/decision',
   authenticate,
   requireRole(...DEPT_HEAD_ROLES),
   processApproval
@@ -81,6 +102,19 @@ router.post(
 );
 
 /**
+ * @route  PATCH /api/v1/dept-head/staff/:id
+ * @desc   Update employee details
+ * @body   { name, email, phone }
+ * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
+ */
+router.patch(
+  '/staff/:id',
+  authenticate,
+  requireRole(...DEPT_HEAD_ROLES),
+  updateStaff
+);
+
+/**
  * @route  PATCH /api/v1/dept-head/staff/:id/status
  * @desc   Activate or Suspend employee access
  * @body   { status: 'ACTIVE' | 'SUSPENDED' }
@@ -94,19 +128,60 @@ router.patch(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. Department Analytics
+// 3. Department Analytics / Dashboard
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * @route  GET /api/v1/dept-head/analytics
- * @desc   Department expenditure, total tickets, and contractor telemetry
+ * @route  GET /api/v1/dept-head/dashboard
+ * @desc   Dashboard statistics
  * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
  */
 router.get(
-  '/analytics',
+  '/dashboard',
   authenticate,
   requireRole(...DEPT_HEAD_ROLES),
-  getAnalytics
+  getDashboard
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. Work Order Management
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @route  GET /api/v1/dept-head/work-orders
+ * @desc   List and filter work orders
+ * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
+ */
+router.get(
+  '/work-orders',
+  authenticate,
+  requireRole(...DEPT_HEAD_ROLES),
+  getWorkOrders
+);
+
+/**
+ * @route  GET /api/v1/dept-head/work-orders/:id
+ * @desc   Work order details
+ * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
+ */
+router.get(
+  '/work-orders/:id',
+  authenticate,
+  requireRole(...DEPT_HEAD_ROLES),
+  getWorkOrderDetails
+);
+
+/**
+ * @route  POST /api/v1/dept-head/work-orders/:id/escalate
+ * @desc   Escalate delayed work
+ * @body   { reason: string }
+ * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
+ */
+router.post(
+  '/work-orders/:id/escalate',
+  authenticate,
+  requireRole(...DEPT_HEAD_ROLES),
+  escalateWorkOrder
 );
 
 export default router;
