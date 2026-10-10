@@ -2,253 +2,16 @@
  * deptHeadController.js — TIMS Department Head Backend (Member 4)
  *
  * Responsibilities:
- *   1. Approvals Queue   — Review estimates > ₹10,000 awaiting department sign-off
- *   2. Process Approval   — Approve estimate (ASSIGNED) or request contractor revision
- *   3. Staff Management   — List department clerks, create Desk Clerk (role locked), activate/suspend
- *   4. Department Analytics — Track expenditure, tickets, contractor performance & SLA health
+ *   1. Staff Management   — List department clerks, create Desk Clerk (role locked), activate/suspend
+ *   2. Department Analytics — Track expenditure, tickets, contractor performance & SLA health
  */
 
 import db from '../config/db.js';
 import { AppError } from '../middleware/error.js';
 import { hashPassword } from '../utils/auth.js';
-import { canApproveWorkOrder } from '../services/approvalService.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. Approvals Queue & Processing
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * @desc   Get pending estimate approvals awaiting Department Head sign-off
- * @route  GET /api/v1/dept-head/approvals
- * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
- */
-export const getPendingApprovals = async (req, res, next) => {
-  try {
-    const townshipId = req.user.townshipId;
-    const userDeptId = req.user.deptId || req.user.department_id;
-
-    // Fetch work orders requiring Dept Head sign-off
-    const pendingWOs = db.findAll('work_orders', (wo) => {
-      const matchTownship = !townshipId || wo.township_id === townshipId;
-      const awaiting = wo.status === 'AWAITING_DEPT_HEAD' || wo.requires_dept_head === true;
-      return matchTownship && awaiting && wo.status !== 'ASSIGNED' && wo.status !== 'COMPLETED';
-    });
-
-    // Enrich with complaint and contractor context
-    const enriched = pendingWOs.map((wo) => {
-      const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
-      const contractor = wo.contractor_id
-        ? db.findOne('contractors', (cnt) => cnt.id === wo.contractor_id)
-        : null;
-
-      return {
-        id: wo.id,
-        workOrderCode: wo.work_order_code,
-        complaintId: wo.complaint_id,
-        title: complaint?.title || 'Infrastructure Remediation',
-        category: complaint?.category || 'General',
-        severity: complaint?.severity || wo.priority || 'Medium',
-        status: wo.status,
-        estimateAmount: wo.estimate_amount,
-        lineItems: wo.line_items || [],
-        specialInstructions: wo.special_instructions,
-        slaDeadline: complaint?.slaDeadline || wo.sla_deadline,
-        createdAt: wo.created_at,
-        complaint: complaint
-          ? {
-              id: complaint.id,
-              complaintCode: complaint.complaint_code,
-              description: complaint.description,
-              location: complaint.location || { sector: complaint.sector },
-              reportedBy: complaint.reportedBy || { name: 'Citizen Representative' },
-            }
-          : null,
-        contractor: contractor
-          ? {
-              id: contractor.id,
-              name: contractor.company_name,
-              contactPerson: contractor.contact_person,
-              phone: contractor.phone,
-              email: contractor.email,
-            }
-          : null,
-      };
-    });
-
-    // Also include any complaints directly in AWAITING_DEPT_HEAD status without WO object yet
-    const rawComplaints = db.findAll('complaints', (c) => {
-      const matchTownship = !townshipId || c.township_id === townshipId;
-      const alreadyInWO = pendingWOs.some((w) => w.complaint_id === c.id);
-      return matchTownship && c.status === 'AWAITING_DEPT_HEAD' && !alreadyInWO;
-    });
-
-    for (const c of rawComplaints) {
-      enriched.push({
-        id: `virtual-wo-${c.id}`,
-        workOrderCode: c.workOrderId || `WO-PENDING-${c.id.slice(-4)}`,
-        complaintId: c.id,
-        title: c.title,
-        category: c.category,
-        severity: c.severity,
-        status: 'AWAITING_DEPT_HEAD',
-        estimateAmount: c.estimateAmount || 14500,
-        lineItems: [],
-        slaDeadline: c.slaDeadline,
-        createdAt: c.createdAt || c.created_at,
-        complaint: c,
-        contractor: c.assignedContractor || null,
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      count: enriched.length,
-      data: enriched,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-/**
- * @desc   Approve estimate or request revision
- * @route  POST /api/v1/dept-head/approvals/:id
- * @body   { action: 'APPROVE' | 'REQUEST_REVISION', notes?: string }
- * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
- */
-export const processApproval = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { action = 'APPROVE', notes } = req.body;
-
-    const normalizedAction = (action || '').toUpperCase();
-    if (!['APPROVE', 'REQUEST_REVISION'].includes(normalizedAction)) {
-      return next(
-        new AppError("Action must be either 'APPROVE' or 'REQUEST_REVISION'.", 400, 'VALIDATION_ERROR')
-      );
-    }
-
-    // Try finding work order or complaint
-    let wo = db.findOne(
-      'work_orders',
-      (w) => w.id === id || w.work_order_code === id || w.complaint_id === id
-    );
-
-    let complaint = null;
-    if (wo) {
-      complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
-    } else {
-      complaint = db.findOne(
-        'complaints',
-        (c) => c.id === id || c.complaint_code === id || c.workOrderId === id
-      );
-    }
-
-    if (!wo && !complaint) {
-      return next(new AppError(`Record '${id}' not found for approval.`, 404, 'NOT_FOUND'));
-    }
-
-    const now = new Date().toISOString();
-    const actorName = req.user.name || 'Department Head';
-
-    if (normalizedAction === 'APPROVE') {
-      const targetStatus = 'ASSIGNED';
-      const historyNote = `Estimate approved by Department Head ${actorName}. Work Order assigned for contractor dispatch. ${notes ? `Notes: "${notes}"` : ''}`;
-
-      if (wo) {
-        wo = db.update('work_orders', wo.id, {
-          status: targetStatus,
-          approved_by_id: req.user.id,
-          approved_by_name: actorName,
-          approved_at: now,
-          approval_notes: notes || null,
-        });
-      }
-
-      if (complaint) {
-        complaint = db.update('complaints', complaint.id, {
-          status: targetStatus,
-          history: [
-            ...(complaint.history || []),
-            { stage: targetStatus, timestamp: now, actor: actorName, note: historyNote },
-          ],
-        });
-      }
-
-      db.logAudit({
-        township_id: req.user.townshipId || complaint?.township_id || wo?.township_id,
-        entity_type: 'WORK_ORDER',
-        entity_id: wo?.id || complaint?.id,
-        actor_id: req.user.id,
-        actor_role: req.user.role,
-        action: 'DEPT_HEAD_APPROVED',
-        from_state: 'AWAITING_DEPT_HEAD',
-        to_state: targetStatus,
-        notes: historyNote,
-      });
-
-      return res.status(200).json({
-        success: true,
-        message: `Estimate approved successfully. Ticket transitioned to ${targetStatus}.`,
-        data: {
-          workOrder: wo,
-          complaint,
-        },
-      });
-    }
-
-    if (normalizedAction === 'REQUEST_REVISION') {
-      const targetStatus = 'REVISION_REQUESTED';
-      const revisionReason = notes || 'Estimate rates or quantities require re-evaluation against ground inspection.';
-      const historyNote = `Revision Requested by Department Head ${actorName}: "${revisionReason}"`;
-
-      if (wo) {
-        wo = db.update('work_orders', wo.id, {
-          status: targetStatus,
-          revision_notes: revisionReason,
-          revision_requested_at: now,
-          revision_requested_by: actorName,
-        });
-      }
-
-      if (complaint) {
-        complaint = db.update('complaints', complaint.id, {
-          status: targetStatus,
-          history: [
-            ...(complaint.history || []),
-            { stage: targetStatus, timestamp: now, actor: actorName, note: historyNote },
-          ],
-        });
-      }
-
-      db.logAudit({
-        township_id: req.user.townshipId || complaint?.township_id || wo?.township_id,
-        entity_type: 'WORK_ORDER',
-        entity_id: wo?.id || complaint?.id,
-        actor_id: req.user.id,
-        actor_role: req.user.role,
-        action: 'REVISION_REQUESTED',
-        from_state: 'AWAITING_DEPT_HEAD',
-        to_state: targetStatus,
-        notes: historyNote,
-      });
-
-      return res.status(200).json({
-        success: true,
-        message: `Revision requested. Returned to Desk Clerk and Contractor.`,
-        data: {
-          workOrder: wo,
-          complaint,
-        },
-      });
-    }
-  } catch (err) {
-    next(err);
-  }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. Staff Management (Employees & Desk Clerks)
+// 1. Staff Management (Employees & Desk Clerks)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -377,6 +140,64 @@ export const createStaff = async (req, res, next) => {
 };
 
 /**
+ * @desc   Update employee details
+ * @route  PATCH /api/v1/dept-head/staff/:id
+ * @body   { name, email, phone }
+ * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
+ */
+export const updateStaff = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { name, email, phone } = req.body;
+
+    const employee = db.findById('users', id);
+    if (!employee) {
+      return next(new AppError(`Employee '${id}' not found.`, 404, 'NOT_FOUND'));
+    }
+
+    if (employee.role !== 'DESK_CLERK') {
+      return next(new AppError('Only Desk Clerk employees can be managed here.', 403, 'FORBIDDEN'));
+    }
+
+    if (employee.township_id !== req.user.townshipId) {
+       return next(new AppError('Cannot update employee from different township.', 403, 'FORBIDDEN'));
+    }
+    const userDeptId = req.user.deptId || req.user.department_id;
+    if (userDeptId && employee.department_id !== userDeptId) {
+       return next(new AppError('Cannot update employee from different department.', 403, 'FORBIDDEN'));
+    }
+
+    const updates = {};
+    if (name) updates.name = name.trim();
+    if (email) updates.email = email.trim().toLowerCase();
+    if (phone) updates.phone = phone.trim();
+
+    if (email && email.toLowerCase() !== employee.email.toLowerCase()) {
+      const existing = db.findOne('users', (u) => u.email.toLowerCase() === email.toLowerCase());
+      if (existing) {
+        return next(new AppError('A user with this email already exists.', 409, 'CONFLICT'));
+      }
+    }
+
+    const updated = db.update('users', id, updates);
+
+    res.status(200).json({
+      success: true,
+      message: `Employee ${updated.name} updated successfully.`,
+      data: {
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        phone: updated.phone,
+        status: updated.status,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
  * @desc   Toggle employee status (ACTIVE <-> SUSPENDED)
  * @route  PATCH /api/v1/dept-head/staff/:id/status
  * @body   { status: 'ACTIVE' | 'SUSPENDED' }
@@ -431,15 +252,15 @@ export const updateStaffStatus = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. Department Analytics & Performance
+// 2. Department Analytics & Performance
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * @desc   Department performance, expenditure, and contractor analytics
- * @route  GET /api/v1/dept-head/analytics
+ * @route  GET /api/v1/dept-head/dashboard
  * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
  */
-export const getAnalytics = async (req, res, next) => {
+export const getDashboard = async (req, res, next) => {
   try {
     const townshipId = req.user.townshipId;
 
@@ -452,57 +273,38 @@ export const getAnalytics = async (req, res, next) => {
     });
 
     const totalComplaints = complaints.length;
+    const pendingComplaints = complaints.filter(c => ['NEW', 'OPEN', 'REOPENED'].includes(c.status)).length;
     const pendingApprovals = workOrders.filter((w) => w.status === 'AWAITING_DEPT_HEAD').length;
-    const completedWork = complaints.filter((c) => c.status === 'CLOSED' || c.status === 'COMPLETED').length;
-    const inProgressWork = complaints.filter(
-      (c) => c.status === 'IN_PROGRESS' || c.status === 'ASSIGNED'
+    const completedWorkOrders = workOrders.filter((w) => w.status === 'COMPLETED' || w.status === 'CLOSED').length;
+    const activeWorkOrders = workOrders.filter(
+      (w) => ['ASSIGNED', 'IN_PROGRESS'].includes(w.status)
     ).length;
+    const overdueWorkOrders = workOrders.filter((w) => {
+      if (!w.sla_deadline) return false;
+      return new Date(w.sla_deadline) < new Date() && w.status !== 'COMPLETED' && w.status !== 'CLOSED';
+    }).length;
 
     // Calculate total sanctioned expenditure from work orders
     const totalExpenditure = workOrders.reduce((sum, wo) => {
       return sum + (Number(wo.estimate_amount) || 0);
     }, 0);
 
-    // Contractor summary
-    const contractors = db.findAll('contractors', (c) => !townshipId || c.township_id === townshipId);
-    const contractorMetrics = contractors.map((cnt) => {
-      const assignedWOs = workOrders.filter((w) => w.contractor_id === cnt.id);
-      const totalAmount = assignedWOs.reduce((acc, w) => acc + (Number(w.estimate_amount) || 0), 0);
-      return {
-        id: cnt.id,
-        name: cnt.company_name,
-        contactPerson: cnt.contact_person,
-        assignedJobs: assignedWOs.length,
-        totalBilled: totalAmount,
-        slaCompliance: '97.2%',
-        status: cnt.status,
-      };
-    });
-
     res.status(200).json({
       success: true,
       data: {
         summary: {
           totalComplaints,
+          pendingComplaints,
           pendingApprovals,
-          inProgressWork,
-          completedWork,
+          activeWorkOrders,
+          completedWorkOrders,
+          overdueWorkOrders,
           totalExpenditure,
           averageSlaCompliance: '96.8%',
-        },
-        contractors: contractorMetrics,
+        }
       },
     });
   } catch (err) {
     next(err);
   }
-};
-
-export default {
-  getPendingApprovals,
-  processApproval,
-  getStaff,
-  createStaff,
-  updateStaffStatus,
-  getAnalytics,
 };

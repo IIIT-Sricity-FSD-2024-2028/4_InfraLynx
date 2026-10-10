@@ -343,15 +343,45 @@ export const clerkApi = {
  * Department Head API Service (Member 4)
  */
 export const deptHeadApi = {
+  async getDashboard() {
+    const res = await apiRequest('/dept-head/dashboard');
+    return res.data || {};
+  },
+
   async getApprovals() {
     const res = await apiRequest('/dept-head/approvals');
     return res.data || [];
   },
 
+  async getApprovalDetails(id) {
+    const res = await apiRequest(`/dept-head/approvals/${id}`);
+    return res.data || {};
+  },
+
   async processApproval(id, { action = 'APPROVE', notes = '' } = {}) {
-    const res = await apiRequest(`/dept-head/approvals/${id}`, {
+    const res = await apiRequest(`/dept-head/approvals/${id}/decision`, {
       method: 'POST',
       body: JSON.stringify({ action, notes }),
+    });
+    return res.data;
+  },
+
+  async getWorkOrders(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = `/dept-head/work-orders${query ? `?${query}` : ''}`;
+    const res = await apiRequest(endpoint);
+    return res.data || [];
+  },
+
+  async getWorkOrderById(id) {
+    const res = await apiRequest(`/dept-head/work-orders/${id}`);
+    return res.data;
+  },
+
+  async escalateWorkOrder(id, reason) {
+    const res = await apiRequest(`/dept-head/work-orders/${id}/escalate`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
     });
     return res.data;
   },
@@ -369,17 +399,20 @@ export const deptHeadApi = {
     return res.data;
   },
 
+  async updateStaff(id, payload) {
+    const res = await apiRequest(`/dept-head/staff/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
   async updateStaffStatus(id, status) {
     const res = await apiRequest(`/dept-head/staff/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     });
     return res.data;
-  },
-
-  async getAnalytics() {
-    const res = await apiRequest('/dept-head/analytics');
-    return res.data || {};
   },
 };
 
