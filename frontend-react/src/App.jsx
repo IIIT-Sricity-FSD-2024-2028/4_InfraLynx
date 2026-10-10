@@ -14,6 +14,7 @@ import FinancePortal from './pages/finance/index.jsx'
 import ClerkPortal from './pages/clerk/index.jsx'
 import DeptHeadPortal from './pages/depthead/index.jsx'
 import ContractorPortal from './pages/contractor/index.jsx'
+import CooPortal from './pages/coo/CooPortal.jsx'
 
 /**
  * Route mapper: maps URL pathname / query to internal portal keys
@@ -25,6 +26,7 @@ function getPortalFromLocation() {
   if (path === 'clerk') return 'clerk'
   if (path === 'dept-head' || path === 'dept_head' || path === 'depthead') return 'dept_head'
   if (path === 'contractor') return 'contractor'
+  if (path === 'coo') return 'coo'
 
   // Also check query param ?portal=xxx or hash #/xxx
   const searchParams = new URLSearchParams(window.location.search)
@@ -32,7 +34,7 @@ function getPortalFromLocation() {
   if (portalParam) return portalParam.toLowerCase()
 
   const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase()
-  if (['rwa', 'finance', 'clerk', 'dept_head', 'contractor'].includes(hash)) return hash
+  if (['rwa', 'finance', 'clerk', 'dept_head', 'contractor', 'coo'].includes(hash)) return hash
 
   return 'landing'
 }
@@ -87,6 +89,7 @@ function AppContent() {
       clerk: ['DESK_CLERK', 'TOWNSHIP_COO'],
       dept_head: ['DEPARTMENT_HEAD', 'TOWNSHIP_COO'],
       contractor: ['FIELD_CONTRACTOR', 'TOWNSHIP_COO'],
+      coo: ['TOWNSHIP_COO'],
     }
 
     const permittedRoles = portalRoleMap[targetPortal] || []
@@ -138,6 +141,7 @@ function AppContent() {
     else if (r === 'clerk' || r === 'desk_clerk') target = 'clerk'
     else if (r === 'dept_head' || r === 'department_head') target = 'dept_head'
     else if (r === 'contractor' || r === 'field_contractor') target = 'contractor'
+    else if (r === 'coo' || r === 'township_coo') target = 'coo'
 
     setViewMode(target)
     updateUrlForPortal(target)
@@ -211,6 +215,10 @@ function AppContent() {
         <ContractorPortal onExitToLanding={handleSecureLogout} />
       )}
 
+      {viewMode === 'coo' && (
+        <CooPortal onExitToLanding={handleSecureLogout} />
+      )}
+
       {viewMode === 'landing' && (
         <div className="page-shell" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
           <Nav
@@ -220,6 +228,7 @@ function AppContent() {
             onGoToPortal={() => {
               if (currentUser) {
                 const target =
+                  currentUser.role === 'TOWNSHIP_COO' ? 'coo' :
                   currentUser.role === 'FINANCE_CLERK' ? 'finance' :
                   currentUser.role === 'DESK_CLERK' ? 'clerk' :
                   currentUser.role === 'DEPARTMENT_HEAD' ? 'dept_head' :

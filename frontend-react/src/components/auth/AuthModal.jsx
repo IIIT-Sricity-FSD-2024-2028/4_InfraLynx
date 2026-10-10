@@ -9,15 +9,15 @@ function mapRoleToPortal(role, email = '') {
   if (r === 'FIELD_CONTRACTOR') return 'contractor'
   if (r === 'FINANCE_CLERK') return 'finance'
   if (r === 'RWA') return 'rwa'
-  if (r === 'TOWNSHIP_COO') return 'dept_head'
+  if (r === 'TOWNSHIP_COO') return 'coo'
 
   // Intelligent fallback from email pattern
   const em = (email || '').toLowerCase()
   if (em.includes('clerk') || em.includes('pooja')) return 'clerk'
+  if (em.includes('coo') || em.includes('dewan')) return 'coo'
   if (em.includes('head') || em.includes('sandeep') || em.includes('dept')) return 'dept_head'
   if (em.includes('contractor') || em.includes('vikram') || em.includes('voltech') || em.includes('apex')) return 'contractor'
   if (em.includes('finance') || em.includes('sunil')) return 'finance'
-  if (em.includes('coo')) return 'dept_head'
   return 'rwa'
 }
 
@@ -28,11 +28,12 @@ function getPortalTitle(portalKey) {
     case 'contractor': return 'Contractor Management'
     case 'finance': return 'Finance & Audit Console'
     case 'rwa': return 'RWA Representative Portal'
+    case 'coo': return 'Township COO Directorate'
     default: return 'Township Portal'
   }
 }
 
-export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
+export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess }) {
   const { login, setCurrentUser, backendStatus } = useTIMS()
   const [formData, setFormData] = useState({
     email: 'rwa@infralynx.com',
@@ -48,7 +49,18 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
     setErrorMsg(null)
     setSubmitted(false)
     setLoading(false)
-  }, [isOpen])
+
+    if (initialRole) {
+      const r = initialRole.toLowerCase()
+      let email = 'rwa@infralynx.com'
+      if (r === 'coo') email = 'coo@infralynx.com'
+      else if (r === 'finance') email = 'finance@infralynx.com'
+      else if (r === 'clerk') email = 'clerk@infralynx.com'
+      else if (r === 'dept_head' || r === 'depthead') email = 'head@infralynx.com'
+      else if (r === 'contractor') email = 'contractor@infralynx.com'
+      setFormData({ email, password: 'Password@123' })
+    }
+  }, [isOpen, initialRole])
 
   useEffect(() => {
     function handleKeyDown(e) {
@@ -237,6 +249,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
                       { label: 'Dept Head', email: 'head@infralynx.com' },
                       { label: 'Contractor', email: 'contractor@infralynx.com' },
                       { label: 'Finance', email: 'finance@infralynx.com' },
+                      { label: 'Township COO', email: 'coo@infralynx.com' },
                     ].map((acc) => (
                       <button
                         key={acc.label}
