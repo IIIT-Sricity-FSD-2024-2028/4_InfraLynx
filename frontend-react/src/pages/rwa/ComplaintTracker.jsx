@@ -2,11 +2,11 @@ import { useMemo } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 import './styles/ComplaintTracker.css'
 
-const STATUS_CONFIG = {
+const getStatusConfig = (userName = 'Dr. Arvind Swaminathan') => ({
   PENDING_VERIFICATION: {
     label: 'Pending Verification',
     badgeClass: 'status-pending-verification',
-    desc: 'Contractor has submitted work completion proof. Awaiting RWA on-site inspection and sign-off.',
+    desc: `Contractor has submitted work completion proof. Awaiting on-site inspection and sign-off by ${userName} (RWA Secretary).`,
   },
   REPORTED: {
     label: 'Reported',
@@ -46,17 +46,30 @@ const STATUS_CONFIG = {
   CLOSED: {
     label: 'Closed',
     badgeClass: 'status-closed',
-    desc: 'Work verified and approved by RWA. Ticket officially closed.',
+    desc: `Work verified and approved on ground by ${userName}. Ticket officially closed.`,
   },
   DISPUTED: {
     label: 'Disputed',
     badgeClass: 'status-disputed',
     desc: 'Work rejected during verification. Routed back to contractor for mandatory rework.',
   },
-}
+})
 
-export default function ComplaintTracker({ selectedComplaint, onNavigate, onSelectComplaint }) {
-  const { complaints } = useTIMS()
+export default function ComplaintTracker({
+  complaints: propComplaints,
+  selectedComplaint,
+  currentUser: propUser,
+  onNavigate,
+  onSelectComplaint,
+}) {
+  const { complaints: contextComplaints, currentUser: contextUser } = useTIMS()
+  const complaints = propComplaints ?? contextComplaints ?? []
+  const currentUser = propUser || contextUser || {
+    name: 'Dr. Arvind Swaminathan',
+    role: 'RWA',
+    title: 'RWA Secretary',
+    sector: 'Sector 54',
+  }
 
   // Fallback to first complaint if none selected
   const activeComplaint = useMemo(() => {
@@ -91,9 +104,10 @@ export default function ComplaintTracker({ selectedComplaint, onNavigate, onSele
     )
   }
 
+  const statusConfig = getStatusConfig(currentUser?.name || 'Dr. Arvind Swaminathan')
   const prioClass = (activeComplaint.severity || '').toLowerCase() === 'emergency' ? 'emergency' : 'high'
   const normStatusKey = (activeComplaint.status || 'REPORTED').toUpperCase().replace(/[\s-]+/g, '_')
-  const statusMeta = STATUS_CONFIG[normStatusKey] || {
+  const statusMeta = statusConfig[normStatusKey] || {
     label: activeComplaint.status.replace(/_/g, ' '),
     badgeClass: 'status-reported',
     desc: `Current status is ${activeComplaint.status.replace(/_/g, ' ')}.`,
@@ -131,11 +145,15 @@ export default function ComplaintTracker({ selectedComplaint, onNavigate, onSele
             }}
             className="switcher-select"
           >
-            {complaints.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.id} - {c.category} ({c.status})
-              </option>
-            ))}
+            {complaints.map((c) => {
+              const ticketId = c.complaint_code || c.id
+              const ticketTitle = c.title || `${c.category} (${c.status})`
+              return (
+                <option key={c.id} value={c.id}>
+                  {ticketId} — {ticketTitle}
+                </option>
+              )
+            })}
           </select>
         </div>
       </div>
@@ -165,7 +183,7 @@ export default function ComplaintTracker({ selectedComplaint, onNavigate, onSele
         <div className="tracker-banner-closed">
           <span style={{ fontSize: 20 }}>✅</span>
           <div>
-            <strong>Issue Officially Closed & Verified</strong> — Signed off by {activeComplaint.verification?.verifiedBy || 'RWA'} with {activeComplaint.verification?.rating || 5}/5 rating.
+            <strong>Issue Officially Closed & Verified</strong> — Signed off by {activeComplaint.verification?.verifiedBy || `${currentUser?.name || 'Dr. Arvind Swaminathan'} (${currentUser?.title || 'RWA Secretary'})`} with {activeComplaint.verification?.rating || 5}/5 rating.
           </div>
         </div>
       )}
