@@ -38,13 +38,6 @@ const CATEGORY_DATA = {
   },
 }
 
-const SEVERITY_LEVELS = [
-  { id: 'Low', label: 'Low', sla: '72h SLA', desc: 'Cosmetic or minor inconvenience', color: '#16a34a' },
-  { id: 'Medium', label: 'Medium', sla: '48h SLA', desc: 'Standard non-hazardous repair', color: '#2563eb' },
-  { id: 'High', label: 'High', sla: '24h SLA', desc: 'Safety hazard or essential service disrupted', color: '#ea580c' },
-  { id: 'Emergency', label: 'Emergency', sla: '6h SLA', desc: 'Immediate danger, flood, or fire risk', color: '#dc2626' },
-]
-
 export default function ReportIssue({
   onNavigate,
   onSelectComplaint,
@@ -70,7 +63,6 @@ export default function ReportIssue({
   const [street, setStreet] = useState('Gulmohar Marg')
   const [assetName, setAssetName] = useState(CATEGORY_DATA.Civil.subcategories[0].defaultAsset)
   const [landmark, setLandmark] = useState('')
-  const [severity, setSeverity] = useState('Medium')
   const [description, setDescription] = useState('')
   const [photos, setPhotos] = useState([])
 
@@ -128,7 +120,6 @@ export default function ReportIssue({
           landmark: landmark.trim() || `Near ${block} entrance`,
           gps: '28.5355° N, 77.3910° E',
         },
-        severity,
         description,
         photos,
       })
@@ -296,45 +287,10 @@ export default function ReportIssue({
           </div>
         </div>
 
-        {/* Step 4: Severity & SLA */}
+        {/* Step 4: Description */}
         <div>
           <label className="form-label">
-            4. Severity Level & Contractual SLA <span className="form-required">*</span>
-          </label>
-          <div className="severity-grid">
-            {SEVERITY_LEVELS.map((lvl) => {
-              const isSelected = severity === lvl.id
-              return (
-                <div
-                  key={lvl.id}
-                  onClick={() => setSeverity(lvl.id)}
-                  className="severity-card"
-                  style={{
-                    borderColor: isSelected ? lvl.color : undefined,
-                    borderWidth: isSelected ? '2px' : undefined,
-                  }}
-                >
-                  <div className="severity-top">
-                    <span style={{ fontWeight: 700, fontSize: 14, color: lvl.color }}>
-                      {lvl.label}
-                    </span>
-                    <span className="severity-badge-sla">
-                      {lvl.sla}
-                    </span>
-                  </div>
-                  <span className="severity-desc">
-                    {lvl.desc}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Step 5: Description */}
-        <div>
-          <label className="form-label">
-            5. Detailed Description & Citizen Observation <span className="form-required">*</span>
+            4. Detailed Description & Citizen Observation <span className="form-required">*</span>
           </label>
           <textarea
             rows={4}
@@ -345,11 +301,11 @@ export default function ReportIssue({
           />
         </div>
 
-        {/* Step 6: Photo Upload using useRef */}
+        {/* Step 5: Photo Upload using useRef */}
         <div>
           <div className="upload-header">
             <label className="form-label" style={{ marginBottom: 0 }}>
-              6. Photographic Evidence (Site Condition)
+              5. Photographic Evidence (Site Condition)
             </label>
           </div>
 
