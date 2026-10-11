@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 import ClerkDashboard from './ClerkDashboard.jsx'
 import TriageValidation from './TriageValidation.jsx'
@@ -7,23 +7,30 @@ import ClerkTracker from './ClerkTracker.jsx'
 import './styles/ClerkPortal.css'
 
 /**
- * ClerkPortal - Shell / layout component for the Desk Clerk module.
- * Mirrors RwaPortal.jsx: sticky header + amber role badge + tab nav + main content.
- *
- * Props:
- *   onExitToLanding   - () => void   go back to the landing page
- *
- * State:
- *   currentScreen     - 'dashboard' | 'triage' | 'workorder' | 'tracker'
- *   selectedComplaint - the complaint object currently being worked on
- *   successNotice     - { id, message } toast shown after WO dispatch
- *
- * Child callbacks (passed as props to child screens):
- *   onNavigate(screen)            - switch active screen + scroll to top
- *   onSelectComplaint(complaint)  - store selected complaint in portal state
- *   onWorkOrderCreated(complaint) - called by WorkOrderCreate after dispatch
- *   onDismissNotice()             - called by ClerkDashboard to clear toast
+ * Helper to determine if a complaint belongs to the clerk's department.
  */
+function isComplaintInClerkDepartment(complaint, user) {
+  if (!user || user.role !== 'DESK_CLERK') return true
+  const deptId = user.departmentId || user.department_id || user.deptId
+  const deptName = (user.departmentName || user.department_name || user.department || '').toLowerCase()
+  if (!deptId && !deptName) return true
+
+  const cDeptId = complaint.departmentId || complaint.department_id
+  if (deptId && cDeptId && String(cDeptId) === String(deptId)) return true
+
+  const cCat = (complaint.category || complaint.departmentName || complaint.department || '').toLowerCase()
+  if (deptName && cCat) {
+    if (deptName.includes(cCat) || cCat.includes(deptName)) return true
+    if (deptName.includes('electr') && cCat.includes('electr')) return true
+    if (deptName.includes('water') && (cCat.includes('water') || cCat.includes('sanitat') || cCat.includes('plumb') || cCat.includes('drain'))) return true
+    if (deptName.includes('civil') && (cCat.includes('civil') || cCat.includes('road'))) return true
+    if (deptName.includes('horticult') && (cCat.includes('horticult') || cCat.includes('garden'))) return true
+  }
+
+  if (deptId && cDeptId) return String(cDeptId) === String(deptId)
+  return false
+}
+
 export default function ClerkPortal({ onExitToLanding }) {
   const { complaints, currentUser } = useTIMS()
 
@@ -31,9 +38,14 @@ export default function ClerkPortal({ onExitToLanding }) {
   const [selectedComplaint, setSelectedComplaint] = useState(null)
   const [successNotice, setSuccessNotice]         = useState(null)
 
+  // Filter complaints strictly by the Clerk's department
+  const departmentComplaints = useMemo(() => {
+    return complaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
+  }, [complaints, currentUser])
+
   // Badge counts for tabs
-  const pendingTriageCount    = complaints.filter(c => c.status === 'REPORTED' || c.status === 'UNDER_REVIEW').length
-  const awaitingDeptHeadCount = complaints.filter(c => c.status === 'AWAITING_DEPT_HEAD').length
+  const pendingTriageCount    = departmentComplaints.filter(c => c.status === 'REPORTED' || c.status === 'UNDER_REVIEW').length
+  const awaitingDeptHeadCount = departmentComplaints.filter(c => c.status === 'AWAITING_DEPT_HEAD').length
 
   function handleNavigate(screen) {
     setCurrentScreen(screen)
@@ -44,20 +56,19 @@ export default function ClerkPortal({ onExitToLanding }) {
     setSelectedComplaint(complaint)
   }
 
-  // Called by WorkOrderCreate once WO is dispatched or forwarded to Dept Head
+  // Called by WorkOrderCreate once WO is dispatched
   function handleWorkOrderCreated(complaint) {
     setSelectedComplaint(complaint)
     const woId       = complaint.workOrderId || ''
     const contractor = complaint.assignedContractor ? complaint.assignedContractor.name : 'contractor'
-    const isDeptHead = complaint.status === 'AWAITING_DEPT_HEAD'
     setSuccessNotice({
       id: complaint.id,
-      message: isDeptHead
-        ? `Work order for "${complaint.title}" forwarded to Dept Head (estimate exceeds Rs.10,000 threshold).`
-        : `Work Order ${woId} dispatched to ${contractor} for "${complaint.title}" (${complaint.id}).`,
+      message: `Work Order ${woId} assigned & dispatched to ${contractor} for "${complaint.title}" (${complaint.id}).`,
     })
     handleNavigate('dashboard')
   }
+
+  const deptDisplay = currentUser?.departmentName || currentUser?.department_name || currentUser?.department || 'Operations'
 
   return (
     <div className="clerk-shell">
@@ -77,15 +88,15 @@ export default function ClerkPortal({ onExitToLanding }) {
             </div>
             <div className="clerk-role-badge">
               <span className="clerk-role-dot" />
-              Desk Clerk
+              Desk Clerk &bull; {deptDisplay}
             </div>
           </div>
 
           {/* User info + action buttons */}
           <div className="clerk-user-actions">
             <div className="clerk-user-badge">
-              <div className="clerk-user-name">{currentUser.name}</div>
-              <div className="clerk-user-role">{currentUser.role === 'DESK_CLERK' ? 'Desk Clerk' : (currentUser.role || 'Desk Clerk')}</div>
+              <div className="clerk-user-name">{currentUser?.name}</div>
+              <div className="clerk-user-role">{deptDisplay} Desk</div>
             </div>
             {onExitToLanding && (
               <button onClick={onExitToLanding} className="clerk-btn-exit">
@@ -121,6 +132,7 @@ export default function ClerkPortal({ onExitToLanding }) {
       <main className="clerk-main-container">
         {currentScreen === 'dashboard' && (
           <ClerkDashboard
+            complaints={departmentComplaints}
             onNavigate={handleNavigate}
             onSelectComplaint={handleSelectComplaint}
             successNotice={successNotice}
@@ -129,6 +141,7 @@ export default function ClerkPortal({ onExitToLanding }) {
         )}
         {currentScreen === 'triage' && (
           <TriageValidation
+            complaints={departmentComplaints}
             selectedComplaint={selectedComplaint}
             onNavigate={handleNavigate}
             onSelectComplaint={handleSelectComplaint}
@@ -143,6 +156,7 @@ export default function ClerkPortal({ onExitToLanding }) {
         )}
         {currentScreen === 'tracker' && (
           <ClerkTracker
+            complaints={departmentComplaints}
             selectedComplaint={selectedComplaint}
             onNavigate={handleNavigate}
             onSelectComplaint={handleSelectComplaint}

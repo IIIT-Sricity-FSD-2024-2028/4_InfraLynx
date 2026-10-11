@@ -152,8 +152,13 @@ export const getTriageQueue = async (req, res, next) => {
   try {
     const { department_id, department, severity, search, township_id } = req.query;
 
-    const targetTownshipId = township_id || req.user.township_id;
-    const targetDeptId = department_id || (req.user.department_id ? req.user.department_id : null);
+    const targetTownshipId = township_id || req.user.townshipId || req.user.township_id;
+    const clerkDeptId = req.user.departmentId || req.user.department_id || req.user.deptId;
+    
+    // A desk clerk should only see the complaints that are under their department
+    const targetDeptId = (req.user.role === 'DESK_CLERK' && clerkDeptId)
+      ? clerkDeptId
+      : (department_id || clerkDeptId || null);
 
     // 1. Fetch complaints in queue (REPORTED or UNDER_REVIEW)
     let complaints = db.find('complaints', (c) => {
@@ -165,9 +170,22 @@ export const getTriageQueue = async (req, res, next) => {
         return false;
       }
 
-      // Filter by department if specified
-      if (targetDeptId && c.department_id && c.department_id !== targetDeptId) {
-        return false;
+      // Filter by clerk's department
+      if (targetDeptId) {
+        const dept = db.findById('departments', targetDeptId);
+        const deptName = dept ? dept.name.toLowerCase() : '';
+        const cDeptId = c.department_id;
+        const cCat = (c.category || '').toLowerCase();
+
+        const matchesId = cDeptId && String(cDeptId) === String(targetDeptId);
+        const matchesCat = deptName && (deptName.includes(cCat) || cCat.includes(deptName) ||
+          (cCat.includes('electric') && deptName.includes('electric')) ||
+          (cCat.includes('water') && (deptName.includes('water') || deptName.includes('sanitat') || deptName.includes('drain') || deptName.includes('plumb'))) ||
+          (cCat.includes('civil') && (deptName.includes('civil') || deptName.includes('road'))));
+
+        if (!matchesId && !matchesCat) {
+          return false;
+        }
       }
 
       if (department) {
@@ -629,7 +647,9 @@ export const getEligibleContractors = async (req, res, next) => {
   try {
     const { department_id, department, category, township_id } = req.query;
 
-    const targetTownshipId = township_id || req.user.township_id;
+    const targetTownshipId = township_id || req.user.townshipId || req.user.township_id;
+    const clerkDeptId = req.user.departmentId || req.user.department_id || req.user.deptId;
+    const matchDeptId = department_id || (req.user.role === 'DESK_CLERK' ? clerkDeptId : null);
     const allContractors = db.find('contractors');
     const allAmcs = db.find('amcs');
     const allRates = db.find('amc_rates');
@@ -644,7 +664,6 @@ export const getEligibleContractors = async (req, res, next) => {
 
     // Match by department / category if provided
     const matchCategory = (category || department || '').toLowerCase();
-    const matchDeptId = department_id;
 
     if (matchCategory || matchDeptId) {
       eligible = eligible.filter((c) => {
