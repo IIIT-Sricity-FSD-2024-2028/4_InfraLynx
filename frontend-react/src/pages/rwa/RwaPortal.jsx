@@ -87,7 +87,7 @@ export default function RwaPortal({ onExitToLanding }) {
             stage: 'REPORTED',
             timestamp: new Date().toISOString(),
             actor: `${currentUser?.name || 'Dr. Arvind Swaminathan'} (${currentUser?.title || 'RWA Secretary'})`,
-            note: `Issue logged under ${formData.category} (${formData.subCategory}). Severity: ${formData.severity}.`,
+            note: `Issue logged under ${formData.category} (${formData.subCategory}). Queued for Desk Clerk triage and SLA prioritization.`,
           },
         ],
       }
@@ -376,7 +376,7 @@ export default function RwaPortal({ onExitToLanding }) {
 
       {/* Minimal Civic Footer */}
       <footer className="rwa-footer">
-        TIMS Township Infrastructure Management System • Member 1: RWA Representative Module (Direct API Architecture)
+        TIMS Township Infrastructure Management System 
       </footer>
     </div>
   )
