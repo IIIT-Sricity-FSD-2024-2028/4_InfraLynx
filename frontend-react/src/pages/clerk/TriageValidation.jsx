@@ -26,8 +26,32 @@ import './styles/TriageValidation.css'
  *   rejectionReason  - selected reason from dropdown
  *   rejectionRemarks - optional free-text remarks
  */
-export default function TriageValidation({ selectedComplaint, onNavigate, onSelectComplaint }) {
-  const { complaints, currentUser, updateComplaintStatus } = useTIMS()
+export default function TriageValidation({ complaints: propComplaints, selectedComplaint, onNavigate, onSelectComplaint }) {
+  const { complaints: contextComplaints, currentUser, updateComplaintStatus } = useTIMS()
+
+  // Filter complaints by clerk's department
+  const complaints = useMemo(() => {
+    if (propComplaints) return propComplaints
+    if (!currentUser || currentUser.role !== 'DESK_CLERK') return contextComplaints
+    const deptId = currentUser.departmentId || currentUser.department_id || currentUser.deptId
+    const deptName = (currentUser.departmentName || currentUser.department_name || currentUser.department || '').toLowerCase()
+    if (!deptId && !deptName) return contextComplaints
+
+    return contextComplaints.filter(c => {
+      const cDeptId = c.departmentId || c.department_id
+      if (deptId && cDeptId && String(cDeptId) === String(deptId)) return true
+      const cCat = (c.category || c.departmentName || c.department || '').toLowerCase()
+      if (deptName && cCat) {
+        if (deptName.includes(cCat) || cCat.includes(deptName)) return true
+        if (deptName.includes('electr') && cCat.includes('electr')) return true
+        if (deptName.includes('water') && (cCat.includes('water') || cCat.includes('sanitat') || cCat.includes('plumb') || cCat.includes('drain'))) return true
+        if (deptName.includes('civil') && (cCat.includes('civil') || cCat.includes('road'))) return true
+        if (deptName.includes('horticult') && (cCat.includes('horticult') || cCat.includes('garden'))) return true
+      }
+      if (deptId && cDeptId) return String(cDeptId) === String(deptId)
+      return false
+    })
+  }, [propComplaints, contextComplaints, currentUser])
 
   const [isRejecting,      setIsRejecting]      = useState(false)
   const [rejectionReason,  setRejectionReason]  = useState('Duplicate Complaint')
