@@ -218,10 +218,6 @@ export function TIMSProvider({ children }) {
     }
   }, [backendStatus.connected, currentUser, refreshComplaints])
 
-  // Persist complaints state changes in tab-isolated sessionStorage
-  useEffect(() => {
-    sessionStorage.setItem('tims_complaints_v3', JSON.stringify(complaints))
-  }, [complaints])
 
   /**
    * Log in user via Backend API with graceful offline fallback
@@ -251,205 +247,8 @@ export function TIMSProvider({ children }) {
       // Ignore
     }
   }, [])
-
   /**
-   * Screen 2 - Report New Issue (In-Memory + API Sync)
-   */
-  function addComplaint({
-    title,
-    category,
-    subCategory,
-    location,
-    severity = 'Medium',
-    description,
-    photos = [],
-  }) {
-    if (!currentUser) {
-      throw new Error('Authentication required: Please sign in to submit a complaint.')
-    }
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000)
-    const newId = `CMP-2026-${randomSuffix}`
-
-    const slaHoursMap = {
-      Emergency: 6,
-      High: 24,
-      Medium: 48,
-      Low: 72,
-    }
-    const slaHours = slaHoursMap[severity] || 48
-    const slaDeadline = new Date(Date.now() + slaHours * 3600 * 1000).toISOString()
-    const now = new Date().toISOString()
-
-    const newRecord = {
-      id: newId,
-      complaint_code: newId,
-      title: title || `${category} - ${subCategory}`,
-      category,
-      subCategory,
-      location: {
-        sector: location?.sector || currentUser.sector || 'Sector 54',
-        block: location?.block || 'Block A',
-        street: location?.street || 'Gulmohar Marg',
-        assetId: location?.assetId || 'ASSET-GEN-01',
-        assetName: location?.assetName || 'General Infrastructure Asset',
-        landmark: location?.landmark || '',
-        gps: location?.gps || '28.5355° N, 77.3910° E',
-      },
-      severity,
-      slaDeadline,
-      status: 'REPORTED',
-      description,
-      reportedBy: {
-        id: currentUser.id,
-        name: currentUser.name,
-        role: currentUser.role,
-        sector: currentUser.sector,
-      },
-      createdAt: now,
-      beforePhotos: photos.length > 0 ? photos : ['https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80'],
-      afterPhotos: [],
-      assignedContractor: null,
-      workOrderId: null,
-      inspectionRemarks: null,
-      estimateAmount: null,
-      completionRemarks: null,
-      completedAt: null,
-      verification: null,
-      dispute: null,
-      history: [
-        {
-          stage: 'REPORTED',
-          timestamp: now,
-          actor: `${currentUser.name} (${currentUser.title || currentUser.role || 'RWA'})`,
-          note: `Complaint filed under ${category} (${subCategory}). Severity: ${severity}.`,
-        },
-      ],
-    }
-
-    setComplaints((prev) => [newRecord, ...prev])
-
-    // Asynchronously sync with Backend API
-    complaintApi
-      .createComplaint({
-        title: newRecord.title,
-        category: newRecord.category,
-        subCategory: newRecord.subCategory,
-        location: newRecord.location,
-        severity: newRecord.severity,
-        description: newRecord.description,
-        photos: newRecord.beforePhotos,
-      })
-      .catch((err) => {
-        console.warn('[Offline Mode] Saved complaint locally:', err.message)
-      })
-
-    return newRecord
-  }
-
-  /**
-   * Screen 4 - Confirm Fix (Marks CLOSED)
-   */
-  function confirmFix(complaintId, { rating = 5, remarks = '' } = {}) {
-    const now = new Date().toISOString()
-
-    setComplaints((prev) =>
-      prev.map((c) => {
-        if (c.id !== complaintId && c.complaint_code !== complaintId) return c
-
-        return {
-          ...c,
-          status: 'CLOSED',
-          verification: {
-            status: 'CONFIRMED',
-            rating,
-            remarks: remarks || 'Work completed satisfactorily and verified on ground.',
-            verifiedAt: now,
-            verifiedBy: currentUser.name,
-          },
-          history: [
-            ...(c.history || []),
-            {
-              stage: 'VERIFIED',
-              timestamp: now,
-              actor: `${currentUser.name} (RWA Rep)`,
-              note: `Work verified and confirmed with a ${rating}-star rating. Issue closed.`,
-            },
-            {
-              stage: 'CLOSED',
-              timestamp: now,
-              actor: 'System Automation',
-              note: 'Workflow resolved. Work Order closed.',
-            },
-          ],
-        }
-      })
-    )
-
-    // Sync with backend API
-    complaintApi
-      .verifyComplaint(complaintId, { rating, remarks })
-      .catch((err) => console.warn('[Offline Mode] Verification saved locally:', err.message))
-  }
-
-  /**
-   * Screen 4 - Dispute Fix (Marks DISPUTED)
-   */
-  function disputeComplaint(complaintId, { reason, disputeNotes, remarks, requestedAction = 'REWORK' } = {}) {
-    const now = new Date().toISOString()
-    const activeReason = reason || 'Incomplete resolution / poor quality'
-    const activeRemarks = disputeNotes || remarks || 'The repaired fixture is still malfunctioning.'
-
-    setComplaints((prev) =>
-      prev.map((c) => {
-        if (c.id !== complaintId && c.complaint_code !== complaintId) return c
-
-        return {
-          ...c,
-          status: 'DISPUTED',
-          dispute: {
-            reason: activeReason,
-            notes: activeRemarks,
-            remarks: activeRemarks,
-            disputedAt: now,
-            disputedBy: currentUser.name,
-            requestedAction,
-          },
-          history: [
-            ...(c.history || []),
-            {
-              stage: 'DISPUTED',
-              timestamp: now,
-              actor: `${currentUser.name} (RWA Rep)`,
-              note: `Work disputed: ${activeReason}. Requesting field rework.`,
-            },
-          ],
-        }
-      })
-    )
-
-    // Sync with backend API
-    complaintApi
-      .disputeComplaint(complaintId, { reason: activeReason, remarks: activeRemarks })
-      .catch((err) => console.warn('[Offline Mode] Dispute saved locally:', err.message))
-  }
-
-  /**
-   * Helper to manually update any fields on a complaint
-   */
-  function updateComplaint(complaintId, updates = {}) {
-    setComplaints((prev) =>
-      prev.map((c) => {
-        if (c.id !== complaintId && c.complaint_code !== complaintId) return c
-        return sanitizeComplaintHistory({
-          ...c,
-          ...updates,
-        })
-      })
-    )
-  }
-
-  /**
-   * Helper to manually update status and optional extra fields
+   * Helper to manually update status and optional extra fields (Legacy support for Clerk & DeptHead)
    */
   function updateComplaintStatus(complaintId, newStatus, note = '', extraFields = {}) {
     const now = new Date().toISOString()
@@ -488,10 +287,6 @@ export function TIMSProvider({ children }) {
     logout,
     backendStatus,
     refreshComplaints,
-    addComplaint,
-    confirmFix,
-    disputeComplaint,
-    updateComplaint,
     updateComplaintStatus,
   }
 

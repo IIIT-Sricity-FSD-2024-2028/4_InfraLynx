@@ -2,21 +2,48 @@ import { useState, useRef } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 import './styles/VerificationDispute.css'
 
-export default function VerificationDispute({ selectedComplaint, onNavigate, onSelectComplaint }) {
-  const { complaints, confirmFix, disputeComplaint } = useTIMS()
+export default function VerificationDispute({
+  complaints: propComplaints,
+  selectedComplaint,
+  currentUser: propUser,
+  onNavigate,
+  onSelectComplaint,
+  onConfirmFix,
+  onDisputeComplaint,
+}) {
+  const {
+    complaints: contextComplaints,
+    confirmFix: contextConfirmFix,
+    disputeComplaint: contextDisputeComplaint,
+    currentUser: contextUser,
+  } = useTIMS()
+
+  const complaints = propComplaints ?? contextComplaints ?? []
+  const confirmFix = onConfirmFix ?? contextConfirmFix
+  const disputeComplaint = onDisputeComplaint ?? contextDisputeComplaint
+  const currentUser = propUser || contextUser || {
+    name: 'Dr. Arvind Swaminathan',
+    role: 'RWA',
+    title: 'RWA Secretary',
+    sector: 'Sector 54',
+  }
+
+  const normStatus = (s) => (s || '').toUpperCase().replace(/[\s_-]+/g, '_')
 
   // Eligible complaints for Verification Workspace:
-  // 1. Awaiting Verification: PENDING_VERIFICATION, COMPLETED, WORK_COMPLETED
-  // 2. Already Fixed & Verified: CLOSED, VERIFIED
+  // Strictly tickets awaiting verification (PENDING_VERIFICATION, COMPLETED, WORK_COMPLETED).
+  // Once closed (verified) or disputed (rework), tickets are no longer in this verification queue.
   const eligibleComplaints = complaints.filter((c) => {
-    const st = (c.status || '').toUpperCase()
-    return ['PENDING_VERIFICATION', 'COMPLETED', 'WORK_COMPLETED', 'CLOSED', 'VERIFIED'].includes(st)
+    const st = normStatus(c.status)
+    return ['PENDING_VERIFICATION', 'COMPLETED', 'WORK_COMPLETED'].includes(st)
   })
 
   // Selected complaint must come from eligibleComplaints
   const activeComplaint =
-    (selectedComplaint && eligibleComplaints.find((c) => c.id === selectedComplaint.id)) ||
-    eligibleComplaints.find((c) => ['PENDING_VERIFICATION', 'COMPLETED', 'WORK_COMPLETED'].includes((c.status || '').toUpperCase())) ||
+    (selectedComplaint &&
+      eligibleComplaints.find(
+        (c) => c.id === selectedComplaint.id || c.complaint_code === selectedComplaint.complaint_code
+      )) ||
     eligibleComplaints[0] ||
     null
 
@@ -52,40 +79,68 @@ export default function VerificationDispute({ selectedComplaint, onNavigate, onS
   }
 
   // Confirm Fix Handler
-  function handleConfirm() {
+  async function handleConfirm() {
     if (!activeComplaint) return
-    confirmFix(activeComplaint.id, {
-      rating,
-      remarks: confirmRemarks.trim() || 'Verified satisfactory resolution by RWA.',
-    })
-    setActionDoneMessage({
-      type: 'success',
-      title: 'Fix Confirmed & Verified!',
-      text: `Complaint ${activeComplaint.id} is now CLOSED. Finance has been notified to process contractor payment.`,
-    })
+    const ticketId = activeComplaint.complaint_code || activeComplaint.id
+    try {
+      if (confirmFix) {
+        await confirmFix(ticketId, {
+          rating,
+          remarks: confirmRemarks.trim() || `Verified satisfactory resolution by ${currentUser?.name || 'Dr. Arvind Swaminathan'} (${currentUser?.title || 'RWA Secretary'}).`,
+        })
+      }
+      setActionDoneMessage({
+        type: 'success',
+        title: 'Fix Confirmed & Verified!',
+        text: `Complaint ${ticketId} verified by ${currentUser?.name || 'Dr. Arvind Swaminathan'} and is now CLOSED. Finance has been notified to process contractor payment.`,
+      })
+      // Advance to next pending ticket in queue
+      const nextPending = eligibleComplaints.find(
+        (c) => c.id !== activeComplaint.id && c.complaint_code !== ticketId
+      )
+      if (onSelectComplaint) {
+        onSelectComplaint(nextPending || null)
+      }
+    } catch (err) {
+      alert(`Failed to confirm resolution: ${err.message}`)
+    }
   }
 
   // Dispute Handler
-  function handleSubmitDispute(e) {
+  async function handleSubmitDispute(e) {
     e.preventDefault()
     if (!activeComplaint) return
+    const ticketId = activeComplaint.complaint_code || activeComplaint.id
     if (!disputeRemarks.trim()) {
       alert('Please provide remarks explaining why the repair is disputed.')
       return
     }
 
-    disputeComplaint(activeComplaint.id, {
-      reason: disputeReason,
-      remarks: disputeRemarks,
-      photos: disputePhotos,
-    })
+    try {
+      if (disputeComplaint) {
+        await disputeComplaint(ticketId, {
+          reason: disputeReason,
+          remarks: disputeRemarks,
+          photos: disputePhotos,
+        })
+      }
 
-    setIsDisputeOpen(false)
-    setActionDoneMessage({
-      type: 'dispute',
-      title: 'Dispute / Rework Triggered',
-      text: `Complaint ${activeComplaint.id} marked as DISPUTED. Routed back to contractor rework queue for mandatory corrective action.`,
-    })
+      setIsDisputeOpen(false)
+      setActionDoneMessage({
+        type: 'dispute',
+        title: 'Dispute / Rework Triggered',
+        text: `Complaint ${ticketId} marked as DISPUTED. Routed back to contractor rework queue for mandatory corrective action.`,
+      })
+      // Advance to next pending ticket in queue
+      const nextPending = eligibleComplaints.find(
+        (c) => c.id !== activeComplaint.id && c.complaint_code !== ticketId
+      )
+      if (onSelectComplaint) {
+        onSelectComplaint(nextPending || null)
+      }
+    } catch (err) {
+      alert(`Failed to submit dispute: ${err.message}`)
+    }
   }
 
   // If no eligible complaints are available
@@ -103,13 +158,34 @@ export default function VerificationDispute({ selectedComplaint, onNavigate, onS
             </p>
           </div>
         </div>
+
+        {/* Show completion confirmation if user just verified/disputed the last ticket */}
+        {actionDoneMessage && (
+          <div className={`action-result-banner ${actionDoneMessage.type}`} style={{ marginBottom: 20 }}>
+            <div>
+              <div className={`action-result-title ${actionDoneMessage.type}`}>
+                {actionDoneMessage.title}
+              </div>
+              <div className={`action-result-text ${actionDoneMessage.type}`}>
+                {actionDoneMessage.text}
+              </div>
+            </div>
+            <button
+              onClick={() => onNavigate('dashboard')}
+              className={`btn-result-return ${actionDoneMessage.type}`}
+            >
+              Return to Dashboard →
+            </button>
+          </div>
+        )}
+
         <div className="empty-verification-card">
-          <div style={{ fontSize: 44, marginBottom: 12 }}>📋</div>
+          <div style={{ fontSize: 44, marginBottom: 12 }}>✅</div>
           <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
             No Complaints Currently Awaiting Verification
           </h3>
           <p style={{ color: 'var(--text-soft)', maxWidth: 520, margin: '8px auto 20px', fontSize: 13.5 }}>
-            Only tickets where contractor work has been completed (or already fixed) are eligible for physical verification and sign-off.
+            All completed repairs have been verified and processed. New tickets will appear here as soon as contractors complete field work.
           </p>
           <button
             onClick={() => onNavigate('dashboard')}
@@ -150,13 +226,13 @@ export default function VerificationDispute({ selectedComplaint, onNavigate, onS
           </p>
         </div>
 
-        {/* Complaint Selector (Only Eligible: Awaiting Verification or Fixed) */}
+        {/* Complaint Selector (Strictly Awaiting Verification) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 13, color: 'var(--text-soft)' }}>Inspecting Ticket:</span>
           <select
             value={activeComplaint.id}
             onChange={(e) => {
-              const c = eligibleComplaints.find((item) => item.id === e.target.value)
+              const c = eligibleComplaints.find((item) => item.id === e.target.value || item.complaint_code === e.target.value)
               if (c) onSelectComplaint(c)
               setActionDoneMessage(null)
               setIsDisputeOpen(false)
@@ -164,10 +240,11 @@ export default function VerificationDispute({ selectedComplaint, onNavigate, onS
             className="ticket-inspect-select"
           >
             {eligibleComplaints.map((c) => {
-              const itemClosed = ['CLOSED', 'VERIFIED'].includes((c.status || '').toUpperCase())
+              const ticketId = c.complaint_code || c.id
+              const ticketTitle = c.title || `${c.category || 'Issue'} - ${c.subCategory || 'General'}`
               return (
                 <option key={c.id} value={c.id}>
-                  {c.id} — {itemClosed ? '✓ Fixed & Verified' : '⏳ Awaiting Verification'}
+                  {ticketId} — {ticketTitle}
                 </option>
               )
             })}
@@ -289,7 +366,9 @@ export default function VerificationDispute({ selectedComplaint, onNavigate, onS
               </div>
               <div className="verified-fixed-body">
                 <div className="verified-rating-display">
-                  <span style={{ fontWeight: 600, color: '#166534' }}>RWA Sign-Off Rating:</span>
+                  <span style={{ fontWeight: 600, color: '#166534' }}>
+                    {currentUser?.name || 'Dr. Arvind Swaminathan'} Sign-Off Rating:
+                  </span>
                   <span style={{ color: '#f59e0b', fontSize: 16, marginLeft: 8 }}>
                     {'★'.repeat(activeComplaint.verification?.rating || activeComplaint.rating || 5)}
                     {'☆'.repeat(5 - (activeComplaint.verification?.rating || activeComplaint.rating || 5))}
@@ -301,7 +380,7 @@ export default function VerificationDispute({ selectedComplaint, onNavigate, onS
                 <div style={{ marginTop: 8 }}>
                   <span style={{ fontWeight: 600, color: 'var(--text)' }}>Verification Remarks:</span>
                   <p style={{ margin: '4px 0 0', color: 'var(--text)', fontStyle: 'italic' }}>
-                    "{activeComplaint.verification?.remarks || activeComplaint.remarks || 'Work verified on ground by RWA. Municipal standard met and ticket closed.'}"
+                    "{activeComplaint.verification?.remarks || activeComplaint.remarks || `Work verified on ground by ${currentUser?.name || 'Dr. Arvind Swaminathan'}. Municipal standard met and ticket closed.`}"
                   </p>
                 </div>
                 {activeComplaint.verification?.verified_by && (
@@ -315,7 +394,7 @@ export default function VerificationDispute({ selectedComplaint, onNavigate, onS
             /* Actionable for PENDING_VERIFICATION */
             <>
               <h3 className="decision-title">
-                RWA Verification Decision
+                Verification Decision — {currentUser?.name || 'Dr. Arvind Swaminathan'} ({currentUser?.title || 'RWA Secretary'})
               </h3>
               <p className="decision-desc">
                 Please inspect the evidence and select whether the reported issue is satisfactorily resolved, or dispute the work to mandate contractor rework.

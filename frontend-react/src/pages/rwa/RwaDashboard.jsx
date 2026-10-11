@@ -2,29 +2,53 @@ import { useState, useMemo } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 import './styles/RwaDashboard.css'
 
-export default function RwaDashboard({ onNavigate, onSelectComplaint, successNotice, onDismissNotice }) {
-  const { complaints, currentUser } = useTIMS()
+export default function RwaDashboard({
+  complaints: propComplaints,
+  loading = false,
+  currentUser: propUser,
+  onNavigate,
+  onSelectComplaint,
+  successNotice,
+  onDismissNotice,
+  onRefresh,
+}) {
+  const { complaints: contextComplaints, currentUser: contextUser } = useTIMS()
+  const complaints = propComplaints ?? contextComplaints ?? []
+  const currentUser = propUser || contextUser || {
+    name: 'Dr. Arvind Swaminathan',
+    role: 'RWA',
+    title: 'RWA Secretary',
+    sector: 'Sector 54',
+  }
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('ALL')
   const [selectedStatus, setSelectedStatus] = useState('ALL')
 
+  const normStatus = (s) => (s || '').toUpperCase().replace(/[\s_-]+/g, '_')
+
   // Calculate metrics
   const stats = useMemo(() => {
     const total = complaints.length
-    const open = complaints.filter((c) =>
-      ['REPORTED', 'UNDER REVIEW', 'VALIDATED'].includes(c.status)
-    ).length
-    const inProgress = complaints.filter((c) =>
-      ['WORK ORDER CREATED', 'ASSIGNED', 'IN PROGRESS', 'COMPLETED'].includes(c.status)
-    ).length
+    const open = complaints.filter((c) => {
+      const st = normStatus(c.status)
+      return ['REPORTED', 'UNDER_REVIEW', 'VALIDATED'].includes(st)
+    }).length
+    const validated = complaints.filter((c) => normStatus(c.status) === 'VALIDATED').length
+    const inProgress = complaints.filter((c) => {
+      const st = normStatus(c.status)
+      return ['WORK_ORDER_CREATED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'AWAITING_DEPT_HEAD'].includes(st)
+    }).length
     const pendingVerification = complaints.filter(
-      (c) => c.status === 'PENDING_VERIFICATION'
+      (c) => normStatus(c.status) === 'PENDING_VERIFICATION'
     ).length
-    const closed = complaints.filter((c) => c.status === 'CLOSED').length
-    const disputed = complaints.filter((c) => c.status === 'DISPUTED').length
+    const closed = complaints.filter((c) => {
+      const st = normStatus(c.status)
+      return st === 'CLOSED' || st === 'VERIFIED'
+    }).length
+    const disputed = complaints.filter((c) => normStatus(c.status) === 'DISPUTED').length
 
-    return { total, open, inProgress, pendingVerification, closed, disputed }
+    return { total, open, validated, inProgress, pendingVerification, closed, disputed }
   }, [complaints])
 
   // Filter complaints
@@ -36,20 +60,22 @@ export default function RwaDashboard({ onNavigate, onSelectComplaint, successNot
       const matchSearch =
         !searchQuery ||
         (c.id && c.id.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (c.complaint_code && c.complaint_code.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (c.title && c.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
         assetName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         street.toLowerCase().includes(searchQuery.toLowerCase())
 
       const matchCategory =
-        selectedCategory === 'ALL' || c.category.toUpperCase() === selectedCategory
+        selectedCategory === 'ALL' || (c.category || '').toUpperCase() === selectedCategory
 
+      const st = normStatus(c.status)
       const matchStatus =
         selectedStatus === 'ALL' ||
-        (selectedStatus === 'PENDING' && c.status === 'PENDING_VERIFICATION') ||
+        (selectedStatus === 'PENDING' && st === 'PENDING_VERIFICATION') ||
         (selectedStatus === 'ACTIVE' &&
-          ['REPORTED', 'UNDER REVIEW', 'VALIDATED', 'WORK ORDER CREATED', 'ASSIGNED', 'IN PROGRESS'].includes(c.status)) ||
-        (selectedStatus === 'CLOSED' && c.status === 'CLOSED') ||
-        (selectedStatus === 'DISPUTED' && c.status === 'DISPUTED')
+          ['REPORTED', 'UNDER_REVIEW', 'VALIDATED', 'WORK_ORDER_CREATED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(st)) ||
+        (selectedStatus === 'CLOSED' && (st === 'CLOSED' || st === 'VERIFIED')) ||
+        (selectedStatus === 'DISPUTED' && st === 'DISPUTED')
 
       return matchSearch && matchCategory && matchStatus
     })
@@ -69,7 +95,8 @@ export default function RwaDashboard({ onNavigate, onSelectComplaint, successNot
   }
 
   // Status style helper
-  function getStatusBadge(status) {
+  function getStatusBadge(rawStatus) {
+    const status = normStatus(rawStatus)
     switch (status) {
       case 'PENDING_VERIFICATION':
         return {
@@ -79,16 +106,25 @@ export default function RwaDashboard({ onNavigate, onSelectComplaint, successNot
           label: 'Pending Verification',
           pulse: true,
         }
-      case 'IN PROGRESS':
+      case 'IN_PROGRESS':
         return { bg: '#e0f2fe', color: '#0369a1', border: '#bae6fd', label: 'In Progress' }
+      case 'WORK_ORDER_CREATED':
+        return { bg: '#e0e7ff', color: '#3730a3', border: '#c7d2fe', label: 'Work Order Created' }
+      case 'ASSIGNED':
+        return { bg: '#e0e7ff', color: '#4338ca', border: '#c7d2fe', label: 'Assigned' }
+      case 'VALIDATED':
+        return { bg: '#ecfdf5', color: '#047857', border: '#a7f3d0', label: 'Validated' }
+      case 'UNDER_REVIEW':
+        return { bg: '#fef9c3', color: '#854d0e', border: '#fef08a', label: 'Under Review' }
       case 'REPORTED':
         return { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0', label: 'Reported' }
       case 'CLOSED':
+      case 'VERIFIED':
         return { bg: '#dcfce7', color: '#166534', border: '#bbf7d0', label: 'Closed & Verified' }
       case 'DISPUTED':
         return { bg: '#fee2e2', color: '#991b1b', border: '#fecaca', label: 'Disputed / Reopened' }
       default:
-        return { bg: '#f3f4f6', color: '#374151', border: '#e5e7eb', label: status.replace(/_/g, ' ') }
+        return { bg: '#f3f4f6', color: '#374151', border: '#e5e7eb', label: (rawStatus || '').replace(/_/g, ' ') }
     }
   }
 
@@ -138,17 +174,17 @@ export default function RwaDashboard({ onNavigate, onSelectComplaint, successNot
         <div>
           <div className="welcome-badge-group">
             <span className="welcome-badge">
-              RWA Portal
+              {currentUser?.title || 'RWA Secretary'} Portal
             </span>
             <span className="welcome-jurisdiction">
-              Township Jurisdiction: <strong>{currentUser.sector}</strong>
+              Township Jurisdiction: <strong>{currentUser?.sector || 'Sector 54'}</strong>
             </span>
           </div>
           <h1 className="welcome-title">
-            RWA Infrastructure Overview
+            Welcome, {currentUser?.name || 'Dr. Arvind Swaminathan'}
           </h1>
           <p className="welcome-subtitle">
-            Monitor citizen infrastructure complaints, track contractor site work in real time, and verify completion before invoice clearance.
+            Sector 54 Residents Welfare Association — Monitor citizen infrastructure complaints, track contractor site work in real time, and verify completion before invoice clearance.
           </p>
         </div>
 
@@ -172,16 +208,16 @@ export default function RwaDashboard({ onNavigate, onSelectComplaint, successNot
             <div className="attention-icon">!</div>
             <div>
               <div className="attention-title">
-                {stats.pendingVerification} Complaint{stats.pendingVerification > 1 ? 's' : ''} Awaiting RWA Verification
+                {stats.pendingVerification} Complaint{stats.pendingVerification > 1 ? 's' : ''} Awaiting Verification by {currentUser?.name || 'Dr. Arvind Swaminathan'}
               </div>
               <div className="attention-desc">
-                Contractors have completed repair work and submitted before/after photo documentation. Please verify and confirm fix.
+                Contractors have completed repair work and submitted before/after photo documentation. Please verify and confirm fix on behalf of Sector 54 RWA.
               </div>
             </div>
           </div>
           <button
             onClick={() => {
-              const pendingOne = complaints.find((c) => c.status === 'PENDING_VERIFICATION')
+              const pendingOne = complaints.find((c) => normStatus(c.status) === 'PENDING_VERIFICATION')
               if (pendingOne) {
                 onSelectComplaint(pendingOne)
                 onNavigate('verify')
@@ -203,9 +239,9 @@ export default function RwaDashboard({ onNavigate, onSelectComplaint, successNot
         </div>
 
         <div className="metric-card">
-          <div className="metric-label">Open / Reported</div>
+          <div className="metric-label">Open / Validated</div>
           <div className="metric-value blue">{stats.open}</div>
-          <div className="metric-sub">Under clerk review</div>
+          <div className="metric-sub">{stats.validated} validated for dispatch</div>
         </div>
 
         <div className="metric-card">
@@ -292,7 +328,7 @@ export default function RwaDashboard({ onNavigate, onSelectComplaint, successNot
             Complaints Register ({filteredComplaints.length})
           </h2>
           <span className="complaints-count-sub">
-            Showing records for {currentUser.name}
+            Showing records for {currentUser?.name || 'Dr. Arvind Swaminathan'} ({currentUser?.title || 'RWA Secretary'})
           </span>
         </div>
 
