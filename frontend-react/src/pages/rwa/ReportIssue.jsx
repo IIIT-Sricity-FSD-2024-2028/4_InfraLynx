@@ -13,7 +13,6 @@ const CATEGORY_DATA = {
       { id: 'wall', name: 'Boundary Wall Crack / Hazard', defaultAsset: 'CIV-BW-019 (Perimeter Wall)' },
       { id: 'manhole', name: 'Damaged Manhole Cover', defaultAsset: 'CIV-MH-055 (Manhole)' },
     ],
-    samplePhoto: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80',
   },
   Electrical: {
     icon: '⚡',
@@ -25,7 +24,6 @@ const CATEGORY_DATA = {
       { id: 'feeder', name: 'Feeder Pillar Tripping', defaultAsset: 'ELE-FP-021 (Feeder Pillar)' },
       { id: 'spark', name: 'Transformer Spark / Buzzing', defaultAsset: 'ELE-TX-005 (Substation)' },
     ],
-    samplePhoto: 'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&w=800&q=80',
   },
   Water: {
     icon: '💧',
@@ -37,29 +35,34 @@ const CATEGORY_DATA = {
       { id: 'overflow', name: 'Overhead Reservoir Overflow', defaultAsset: 'WTR-OHT-002 (Township Tank)' },
       { id: 'sewage', name: 'Sewage Line Blockage / Backflow', defaultAsset: 'WTR-SEW-061 (Sewer Line)' },
     ],
-    samplePhoto: 'https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&fit=crop&w=800&q=80',
   },
 }
 
-const SEVERITY_LEVELS = [
-  { id: 'Low', label: 'Low', sla: '72h SLA', desc: 'Cosmetic or minor inconvenience', color: '#16a34a' },
-  { id: 'Medium', label: 'Medium', sla: '48h SLA', desc: 'Standard non-hazardous repair', color: '#2563eb' },
-  { id: 'High', label: 'High', sla: '24h SLA', desc: 'Safety hazard or essential service disrupted', color: '#ea580c' },
-  { id: 'Emergency', label: 'Emergency', sla: '6h SLA', desc: 'Immediate danger, flood, or fire risk', color: '#dc2626' },
-]
-
-export default function ReportIssue({ onNavigate, onSelectComplaint, onComplaintSubmitted }) {
-  const { addComplaint, currentUser } = useTIMS()
+export default function ReportIssue({
+  onNavigate,
+  onSelectComplaint,
+  onComplaintSubmitted,
+  onAddComplaint,
+  currentUser: propUser,
+}) {
+  const { addComplaint: contextAddComplaint, currentUser: contextUser } = useTIMS()
+  const currentUser = propUser || contextUser || {
+    name: 'Dr. Arvind Swaminathan',
+    role: 'RWA',
+    title: 'RWA Secretary',
+    sector: 'Sector 54',
+  }
+  const addFn = onAddComplaint || contextAddComplaint
+  const [submitting, setSubmitting] = useState(false)
 
   // Form State
   const [category, setCategory] = useState('Civil')
   const [subCategory, setSubCategory] = useState(CATEGORY_DATA.Civil.subcategories[0].name)
-  const [sector, setSector] = useState(currentUser.sector || 'Sector 54')
+  const [sector, setSector] = useState(currentUser?.sector || 'Sector 54')
   const [block, setBlock] = useState('Block B')
   const [street, setStreet] = useState('Gulmohar Marg')
   const [assetName, setAssetName] = useState(CATEGORY_DATA.Civil.subcategories[0].defaultAsset)
   const [landmark, setLandmark] = useState('')
-  const [severity, setSeverity] = useState('Medium')
   const [description, setDescription] = useState('')
   const [photos, setPhotos] = useState([])
 
@@ -87,14 +90,6 @@ export default function ReportIssue({ onNavigate, onSelectComplaint, onComplaint
     })
   }
 
-  // Quick helper to attach realistic sample photo
-  function handleAddSamplePhoto() {
-    const sample = CATEGORY_DATA[category]?.samplePhoto
-    if (sample && !photos.includes(sample)) {
-      setPhotos((prev) => [...prev, sample])
-    }
-  }
-
   function handleCategoryChange(newCat) {
     setCategory(newCat)
     const firstSub = CATEGORY_DATA[newCat].subcategories[0]
@@ -102,7 +97,7 @@ export default function ReportIssue({ onNavigate, onSelectComplaint, onComplaint
     setAssetName(firstSub.defaultAsset)
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
 
     if (!description.trim()) {
@@ -110,33 +105,39 @@ export default function ReportIssue({ onNavigate, onSelectComplaint, onComplaint
       return
     }
 
-    const created = addComplaint({
-      title: `${category}: ${subCategory}`,
-      category,
-      subCategory,
-      location: {
-        sector,
-        block,
-        street,
-        assetId: assetName.split(' ')[0] || 'ASSET-01',
-        assetName,
-        landmark: landmark.trim() || `Near ${block} entrance`,
-        gps: '28.5355° N, 77.3910° E',
-      },
-      severity,
-      description,
-      photos: photos.length > 0 ? photos : [CATEGORY_DATA[category].samplePhoto],
-    })
+    try {
+      setSubmitting(true)
+      const created = await addFn({
+        title: `${category}: ${subCategory}`,
+        category,
+        subCategory,
+        location: {
+          sector,
+          block,
+          street,
+          assetId: assetName.split(' ')[0] || 'ASSET-01',
+          assetName,
+          landmark: landmark.trim() || `Near ${block} entrance`,
+          gps: '28.5355° N, 77.3910° E',
+        },
+        description,
+        photos,
+      })
 
-    // Reset form
-    setDescription('')
-    setPhotos([])
+      // Reset form
+      setDescription('')
+      setPhotos([])
 
-    if (onComplaintSubmitted) {
-      onComplaintSubmitted(created)
-    } else {
-      onSelectComplaint(created)
-      onNavigate('dashboard')
+      if (onComplaintSubmitted) {
+        onComplaintSubmitted(created)
+      } else {
+        onSelectComplaint(created)
+        onNavigate('dashboard')
+      }
+    } catch (err) {
+      alert(`Failed to submit complaint: ${err.message}`)
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -154,7 +155,7 @@ export default function ReportIssue({ onNavigate, onSelectComplaint, onComplaint
           Report Infrastructure Issue
         </h1>
         <p className="report-subtitle">
-          Log community breakdown reports with precise location and photo evidence for immediate departmental action.
+          Log community breakdown reports for Sector 54 on behalf of {currentUser?.name || 'Dr. Arvind Swaminathan'} ({currentUser?.title || 'RWA Secretary'}).
         </p>
       </div>
 
@@ -286,45 +287,10 @@ export default function ReportIssue({ onNavigate, onSelectComplaint, onComplaint
           </div>
         </div>
 
-        {/* Step 4: Severity & SLA */}
+        {/* Step 4: Description */}
         <div>
           <label className="form-label">
-            4. Severity Level & Contractual SLA <span className="form-required">*</span>
-          </label>
-          <div className="severity-grid">
-            {SEVERITY_LEVELS.map((lvl) => {
-              const isSelected = severity === lvl.id
-              return (
-                <div
-                  key={lvl.id}
-                  onClick={() => setSeverity(lvl.id)}
-                  className="severity-card"
-                  style={{
-                    borderColor: isSelected ? lvl.color : undefined,
-                    borderWidth: isSelected ? '2px' : undefined,
-                  }}
-                >
-                  <div className="severity-top">
-                    <span style={{ fontWeight: 700, fontSize: 14, color: lvl.color }}>
-                      {lvl.label}
-                    </span>
-                    <span className="severity-badge-sla">
-                      {lvl.sla}
-                    </span>
-                  </div>
-                  <span className="severity-desc">
-                    {lvl.desc}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Step 5: Description */}
-        <div>
-          <label className="form-label">
-            5. Detailed Description & Citizen Observation <span className="form-required">*</span>
+            4. Detailed Description & Citizen Observation <span className="form-required">*</span>
           </label>
           <textarea
             rows={4}
@@ -335,19 +301,12 @@ export default function ReportIssue({ onNavigate, onSelectComplaint, onComplaint
           />
         </div>
 
-        {/* Step 6: Photo Upload using useRef */}
+        {/* Step 5: Photo Upload using useRef */}
         <div>
           <div className="upload-header">
             <label className="form-label" style={{ marginBottom: 0 }}>
-              6. Photographic Evidence (Site Condition)
+              5. Photographic Evidence (Site Condition)
             </label>
-            <button
-              type="button"
-              onClick={handleAddSamplePhoto}
-              className="btn-sample-photo"
-            >
-              + Use Sample {category} Photo
-            </button>
           </div>
 
           {/* Hidden File Input using useRef */}
@@ -370,7 +329,7 @@ export default function ReportIssue({ onNavigate, onSelectComplaint, onComplaint
               Click to browse or drag & drop inspection photos
             </div>
             <div className="dropzone-sub">
-              Supports JPG, PNG up to 10MB (Simulated in-memory storage)
+              Supports JPG, PNG, WEBP up to 10MB
             </div>
           </div>
 
@@ -414,8 +373,9 @@ export default function ReportIssue({ onNavigate, onSelectComplaint, onComplaint
             id="btn-submit-complaint"
             type="submit"
             className="btn-submit"
+            disabled={submitting}
           >
-            Submit Official Complaint
+            {submitting ? 'Submitting Report...' : 'Submit Official Complaint'}
           </button>
         </div>
       </form>

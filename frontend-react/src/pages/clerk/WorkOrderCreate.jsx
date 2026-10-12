@@ -3,11 +3,8 @@ import { useTIMS } from '../../context/TIMSContext.jsx'
 import { clerkApi } from '../../services/api.js'
 import './styles/WorkOrderCreate.css'
 
-/** Estimate above this requires Dept Head approval before contractor dispatch */
-const DEPT_HEAD_THRESHOLD = 10000
-
 /**
- * WorkOrderCreate - Screen 3: Build AMC line-item WO and dispatch.
+ * WorkOrderCreate - Screen 3: Assign contractor, set priority & instructions, and dispatch.
  *
  * Props:
  *   selectedComplaint             - validated complaint (null -> empty state)
@@ -15,27 +12,21 @@ const DEPT_HEAD_THRESHOLD = 10000
  *   onWorkOrderCreated(complaint) - callback after dispatch; receives enriched complaint
  *
  * Context:
- *   complaints, contractors, amcRateCards, currentUser, updateComplaintStatus
+ *   complaints, contractors, currentUser, refreshComplaints, updateComplaintStatus
  *
  * Local state:
  *   selectedContractorId - chosen contractor (auto-defaults to first match)
- *   lineItems            - [{ rateCardId, qty }] AMC line items
  *   priority             - 'Emergency' | 'High' | 'Medium' | 'Low'
  *   specialInstructions  - free-text for contractor
  *
- * Derived:
- *   filteredContractors - contractors matching complaint category
- *   filteredRateCards   - rate cards matching complaint category
- *   estimateTotal       - sum of all line-item costs
- *   requiresDeptHead    - estimateTotal > DEPT_HEAD_THRESHOLD
- *
  * On dispatch:
  *   - generates workOrderId: WO-YYYY-NNNN
- *   - calls updateComplaintStatus -> WORK_ORDER_CREATED or AWAITING_DEPT_HEAD
+ *   - calls clerkApi.createWorkOrder
+ *   - transitions complaint status -> ASSIGNED
  *   - calls onWorkOrderCreated with enriched complaint object (for toast)
  */
 export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkOrderCreated }) {
-  const { complaints, contractors, amcRateCards, currentUser, refreshComplaints, updateComplaint, updateComplaintStatus } = useTIMS()
+  const { complaints, contractors, currentUser, refreshComplaints, updateComplaintStatus } = useTIMS()
 
   // Live-sync selected complaint
   const active = useMemo(() => {
@@ -44,7 +35,6 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
   }, [complaints, selectedComplaint])
 
   const [selectedContractorId, setSelectedContractorId] = useState('')
-  const [lineItems,            setLineItems]            = useState([{ rateCardId: '', qty: 1 }])
   const [priority,             setPriority]             = useState('Medium')
   const [specialInstructions,  setSpecialInstructions]  = useState('')
   const [isSubmitting,         setIsSubmitting]         = useState(false)
@@ -57,14 +47,6 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
     )
   }, [contractors, active])
 
-  // Filter rate cards by complaint category
-  const filteredRateCards = useMemo(() => {
-    if (!active) return amcRateCards
-    return amcRateCards.filter(r =>
-      r.department.toLowerCase() === (active.category || '').toLowerCase()
-    )
-  }, [amcRateCards, active])
-
   // Auto-select contractor: prefer the one assigned during verification, or first match
   useEffect(() => {
     if (active?.assignedContractor?.id) {
@@ -74,80 +56,35 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
     }
   }, [filteredContractors, active])
 
-  // Auto-fill first rate card into first empty line item
-  useEffect(() => {
-    if (filteredRateCards.length > 0 && lineItems[0] && lineItems[0].rateCardId === '') {
-      setLineItems([{ rateCardId: filteredRateCards[0].id, qty: 1 }])
-    }
-  }, [filteredRateCards])
-
-  // Compute total estimate
-  const estimateTotal = useMemo(() => {
-    return lineItems.reduce((sum, item) => {
-      const card = amcRateCards.find(r => r.id === item.rateCardId)
-      return card ? sum + card.rate * (Number(item.qty) || 0) : sum
-    }, 0)
-  }, [lineItems, amcRateCards])
-
-  const requiresDeptHead = estimateTotal > DEPT_HEAD_THRESHOLD
-
-  function addLineItem() {
-    setLineItems(prev => [...prev, { rateCardId: filteredRateCards[0]?.id || '', qty: 1 }])
-  }
-  function removeLineItem(idx) {
-    setLineItems(prev => prev.filter((_, i) => i !== idx))
-  }
-  function updateItem(idx, field, value) {
-    setLineItems(prev => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item))
-  }
-
   /**
-   * handleDispatch - persists WO and contractor in in-memory database, transitions complaint status.
+   * handleDispatch - creates Work Order and assigns contractor in backend, transitions complaint status.
    */
   async function handleDispatch(e) {
     e.preventDefault()
-    if (!active)               return
-    if (!selectedContractorId) { alert('Please select a contractor.'); return }
-    if (lineItems.every(i => !i.rateCardId)) { alert('Please add at least one service item.'); return }
+    if (!active) return
+    if (!selectedContractorId) {
+      alert('Please select an authorized contractor.')
+      return
+    }
 
-    const contractor  = contractors.find(c => c.id === selectedContractorId)
-    const newStatus   = requiresDeptHead ? 'AWAITING_DEPT_HEAD' : 'WORK_ORDER_CREATED'
-
-    // Build resolved line items with totals
-    const resolvedLines = lineItems
-      .filter(item => item.rateCardId)
-      .map(item => {
-        const card = amcRateCards.find(r => r.id === item.rateCardId)
-        return {
-          rateCardId:  item.rateCardId,
-          description: card?.service || card?.item_name || 'Service Item',
-          unit:        card?.unit    || 'Unit',
-          unitCost:    card?.rate    || 0,
-          qty:         Number(item.qty) || 1,
-          total:       (card?.rate || 0) * (Number(item.qty) || 1),
-        }
-      })
+    const contractor = contractors.find(c => c.id === selectedContractorId)
+    const newStatus = 'ASSIGNED'
 
     setIsSubmitting(true)
     try {
-      // 1. Create work order in the in-memory database
+      // 1. Create work order in backend
       const res = await clerkApi.createWorkOrder({
         complaintId: active.id,
         contractorId: selectedContractorId,
-        lineItems: resolvedLines,
         priority: priority.toUpperCase(),
         specialInstructions,
       })
 
       const woData = res?.data
-      const woCode = woData?.workOrderCode || `WO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
+      const woCode = woData?.workOrderCode || woData?.work_order_number || `WO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
       const assignedContractor = woData?.contractor || contractor
 
-      const note = requiresDeptHead
-        ? `WO ${woCode} created, forwarded to Dept Head (estimate Rs.${estimateTotal.toLocaleString()} > Rs.${DEPT_HEAD_THRESHOLD.toLocaleString()}). Contractor: ${assignedContractor?.name || 'TBD'}.`
-        : `WO ${woCode} dispatched to ${assignedContractor?.name || 'contractor'}. Estimate: Rs.${estimateTotal.toLocaleString()}. Priority: ${priority}.`
-
-      // 2. Fetch updated complaints from the in-memory database
+      // 2. Fetch updated complaints from database
       const freshComplaints = await refreshComplaints()
       const updatedComplaint = freshComplaints.find(c => c.id === active.id) || {
         ...active,
@@ -157,23 +94,19 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
         assignedContractor,
         assigned_contractor_id: selectedContractorId,
         assigned_contractor_name: assignedContractor?.name,
-        estimateAmount: estimateTotal,
-        estimate_amount: estimateTotal,
-        lineItems: resolvedLines,
         priority,
-        requiresDeptHead,
+        specialInstructions,
         workOrderCreatedAt: new Date().toISOString(),
-        workOrderCreatedBy: `${currentUser.name} (Desk Clerk)`,
+        workOrderCreatedBy: `${currentUser?.name || 'Desk Clerk'} (Desk Clerk)`,
       }
 
       // 3. Complete dispatch callback
       onWorkOrderCreated(updatedComplaint)
     } catch (err) {
-      console.error('[WorkOrderCreate] Database error:', err)
-      // Fallback in case of temporary offline state
+      console.error('[WorkOrderCreate] Error creating work order:', err)
       const fallbackWoCode = `WO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
-      const note = `WO ${fallbackWoCode} dispatched. Contractor: ${contractor?.name || 'contractor'}.`
-      
+      const note = `Work Order ${fallbackWoCode} assigned to ${contractor?.name || 'contractor'}. Priority: ${priority}. Ready for on-site inspection.`
+
       const fallbackPayload = {
         status: newStatus,
         workOrderId: fallbackWoCode,
@@ -181,10 +114,8 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
         assignedContractor: contractor,
         assigned_contractor_id: selectedContractorId,
         assigned_contractor_name: contractor?.name,
-        estimateAmount: estimateTotal,
-        lineItems: resolvedLines,
         priority,
-        requiresDeptHead,
+        specialInstructions,
       }
       updateComplaintStatus(active.id, newStatus, note, fallbackPayload)
       onWorkOrderCreated({ ...active, ...fallbackPayload })
@@ -243,7 +174,7 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
       <div className="wo-hdr">
         <div>
           <h1 className="wo-title">Create Work Order</h1>
-          <p className="wo-subtitle">Select contractor, add AMC line items, and dispatch.</p>
+          <p className="wo-subtitle">Assign an authorized contractor, set priority and instructions, and dispatch.</p>
         </div>
       </div>
 
@@ -251,27 +182,14 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
       <div className="wo-ref-strip">
         <div className="wo-ref-item"><span className="wo-ref-label">Complaint ID</span><span className="wo-ref-val mono">{active.id}</span></div>
         <div className="wo-ref-item"><span className="wo-ref-label">Title</span><span className="wo-ref-val">{active.title}</span></div>
-        <div className="wo-ref-item"><span className="wo-ref-label">Category</span><span className="wo-ref-val">{active.category} &bull; {active.subCategory}</span></div>
-        <div className="wo-ref-item"><span className="wo-ref-label">Location</span><span className="wo-ref-val">{active.location.block}, {active.location.sector}</span></div>
+        <div className="wo-ref-item"><span className="wo-ref-label">Category</span><span className="wo-ref-val">{active.category} &bull; {active.subCategory || active.subcategory || ''}</span></div>
+        <div className="wo-ref-item"><span className="wo-ref-label">Location</span><span className="wo-ref-val">{active.location?.block || 'Block A'}, {active.location?.sector || 'Sector 54'}</span></div>
         <div className="wo-ref-item"><span className="wo-ref-label">Status</span><span className="wo-ref-val" style={{ color: '#166534', fontWeight: 700 }}>VALIDATED &#10003;</span></div>
       </div>
 
-      {/* Dept Head threshold warning */}
-      {requiresDeptHead && (
-        <div className="wo-depthead-banner">
-          <span className="wo-depthead-icon">&#9888;</span>
-          <div>
-            <div className="wo-depthead-title">
-              Dept Head Approval Required &mdash; Estimate Rs.{estimateTotal.toLocaleString()} exceeds Rs.{DEPT_HEAD_THRESHOLD.toLocaleString()} threshold
-            </div>
-            <div className="wo-depthead-desc">This WO will be forwarded to the Dept Head before contractor dispatch.</div>
-          </div>
-        </div>
-      )}
-
       <form className="wo-form-card" onSubmit={handleDispatch}>
 
-        {/* Section 1: Contractor */}
+        {/* Section 1: Contractor Assignment */}
         <div className="wo-section">
           <div className="wo-section-title">1. Contractor Assignment</div>
           {filteredContractors.length === 0 ? (
@@ -295,53 +213,9 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
           )}
         </div>
 
-        {/* Section 2: AMC Line Items */}
+        {/* Section 2: Priority */}
         <div className="wo-section">
-          <div className="wo-section-title">2. AMC Rate Card Line Items</div>
-          <div className="wo-line-items-hdr">
-            <span>Service Item</span><span>Qty</span><span>Unit</span><span>Amount</span><span></span>
-          </div>
-          {lineItems.map((item, idx) => {
-            const card = amcRateCards.find(r => r.id === item.rateCardId)
-            const rowTotal = card ? card.rate * (Number(item.qty) || 0) : 0
-            return (
-              <div key={idx} className="wo-line-row">
-                <select
-                  value={item.rateCardId}
-                  onChange={e => updateItem(idx, 'rateCardId', e.target.value)}
-                  className="wo-line-select"
-                >
-                  <option value="">Select service...</option>
-                  {filteredRateCards.map(r => (
-                    <option key={r.id} value={r.id}>{r.service} (Rs.{r.rate}/{r.unit})</option>
-                  ))}
-                </select>
-                <input
-                  type="number" min="1" value={item.qty}
-                  onChange={e => updateItem(idx, 'qty', e.target.value)}
-                  className="wo-line-qty"
-                />
-                <span className="wo-line-unit">{card ? card.unit : '—'}</span>
-                <span className="wo-line-total">{rowTotal > 0 ? `Rs.${rowTotal.toLocaleString()}` : '—'}</span>
-                {lineItems.length > 1 && (
-                  <button type="button" onClick={() => removeLineItem(idx)} className="wo-line-remove">&times;</button>
-                )}
-              </div>
-            )
-          })}
-          <button type="button" onClick={addLineItem} className="wo-btn-add-line">+ Add Service Item</button>
-          <div className="wo-estimate-bar">
-            <span className="wo-estimate-label">Total Estimated Amount</span>
-            <span className={`wo-estimate-val${requiresDeptHead ? ' exceeds' : ''}`}>
-              Rs.{estimateTotal.toLocaleString()}
-              {requiresDeptHead && <span style={{ fontSize: 12, marginLeft: 8, color: '#c2410c' }}>(Dept Head Required)</span>}
-            </span>
-          </div>
-        </div>
-
-        {/* Section 3: Priority */}
-        <div className="wo-section">
-          <div className="wo-section-title">3. Work Order Priority</div>
+          <div className="wo-section-title">2. Work Order Priority</div>
           <div className="wo-priority-grid">
             {['Emergency', 'High', 'Medium', 'Low'].map(p => (
               <div
@@ -355,9 +229,9 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
           </div>
         </div>
 
-        {/* Section 4: Special Instructions */}
+        {/* Section 3: Special Instructions */}
         <div className="wo-section">
-          <div className="wo-section-title">4. Special Instructions for Contractor</div>
+          <div className="wo-section-title">3. Special Instructions for Contractor</div>
           <textarea
             rows={3}
             value={specialInstructions}
@@ -376,9 +250,7 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
             className="wo-btn-dispatch"
             disabled={!selectedContractorId || isSubmitting}
           >
-            {isSubmitting
-              ? 'Dispatching...'
-              : (requiresDeptHead ? 'Forward to Dept Head ↗' : 'Dispatch Work Order ✉')}
+            {isSubmitting ? 'Dispatching...' : 'Dispatch Work Order ✉'}
           </button>
         </div>
       </form>

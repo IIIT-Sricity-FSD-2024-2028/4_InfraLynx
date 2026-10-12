@@ -1,31 +1,54 @@
-﻿import { useState, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 import './styles/ClerkDashboard.css'
 
 /**
- * ClerkDashboard - Screen 1: Overview of ALL system complaints.
+ * ClerkDashboard - Screen 1: Overview of complaints for the Clerk's department.
  *
  * Props:
+ *   complaints                    - list of complaints filtered by department (optional)
  *   onNavigate(screen)            - navigate to another clerk screen
  *   onSelectComplaint(complaint)  - store complaint in portal state
  *   successNotice                 - { id, message } | null  toast after WO dispatch
  *   onDismissNotice()             - clears the success toast
  *
  * Context used: complaints (all), currentUser
- *
- * Local state:
- *   searchQuery      - text filter on id / title / location
- *   selectedStatus   - status group filter
- *   selectedCategory - category filter
  */
 export default function ClerkDashboard({
+  complaints: propComplaints,
   onNavigate, onSelectComplaint, successNotice, onDismissNotice,
 }) {
-  const { complaints, currentUser } = useTIMS()
+  const { complaints: contextComplaints, currentUser } = useTIMS()
+
+  // Filter complaints by clerk's department
+  const complaints = useMemo(() => {
+    if (propComplaints) return propComplaints
+    if (!currentUser || currentUser.role !== 'DESK_CLERK') return contextComplaints
+    const deptId = currentUser.departmentId || currentUser.department_id || currentUser.deptId
+    const deptName = (currentUser.departmentName || currentUser.department_name || currentUser.department || '').toLowerCase()
+    if (!deptId && !deptName) return contextComplaints
+
+    return contextComplaints.filter(c => {
+      const cDeptId = c.departmentId || c.department_id
+      if (deptId && cDeptId && String(cDeptId) === String(deptId)) return true
+      const cCat = (c.category || c.departmentName || c.department || '').toLowerCase()
+      if (deptName && cCat) {
+        if (deptName.includes(cCat) || cCat.includes(deptName)) return true
+        if (deptName.includes('electr') && cCat.includes('electr')) return true
+        if (deptName.includes('water') && (cCat.includes('water') || cCat.includes('sanitat') || cCat.includes('plumb') || cCat.includes('drain'))) return true
+        if (deptName.includes('civil') && (cCat.includes('civil') || cCat.includes('road'))) return true
+        if (deptName.includes('horticult') && (cCat.includes('horticult') || cCat.includes('garden'))) return true
+      }
+      if (deptId && cDeptId) return String(cDeptId) === String(deptId)
+      return false
+    })
+  }, [propComplaints, contextComplaints, currentUser])
 
   const [searchQuery,       setSearchQuery]       = useState('')
   const [selectedStatus,    setSelectedStatus]    = useState('ALL')
   const [selectedCategory,  setSelectedCategory]  = useState('ALL')
+
+  const deptDisplay = currentUser?.departmentName || currentUser?.department_name || currentUser?.department || 'Operations'
 
   // ── KPI metrics ──────────────────────────────────────────────────────────
   const stats = useMemo(() => ({
@@ -43,8 +66,8 @@ export default function ClerkDashboard({
       const matchSearch = !q ||
         c.id.toLowerCase().includes(q) ||
         c.title.toLowerCase().includes(q) ||
-        (c.location.street || '').toLowerCase().includes(q) ||
-        (c.location.block  || '').toLowerCase().includes(q)
+        (c.location?.street || '').toLowerCase().includes(q) ||
+        (c.location?.block  || '').toLowerCase().includes(q)
 
       const matchStatus =
         selectedStatus === 'ALL'       ? true :
@@ -84,10 +107,10 @@ export default function ClerkDashboard({
 
       {/* ── Welcome banner ── */}
       <div className="cd-welcome">
-        <span className="cd-welcome-badge">Desk Clerk</span>
-        <div className="cd-welcome-title">Good day, {currentUser.name}</div>
+        <span className="cd-welcome-badge">Desk Clerk &bull; {deptDisplay}</span>
+        <div className="cd-welcome-title">Good day, {currentUser?.name}</div>
         <div className="cd-welcome-sub">
-          Triage incoming complaints, validate issues, and dispatch work orders to AMC contractors.
+          Review and triage complaints assigned to the <strong>{deptDisplay}</strong> department, validate tickets, and dispatch work orders.
         </div>
       </div>
 
@@ -105,9 +128,9 @@ export default function ClerkDashboard({
       {/* ── KPI metric cards ── */}
       <div className="cd-metrics">
         <div className="cd-metric-card">
-          <div className="cd-metric-label">Total Complaints</div>
+          <div className="cd-metric-label">Department Complaints</div>
           <div className="cd-metric-val">{stats.total}</div>
-          <div className="cd-metric-sub">All system records</div>
+          <div className="cd-metric-sub">{deptDisplay} register</div>
         </div>
         <div className={`cd-metric-card${stats.pendingTriage > 0 ? ' amber-alert' : ''}`}>
           <div className="cd-metric-label">Pending Triage</div>
@@ -122,7 +145,7 @@ export default function ClerkDashboard({
         <div className={`cd-metric-card${stats.awaitingDeptHead > 0 ? ' orange-alert' : ''}`}>
           <div className="cd-metric-label">Awaiting Dept Head</div>
           <div className={`cd-metric-val${stats.awaitingDeptHead > 0 ? ' orange' : ''}`}>{stats.awaitingDeptHead}</div>
-          <div className="cd-metric-sub">Large-job approvals</div>
+          <div className="cd-metric-sub">Approval required</div>
         </div>
         <div className="cd-metric-card">
           <div className="cd-metric-label">Closed / Resolved</div>
@@ -153,7 +176,7 @@ export default function ClerkDashboard({
               onClick={() => setSelectedCategory(cat)}
               className={`cd-filter-btn${selectedCategory === cat ? ' active' : ''}`}
             >
-              {cat === 'ALL' ? 'All Categories' : cat.charAt(0) + cat.slice(1).toLowerCase()}
+              {cat === 'ALL' ? 'All Subcategories' : cat.charAt(0) + cat.slice(1).toLowerCase()}
             </button>
           ))}
         </div>
@@ -180,14 +203,14 @@ export default function ClerkDashboard({
       <div className="cd-list-section">
         <div className="cd-list-header">
           <h2 className="cd-list-title">Complaints Register ({filtered.length})</h2>
-          <span className="cd-list-sub">All sectors &mdash; clerk view</span>
+          <span className="cd-list-sub">{deptDisplay} &mdash; clerk queue</span>
         </div>
 
         {filtered.length === 0 ? (
           <div className="cd-empty">
             <div className="cd-empty-icon">&#128203;</div>
             <div className="cd-empty-title">No complaints found</div>
-            <p className="cd-empty-desc">Try adjusting your search or filter criteria.</p>
+            <p className="cd-empty-desc">No active complaints under {deptDisplay} matching current criteria.</p>
           </div>
         ) : (
           filtered.map(c => {
@@ -206,7 +229,7 @@ export default function ClerkDashboard({
                 <div className="cd-card-top">
                   <div className="cd-badges">
                     <span className="cd-badge-id">{c.id}</span>
-                    <span className={`cd-badge-cat ${catCls}`}>{c.category} &bull; {c.subCategory}</span>
+                    <span className={`cd-badge-cat ${catCls}`}>{c.category} &bull; {c.subCategory || c.subcategory || ''}</span>
                     <span className={`cd-badge-sev ${sevCls}`}>{c.severity} Severity</span>
                   </div>
                   <span style={{
@@ -227,7 +250,7 @@ export default function ClerkDashboard({
                 {/* Footer: location + actions */}
                 <div className="cd-card-footer">
                   <div className="cd-card-meta">
-                    <span>&#128205; <strong>{c.location.block}, {c.location.street || 'N/A'}</strong> ({c.location.sector})</span>
+                    <span>&#128205; <strong>{c.location?.block || 'Block A'}, {c.location?.street || 'N/A'}</strong> ({c.location?.sector || 'Sector 54'})</span>
                     {c.workOrderId && <span>&#128196; WO: <strong style={{ fontFamily: 'var(--font-mono)' }}>{c.workOrderId}</strong></span>}
                     {c.assignedContractor && <span>&#128295; <strong>{c.assignedContractor.name}</strong></span>}
                   </div>

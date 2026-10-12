@@ -495,6 +495,18 @@ export const getWorkOrders = async (req, res, next) => {
       workOrders = workOrders.filter((w) => w.contractor_id === contractorId);
     }
 
+    // Desk clerk department filter: clerk only sees work orders under their department
+    const clerkDeptId = req.user.departmentId || req.user.department_id || req.user.deptId;
+    if (req.user.role === 'DESK_CLERK' && clerkDeptId) {
+      workOrders = workOrders.filter((w) => {
+        if (w.created_by_id === req.user.id || w.assigned_by === req.user.id) return true;
+        if (w.department_id && String(w.department_id) === String(clerkDeptId)) return true;
+        const comp = db.findOne('complaints', (c) => c.id === w.complaint_id || c.complaint_code === w.complaint_id);
+        if (comp && comp.department_id && String(comp.department_id) === String(clerkDeptId)) return true;
+        return false;
+      });
+    }
+
     // Format and enrich all matching
     let formatted = workOrders.map(formatWorkOrderResponse);
 

@@ -492,6 +492,8 @@
   font-size: 16px;
   font-weight: 700;
   color: var(--text);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .card-desc {
@@ -499,6 +501,8 @@
   color: var(--text-soft);
   margin-top: 4px;
   line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .card-footer {
