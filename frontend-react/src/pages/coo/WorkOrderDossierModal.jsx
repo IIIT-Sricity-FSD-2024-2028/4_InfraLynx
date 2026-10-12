@@ -96,8 +96,12 @@ export default function WorkOrderDossierModal({ workOrderId, onClose, onEscalate
                   <span className={`status-pill ${data.priority === 'EMERGENCY' ? 'escalated' : 'active'}`}>{data.priority}</span>
                 </div>
                 <div style={{ borderLeft: '1px solid var(--line)', paddingLeft: '12px' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--text-soft)', display: 'block' }}>Estimate / Actual</span>
-                  <strong>₹{data.estimatedCost?.toLocaleString('en-IN')} {data.actualCost ? `/ ₹${data.actualCost?.toLocaleString('en-IN')}` : ''}</strong>
+                  <span style={{ fontSize: '11px', color: 'var(--text-soft)', display: 'block' }}>Money Estimated</span>
+                  <strong style={{ color: '#0369a1' }}>₹{(data.estimatedCost || data.moneyEstimated || 0).toLocaleString('en-IN')}</strong>
+                </div>
+                <div style={{ borderLeft: '1px solid var(--line)', paddingLeft: '12px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-soft)', display: 'block' }}>Money Used</span>
+                  <strong style={{ color: '#16a34a' }}>₹{(data.actualCost || data.moneyUsed || (data.status === 'COMPLETED' ? (data.estimatedCost || 0) : 0)).toLocaleString('en-IN')}</strong>
                 </div>
               </div>
 
@@ -143,8 +147,9 @@ export default function WorkOrderDossierModal({ workOrderId, onClose, onEscalate
                 <div className="dossier-card">
                   <div className="dossier-card-title">3. Estimate & Rate Card Breakdown</div>
                   <div className="dossier-card-content">
-                    <div style={{ fontSize: '12px', borderBottom: '1px solid var(--line)', paddingBottom: '6px', marginBottom: '6px' }}>
-                      <strong>Approved Estimate:</strong> ₹{data.estimatedCost?.toLocaleString('en-IN')}
+                    <div style={{ fontSize: '12px', borderBottom: '1px solid var(--line)', paddingBottom: '6px', marginBottom: '6px', display: 'flex', justifyContent: 'space-between' }}>
+                      <span><strong>Money Estimated:</strong> ₹{(data.estimatedCost || data.moneyEstimated || 0).toLocaleString('en-IN')}</span>
+                      <span style={{ color: '#16a34a' }}><strong>Money Used:</strong> ₹{(data.actualCost || data.moneyUsed || (data.status === 'COMPLETED' ? (data.estimatedCost || 0) : 0)).toLocaleString('en-IN')}</span>
                     </div>
                     {data.lineItems && data.lineItems.length > 0 ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

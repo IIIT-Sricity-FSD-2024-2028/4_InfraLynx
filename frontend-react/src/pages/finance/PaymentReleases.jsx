@@ -1,10 +1,25 @@
-import React, { useState } from 'react'
-import { INITIAL_DISBURSEMENTS } from './mockFinanceData.js'
+import React, { useState, useEffect } from 'react'
+import { financeApi } from '../../services/api.js'
 import './styles/PaymentReleases.css'
 
 export default function PaymentReleases({ invoices }) {
-  const [disbursements, setDisbursements] = useState(INITIAL_DISBURSEMENTS)
+  const [disbursements, setDisbursements] = useState([])
   const [selectedDisbursement, setSelectedDisbursement] = useState(null)
+
+  const loadDisbursements = async () => {
+    try {
+      const data = await financeApi.getPayments();
+      if (Array.isArray(data)) {
+        setDisbursements(data);
+      }
+    } catch (err) {
+      console.warn('[PaymentReleases] live fetch:', err.message);
+    }
+  };
+
+  useEffect(() => {
+    loadDisbursements();
+  }, []);
 
   const authorizedInvoices = invoices.filter((i) => i.auditStatus === 'AUTHORIZED')
 
@@ -32,7 +47,22 @@ export default function PaymentReleases({ invoices }) {
     alert(`Disbursement Batch ${newDisb.batchId} scheduled for payout!`)
   }
 
-  function handleProcessPayout(id) {
+  async function handleProcessPayout(id) {
+    const targeted = disbursements.find((d) => d.id === id);
+    if (targeted && targeted.invoiceId) {
+      try {
+        await financeApi.releasePayment(targeted.invoiceId, {
+          paymentMode: targeted.paymentMode,
+          paymentReference: targeted.bankReference,
+        });
+        await loadDisbursements();
+        alert('Bank RTGS transfer processed and disbursement marked as DISBURSED ✓');
+        return;
+      } catch (err) {
+        console.warn('[PaymentReleases] release note:', err.message);
+      }
+    }
+
     setDisbursements(
       disbursements.map((d) => (d.id === id ? { ...d, status: 'DISBURSED' } : d))
     )

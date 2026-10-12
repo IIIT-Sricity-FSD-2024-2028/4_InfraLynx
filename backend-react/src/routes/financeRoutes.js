@@ -21,6 +21,9 @@ router.post('/invoices/:id/authorize', financeController.authorizeInvoice);
 router.post('/invoices/:id/flag-variance', financeController.flagVariance);
 router.post('/invoices/:id/pay', financeController.releasePayment);
 
+// Payment Disbursements
+router.get('/payments', financeController.getPayments);
+
 // Rate Cards Master Reference
 router.get('/rate-cards', financeController.getRateCards);
 

@@ -50,28 +50,41 @@ function mapBackendJobToUi(wo) {
     afterPhoto: afterPhotos[0] || '',
   } : null
 
+  const estimatedVal = Number(wo.estimatedCost ?? wo.estimated_cost ?? wo.estimateAmount ?? wo.estimate_amount ?? 0)
+  const actualVal = (wo.actualCost !== null && wo.actualCost !== undefined)
+    ? Number(wo.actualCost)
+    : ((wo.actual_cost !== null && wo.actual_cost !== undefined)
+        ? Number(wo.actual_cost)
+        : (wo.status === 'COMPLETED' ? estimatedVal : null))
+
   return {
-    id: wo.complaintId || wo.complaintCode || wo.id,
+    id: wo.complaintId || wo.complaint_id || wo.complaintCode || wo.complaint_code || wo.id,
     backendWoId: wo.id,
-    workOrderId: wo.workOrderId || wo.workOrderCode || `WO-${wo.id?.slice(0, 8)}`,
-    workOrderCode: wo.workOrderCode || wo.workOrderId,
-    complaintId: wo.complaintId || wo.id,
-    complaintCode: wo.complaintCode || wo.complaintId || wo.id,
+    workOrderId: wo.workOrderId || wo.workOrderCode || wo.work_order_code || wo.work_order_number || `WO-${wo.id?.slice(0, 8)}`,
+    workOrderCode: wo.workOrderCode || wo.workOrderId || wo.work_order_code || wo.work_order_number || wo.id,
+    complaintId: wo.complaintId || wo.complaint_id || wo.id,
+    complaintCode: wo.complaintCode || wo.complaint_code || wo.complaintId || wo.complaint_id || wo.id,
     title: wo.title || 'Field Work Order',
     category: wo.category || 'General',
-    subCategory: wo.subCategory || wo.subcategory || '',
+    subCategory: wo.subCategory || wo.subcategory || wo.sub_category || '',
     location: typeof wo.location === 'object' && wo.location !== null ? wo.location : {
-      sector: 'Sector 54',
-      block: 'Block A',
-      street: 'Gulmohar Marg',
+      sector: wo.sector || 'Sector 54',
+      block: wo.block || 'Block A',
+      street: wo.street || 'Gulmohar Marg',
+      landmark: wo.location_details || '',
     },
     severity: wo.severity || wo.priority || 'Medium',
     priority: wo.priority || wo.severity || 'Medium',
-    slaDeadline: wo.slaDeadline || new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+    slaDeadline: wo.slaDeadline || wo.sla_deadline || wo.dueAt || wo.due_at || new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
     status: wo.status,
-    description: wo.description || wo.specialInstructions || '',
-    reportedBy: wo.reportedBy || { name: 'Dr. Arvind Swaminathan', role: 'RWA Secretary' },
-    createdAt: wo.createdAt || new Date().toISOString(),
+    estimateAmount: estimatedVal,
+    estimatedCost: estimatedVal,
+    actualCost: actualVal,
+    moneyEstimated: estimatedVal,
+    moneyUsed: actualVal !== null ? actualVal : 0,
+    description: wo.description || wo.specialInstructions || wo.special_instructions || '',
+    reportedBy: wo.reportedBy || wo.reported_by || { name: 'Dr. Arvind Swaminathan', role: 'RWA Secretary' },
+    createdAt: wo.createdAt || wo.created_at || new Date().toISOString(),
     beforePhotos,
     afterPhotos,
     inspection,
@@ -89,18 +102,8 @@ export default function ContractorPortal({ onExitToLanding }) {
     updateComplaintStatus,
   } = useTIMS()
 
-  // Local state for contractor jobs (merges initial baseline with context complaints)
-  const [jobs, setJobs] = useState(() => {
-    const saved = sessionStorage.getItem('tims_contractor_jobs_v1')
-    if (saved) {
-      try {
-        return JSON.parse(saved)
-      } catch {
-        return INITIAL_CONTRACTOR_JOBS
-      }
-    }
-    return INITIAL_CONTRACTOR_JOBS
-  })
+  // Local state for contractor jobs (loaded directly from inMemoryDb)
+  const [jobs, setJobs] = useState([])
 
   // Navigation tab state: 'dashboard' | 'workorders' | 'inspection' | 'estimate' | 'approvals' | 'execution' | 'rework'
   const [currentScreen, setCurrentScreen] = useState('dashboard')
@@ -108,47 +111,23 @@ export default function ContractorPortal({ onExitToLanding }) {
   const [successNotice, setSuccessNotice] = useState(null)
   const [apiConnected, setApiConnected] = useState(false)
 
-  // Fetch live jobs from backend API on mount
-  useEffect(() => {
-    let isMounted = true
-
-    async function loadBackendJobs() {
-      try {
-        const liveWorkOrders = await contractorApi.getJobs()
-        if (isMounted && Array.isArray(liveWorkOrders) && liveWorkOrders.length > 0) {
-          setApiConnected(true)
-          const mappedJobs = liveWorkOrders.map(mapBackendJobToUi)
-
-          setJobs((prev) => {
-            // Merge live jobs with previous state, giving priority to live backend data
-            const updated = [...mappedJobs]
-            prev.forEach((pj) => {
-              const alreadyExists = updated.some(
-                (mj) =>
-                  mj.id === pj.id ||
-                  mj.workOrderId === pj.workOrderId ||
-                  mj.backendWoId === pj.backendWoId ||
-                  mj.backendWoId === pj.id
-              )
-              if (!alreadyExists) {
-                updated.push(pj)
-              }
-            })
-            return updated
-          })
-        }
-      } catch (err) {
-        // Fallback gracefully to offline state
-        console.info('[ContractorPortal] Backend sync running in offline fallback mode:', err.message)
+  // Fetch live jobs from backend API on mount and on screen switch
+  const loadBackendJobs = useCallback(async () => {
+    try {
+      const liveWorkOrders = await contractorApi.getJobs()
+      if (Array.isArray(liveWorkOrders)) {
+        setApiConnected(true)
+        const mappedJobs = liveWorkOrders.map(mapBackendJobToUi)
+        setJobs(mappedJobs)
       }
-    }
-
-    loadBackendJobs()
-
-    return () => {
-      isMounted = false
+    } catch (err) {
+      console.warn('[ContractorPortal] Backend sync notice:', err.message)
     }
   }, [])
+
+  useEffect(() => {
+    loadBackendJobs()
+  }, [loadBackendJobs, currentScreen])
 
   // Persist contractor local jobs in tab-isolated sessionStorage
   useEffect(() => {
@@ -360,6 +339,9 @@ export default function ContractorPortal({ onExitToLanding }) {
 
     // Bridge to backend contractor API
     try {
+      const estimatedCost = Number(targetJob?.moneyEstimated || targetJob?.estimatedCost || targetJob?.estimateAmount || 3500)
+      const actualCost = Number(targetJob?.moneyUsed || targetJob?.actualCost || estimatedCost)
+
       if (completionData.afterPhoto) {
         await contractorApi.uploadEvidence({
           workOrderId: targetId,
@@ -372,8 +354,11 @@ export default function ContractorPortal({ onExitToLanding }) {
 
       await contractorApi.updateJobStatus(targetId, {
         status: 'COMPLETED',
+        actualCost,
         remarks: `${completionData.actualWorkSummary || ''} | Labour: ${completionData.actualLabourDetails || ''} | Notes: ${completionData.completionRemarks || ''}`,
       })
+
+      await loadBackendJobs()
     } catch (err) {
       console.warn('[ContractorPortal] Backend submitCompletion note:', err.message)
     }
