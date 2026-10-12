@@ -137,7 +137,8 @@ async function testAllRoleEndpoints() {
   const approvals = await req('/dept-head/approvals', 'GET', null, headToken);
   report('GET /dept-head/approvals (Estimates Queue)', approvals.status === 200 && Array.isArray(approvals.data?.data), `Pending Approvals: ${approvals.data?.count}`);
 
-  const approvalRes = await req(`/dept-head/approvals/e0000000-0000-0000-0000-000000000001`, 'POST', { action: 'APPROVE', notes: 'Approved for contractor dispatch.' }, headToken);
+  const targetApprovalId = approvals.data?.data?.[0]?.id || '40000000-0000-0000-0000-000000000006';
+  const approvalRes = await req(`/dept-head/approvals/${targetApprovalId}`, 'POST', { action: 'APPROVE', notes: 'Approved for contractor dispatch.' }, headToken);
   report('POST /dept-head/approvals/:id (Authorize Estimate)', approvalRes.status === 200, `Result: ${approvalRes.data?.message}`);
 
   const staff = await req('/dept-head/staff', 'GET', null, headToken);

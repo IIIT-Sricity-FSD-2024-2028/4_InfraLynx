@@ -244,17 +244,47 @@ export const submitEstimate = async (req, res, next) => {
     const updatedWo = db.update('work_orders', wo.id, {
       status: nextStatus,
       estimate_amount: verified.totalAmount,
+      estimated_cost: verified.totalAmount,
       line_items: verified.lineItems,
       requires_dept_head: requiresDeptHead,
       estimate_submitted_at: now,
       estimate_submitted_by: actorName,
+      rejection_notes: null,
+      rejected_at: null,
+      rejected_by: null,
+      revision_notes: null,
+      revision_requested_at: null,
+      revision_requested_by: null,
     });
+
+    // Persist into relational estimates table if present
+    const estimateRecord = db.insert('estimates', {
+      work_order_id: wo.id,
+      contractor_id: req.user.contractorId || wo.contractor_id,
+      total_amount: verified.totalAmount,
+      status: nextStatus,
+      submitted_at: now,
+      submitted_by: actorName,
+    });
+
+    if (Array.isArray(verified.lineItems)) {
+      verified.lineItems.forEach((item) => {
+        db.insert('estimate_items', {
+          estimate_id: estimateRecord.id,
+          rate_card_id: item.rateCardId || item.itemCode,
+          quantity: item.qty || item.quantity,
+          rate: item.rate,
+          total_price: item.totalAmount || item.amount,
+        });
+      });
+    }
 
     const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
     if (complaint) {
       db.update('complaints', complaint.id, {
         status: nextStatus,
         estimateAmount: verified.totalAmount,
+        rejection_reason: null,
         history: [
           ...(complaint.history || []),
           { stage: nextStatus, timestamp: now, actor: actorName, note },
@@ -282,6 +312,7 @@ export const submitEstimate = async (req, res, next) => {
         estimateTotal: verified.totalAmount,
         requiresDeptHeadApproval: requiresDeptHead,
         lineItems: verified.lineItems,
+        estimateId: estimateRecord.id,
       },
     });
   } catch (err) {

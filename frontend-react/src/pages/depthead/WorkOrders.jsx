@@ -141,49 +141,91 @@ export default function WorkOrders({ onSelectComplaint }) {
           <table className="dept-list-table">
             <thead>
               <tr>
-                <th>Work Order</th>
+                <th>Work Order ID & Date</th>
+                <th>Description & Category</th>
+                <th>Location</th>
+                <th>Assigned Contractor</th>
                 <th>Status & SLA</th>
-                <th>Contractor</th>
                 <th>Priority</th>
+                <th>Estimated Amount</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {workOrders.map((wo) => {
-                const isOverdue = wo.sla_deadline && new Date(wo.sla_deadline) < new Date() && wo.status !== 'COMPLETED' && wo.status !== 'CLOSED';
+                const isOverdue =
+                  wo.slaStatus === 'OVERDUE' ||
+                  (wo.slaDeadline && new Date(wo.slaDeadline) < new Date() && wo.status !== 'COMPLETED' && wo.status !== 'CLOSED') ||
+                  (wo.sla_deadline && new Date(wo.sla_deadline) < new Date() && wo.status !== 'COMPLETED' && wo.status !== 'CLOSED');
                 
+                const woId = wo.workOrderId || wo.workOrderCode || wo.work_order_code || wo.id.substring(0, 8);
+                const desc = wo.complaintDescription || wo.description || 'Civil infrastructure repair';
+                const cat = wo.category || 'Civil';
+                const loc = wo.location || wo.sector || 'Sector 54';
+                const contractorName = wo.assignedContractor || wo.contractor?.name || (wo.contractor_id ? `Contractor (${wo.contractor_id.substring(0,6)})` : 'Unassigned');
+                const estAmt = Number(wo.estimatedAmount || wo.estimate_amount || wo.estimated_cost || 0);
+                const createdDate = wo.creationDate || wo.createdAt || wo.created_at;
+
                 return (
-                  <tr key={wo.id} style={{ background: isOverdue ? '#fef2f2' : 'transparent' }}>
+                  <tr key={wo.id} style={{ background: isOverdue ? '#fff1f2' : 'transparent' }}>
                     <td>
-                      <div style={{ fontWeight: '600' }}>{wo.work_order_code || wo.id.substring(0, 8)}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-soft)', marginTop: '4px', maxWidth: '250px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={wo.description}>
-                        {wo.description || 'No description'}
+                      <div style={{ fontWeight: '700', color: '#1e293b' }}>{woId}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        {createdDate ? new Date(createdDate).toLocaleDateString() : ''}
                       </div>
-                      {wo.escalated && <span style={{ display: 'inline-block', marginTop: '8px', padding: '2px 6px', background: '#fee2e2', color: '#991b1b', fontSize: '10px', fontWeight: 'bold', borderRadius: '4px', textTransform: 'uppercase' }}>Escalated</span>}
-                    </td>
-                    <td>
-                      <span className="badge-eyebrow" style={{ background: '#dbeafe', color: '#1e40af' }}>
-                        {wo.status.replace(/_/g, ' ')}
-                      </span>
-                      {wo.sla_deadline && (
-                        <div style={{ fontSize: '12px', marginTop: '8px', fontWeight: '600', color: isOverdue ? '#dc2626' : 'var(--text-soft)' }}>
-                          {isOverdue ? '⚠️ Overdue' : `Due: ${new Date(wo.sla_deadline).toLocaleDateString()}`}
-                        </div>
+                      {wo.escalated && (
+                        <span style={{ display: 'inline-block', marginTop: '4px', padding: '2px 6px', background: '#fee2e2', color: '#991b1b', fontSize: '10px', fontWeight: 'bold', borderRadius: '4px', textTransform: 'uppercase' }}>
+                          Escalated
+                        </span>
                       )}
                     </td>
                     <td>
-                      <div style={{ fontWeight: '500' }}>
-                        {wo.contractor_id ? `Contractor (${wo.contractor_id.substring(0,6)})` : 'Unassigned'}
+                      <div style={{ fontWeight: '500', color: '#0f172a', maxWidth: '240px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={desc}>
+                        {desc}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                        <span style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: '600' }}>{cat}</span>
+                        {wo.subcategory && <span style={{ marginLeft: '4px' }}>• {wo.subcategory}</span>}
                       </div>
                     </td>
                     <td>
-                      <div style={{ fontWeight: '500' }}>{wo.priority || 'Medium'}</div>
+                      <div style={{ fontSize: '13px', color: '#334155' }}>📍 {loc}</div>
                     </td>
                     <td>
-                      <div style={{ display: 'flex', gap: '8px' }}>
+                      <div style={{ fontWeight: '600', color: '#4338ca', fontSize: '13px' }}>
+                        {contractorName}
+                      </div>
+                    </td>
+                    <td>
+                      <span className="badge-eyebrow" style={{ background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
+                        {wo.status.replace(/_/g, ' ')}
+                      </span>
+                      <div style={{ fontSize: '11px', marginTop: '4px', fontWeight: '600', color: isOverdue ? '#dc2626' : '#64748b' }}>
+                        {isOverdue ? '⚠️ Overdue' : wo.slaStatus === 'AT_RISK' ? '⚡ At Risk' : (wo.slaDeadline || wo.sla_deadline ? `Due: ${new Date(wo.slaDeadline || wo.sla_deadline).toLocaleDateString()}` : 'On Track')}
+                      </div>
+                    </td>
+                    <td>
+                      <span style={{ 
+                        fontWeight: '700', 
+                        fontSize: '12px',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        background: wo.priority === 'EMERGENCY' ? '#fee2e2' : wo.priority === 'HIGH' ? '#ffedd5' : '#f1f5f9',
+                        color: wo.priority === 'EMERGENCY' ? '#b91c1c' : wo.priority === 'HIGH' ? '#c2410c' : '#334155'
+                      }}>
+                        {wo.priority || 'Medium'}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '14px' }}>
+                        {estAmt > 0 ? `₹${estAmt.toLocaleString()}` : '—'}
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                         <button 
                           className="button button-secondary" 
-                          style={{ padding: '6px 12px', fontSize: '12px' }}
+                          style={{ padding: '6px 10px', fontSize: '12px' }}
                           onClick={() => onSelectComplaint ? onSelectComplaint(wo) : null}
                         >
                           Details
@@ -192,7 +234,7 @@ export default function WorkOrders({ onSelectComplaint }) {
                         {(!wo.escalated && isOverdue) && (
                           <button 
                             className="button button-primary" 
-                            style={{ padding: '6px 12px', fontSize: '12px', background: '#ef4444' }}
+                            style={{ padding: '6px 10px', fontSize: '12px', background: '#ef4444' }}
                             onClick={() => { setSelectedWO(wo); setShowEscalateModal(true); }}
                           >
                             Escalate

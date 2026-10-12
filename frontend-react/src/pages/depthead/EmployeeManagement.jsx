@@ -140,10 +140,12 @@ export default function EmployeeManagement() {
         <table className="dept-list-table">
           <thead>
             <tr>
-              <th>Employee</th>
-              <th>Contact</th>
-              <th>Role</th>
-              <th>Status</th>
+              <th>Employee Name</th>
+              <th>Employee ID</th>
+              <th>Designation</th>
+              <th>Department</th>
+              <th>Account Status</th>
+              <th>Contact Details</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -153,29 +155,41 @@ export default function EmployeeManagement() {
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ 
-                      width: '40px', height: '40px', borderRadius: '50%', 
+                      width: '36px', height: '36px', borderRadius: '50%', 
                       background: 'var(--primary-light)', color: 'var(--primary-darker)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px'
                     }}>
                       {emp.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <div style={{ fontWeight: '500' }}>{emp.name}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-soft)' }}>ID: {emp.id.split('-')[0]}...</div>
+                      <div style={{ fontWeight: '600', color: '#0f172a' }}>{emp.name}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-soft)' }}>@{emp.username || emp.email.split('@')[0]}</div>
                     </div>
                   </div>
                 </td>
                 <td>
-                  <div>{emp.email}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-soft)' }}>{emp.phone || 'N/A'}</div>
-                </td>
-                <td>
-                  {emp.role.replace('_', ' ')}
-                </td>
-                <td>
-                  <span className={`badge-eyebrow ${emp.status === 'ACTIVE' ? '' : 'badge-amber'}`}>
-                    {emp.status}
+                  <span style={{ fontFamily: 'monospace', fontSize: '12px', background: '#f1f5f9', padding: '3px 6px', borderRadius: '4px', color: '#334155' }}>
+                    {emp.id.split('-')[0]}
                   </span>
+                </td>
+                <td>
+                  <span style={{ fontWeight: '500', color: '#1e293b', fontSize: '13px' }}>
+                    {emp.designation || 'Operations Desk Clerk'}
+                  </span>
+                </td>
+                <td>
+                  <span style={{ background: '#e0e7ff', color: '#3730a3', fontSize: '12px', fontWeight: '600', padding: '3px 8px', borderRadius: '6px' }}>
+                    {emp.departmentName || emp.department || 'Civil Infrastructure & Roads'}
+                  </span>
+                </td>
+                <td>
+                  <span className={`badge-eyebrow ${emp.status === 'ACTIVE' ? '' : 'badge-amber'}`} style={{ fontWeight: '700' }}>
+                    {emp.status || 'ACTIVE'}
+                  </span>
+                </td>
+                <td>
+                  <div style={{ fontSize: '13px', color: '#334155' }}>{emp.email}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-soft)' }}>{emp.phone || 'N/A'}</div>
                 </td>
                 <td>
                   <div style={{ display: 'flex', gap: '8px' }}>
@@ -199,8 +213,8 @@ export default function EmployeeManagement() {
             ))}
             {employees.length === 0 && (
               <tr>
-                <td colSpan="5" style={{ padding: '48px', textAlign: 'center', color: 'var(--text-soft)' }}>
-                  No employees found in this department.
+                <td colSpan="7" style={{ padding: '48px', textAlign: 'center', color: 'var(--text-soft)' }}>
+                  No employees found in Civil Department.
                 </td>
               </tr>
             )}

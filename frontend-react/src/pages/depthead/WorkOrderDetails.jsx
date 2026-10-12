@@ -118,15 +118,14 @@ export default function WorkOrderDetails({ complaint, onBack }) {
 
   const amcItems = (wo.line_items && wo.line_items.length > 0)
     ? wo.line_items.map(it => ({
-        item: it.description || it.service || it.item || 'AMC Service Item',
+        item: it.description || it.service || it.item || it.itemCode || 'Civil AMC Item',
         qty: it.qty || it.quantity || 1,
-        rate: it.rate || it.amcRate || 500,
-        total: (it.qty || it.quantity || 1) * (it.rate || it.amcRate || 500),
+        rate: it.rate || it.amcRate || 1200,
+        total: (it.qty || it.quantity || 1) * (it.rate || it.amcRate || 1200),
       }))
     : [
-        { item: 'Senior Electrical Technician / Wireman', qty: 2, rate: 500, total: 1000 },
-        { item: 'Armoured 3-Core Copper Cable 16 sq.mm', qty: 10, rate: 150, total: 1500 },
-        { item: 'General Labour (Semi-Skilled / Safety Assist)', qty: 3, rate: 300, total: 900 }
+        { item: 'Pre-Cast RCC Manhole Chamber Cover (600mm Circular)', qty: 5, rate: 3200, total: 16000 },
+        { item: 'Bitumen Cold-Mix Asphalt Pothole Repair', qty: 5, rate: 1200, total: 6000 },
       ];
       
   const totalAmount = wo.estimate_amount || wo.estimateAmount || amcItems.reduce((acc, curr) => acc + curr.total, 0);

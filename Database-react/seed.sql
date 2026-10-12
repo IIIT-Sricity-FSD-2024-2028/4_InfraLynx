@@ -76,13 +76,13 @@ VALUES
     ('10000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'Dr. Arvind Swaminathan', 'rwa@infralynx.com', 'rwa_rep', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'RWA', NULL, NULL, 'Sector 54', '+91 98101 22345'),
     ('10000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000001', 'Pooja Verma', 'clerk@infralynx.com', 'desk_clerk', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'DESK_CLERK', 'd0000000-0000-0000-0000-000000000002', NULL, 'Central Admin Block', '+91 98712 34567'),
     ('10000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', 'Vikram Singh Rathore', 'contractor@infralynx.com', 'contractor_lead', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'FIELD_CONTRACTOR', NULL, 'c0000000-0000-0000-0000-000000000002', NULL, '+91 97230 11984'),
-    ('10000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000001', 'Er. Rajesh K. Sharma', 'head@infralynx.com', 'dept_head', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'DEPARTMENT_HEAD', 'd0000000-0000-0000-0000-000000000002', NULL, NULL, '+91 99100 87654'),
+    ('10000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000001', 'Er. Rajesh K. Sharma', 'head@infralynx.com', 'dept_head', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'DEPARTMENT_HEAD', 'd0000000-0000-0000-0000-000000000001', NULL, NULL, '+91 99100 87654'),
     ('10000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000001', 'Sunil Agrawal, CA', 'finance@infralynx.com', 'finance_clerk', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'FINANCE_CLERK', NULL, NULL, 'Finance Block A', '+91 98188 76543'),
     ('10000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000001', 'Col. (Retd.) Sanjeev Dewan', 'coo@infralynx.com', 'township_coo', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'TOWNSHIP_COO', NULL, NULL, 'Executive Tower', '+91 98111 99887'),
     ('10000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000001', 'Anjali Gupta', 'anjali.gupta@infralynx.com', 'clerk_anjali', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'DESK_CLERK', 'd0000000-0000-0000-0000-000000000001', NULL, 'Sector 54', '+91 98733 44556');
 
 -- Bind Department Head
-UPDATE departments SET department_head_id = '10000000-0000-0000-0000-000000000004' WHERE id = 'd0000000-0000-0000-0000-000000000002';
+UPDATE departments SET department_head_id = '10000000-0000-0000-0000-000000000004' WHERE id = 'd0000000-0000-0000-0000-000000000001';
 
 -- ------------------------------------------------------------------------------
 -- 5. SLAs
