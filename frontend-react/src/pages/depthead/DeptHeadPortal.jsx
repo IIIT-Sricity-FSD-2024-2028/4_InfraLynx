@@ -17,17 +17,23 @@ export default function DeptHeadPortal({ onExitToLanding }) {
   const [currentScreen, setCurrentScreen] = useState('dashboard')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
   
-  // Pending approvals (status AWAITING_DEPT_HEAD)
-  const pendingApprovalsCount = complaints.filter(c => c.status === 'AWAITING_DEPT_HEAD').length
+  // Pending approvals (status AWAITING_DEPT_HEAD for Civil department)
+  const pendingApprovalsCount = complaints.filter(
+    (c) =>
+      c.status === 'AWAITING_DEPT_HEAD' &&
+      (!c.department_id ||
+        c.department_id === 'd0000000-0000-0000-0000-000000000001' ||
+        c.category?.toLowerCase() === 'civil')
+  ).length;
 
   function handleNavigate(screen) {
-    setCurrentScreen(screen)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    setCurrentScreen(screen);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function handleSelectComplaint(complaint) {
-    setSelectedComplaint(complaint)
-    handleNavigate('workorder')
+    setSelectedComplaint(complaint);
+    handleNavigate('workorder');
   }
 
   return (
@@ -39,19 +45,19 @@ export default function DeptHeadPortal({ onExitToLanding }) {
               <img src="/assets/CRIMS_logo.png" alt="TIMS" className="depthead-brand-logo" />
               <div>
                 <span className="depthead-brand-title">TIMS</span>
-                <span className="depthead-brand-sub">Township Infrastructure Management</span>
+                <span className="depthead-brand-sub">Civil Infrastructure & Roads</span>
               </div>
             </div>
             <div className="depthead-role-badge">
               <span className="depthead-role-dot" />
-              Dept Head
+              Civil Dept Head
             </div>
           </div>
 
           <div className="depthead-user-actions">
             <div className="depthead-user-badge">
-              <div className="depthead-user-name">{currentUser.name || 'Dept Head'}</div>
-              <div className="depthead-user-role">{currentUser.title || 'Director'} &bull; {currentUser.department || 'Civil'}</div>
+              <div className="depthead-user-name">{currentUser.name || 'Er. Rajesh K. Sharma'}</div>
+              <div className="depthead-user-role">{currentUser.title || 'Department Head'} &bull; Civil Infrastructure</div>
             </div>
 
             {onExitToLanding && (

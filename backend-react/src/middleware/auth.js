@@ -101,10 +101,14 @@ export const authenticate = async (req, res, next) => {
       username: user.username,
       role: user.role,
       townshipId: user.township_id,
+      township_id: user.township_id,
       townshipName: user.township_name,
       departmentId: user.department_id,
+      department_id: user.department_id,
       departmentName: user.department_name,
+      department_name: user.department_name,
       contractorId: user.contractor_id,
+      contractor_id: user.contractor_id,
       contractorName: user.contractor_name,
       sector: user.sector,
       phone: user.phone,
@@ -189,8 +193,58 @@ export const requireTownship = (req, res, next) => {
   next();
 };
 
+/**
+ * Civil Department Head Authorization Middleware
+ * Enforces requirement: Department Head functionality is exclusively enabled for Civil Department at this stage.
+ * Authenticated user's department is derived strictly on the server from the database.
+ */
+export const requireCivilDepartmentHead = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: {
+        message: 'Unauthorized: Authentication required.',
+        statusCode: 401,
+      },
+    });
+  }
+
+  // TOWNSHIP_COO maintains global township executive oversight
+  if (req.user.role === 'TOWNSHIP_COO') {
+    return next();
+  }
+
+  if (req.user.role === 'DEPARTMENT_HEAD') {
+    const deptId = req.user.departmentId || req.user.department_id;
+    let deptName = req.user.departmentName || req.user.department_name;
+
+    if (!deptName && deptId) {
+      const dept = db.findById('departments', deptId);
+      deptName = dept?.name || '';
+    }
+
+    const isCivil =
+      deptId === 'd0000000-0000-0000-0000-000000000001' ||
+      (deptName && deptName.toLowerCase().includes('civil'));
+
+    if (!isCivil) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          message: 'Access Restricted: Department Head functionality is currently enabled exclusively for the Civil Department.',
+          code: 'CIVIL_DEPARTMENT_ONLY',
+          statusCode: 403,
+        },
+      });
+    }
+  }
+
+  next();
+};
+
 export default {
   authenticate,
   requireRole,
   requireTownship,
+  requireCivilDepartmentHead,
 };

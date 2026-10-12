@@ -5,6 +5,7 @@
  *
  * Protected by JWT authentication and RBAC:
  * - Requires role DEPARTMENT_HEAD or TOWNSHIP_COO
+ * - Strictly enforced: Department Head functionality is exclusive to Civil Department at this stage.
  */
 
 import express from 'express';
@@ -25,163 +26,101 @@ import {
   getWorkOrderDetails,
   escalateWorkOrder,
 } from '../controllers/deptHeadWorkOrderController.js';
-import { authenticate, requireRole } from '../middleware/auth.js';
+import { authenticate, requireRole, requireCivilDepartmentHead } from '../middleware/auth.js';
 
 const router = express.Router();
 
 const DEPT_HEAD_ROLES = ['DEPARTMENT_HEAD', 'TOWNSHIP_COO'];
 
+// Apply authentication, RBAC, and Civil Department Head isolation to all routes
+router.use(authenticate);
+router.use(requireRole(...DEPT_HEAD_ROLES));
+router.use(requireCivilDepartmentHead);
+
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. Estimate Approvals (> ₹10,000 threshold)
+// 1. Estimate Approvals (> ₹10,000 threshold & AMC rate review)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * @route  GET /api/v1/dept-head/approvals
  * @desc   Fetch pending contractor estimates requiring Dept Head authorization
- * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
  */
-router.get(
-  '/approvals',
-  authenticate,
-  requireRole(...DEPT_HEAD_ROLES),
-  getPendingApprovals
-);
+router.get('/approvals', getPendingApprovals);
 
 /**
  * @route  GET /api/v1/dept-head/approvals/:id
  * @desc   Fetch estimate details
- * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
  */
-router.get(
-  '/approvals/:id',
-  authenticate,
-  requireRole(...DEPT_HEAD_ROLES),
-  getApprovalDetails
-);
+router.get('/approvals/:id', getApprovalDetails);
 
 /**
+ * @route  POST /api/v1/dept-head/approvals/:id
  * @route  POST /api/v1/dept-head/approvals/:id/decision
- * @desc   Authorize estimate or request contractor revision
- * @body   { action: 'APPROVE' | 'REQUEST_REVISION' | 'FORWARD_TO_COO', notes?: string }
- * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
+ * @desc   Authorize estimate or request contractor revision / reject
+ * @body   { action: 'APPROVE' | 'REQUEST_REVISION' | 'FORWARD_TO_COO' | 'REJECT', notes?: string, rejection_reason?: string }
  */
-router.post(
-  '/approvals/:id/decision',
-  authenticate,
-  requireRole(...DEPT_HEAD_ROLES),
-  processApproval
-);
+router.post(['/approvals/:id', '/approvals/:id/decision'], processApproval);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. Department Staff Management
+// 2. Department Staff Management (Civil Department only)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * @route  GET /api/v1/dept-head/staff
- * @desc   List all Desk Clerks under the department
- * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
+ * @desc   List all employees under Civil department
  */
-router.get(
-  '/staff',
-  authenticate,
-  requireRole(...DEPT_HEAD_ROLES),
-  getStaff
-);
+router.get('/staff', getStaff);
 
 /**
  * @route  POST /api/v1/dept-head/staff
  * @desc   Create new Desk Clerk employee account (role locked to DESK_CLERK)
- * @body   { name, email, username, password, phone }
- * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
  */
-router.post(
-  '/staff',
-  authenticate,
-  requireRole(...DEPT_HEAD_ROLES),
-  createStaff
-);
+router.post('/staff', createStaff);
 
 /**
  * @route  PATCH /api/v1/dept-head/staff/:id
  * @desc   Update employee details
- * @body   { name, email, phone }
- * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
  */
-router.patch(
-  '/staff/:id',
-  authenticate,
-  requireRole(...DEPT_HEAD_ROLES),
-  updateStaff
-);
+router.patch('/staff/:id', updateStaff);
 
 /**
  * @route  PATCH /api/v1/dept-head/staff/:id/status
  * @desc   Activate or Suspend employee access
- * @body   { status: 'ACTIVE' | 'SUSPENDED' }
- * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
  */
-router.patch(
-  '/staff/:id/status',
-  authenticate,
-  requireRole(...DEPT_HEAD_ROLES),
-  updateStaffStatus
-);
+router.patch('/staff/:id/status', updateStaffStatus);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. Department Analytics / Dashboard
+// 3. Department Analytics / Dashboard (Civil Department only)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * @route  GET /api/v1/dept-head/dashboard
- * @desc   Dashboard statistics
- * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
+ * @route  GET /api/v1/dept-head/analytics
+ * @desc   Civil department dashboard metrics and activity
  */
-router.get(
-  '/dashboard',
-  authenticate,
-  requireRole(...DEPT_HEAD_ROLES),
-  getDashboard
-);
+router.get(['/dashboard', '/analytics'], getDashboard);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4. Work Order Management
+// 4. Work Order Management (Civil Department only)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * @route  GET /api/v1/dept-head/work-orders
- * @desc   List and filter work orders
- * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
+ * @desc   List and filter Civil work orders
  */
-router.get(
-  '/work-orders',
-  authenticate,
-  requireRole(...DEPT_HEAD_ROLES),
-  getWorkOrders
-);
+router.get('/work-orders', getWorkOrders);
 
 /**
  * @route  GET /api/v1/dept-head/work-orders/:id
- * @desc   Work order details
- * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
+ * @desc   Civil work order details
  */
-router.get(
-  '/work-orders/:id',
-  authenticate,
-  requireRole(...DEPT_HEAD_ROLES),
-  getWorkOrderDetails
-);
+router.get('/work-orders/:id', getWorkOrderDetails);
 
 /**
  * @route  POST /api/v1/dept-head/work-orders/:id/escalate
- * @desc   Escalate delayed work
- * @body   { reason: string }
- * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
+ * @desc   Escalate delayed Civil work order to Township COO
  */
-router.post(
-  '/work-orders/:id/escalate',
-  authenticate,
-  requireRole(...DEPT_HEAD_ROLES),
-  escalateWorkOrder
-);
+router.post('/work-orders/:id/escalate', escalateWorkOrder);
 
 export default router;
+

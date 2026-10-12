@@ -32,7 +32,8 @@ export default function ApprovalQueue({ onSelectComplaint }) {
   const handleApprove = async (item) => {
     try {
       setProcessing(true);
-      await deptHeadApi.processApproval(item.id, { action: 'APPROVE' });
+      const res = await deptHeadApi.processApproval(item.id, { action: 'APPROVE' });
+      alert(res?.message || 'Estimate approved successfully.');
       await fetchApprovals();
     } catch (err) {
       alert(err.message || 'Failed to approve estimate');
@@ -41,34 +42,23 @@ export default function ApprovalQueue({ onSelectComplaint }) {
     }
   };
 
-  const handleForwardCoo = async (item) => {
-    try {
-      setProcessing(true);
-      await deptHeadApi.processApproval(item.id, { action: 'FORWARD_TO_COO' });
-      await fetchApprovals();
-    } catch (err) {
-      alert(err.message || 'Failed to forward estimate');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleNegativeAction = async (e) => {
+  const handleModalSubmit = async (e) => {
     e.preventDefault();
-    if (!reason.trim()) return;
+    if ((modalAction === 'REJECT' || modalAction === 'REQUEST_REVISION') && !reason.trim()) return;
     
     try {
       setProcessing(true);
-      await deptHeadApi.processApproval(selectedItem.id, { 
+      const res = await deptHeadApi.processApproval(selectedItem.id, { 
         action: modalAction, 
         notes: reason 
       });
+      alert(res?.message || (modalAction === 'FORWARD_TO_COO' ? 'Estimate successfully forwarded to Township COO.' : 'Estimate processed successfully.'));
       setShowModal(false);
       setReason('');
       setSelectedItem(null);
       await fetchApprovals();
     } catch (err) {
-      alert(err.message || `Failed to ${modalAction.toLowerCase()}`);
+      alert(err.message || `Failed to process ${modalAction.toLowerCase()}`);
     } finally {
       setProcessing(false);
     }
@@ -159,9 +149,9 @@ export default function ApprovalQueue({ onSelectComplaint }) {
                       <button 
                         className="button button-secondary" 
                         style={{ padding: '6px 12px', fontSize: '12px', color: '#d97706', borderColor: '#d97706' }}
-                        onClick={() => handleForwardCoo(item)}
+                        onClick={() => { setSelectedItem(item); setModalAction('FORWARD_TO_COO'); setShowModal(true); }}
                         disabled={processing}
-                        title="Forward to COO if amount is large"
+                        title="Forward to COO for executive joint authorization"
                       >
                         Fwd COO
                       </button>
@@ -201,17 +191,31 @@ export default function ApprovalQueue({ onSelectComplaint }) {
       {showModal && selectedItem && (
         <div className="modal-overlay">
           <div className="panel-card modal-content" style={{ width: '500px', padding: '24px' }}>
-            <h3 style={{ marginBottom: '16px' }}>{modalAction === 'REJECT' ? 'Reject Estimate' : 'Request Estimate Revision'}</h3>
+            <h3 style={{ marginBottom: '16px' }}>
+              {modalAction === 'REJECT'
+                ? 'Reject Estimate'
+                : modalAction === 'REQUEST_REVISION'
+                ? 'Request Estimate Revision'
+                : 'Forward to Township COO'}
+            </h3>
             <p style={{ fontSize: '14px', color: 'var(--text-soft)', marginBottom: '16px' }}>
-              Provide a reason for {modalAction === 'REJECT' ? 'rejecting' : 'sending this estimate back to the contractor for'} work order <strong>{selectedItem.workOrderCode || selectedItem.id}</strong>.
+              {modalAction === 'FORWARD_TO_COO'
+                ? `Forward estimate for work order ${selectedItem.workOrderCode || selectedItem.id} (₹${Number(selectedItem.estimateAmount || 0).toLocaleString()}) to the Township COO for executive joint sign-off.`
+                : `Provide a reason for ${modalAction === 'REJECT' ? 'rejecting' : 'sending this estimate back to the contractor for'} work order ${selectedItem.workOrderCode || selectedItem.id}.`}
             </p>
-            <form onSubmit={handleNegativeAction}>
+            <form onSubmit={handleModalSubmit}>
               <textarea 
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder={modalAction === 'REJECT' ? "e.g. Budget exceeded. Do not proceed." : "e.g. Please verify the quantity of cable required."}
+                placeholder={
+                  modalAction === 'FORWARD_TO_COO'
+                    ? "Optional technical notes or recommendation for Township COO..."
+                    : modalAction === 'REJECT'
+                    ? "e.g. Budget exceeded. Do not proceed."
+                    : "e.g. Please verify the quantity of materials required."
+                }
                 style={{ width: '100%', height: '100px', padding: '12px', borderRadius: '8px', border: '1px solid var(--line-strong)', resize: 'none', marginBottom: '20px' }}
-                required
+                required={modalAction !== 'FORWARD_TO_COO'}
               />
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                 <button 
@@ -228,10 +232,15 @@ export default function ApprovalQueue({ onSelectComplaint }) {
                 </button>
                 <button 
                   type="submit" 
-                  className="button button-primary" style={{ background: '#ef4444' }}
-                  disabled={processing || !reason.trim()}
+                  className="button button-primary" 
+                  style={{ background: modalAction === 'FORWARD_TO_COO' ? '#d97706' : '#ef4444' }}
+                  disabled={processing || (modalAction !== 'FORWARD_TO_COO' && !reason.trim())}
                 >
-                  Confirm {modalAction === 'REJECT' ? 'Rejection' : 'Revision'}
+                  {modalAction === 'FORWARD_TO_COO'
+                    ? 'Confirm Forward to COO'
+                    : modalAction === 'REJECT'
+                    ? 'Confirm Rejection'
+                    : 'Confirm Revision'}
                 </button>
               </div>
             </form>

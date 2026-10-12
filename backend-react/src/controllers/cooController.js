@@ -786,6 +786,7 @@ export const getPendingApprovals = async (req, res, next) => {
     const workOrders = db.findAll('work_orders', (wo) => {
       if (townshipId && wo.township_id !== townshipId) return false;
       const isPending =
+        wo.status === 'AWAITING_COO' ||
         wo.status === 'AWAITING_DEPT_HEAD' ||
         wo.status === 'ESCALATED_TO_COO' ||
         wo.requires_coo === true ||
