@@ -92,6 +92,8 @@ export function processApprovalDecision(wo, complaint, action, notes, user) {
       if (wo) {
         wo = db.update('work_orders', wo.id, {
           status: targetStatus,
+          requires_dept_head: false,
+          requires_coo: true,
           dept_head_approved: true,
           dept_head_approved_at: now,
           dept_head_approved_by: actorName,
@@ -309,6 +311,12 @@ export function processApprovalDecision(wo, complaint, action, notes, user) {
     if (wo) {
       wo = db.update('work_orders', wo.id, {
         status: targetStatus,
+        requires_dept_head: false,
+        requires_coo: true,
+        dept_head_approved: true,
+        dept_head_approved_at: now,
+        dept_head_approved_by: actorName,
+        dept_head_approved_id: user.id,
         forwarded_to_coo_at: now,
         forwarded_to_coo_by: actorName,
         approval_notes: notes || null,

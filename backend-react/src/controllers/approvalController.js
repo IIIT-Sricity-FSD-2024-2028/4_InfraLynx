@@ -20,9 +20,14 @@ export const getPendingApprovals = async (req, res, next) => {
       const matchDept = req.user.role === 'TOWNSHIP_COO' || wo.department_id === userDeptId;
       const awaiting =
         wo.status === 'AWAITING_DEPT_HEAD' ||
-        wo.status === 'PENDING_APPROVAL' ||
-        wo.requires_dept_head === true;
-      return matchTownship && matchDept && awaiting && wo.status !== 'ASSIGNED' && wo.status !== 'COMPLETED';
+        wo.status === 'PENDING_APPROVAL';
+      const isExcluded =
+        wo.status === 'AWAITING_COO' ||
+        wo.status === 'ASSIGNED' ||
+        wo.status === 'COMPLETED' ||
+        wo.status === 'REJECTED' ||
+        wo.status === 'REVISION_REQUESTED';
+      return matchTownship && matchDept && awaiting && !isExcluded;
     });
 
     // Enrich with complaint and contractor context

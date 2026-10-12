@@ -559,6 +559,39 @@ async function runTests() {
     `Status: ${majorStatus} (Joint sign-off preserved; work cannot proceed without COO)`
   );
 
+  // Verify forwarded work order is cleanly removed from Dept Head queue and appears on COO board
+  const deptHeadQueueAfterFwd = await req('/dept-head/approvals', 'GET', null, headToken);
+  const stillInQueue = (deptHeadQueueAfterFwd.data?.data || []).some((item) => item.id === majorWoId);
+  report(
+    'Queue state: Forwarded estimate cleanly removed from Civil Dept Head Pending Queue',
+    !stillInQueue,
+    `Present in Dept Head Queue: ${stillInQueue ? 'YES (Error)' : 'NO (Cleanly removed)'}`
+  );
+
+  const cooQueueRes = await req('/coo/approvals', 'GET', null, cooToken);
+  const foundInCooQueue = (cooQueueRes.data?.data || []).some((item) => item.id === majorWoId);
+  report(
+    'Queue state: Forwarded estimate appears on Township COO Executive Approvals Board',
+    foundInCooQueue,
+    `Found on COO Board: ${foundInCooQueue}`
+  );
+
+  // Also test explicit action: 'FORWARD_TO_COO'
+  const explicitFwdRes = await req(
+    `/dept-head/approvals/40000000-0000-0000-0000-000000000006`,
+    'POST',
+    {
+      action: 'FORWARD_TO_COO',
+      notes: 'Technical scope reviewed; escalated to COO for capital sanction.',
+    },
+    headToken
+  );
+  report(
+    'Action: Explicit POST /dept-head/approvals/:id (FORWARD_TO_COO) transitions to AWAITING_COO',
+    explicitFwdRes.status === 200 && explicitFwdRes.data?.data?.workOrder?.status === 'AWAITING_COO',
+    `Status: ${explicitFwdRes.data?.data?.workOrder?.status}`
+  );
+
   // Township COO approves major expenditure
   const cooApprovalRes = await req(
     `/coo/approvals/${majorWoId}`,

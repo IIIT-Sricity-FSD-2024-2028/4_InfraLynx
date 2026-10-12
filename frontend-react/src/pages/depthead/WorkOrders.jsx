@@ -95,7 +95,10 @@ export default function WorkOrders({ onSelectComplaint }) {
               <option value="ASSIGNED">Assigned</option>
               <option value="IN_PROGRESS">In Progress</option>
               <option value="COMPLETED">Completed</option>
-              <option value="AWAITING_DEPT_HEAD">Awaiting Approval</option>
+              <option value="AWAITING_DEPT_HEAD">Awaiting Dept Head</option>
+              <option value="AWAITING_COO">Awaiting COO</option>
+              <option value="REVISION_REQUESTED">Revision Requested</option>
+              <option value="REJECTED">Rejected</option>
             </select>
             <select 
               value={filters.priority} 
