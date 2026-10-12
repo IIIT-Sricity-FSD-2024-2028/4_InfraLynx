@@ -133,10 +133,12 @@ export default function InvoiceAudit({
 
                     <td>
                       <div style={{ fontWeight: 800, fontSize: '14.5px', color: 'var(--text)' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-soft)', fontWeight: 600 }}>Used: </span>
                         ₹{inv.billedAmount.toLocaleString('en-IN')}
                       </div>
-                      <div style={{ fontSize: '11.5px', color: 'var(--text-soft)', marginTop: '2px' }}>
-                        Est: ₹{inv.estimateAmount.toLocaleString('en-IN')}
+                      <div style={{ fontSize: '11.5px', color: '#0369a1', marginTop: '2px', fontWeight: 600 }}>
+                        <span>Est: </span>
+                        ₹{inv.estimateAmount.toLocaleString('en-IN')}
                       </div>
                     </td>
 
@@ -245,9 +247,9 @@ export default function InvoiceAudit({
               {/* 3-Way Summary Grid */}
               <div className="three-way-check-grid">
                 <div className="three-way-col">
-                  <span className="three-way-label">1. Approved Estimate</span>
+                  <span className="three-way-label">1. Money Estimated</span>
                   <span className="three-way-val">₹{activeInvoiceModal.estimateAmount.toLocaleString('en-IN')}</span>
-                  <span className="three-way-status">Approved by Dept Head ✓</span>
+                  <span className="three-way-status">Approved Estimate ✓</span>
                 </div>
 
                 <div className="three-way-col">
@@ -259,13 +261,35 @@ export default function InvoiceAudit({
                 </div>
 
                 <div className="three-way-col">
-                  <span className="three-way-label">3. Billed Invoice</span>
+                  <span className="three-way-label">3. Money Used</span>
                   <span className="three-way-val">₹{activeInvoiceModal.billedAmount.toLocaleString('en-IN')}</span>
                   <span className={`three-way-status ${activeInvoiceModal.varianceAmount > 0 ? 'alert' : ''}`}>
                     {activeInvoiceModal.varianceAmount > 0
                       ? `Variance: +₹${activeInvoiceModal.varianceAmount.toLocaleString('en-IN')}`
                       : '100% Price Matched ✓'}
                   </span>
+                </div>
+              </div>
+
+              {/* Work Order Details Summary Bar */}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px 14px',
+                  background: '#f0f9ff',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid #bae6fd',
+                  fontSize: '12.5px',
+                }}
+              >
+                <div>
+                  <strong>Work Order:</strong> {activeInvoiceModal.workOrderId} · Status: <strong>{activeInvoiceModal.workOrder?.status || 'COMPLETED'}</strong>
+                </div>
+                <div style={{ display: 'flex', gap: '14px' }}>
+                  <span><strong>Money Estimated:</strong> <span style={{ color: '#0369a1' }}>₹{activeInvoiceModal.estimateAmount.toLocaleString('en-IN')}</span></span>
+                  <span><strong>Money Used:</strong> <span style={{ color: '#16a34a' }}>₹{activeInvoiceModal.billedAmount.toLocaleString('en-IN')}</span></span>
                 </div>
               </div>
 

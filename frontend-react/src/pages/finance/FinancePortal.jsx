@@ -3,7 +3,6 @@ import FinanceDashboard from './FinanceDashboard.jsx'
 import InvoiceAudit from './InvoiceAudit.jsx'
 import RateCardViewer from './RateCardViewer.jsx'
 import PaymentReleases from './PaymentReleases.jsx'
-import { INITIAL_INVOICES } from './mockFinanceData.js'
 import { financeApi } from '../../services/api.js'
 import './styles/FinancePortal.css'
 
@@ -11,25 +10,26 @@ export default function FinancePortal({ onExitToLanding }) {
   // Navigation Tabs: 'dashboard' | 'audit' | 'rates' | 'releases'
   const [currentScreen, setCurrentScreen] = useState('dashboard')
 
-  // In-memory Finance State
-  const [invoices, setInvoices] = useState(INITIAL_INVOICES)
+  // In-memory Finance State (loaded from inMemoryDb backend)
+  const [invoices, setInvoices] = useState([])
   const [activeInvoiceModal, setActiveInvoiceModal] = useState(null)
   const [notice, setNotice] = useState(null)
 
-  // Fetch live invoices from backend on mount
-  useEffect(() => {
-    async function loadInvoices() {
-      try {
-        const liveInvoices = await financeApi.getInvoices();
-        if (Array.isArray(liveInvoices) && liveInvoices.length > 0) {
-          setInvoices(liveInvoices);
-        }
-      } catch (err) {
-        // Retain initial fallback data
+  // Fetch live invoices from backend database
+  const loadInvoices = async () => {
+    try {
+      const liveInvoices = await financeApi.getInvoices();
+      if (Array.isArray(liveInvoices)) {
+        setInvoices(liveInvoices);
       }
+    } catch (err) {
+      console.warn('[FinancePortal] Invoices fetch error:', err.message);
     }
+  };
+
+  useEffect(() => {
     loadInvoices();
-  }, []);
+  }, [currentScreen]);
 
   const pendingAuditCount = invoices.filter((i) => i.auditStatus === 'PENDING_AUDIT').length
   const varianceCount = invoices.filter((i) => i.auditStatus === 'VARIANCE_FLAGGED').length
@@ -64,19 +64,7 @@ export default function FinancePortal({ onExitToLanding }) {
       }
     }
 
-    setInvoices((prev) =>
-      prev.map((inv) =>
-        inv.id === invoiceId
-          ? {
-              ...inv,
-              auditStatus: 'AUTHORIZED',
-              authorizedAt: new Date().toISOString(),
-              authorizedBy: 'Sunil Agrawal (Finance Clerk)',
-            }
-          : inv
-      )
-    )
-
+    await loadInvoices();
     setActiveInvoiceModal(null)
     setNotice(`Invoice ${invoiceId} (₹${targeted?.billedAmount?.toLocaleString('en-IN')}) successfully verified and authorized for staged payment release!`)
   }
@@ -88,18 +76,7 @@ export default function FinancePortal({ onExitToLanding }) {
       console.warn('Backend flag variance sync note:', err.message);
     }
 
-    setInvoices((prev) =>
-      prev.map((inv) =>
-        inv.id === invoiceId
-          ? {
-              ...inv,
-              auditStatus: 'VARIANCE_FLAGGED',
-              varianceReason: reason,
-            }
-          : inv
-      )
-    )
-
+    await loadInvoices();
     setActiveInvoiceModal(null)
     setNotice(`Variance discrepancy flagged for ${invoiceId}. Clarification request sent to Contractor & Department Head.`)
   }

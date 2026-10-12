@@ -39,6 +39,11 @@ export const getAssignedJobs = async (req, res, next) => {
       const beforeEvidence = evidence.filter((e) => (e.evidence_type || e.type) === 'BEFORE').map((e) => e.file_url || e.fileUrl);
       const afterEvidence = evidence.filter((e) => (e.evidence_type || e.type) === 'AFTER').map((e) => e.file_url || e.fileUrl);
 
+      const estimatedCost = Number(wo.estimated_cost || wo.estimate_amount || wo.estimatedAmount || 0);
+      const actualCost = wo.actual_cost !== null && wo.actual_cost !== undefined
+        ? Number(wo.actual_cost)
+        : (wo.status === 'COMPLETED' ? estimatedCost : null);
+
       return {
         id: wo.id,
         workOrderId: wo.work_order_code || wo.work_order_number || wo.id,
@@ -52,7 +57,11 @@ export const getAssignedJobs = async (req, res, next) => {
         priority: wo.priority || complaint?.severity || 'Medium',
         status: wo.status,
         complaintStatus: complaint?.status || wo.status,
-        estimateAmount: wo.estimate_amount || wo.estimatedAmount || wo.estimated_cost || 0,
+        estimateAmount: estimatedCost,
+        estimatedCost,
+        actualCost,
+        moneyEstimated: estimatedCost,
+        moneyUsed: actualCost !== null ? actualCost : 0,
         lineItems: wo.line_items || [],
         specialInstructions: wo.special_instructions || '',
         slaDeadline: complaint?.slaDeadline || wo.sla_deadline,
@@ -111,6 +120,11 @@ export const getJobById = async (req, res, next) => {
     const evidence = db.findAll('complaint_evidence', (ev) => ev.complaint_id === wo.complaint_id);
     const amcRates = db.findAll('amc_rates');
 
+    const estimatedCost = Number(wo.estimated_cost || wo.estimate_amount || 0);
+    const actualCost = wo.actual_cost !== null && wo.actual_cost !== undefined
+      ? Number(wo.actual_cost)
+      : (wo.status === 'COMPLETED' ? estimatedCost : null);
+
     res.status(200).json({
       success: true,
       data: {
@@ -120,7 +134,11 @@ export const getJobById = async (req, res, next) => {
         complaintId: wo.complaint_id,
         status: wo.status,
         priority: wo.priority,
-        estimateAmount: wo.estimate_amount || 0,
+        estimateAmount: estimatedCost,
+        estimatedCost,
+        actualCost,
+        moneyEstimated: estimatedCost,
+        moneyUsed: actualCost !== null ? actualCost : 0,
         lineItems: wo.line_items || [],
         specialInstructions: wo.special_instructions || '',
         inspectionNotes: wo.inspection_notes || null,
@@ -363,6 +381,78 @@ export const updateJobStatus = async (req, res, next) => {
     });
 
     const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
+
+    let createdInvoice = null;
+    if (normalizedStatus === 'COMPLETED') {
+      const estimatedCost = Number(wo.estimated_cost || wo.estimate_amount || wo.estimatedAmount || 0);
+      const actualCost = Number(req.body.actualCost || req.body.actual_cost || req.body.billedAmount || wo.actual_cost || (estimatedCost > 0 ? estimatedCost : 3500));
+      const variance = actualCost - estimatedCost;
+
+      // Update work order with actual cost
+      db.update('work_orders', wo.id, {
+        actual_cost: actualCost,
+      });
+
+      // Find or create invoice for Finance Audit Check
+      let existingInvoice = db.findOne('invoices', (inv) => inv.work_order_id === wo.id);
+      const invoiceCount = db.findAll('invoices').length + 1;
+      const invoiceCode = `INV-2026-${String(invoiceCount).padStart(3, '0')}`;
+      const invoiceNum = `VT-INV/2026/${String(invoiceCount).padStart(3, '0')}`;
+
+      if (existingInvoice) {
+        createdInvoice = db.update('invoices', existingInvoice.id, {
+          status: 'PENDING_AUDIT',
+          subtotal: actualCost,
+          total_amount: actualCost,
+          approved_estimate_amount: estimatedCost,
+          variance_amount: variance,
+          rate_card_match: variance === 0,
+          variance_reason: variance > 0 ? (req.body.varianceReason || 'Site condition adjustments during execution') : null,
+          updated_at: now,
+        });
+      } else {
+        createdInvoice = db.insert('invoices', {
+          invoice_code: invoiceCode,
+          township_id: wo.township_id || req.user.township_id || 'b0000000-0000-0000-0000-000000000001',
+          contractor_id: wo.contractor_id || req.user.contractorId,
+          work_order_id: wo.id,
+          invoice_number: invoiceNum,
+          invoice_date: now.split('T')[0],
+          subtotal: actualCost,
+          tax: 0.0,
+          total_amount: actualCost,
+          approved_estimate_amount: estimatedCost,
+          variance_amount: variance,
+          rate_card_match: variance === 0,
+          variance_reason: variance > 0 ? (req.body.varianceReason || 'Site condition adjustments during execution') : null,
+          status: 'PENDING_AUDIT',
+          created_at: now,
+        });
+
+        if (Array.isArray(wo.line_items) && wo.line_items.length > 0) {
+          wo.line_items.forEach((item) => {
+            db.insert('invoice_items', {
+              invoice_id: createdInvoice.id,
+              description: item.description || item.service || 'AMC Maintenance Service',
+              unit: item.unit || 'job',
+              quantity: item.quantity || item.qty || 1,
+              rate: item.rate || item.unitCost || actualCost,
+              amount: item.amount || item.totalAmount || actualCost,
+            });
+          });
+        } else {
+          db.insert('invoice_items', {
+            invoice_id: createdInvoice.id,
+            description: wo.special_instructions || complaint?.title || 'Contractor Work Order Execution',
+            unit: 'job',
+            quantity: 1,
+            rate: actualCost,
+            amount: actualCost,
+          });
+        }
+      }
+    }
+
     if (complaint) {
       db.update('complaints', complaint.id, {
         status: complaintNextStatus,
@@ -391,7 +481,8 @@ export const updateJobStatus = async (req, res, next) => {
       success: true,
       message: `Work status transitioned to ${normalizedStatus}.`,
       data: {
-        workOrder: updatedWo,
+        workOrder: db.findById('work_orders', wo.id),
+        invoice: createdInvoice,
         complaintStatus: complaintNextStatus,
       },
     });

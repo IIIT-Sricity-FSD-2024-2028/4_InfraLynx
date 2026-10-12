@@ -519,6 +519,11 @@ export const financeApi = {
     const res = await apiRequest('/finance/analytics');
     return res.data || {};
   },
+
+  async getPayments() {
+    const res = await apiRequest('/finance/payments');
+    return res.data || [];
+  },
 };
 
 /**

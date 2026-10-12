@@ -207,6 +207,7 @@ export default function AssignedWorkOrders({
                 <th>Issue / Description</th>
                 <th>Asset & Location</th>
                 <th>Priority / Category</th>
+                <th>Money Estimated & Used</th>
                 <th>SLA Deadline</th>
                 <th>Current Status</th>
                 <th>Action</th>
@@ -286,6 +287,15 @@ export default function AssignedWorkOrders({
                       </div>
                       <div style={{ fontSize: 11.5, color: 'var(--text-soft)', marginTop: 4 }}>
                         {job.category}
+                      </div>
+                    </td>
+
+                    <td>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0369a1' }}>
+                        Est: ₹{(job.moneyEstimated || job.estimatedCost || job.estimate?.total || 0).toLocaleString('en-IN')}
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: (job.status === 'COMPLETED' || job.actualCost || job.moneyUsed) ? '#16a34a' : 'var(--text-soft)', marginTop: 3 }}>
+                        Used: ₹{(job.moneyUsed || job.actualCost || (job.status === 'COMPLETED' ? (job.moneyEstimated || job.estimatedCost || 0) : 0)).toLocaleString('en-IN')}
                       </div>
                     </td>
 

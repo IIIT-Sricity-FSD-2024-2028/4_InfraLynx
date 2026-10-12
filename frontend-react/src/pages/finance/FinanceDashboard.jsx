@@ -1,21 +1,41 @@
 import React from 'react'
-import { DEPARTMENT_BUDGETS } from './mockFinanceData.js'
 import './styles/FinanceDashboard.css'
 
 export default function FinanceDashboard({
-  invoices,
+  invoices = [],
   onNavigate,
   onOpenInvoice,
   onAuthorizeInvoice,
 }) {
-  // Calculate key financial metrics from active state
+  // Calculate key financial metrics from active in-memory state
   const pendingInvoices = invoices.filter((i) => i.auditStatus === 'PENDING_AUDIT')
   const flaggedInvoices = invoices.filter((i) => i.auditStatus === 'VARIANCE_FLAGGED')
   const authorizedInvoices = invoices.filter((i) => i.auditStatus === 'AUTHORIZED' || i.auditStatus === 'PAID')
 
-  const totalBilledMTD = invoices.reduce((acc, curr) => acc + curr.billedAmount, 0)
-  const totalVarianceAmount = invoices.reduce((acc, curr) => acc + curr.varianceAmount, 0)
-  const totalAuthorized = authorizedInvoices.reduce((acc, curr) => acc + curr.billedAmount, 0)
+  const totalBilledMTD = invoices.reduce((acc, curr) => acc + (curr.billedAmount || 0), 0)
+  const totalVarianceAmount = invoices.reduce((acc, curr) => acc + (curr.varianceAmount || 0), 0)
+  const totalAuthorized = authorizedInvoices.reduce((acc, curr) => acc + (curr.billedAmount || 0), 0)
+
+  // Derive Department Budgets dynamically from in-memory invoices
+  const departmentBudgets = {
+    Civil: { allocated: 1500000, spent: 0, pending: 0 },
+    Electrical: { allocated: 1200000, spent: 0, pending: 0 },
+    Water: { allocated: 900000, spent: 0, pending: 0 },
+    Horticulture: { allocated: 400000, spent: 0, pending: 0 },
+  }
+
+  invoices.forEach((inv) => {
+    const deptName = inv.department || ''
+    const matchKey = Object.keys(departmentBudgets).find((k) =>
+      deptName.toLowerCase().includes(k.toLowerCase())
+    ) || 'Civil'
+    const amt = Number(inv.billedAmount || 0)
+    if (inv.auditStatus === 'PAID' || inv.auditStatus === 'AUTHORIZED') {
+      departmentBudgets[matchKey].spent += amt
+    } else {
+      departmentBudgets[matchKey].pending += amt
+    }
+  })
 
   return (
     <div className="finance-dashboard-root">
@@ -173,7 +193,7 @@ export default function FinanceDashboard({
           </div>
 
           <div className="budget-progress-list">
-            {Object.entries(DEPARTMENT_BUDGETS).map(([dept, budget]) => {
+            {Object.entries(departmentBudgets).map(([dept, budget]) => {
               const percentUsed = Math.round((budget.spent / budget.allocated) * 100)
               const colorClass = dept.toLowerCase()
 

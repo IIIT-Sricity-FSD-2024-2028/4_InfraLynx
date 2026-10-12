@@ -1,4 +1,4 @@
-﻿/**
+/**
  * workOrderController.js — TIMS Work Order Controller (Member 2 - Desk Clerk)
  *
  * Responsibilities:
@@ -52,7 +52,11 @@ export function formatWorkOrderResponse(wo) {
     departmentId:         wo.department_id,
     status:               wo.status,
     priority:             wo.priority,
-    estimateAmount:       wo.estimate_amount || 0,
+    estimateAmount:       Number(wo.estimate_amount || wo.estimated_cost || 0),
+    estimatedCost:        Number(wo.estimated_cost || wo.estimate_amount || 0),
+    actualCost:           wo.actual_cost !== null && wo.actual_cost !== undefined ? Number(wo.actual_cost) : (wo.status === 'COMPLETED' ? Number(wo.estimated_cost || wo.estimate_amount || 0) : null),
+    moneyEstimated:       Number(wo.estimated_cost || wo.estimate_amount || 0),
+    moneyUsed:            wo.actual_cost !== null && wo.actual_cost !== undefined ? Number(wo.actual_cost) : (wo.status === 'COMPLETED' ? Number(wo.estimated_cost || wo.estimate_amount || 0) : 0),
     requiresDeptHead:     Boolean(wo.requires_dept_head),
     specialInstructions:  wo.special_instructions || '',
     assignmentNotes:      wo.assignment_notes || '',
