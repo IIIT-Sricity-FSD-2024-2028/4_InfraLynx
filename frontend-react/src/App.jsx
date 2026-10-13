@@ -60,6 +60,7 @@ function AppContent() {
   const [authOpen, setAuthOpen] = useState(false)
   const [authRole, setAuthRole] = useState('rwa')
   const [authNotice, setAuthNotice] = useState(null)
+  const [signUpOpen, setSignUpOpen] = useState(false)
   const [viewMode, setViewMode] = useState('landing')
 
   // Enforce tab-isolated authentication and protected routing
