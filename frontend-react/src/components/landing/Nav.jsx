@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function Nav({ onOpenAuth, currentUser, onLogout, onGoToPortal }) {
+export default function Nav({ onOpenAuth, onOpenSignUp, currentUser, onLogout, onGoToPortal }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
@@ -85,8 +85,6 @@ export default function Nav({ onOpenAuth, currentUser, onLogout, onGoToPortal })
         >
           <a href="#roles" className="nav-link">7 Actor Roles</a>
           <a href="#modules" className="nav-link">Modules</a>
-          <a href="#pricing" className="nav-link">Subscription</a>
-          <a href="#contact" className="nav-link">Contact</a>
         </nav>
 
         {/* User Session / Sign In Actions */}
@@ -124,21 +122,33 @@ export default function Nav({ onOpenAuth, currentUser, onLogout, onGoToPortal })
               </button>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={onOpenAuth}
-              className="button button-primary"
-              style={{
-                fontSize: 14,
-                padding: '10px 20px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
-              </svg>
-              Official Sign In
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                type="button"
+                onClick={onOpenAuth}
+                className="button button-secondary"
+                style={{
+                  fontSize: 14,
+                  padding: '9px 16px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Official Sign In
+              </button>
+              <button
+                type="button"
+                onClick={onOpenSignUp}
+                className="button button-primary"
+                style={{
+                  fontSize: 14,
+                  padding: '9px 18px',
+                  whiteSpace: 'nowrap',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                }}
+              >
+                Sign Up
+              </button>
+            </div>
           )}
 
           {/* Mobile menu toggle */}
@@ -181,12 +191,17 @@ export default function Nav({ onOpenAuth, currentUser, onLogout, onGoToPortal })
         >
           <a href="#roles" onClick={() => setMobileMenuOpen(false)}>7 Actor Roles</a>
           <a href="#modules" onClick={() => setMobileMenuOpen(false)}>Modules</a>
-          <a href="#pricing" onClick={() => setMobileMenuOpen(false)}>Subscription</a>
-          <a href="#contact" onClick={() => setMobileMenuOpen(false)}>Contact</a>
+          <button
+            onClick={() => { setMobileMenuOpen(false); onOpenSignUp(); }}
+            className="button button-primary"
+            style={{ width: '100%', marginTop: 8, background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' }}
+          >
+            Sign Up (Township COO)
+          </button>
           <button
             onClick={() => { setMobileMenuOpen(false); onOpenAuth(); }}
-            className="button button-primary"
-            style={{ width: '100%', marginTop: 8 }}
+            className="button button-secondary"
+            style={{ width: '100%' }}
           >
             Official Sign In
           </button>

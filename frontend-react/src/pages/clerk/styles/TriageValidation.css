@@ -511,3 +511,87 @@
   color: var(--text-soft);
   line-height: 1.45;
 }
+
+/* Cleaned up styles previously inline */
+.tv-empty-card {
+  padding: 40px;
+  text-align: center;
+}
+
+.tv-empty-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.tv-empty-title {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.tv-back-btn-spacer {
+  margin-top: 16px;
+}
+
+.tv-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tv-badge-pill {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.tv-switch-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tv-switch-label {
+  font-size: 13px;
+  color: var(--text-soft);
+}
+
+.tv-status-badge {
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  border-width: 1px;
+  border-style: solid;
+}
+
+.tv-attr-label-block {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.tv-validate-subtext {
+  font-size: 13px;
+  color: var(--text-soft);
+  margin-bottom: 12px;
+}
+
+.tv-required-star {
+  color: var(--accent-red);
+}
+
+.tv-form-actions-end {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.tv-audit-body {
+  flex: 1;
+}
+
+.tv-audit-actor {
+  font-size: 13px;
+}

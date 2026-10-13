@@ -9,6 +9,7 @@ import Pricing from './components/landing/Pricing.jsx'
 import Contact from './components/landing/Contact.jsx'
 import Footer from './components/landing/Footer.jsx'
 import AuthModal from './components/auth/AuthModal.jsx'
+import SignUpModal from './components/auth/SignUpModal.jsx'
 import RwaPortal from './pages/rwa/index.jsx'
 import FinancePortal from './pages/finance/index.jsx'
 import ClerkPortal from './pages/clerk/index.jsx'
@@ -231,6 +232,7 @@ function AppContent() {
         <div className="page-shell" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
           <Nav
             onOpenAuth={handleOpenAuth}
+            onOpenSignUp={() => setSignUpOpen(true)}
             currentUser={currentUser}
             onLogout={handleSecureLogout}
             onGoToPortal={() => {
@@ -254,8 +256,6 @@ function AppContent() {
             <Hero onOpenAuth={handleOpenAuth} />
             <Roles onOpenAuth={handleOpenAuth} />
             <Features />
-            <Pricing onOpenAuth={handleOpenAuth} />
-            <Contact />
           </main>
           <Footer onOpenAuth={handleOpenAuth} />
 
@@ -267,6 +267,20 @@ function AppContent() {
             }}
             initialRole={authRole}
             onLoginSuccess={handleLoginSuccess}
+            onOpenSignUp={() => setSignUpOpen(true)}
+          />
+
+          <SignUpModal
+            isOpen={signUpOpen}
+            onClose={() => setSignUpOpen(false)}
+            onOpenLogin={() => {
+              setSignUpOpen(false)
+              handleOpenAuth()
+            }}
+            onSignUpSuccess={(newUser) => {
+              setSignUpOpen(false)
+              handleLoginSuccess(newUser)
+            }}
           />
         </div>
       )}
