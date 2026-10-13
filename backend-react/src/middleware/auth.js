@@ -93,6 +93,19 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
+    // Tenant suspension must revoke access immediately, including for existing JWTs.
+    const township = user.township_id ? db.findById('townships', user.township_id) : null;
+    if (township?.status === 'SUSPENDED') {
+      return res.status(403).json({
+        success: false,
+        error: {
+          message: 'This township is currently suspended. Contact InfraLynx support for assistance.',
+          code: 'TOWNSHIP_SUSPENDED',
+          statusCode: 403,
+        },
+      });
+    }
+
     // Attach normalized user payload to request
     req.user = {
       id: user.id,
@@ -242,9 +255,40 @@ export const requireCivilDepartmentHead = (req, res, next) => {
   next();
 };
 
+/**
+ * Super Admin Authorization Middleware
+ * Restricts access exclusively to platform-level SUPER_ADMIN role.
+ * Township-level roles are explicitly rejected — no escalation permitted.
+ */
+export const requireSuperAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: {
+        message: 'Unauthorized: Authentication required.',
+        statusCode: 401,
+      },
+    });
+  }
+
+  if (req.user.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({
+      success: false,
+      error: {
+        message: 'Forbidden: This endpoint is restricted to InfraLynx platform administrators only.',
+        code: 'SUPER_ADMIN_REQUIRED',
+        statusCode: 403,
+      },
+    });
+  }
+
+  next();
+};
+
 export default {
   authenticate,
   requireRole,
   requireTownship,
   requireCivilDepartmentHead,
+  requireSuperAdmin,
 };

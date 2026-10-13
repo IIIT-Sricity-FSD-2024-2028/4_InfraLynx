@@ -16,6 +16,7 @@ import contractorRoutes from './routes/contractorRoutes.js'; // Member 3 — Fie
 import deptHeadRoutes from './routes/deptHeadRoutes.js';   // Member 4 — Dept Head
 import financeRoutes from './routes/financeRoutes.js';     // Member 5 — Finance & AMC
 import cooRoutes from './routes/cooRoutes.js';             // Executive — Township COO
+import superAdminRoutes from './routes/superAdminRoutes.js'; // Platform — Super Admin
 import { errorHandler } from './middleware/error.js';
 
 const app = express();
@@ -98,6 +99,7 @@ app.get('/', (req, res) => {
       finance:     '/api/v1/finance',      // Member 5 — Finance & AMC
       coo:         '/api/v1/coo',          // Executive — Township COO
       master:      '/api/v1/master',       // Shared reference data
+      superAdmin:  '/api/v1/super-admin',  // Platform — Super Admin
     },
   });
 });
@@ -112,6 +114,7 @@ app.use('/api/v1/dept-head',   deptHeadRoutes);     // Member 4 — Department H
 app.use('/api/v1/finance',     financeRoutes);      // Member 5 — Finance & AMC
 app.use('/api/v1/coo',         cooRoutes);          // Executive — Township COO
 app.use('/api/v1/master',      masterRoutes);        // Shared reference data
+app.use('/api/v1/super-admin', superAdminRoutes);   // Platform — Super Admin
 
 // 404 Route Handler
 app.use((req, res, next) => {

@@ -617,6 +617,112 @@ export const cooApi = {
 };
 
 /**
+ * Super Admin API Service (Platform Maker Console)
+ */
+export const superAdminApi = {
+  async getOverview() {
+    const res = await apiRequest('/super-admin/overview');
+    return res.data || {};
+  },
+
+  // Tenants
+  async getTenants() {
+    const res = await apiRequest('/super-admin/tenants');
+    return res.data || [];
+  },
+  async getTenantById(id) {
+    const res = await apiRequest(`/super-admin/tenants/${id}`);
+    return res.data;
+  },
+  async createTenant(payload) {
+    const res = await apiRequest('/super-admin/tenants', { method: 'POST', body: JSON.stringify(payload) });
+    return res.data;
+  },
+  async updateTenant(id, payload) {
+    const res = await apiRequest(`/super-admin/tenants/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+    return res.data;
+  },
+  async updateTenantStatus(id, status, reason) {
+    const res = await apiRequest(`/super-admin/tenants/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, reason }) });
+    return res.data;
+  },
+  async updateSubscription(id, payload) {
+    const res = await apiRequest(`/super-admin/tenants/${id}/subscription`, { method: 'PATCH', body: JSON.stringify(payload) });
+    return res.data;
+  },
+
+  // Users
+  async getUsers() {
+    const res = await apiRequest('/super-admin/users');
+    return res.data || [];
+  },
+  async createUser(payload) {
+    const res = await apiRequest('/super-admin/users', { method: 'POST', body: JSON.stringify(payload) });
+    return res.data;
+  },
+  async updateUser(id, payload) {
+    const res = await apiRequest(`/super-admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+    return res.data;
+  },
+  async updateUserStatus(id, status, reason) {
+    const res = await apiRequest(`/super-admin/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, reason }) });
+    return res.data;
+  },
+  async resetUserPassword(id, new_password) {
+    const res = await apiRequest(`/super-admin/users/${id}/reset-password`, { method: 'POST', body: JSON.stringify({ new_password }) });
+    return res;
+  },
+
+  // Config
+  async getConfig() {
+    const res = await apiRequest('/super-admin/config');
+    return res.data || [];
+  },
+  async updateConfig(updates, reason) {
+    const res = await apiRequest('/super-admin/config', { method: 'PUT', body: JSON.stringify({ updates, reason }) });
+    return res.data || [];
+  },
+
+  // Departments & Contractors
+  async getDepartments() {
+    const res = await apiRequest('/super-admin/departments');
+    return res.data || [];
+  },
+  async createDepartment(payload) {
+    const res = await apiRequest('/super-admin/departments', { method: 'POST', body: JSON.stringify(payload) });
+    return res.data;
+  },
+  async getContractors() {
+    const res = await apiRequest('/super-admin/contractors');
+    return res.data || [];
+  },
+  async createContractor(payload) {
+    const res = await apiRequest('/super-admin/contractors', { method: 'POST', body: JSON.stringify(payload) });
+    return res.data;
+  },
+
+  // AMC Rates
+  async getAmcRates() {
+    const res = await apiRequest('/super-admin/amc-rates');
+    return res.data || [];
+  },
+  async updateAmcRate(id, payload) {
+    const res = await apiRequest(`/super-admin/amc-rates/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+    return res.data;
+  },
+
+  // System Health & Audit
+  async getHealth() {
+    const res = await apiRequest('/super-admin/health');
+    return res.data || {};
+  },
+  async getAuditLogs() {
+    const res = await apiRequest('/super-admin/audit-logs');
+    return res.data || [];
+  },
+};
+
+/**
  * Health and diagnostics API
  */
 export const systemApi = {
@@ -640,5 +746,6 @@ export default {
   financeApi,
   cooApi,
   masterApi,
+  superAdminApi,
   systemApi,
 };

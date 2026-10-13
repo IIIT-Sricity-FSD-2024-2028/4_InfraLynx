@@ -9,6 +9,8 @@
  *   - LOW:       72 hours
  */
 
+import db from '../config/db.js';
+
 export const SLA_HOURS_MAP = {
   EMERGENCY: 6,
   HIGH: 24,
@@ -23,6 +25,9 @@ export const SLA_HOURS_MAP = {
  */
 export const getSlaHours = (severity = 'MEDIUM') => {
   const norm = (severity || 'MEDIUM').toUpperCase();
+  const key = `SLA_${norm}_HOURS`;
+  const configured = Number(db.findOne('global_config', (item) => item.key === key)?.value);
+  if (Number.isSafeInteger(configured) && configured > 0) return configured;
   return SLA_HOURS_MAP[norm] ?? 48;
 };
 
