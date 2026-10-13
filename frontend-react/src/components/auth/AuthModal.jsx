@@ -35,7 +35,7 @@ function getPortalTitle(portalKey) {
   }
 }
 
-export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess }) {
+export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess, onOpenSignUp }) {
   const { login, setCurrentUser, backendStatus } = useTIMS()
   const [formData, setFormData] = useState({
     email: 'rwa@infralynx.com',
@@ -346,6 +346,28 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
                   </>
                 )}
               </button>
+
+              <div style={{ marginTop: 16, textAlign: 'center', fontSize: 13, color: 'var(--text-soft)' }}>
+                New township?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose()
+                    if (onOpenSignUp) onOpenSignUp()
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#15803d',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    padding: 0,
+                    textDecoration: 'underline',
+                  }}
+                >
+                  Sign Up as Township COO
+                </button>
+              </div>
             </form>
           )}
         </div>

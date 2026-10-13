@@ -1,5 +1,5 @@
 import express from 'express';
-import { login, getMe, logout } from '../controllers/authController.js';
+import { login, getMe, logout, registerTownship, setPassword } from '../controllers/authController.js';
 import { authenticate } from '../middleware/auth.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
 
@@ -25,5 +25,20 @@ router.get('/me', authenticate, getMe);
  * @access  Private
  */
 router.post('/logout', authenticate, logout);
+
+
+/**
+ * @route   POST /api/v1/auth/register-township
+ * @desc    Register a new Township & Township COO account
+ * @access  Public
+ */
+router.post('/register-township', authRateLimiter, registerTownship);
+
+/**
+ * @route   POST /api/v1/auth/set-password
+ * @desc    Update / set user password with strict validation
+ * @access  Public
+ */
+router.post('/set-password', authRateLimiter, setPassword);
 
 export default router;

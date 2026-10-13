@@ -421,3 +421,87 @@
 
 /* Empty state */
 .ct-top-bar .ct-subtitle { margin-top: 4px; }
+
+/* Cleaned up styles previously inline */
+.ct-empty-card {
+  padding: 40px;
+  text-align: center;
+}
+
+.ct-empty-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.ct-empty-title {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.ct-empty-desc {
+  color: var(--text-soft);
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.ct-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ct-complaint-desc {
+  font-size: 13px;
+  color: var(--text-soft);
+  margin-top: 4px;
+  margin-bottom: 12px;
+}
+
+.ct-val-mono {
+  font-family: var(--font-mono);
+}
+
+.ct-val-mono-sm {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.ct-val-sm {
+  font-size: 12px;
+}
+
+.ct-section-spacer {
+  margin-top: 12px;
+}
+
+.ct-attr-label-block {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.ct-contractor-lead {
+  font-size: 12.5px;
+  color: var(--text-soft);
+  margin-top: 4px;
+  margin-bottom: 12px;
+}
+
+.ct-req-depthead-yes {
+  color: #c2410c;
+}
+
+.ct-req-depthead-no {
+  color: #166534;
+}
+
+.ct-photo-evidence {
+  border-color: #86efac;
+}
+
+.ct-audit-body {
+  flex: 1;
+}
+
+.ct-audit-actor {
+  font-size: 13px;
+}

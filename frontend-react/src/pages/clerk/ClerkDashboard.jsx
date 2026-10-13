@@ -232,13 +232,11 @@ export default function ClerkDashboard({
                     <span className={`cd-badge-cat ${catCls}`}>{c.category} &bull; {c.subCategory || c.subcategory || ''}</span>
                     <span className={`cd-badge-sev ${sevCls}`}>{c.severity} Severity</span>
                   </div>
-                  <span style={{
-                    fontSize: 12.5, fontWeight: 700,
-                    padding: '4px 10px', borderRadius: 'var(--radius-full)',
-                    background: sb.bg, color: sb.color, border: `1px solid ${sb.border}`,
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                  }}>
-                    {sb.pulse && <span style={{ width: 7, height: 7, borderRadius: '50%', background: sb.color, display: 'inline-block' }} />}
+                  <span
+                    className="cd-badge-status-pill"
+                    style={{ background: sb.bg, color: sb.color, borderColor: sb.border }}
+                  >
+                    {sb.pulse && <span className="cd-badge-pulse-indicator" style={{ background: sb.color }} />}
                     {sb.label}
                   </span>
                 </div>
@@ -251,7 +249,7 @@ export default function ClerkDashboard({
                 <div className="cd-card-footer">
                   <div className="cd-card-meta">
                     <span>&#128205; <strong>{c.location?.block || 'Block A'}, {c.location?.street || 'N/A'}</strong> ({c.location?.sector || 'Sector 54'})</span>
-                    {c.workOrderId && <span>&#128196; WO: <strong style={{ fontFamily: 'var(--font-mono)' }}>{c.workOrderId}</strong></span>}
+                    {c.workOrderId && <span>&#128196; WO: <strong className="cd-wo-code">{c.workOrderId}</strong></span>}
                     {c.assignedContractor && <span>&#128295; <strong>{c.assignedContractor.name}</strong></span>}
                   </div>
                   <div className="cd-card-actions">

@@ -113,15 +113,15 @@ export default function ClerkTracker({ complaints: propComplaints, selectedCompl
           </div>
         </div>
         {wos.length === 0 ? (
-          <div className="ct-card" style={{ padding: 40, textAlign: 'center' }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>&#128196;</div>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>No work orders found</div>
-            <p style={{ color: 'var(--text-soft)', marginTop: 4, fontSize: 13 }}>
+          <div className="ct-card ct-empty-card">
+            <div className="ct-empty-icon">&#128196;</div>
+            <div className="ct-empty-title">No work orders found</div>
+            <p className="ct-empty-desc">
               Create work orders from the Dashboard after validating complaints.
             </p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="ct-picker-list">
             {wos.map(c => {
               const contractorName = c.assignedContractor?.name || c.assignedContractor?.company_name || c.assigned_contractor_name || 'Pending'
               const estimateVal = c.estimateAmount ?? c.estimate_amount ?? 0
@@ -216,18 +216,18 @@ export default function ClerkTracker({ complaints: propComplaints, selectedCompl
         <div className="ct-card">
           <div className="ct-card-tag">Complaint Details</div>
           <div className="ct-card-heading">{active.title}</div>
-          <p style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 4, marginBottom: 12 }}>{active.description}</p>
+          <p className="ct-complaint-desc">{active.description}</p>
           <div className="ct-attrs">
             <div><span className="ct-attr-label">Category</span><strong>{active.category || 'Civil'}{active.subCategory ? ` (${active.subCategory})` : ''}</strong></div>
             <div><span className="ct-attr-label">Severity</span><strong>{active.severity || 'Medium'}</strong></div>
             <div><span className="ct-attr-label">Sector / Block</span><strong>{active.location?.sector || 'Sector 54'} &bull; {active.location?.block || 'Block B'}</strong></div>
-            <div><span className="ct-attr-label">Asset ID</span><strong style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{active.location?.assetId || 'ASSET-GEN-01'}</strong></div>
+            <div><span className="ct-attr-label">Asset ID</span><strong className="ct-val-mono-sm">{active.location?.assetId || 'ASSET-GEN-01'}</strong></div>
             <div><span className="ct-attr-label">Reported By</span><strong>{active.reportedBy ? active.reportedBy.name : 'RWA'}</strong></div>
-            <div><span className="ct-attr-label">Filed At</span><strong style={{ fontSize: 12 }}>{formatSafeDate(active.createdAt || active.created_at)}</strong></div>
+            <div><span className="ct-attr-label">Filed At</span><strong className="ct-val-sm">{formatSafeDate(active.createdAt || active.created_at)}</strong></div>
           </div>
           {active.beforePhotos && active.beforePhotos.length > 0 && (
-            <div style={{ marginTop: 12 }}>
-              <span className="ct-attr-label" style={{ display: 'block', marginBottom: 6 }}>Site Photos</span>
+            <div className="ct-section-spacer">
+              <span className="ct-attr-label ct-attr-label-block">Site Photos</span>
               <div className="ct-photos">
                 {active.beforePhotos.map((src, i) => (
                   <img key={i} src={src} alt={`Before ${i + 1}`} className="ct-photo" />
@@ -244,15 +244,15 @@ export default function ClerkTracker({ complaints: propComplaints, selectedCompl
             {activeContractorName || 'Pending Assignment'}
           </div>
           {activeContractorName && (
-            <p style={{ fontSize: 12.5, color: 'var(--text-soft)', marginTop: 4, marginBottom: 12 }}>
+            <p className="ct-contractor-lead">
               Lead: {active.assignedContractor?.lead || active.assignedContractor?.contact_person || active.assignedContractor?.contactPerson || 'Rajesh Verma'} &bull; {active.assignedContractor?.phone || '+91 98112 45012'}
             </p>
           )}
           <div className="ct-attrs">
-            <div><span className="ct-attr-label">Work Order ID</span><strong style={{ fontFamily: 'var(--font-mono)' }}>{active.workOrderId || active.work_order_code || 'WO-PENDING'}</strong></div>
-            <div><span className="ct-attr-label">AMC Contract</span><strong style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{active.assignedContractor?.amcContractId || active.assignedContractor?.contract_number || active.amcContractId || (activeContractorName ? 'AMC-CIV-2026' : '—')}</strong></div>
+            <div><span className="ct-attr-label">Work Order ID</span><strong className="ct-val-mono">{active.workOrderId || active.work_order_code || 'WO-PENDING'}</strong></div>
+            <div><span className="ct-attr-label">AMC Contract</span><strong className="ct-val-mono-sm">{active.assignedContractor?.amcContractId || active.assignedContractor?.contract_number || active.amcContractId || (activeContractorName ? 'AMC-CIV-2026' : '—')}</strong></div>
             <div><span className="ct-attr-label">Total Estimate</span><strong>Rs.{(active.estimateAmount ?? active.estimate_amount ?? 0).toLocaleString()}</strong></div>
-            <div><span className="ct-attr-label">Dept Head Req.</span><strong style={{ color: active.requiresDeptHead ? '#c2410c' : '#166534' }}>{active.requiresDeptHead ? 'Yes' : 'No'}</strong></div>
+            <div><span className="ct-attr-label">Dept Head Req.</span><strong className={active.requiresDeptHead ? 'ct-req-depthead-yes' : 'ct-req-depthead-no'}>{active.requiresDeptHead ? 'Yes' : 'No'}</strong></div>
             <div><span className="ct-attr-label">Priority</span><strong>{active.priority || '—'}</strong></div>
             <div><span className="ct-attr-label">Inspection</span><strong>{active.inspectionRemarks ? 'Inspected' : 'Pending'}</strong></div>
           </div>
@@ -276,11 +276,11 @@ export default function ClerkTracker({ complaints: propComplaints, selectedCompl
 
           {/* After photos */}
           {active.afterPhotos && active.afterPhotos.length > 0 && (
-            <div style={{ marginTop: 12 }}>
-              <span className="ct-attr-label" style={{ display: 'block', marginBottom: 6 }}>Completion Evidence</span>
+            <div className="ct-section-spacer">
+              <span className="ct-attr-label ct-attr-label-block">Completion Evidence</span>
               <div className="ct-photos">
                 {active.afterPhotos.map((src, i) => (
-                  <img key={i} src={src} alt={`After ${i + 1}`} className="ct-photo" style={{ borderColor: '#86efac' }} />
+                  <img key={i} src={src} alt={`After ${i + 1}`} className="ct-photo ct-photo-evidence" />
                 ))}
               </div>
             </div>
@@ -295,10 +295,10 @@ export default function ClerkTracker({ complaints: propComplaints, selectedCompl
           {(active.history || []).map((ev, idx) => (
             <div key={idx} className="ct-audit-item">
               <div className="ct-audit-dot" />
-              <div style={{ flex: 1 }}>
+              <div className="ct-audit-body">
                 <div className="ct-audit-hdr">
                   <span className="ct-audit-stage">{ev.stage}</span>
-                  <strong style={{ fontSize: 13 }}>{ev.actor}</strong>
+                  <strong className="ct-audit-actor">{ev.actor}</strong>
                   <span className="ct-audit-time">{formatSafeDate(ev.timestamp)}</span>
                 </div>
                 <div className="ct-audit-note">{ev.note}</div>

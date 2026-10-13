@@ -122,15 +122,15 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
           <p className="tv-subtitle">Select a complaint to begin review.</p>
         </div>
         {triageable.length === 0 ? (
-          <div className="tv-card" style={{ padding: 40, textAlign: 'center' }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>&#10003;</div>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>No complaints pending triage</div>
-            <button onClick={() => onNavigate('dashboard')} className="tv-back-btn" style={{ marginTop: 16 }}>
+          <div className="tv-card tv-empty-card">
+            <div className="tv-empty-icon">&#10003;</div>
+            <div className="tv-empty-title">No complaints pending triage</div>
+            <button onClick={() => onNavigate('dashboard')} className="tv-back-btn tv-back-btn-spacer">
               Back to Dashboard
             </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="tv-picker-list">
             {triageable.map(c => {
               const b = badge(c.status)
               return (
@@ -141,7 +141,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
                     <div className="tv-picker-meta">{c.category} &bull; {c.location.sector}, {c.location.block}</div>
                   </div>
                   <div className="tv-picker-right">
-                    <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: b.bg, color: b.color, border: `1px solid ${b.border}` }}>
+                    <span className="tv-badge-pill" style={{ background: b.bg, color: b.color, borderColor: b.border }}>
                       {b.label}
                     </span>
                     <span className="tv-picker-cta">Review &#8594;</span>
@@ -171,8 +171,8 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
           <p className="tv-subtitle">Review details, then validate or reject.</p>
         </div>
         {triageable.length > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 13, color: 'var(--text-soft)' }}>Switch:</span>
+          <div className="tv-switch-wrap">
+            <span className="tv-switch-label">Switch:</span>
             <select
               value={active.id}
               onChange={e => { const c = complaints.find(x => x.id === e.target.value); if (c) handleOpen(c) }}
@@ -208,10 +208,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
             <span className={`tv-cat-pill ${catCls}`}>{active.category} &bull; {active.subCategory}</span>
             <span className={`tv-sev-pill ${sevCls}`}>{active.severity} Severity</span>
           </div>
-          <span style={{
-            fontSize: 12.5, fontWeight: 700, padding: '4px 10px',
-            borderRadius: 'var(--radius-full)', background: b.bg, color: b.color, border: `1px solid ${b.border}`
-          }}>
+          <span className="tv-status-badge" style={{ background: b.bg, color: b.color, borderColor: b.border }}>
             {b.label}
           </span>
         </div>
@@ -249,7 +246,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
         {/* Photo evidence */}
         {active.beforePhotos && active.beforePhotos.length > 0 && (
           <div>
-            <span className="tv-attr-label" style={{ display: 'block', marginBottom: 6 }}>Site Evidence Photos</span>
+            <span className="tv-attr-label tv-attr-label-block">Site Evidence Photos</span>
             <div className="tv-photos">
               {active.beforePhotos.map((src, i) => (
                 <img key={i} src={src} alt={`Evidence ${i + 1}`} className="tv-photo" />
@@ -271,7 +268,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
           {!isRejecting && (
             <div className="tv-validate-box">
               <h3 className="tv-validate-heading">Option A — Validate Complaint</h3>
-              <p style={{ fontSize: 13, color: 'var(--text-soft)', marginBottom: 12 }}>
+              <p className="tv-validate-subtext">
                 Confirm all fields are accurate and the issue is within township jurisdiction.
               </p>
               <ul className="tv-checklist">
@@ -301,7 +298,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
                 </button>
               </div>
               <div>
-                <label className="tv-attr-label">Rejection Reason <span style={{ color: 'var(--accent-red)' }}>*</span></label>
+                <label className="tv-attr-label">Rejection Reason <span className="tv-required-star">*</span></label>
                 <select
                   value={rejectionReason}
                   onChange={e => setRejectionReason(e.target.value)}
@@ -325,7 +322,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
                   className="tv-textarea"
                 />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <div className="tv-form-actions-end">
                 <button type="button" onClick={() => setIsRejecting(false)} className="tv-btn-cancel-flat">Cancel</button>
                 <button type="submit" className="tv-btn-submit-reject">Submit Rejection &#9888;</button>
               </div>
@@ -341,10 +338,10 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
           {(active.history || []).map((ev, idx) => (
             <div key={idx} className="tv-audit-item">
               <div className="tv-audit-dot" />
-              <div style={{ flex: 1 }}>
+              <div className="tv-audit-body">
                 <div className="tv-audit-header">
                   <span className="tv-audit-stage">{ev.stage}</span>
-                  <strong style={{ fontSize: 13 }}>{ev.actor}</strong>
+                  <strong className="tv-audit-actor">{ev.actor}</strong>
                   <span className="tv-audit-time">{new Date(ev.timestamp).toLocaleString()}</span>
                 </div>
                 <div className="tv-audit-note">{ev.note}</div>

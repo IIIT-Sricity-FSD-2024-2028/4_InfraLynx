@@ -129,13 +129,13 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
     return (
       <div className="wo-root">
         <div className="wo-hdr"><h1 className="wo-title">Create Work Order</h1></div>
-        <div className="wo-card" style={{ padding: 40, textAlign: 'center' }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>&#128196;</div>
-          <div style={{ fontWeight: 700, fontSize: 16 }}>No validated complaint selected</div>
-          <p style={{ color: 'var(--text-soft)', fontSize: 13, marginTop: 4 }}>
+        <div className="wo-card wo-empty-card">
+          <div className="wo-empty-icon">&#128196;</div>
+          <div className="wo-empty-title">No validated complaint selected</div>
+          <p className="wo-empty-desc">
             Go to Dashboard, click a validated complaint, then press &ldquo;Create Work Order&rdquo;.
           </p>
-          <button onClick={() => onNavigate('dashboard')} className="wo-btn-back" style={{ marginTop: 16 }}>
+          <button onClick={() => onNavigate('dashboard')} className="wo-btn-back wo-btn-back-spacer">
             &#8592; Back to Dashboard
           </button>
         </div>
@@ -148,17 +148,16 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
     return (
       <div className="wo-root">
         <button className="wo-btn-back" onClick={() => onNavigate('dashboard')}>&#8592; Back to Dashboard</button>
-        <div className="wo-card" style={{ padding: 40, textAlign: 'center' }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>&#9888;</div>
-          <div style={{ fontWeight: 700, fontSize: 16 }}>
+        <div className="wo-card wo-empty-card">
+          <div className="wo-empty-icon">&#9888;</div>
+          <div className="wo-empty-title">
             {active.workOrderId
               ? `Work Order ${active.workOrderId} already created.`
               : `Status "${active.status}" does not allow WO creation.`}
           </div>
           <button
             onClick={() => onNavigate(active.workOrderId ? 'tracker' : 'triage')}
-            className="wo-btn-back"
-            style={{ marginTop: 16 }}
+            className="wo-btn-back wo-btn-back-spacer"
           >
             {active.workOrderId ? 'View in Tracker' : 'Go to Triage'}
           </button>
@@ -184,7 +183,7 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
         <div className="wo-ref-item"><span className="wo-ref-label">Title</span><span className="wo-ref-val">{active.title}</span></div>
         <div className="wo-ref-item"><span className="wo-ref-label">Category</span><span className="wo-ref-val">{active.category} &bull; {active.subCategory || active.subcategory || ''}</span></div>
         <div className="wo-ref-item"><span className="wo-ref-label">Location</span><span className="wo-ref-val">{active.location?.block || 'Block A'}, {active.location?.sector || 'Sector 54'}</span></div>
-        <div className="wo-ref-item"><span className="wo-ref-label">Status</span><span className="wo-ref-val" style={{ color: '#166534', fontWeight: 700 }}>VALIDATED &#10003;</span></div>
+        <div className="wo-ref-item"><span className="wo-ref-label">Status</span><span className="wo-ref-val wo-ref-val-validated">VALIDATED &#10003;</span></div>
       </div>
 
       <form className="wo-form-card" onSubmit={handleDispatch}>
@@ -193,7 +192,7 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
         <div className="wo-section">
           <div className="wo-section-title">1. Contractor Assignment</div>
           {filteredContractors.length === 0 ? (
-            <p style={{ fontSize: 13, color: 'var(--text-soft)' }}>No contractors available for {active.category}.</p>
+            <p className="wo-no-contractors">No contractors available for {active.category}.</p>
           ) : (
             <div className="wo-contractor-grid">
               {filteredContractors.map(c => (
