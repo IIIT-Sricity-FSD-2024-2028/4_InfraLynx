@@ -143,7 +143,7 @@ export default function Nav({ onOpenAuth, onOpenSignUp, currentUser, onLogout, o
                   fontSize: 14,
                   padding: '9px 18px',
                   whiteSpace: 'nowrap',
-                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                  background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
                 }}
               >
                 Sign Up
@@ -194,7 +194,7 @@ export default function Nav({ onOpenAuth, onOpenSignUp, currentUser, onLogout, o
           <button
             onClick={() => { setMobileMenuOpen(false); onOpenSignUp(); }}
             className="button button-primary"
-            style={{ width: '100%', marginTop: 8, background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' }}
+            style={{ width: '100%', marginTop: 8, background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)' }}
           >
             Sign Up (Township COO)
           </button>

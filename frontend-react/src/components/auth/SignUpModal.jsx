@@ -553,7 +553,7 @@ export default function SignUpModal({ isOpen, onClose, onOpenLogin, onSignUpSucc
                   <button
                     type="button"
                     onClick={() => setShowPasswordChange(!showPasswordChange)}
-                    style={{ background: 'none', border: 'none', color: '#0284c7', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
+                    style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
                   >
                     {showPasswordChange ? 'Cancel' : 'Change Password'}
                   </button>

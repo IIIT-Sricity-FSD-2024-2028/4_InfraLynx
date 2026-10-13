@@ -358,7 +358,7 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#0284c7',
+                    color: '#15803d',
                     fontWeight: 700,
                     cursor: 'pointer',
                     padding: 0,
