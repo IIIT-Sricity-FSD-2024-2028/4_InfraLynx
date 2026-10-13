@@ -285,7 +285,7 @@ CREATE TABLE complaints (
     reported_by UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     department_id UUID REFERENCES departments(id) ON DELETE SET NULL,
     asset_id UUID REFERENCES assets(id) ON DELETE SET NULL,
-    category VARCHAR(100) NOT NULL, -- 'Civil', 'Electrical', 'Water'
+    category VARCHAR(100) NOT NULL, -- 'Civil', 'Electrical', 'Water', 'Horticulture'
     subcategory VARCHAR(150),
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,

@@ -20,6 +20,7 @@ const findDepartmentByCategory = (category = '') => {
     if (norm.includes('civil') && dName.includes('civil')) return true;
     if (norm.includes('elec') && dName.includes('elect')) return true;
     if (norm.includes('water') && dName.includes('water')) return true;
+    if ((norm.includes('hort') || norm.includes('waste')) && (dName.includes('hort') || dName.includes('waste'))) return true;
     return false;
   }) || departments[0] || null;
 };

@@ -287,16 +287,16 @@ async function testAllRoleEndpoints() {
   const cooDeptsRes = await req('/coo/departments', 'GET', null, cooToken);
   report('GET /coo/departments (List Departments & Staff Count)', cooDeptsRes.status === 200 && cooDeptsRes.data?.count >= 4, `Count: ${cooDeptsRes.data?.count}`);
 
-  const newDeptRes = await req('/coo/departments', 'POST', {
-    name: 'Smart Energy & Solar Grid',
-    description: 'Rooftop solar telemetry and electric mobility chargers.',
-    budget: 2000000,
+  const updateDeptRes = await req('/coo/departments/d0000000-0000-0000-0000-000000000004', 'PUT', {
+    name: 'Horticulture & Urban Waste Management',
+    description: 'Community green belts, central parks, solid waste segregation, and composting units.',
+    budget: 1800000,
   }, cooToken);
-  report('POST /coo/departments (Create Department)', newDeptRes.status === 201 && !!newDeptRes.data?.data?.id, `Created: ${newDeptRes.data?.data?.name}`);
+  report('PUT /coo/departments/:id (Update Department)', updateDeptRes.status === 200 && updateDeptRes.data?.data?.budget === 1800000, `Updated: ${updateDeptRes.data?.data?.name}`);
 
-  const createdDeptId = newDeptRes.data?.data?.id;
-  const updateDeptStatusRes = await req(`/coo/departments/${createdDeptId}/status`, 'PATCH', { status: 'INACTIVE' }, cooToken);
+  const updateDeptStatusRes = await req('/coo/departments/d0000000-0000-0000-0000-000000000004/status', 'PATCH', { status: 'INACTIVE' }, cooToken);
   report('PATCH /coo/departments/:id/status (Deactivate Department)', updateDeptStatusRes.status === 200 && updateDeptStatusRes.data?.data?.status === 'INACTIVE', `Status: ${updateDeptStatusRes.data?.data?.status}`);
+  await req('/coo/departments/d0000000-0000-0000-0000-000000000004/status', 'PATCH', { status: 'ACTIVE' }, cooToken);
 
   const cooHeadsRes = await req('/coo/department-heads', 'GET', null, cooToken);
   report('GET /coo/department-heads (View Department Heads)', cooHeadsRes.status === 200 && Array.isArray(cooHeadsRes.data?.data), `Heads Count: ${cooHeadsRes.data?.count}`);

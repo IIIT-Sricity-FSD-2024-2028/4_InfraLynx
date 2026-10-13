@@ -540,14 +540,6 @@ export const cooApi = {
     return res.data || [];
   },
 
-  async createDepartment(payload) {
-    const res = await apiRequest('/coo/departments', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-    return res.data;
-  },
-
   async updateDepartment(id, payload) {
     const res = await apiRequest(`/coo/departments/${id}`, {
       method: 'PUT',

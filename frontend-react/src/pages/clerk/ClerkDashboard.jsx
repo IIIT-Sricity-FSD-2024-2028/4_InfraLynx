@@ -170,7 +170,7 @@ export default function ClerkDashboard({
           />
         </div>
         <div className="cd-filter-group">
-          {['ALL','CIVIL','ELECTRICAL','WATER'].map(cat => (
+          {['ALL','CIVIL','ELECTRICAL','WATER','HORTICULTURE'].map(cat => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
@@ -217,7 +217,7 @@ export default function ClerkDashboard({
             const sb         = statusBadge(c.status)
             const needsTriage = c.status === 'REPORTED' || c.status === 'UNDER_REVIEW'
             const isRejected  = c.status === 'REJECTED'
-            const catCls = c.category === 'Electrical' ? 'electrical' : c.category === 'Water' ? 'water' : 'civil'
+            const catCls = c.category === 'Electrical' ? 'electrical' : c.category === 'Water' ? 'water' : c.category === 'Horticulture' ? 'horticulture' : 'civil'
             const sevCls = c.severity === 'Emergency'  ? 'emergency'  : c.severity === 'High'  ? 'high' : 'normal'
 
             return (

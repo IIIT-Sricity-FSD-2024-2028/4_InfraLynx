@@ -20,7 +20,7 @@ import { getApprovalThresholds } from '../services/approvalService.js';
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * @desc    Get township-wide metrics, SLA health, and recent activity stream
+ * @desc    Get township-wide metrics and SLA health
  * @route   GET /api/v1/coo/dashboard
  * @access  Private (TOWNSHIP_COO)
  */
@@ -32,7 +32,6 @@ export const getDashboard = async (req, res, next) => {
     const complaints = db.findAll('complaints', (c) => !townshipId || c.township_id === townshipId);
     const workOrders = db.findAll('work_orders', (wo) => !townshipId || wo.township_id === townshipId);
     const invoices = db.findAll('invoices', (inv) => !townshipId || inv.township_id === townshipId);
-    const auditLogs = db.findAll('audit_logs', (log) => !townshipId || log.township_id === townshipId);
 
     // Metric Calculations
     const totalDepartments = departments.length;
@@ -92,24 +91,6 @@ export const getDashboard = async (req, res, next) => {
       };
     });
 
-    // Recent activity stream (Audit logs + synthetic status updates)
-    const sortedLogs = auditLogs
-      .slice(-15)
-      .reverse()
-      .map((log) => {
-        const actor = log.actor_id ? db.findById('users', log.actor_id) : null;
-        return {
-          id: log.id,
-          action: log.action || 'SYSTEM_EVENT',
-          entityType: log.entity_type,
-          entityId: log.entity_id,
-          notes: log.notes || `State updated from ${log.from_state || 'PREV'} to ${log.to_state || 'NEW'}`,
-          actorName: actor ? actor.name : (log.actor_role || 'System Automation'),
-          actorRole: actor ? actor.role : (log.actor_role || 'ADMIN'),
-          timestamp: log.timestamp || log.created_at || new Date().toISOString(),
-        };
-      });
-
     res.status(200).json({
       success: true,
       data: {
@@ -123,7 +104,6 @@ export const getDashboard = async (req, res, next) => {
           totalPaidAmount: invoices.filter((i) => i.status === 'PAID').reduce((sum, inv) => sum + (Number(inv.total_amount) || 0), 0),
         },
         departmentPerformance,
-        recentActivities: sortedLogs,
       },
     });
   } catch (error) {
@@ -179,59 +159,6 @@ export const getDepartments = async (req, res, next) => {
       success: true,
       count: enriched.length,
       data: enriched,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * @desc    Create a new civic department
- * @route   POST /api/v1/coo/departments
- * @access  Private (TOWNSHIP_COO)
- */
-export const createDepartment = async (req, res, next) => {
-  try {
-    const townshipId = req.user.township_id || req.user.townshipId || 'b0000000-0000-0000-0000-000000000001';
-    const { name, description, code, budget, departmentHeadId } = req.body;
-
-    if (!name || !name.trim()) {
-      return res.status(400).json({
-        success: false,
-        error: { message: 'Department name is required.' },
-      });
-    }
-
-    const newDept = db.insert('departments', {
-      id: crypto.randomUUID(),
-      township_id: townshipId,
-      name: name.trim(),
-      description: description?.trim() || '',
-      code: (code || name.slice(0, 4)).toUpperCase(),
-      budget: Number(budget) || 1200000,
-      department_head_id: departmentHeadId || null,
-      status: 'ACTIVE',
-      created_at: new Date().toISOString(),
-    });
-
-    if (departmentHeadId) {
-      db.update('users', departmentHeadId, { department_id: newDept.id });
-    }
-
-    db.logAudit({
-      township_id: townshipId,
-      entity_type: 'DEPARTMENT',
-      entity_id: newDept.id,
-      actor_id: req.user.id,
-      actor_role: req.user.role,
-      action: 'DEPARTMENT_CREATED',
-      notes: `Created new municipal department: ${newDept.name}`,
-    });
-
-    res.status(201).json({
-      success: true,
-      message: `Department '${newDept.name}' created successfully.`,
-      data: newDept,
     });
   } catch (error) {
     next(error);
@@ -932,7 +859,6 @@ export const processApprovalDecision = async (req, res, next) => {
 export default {
   getDashboard,
   getDepartments,
-  createDepartment,
   updateDepartment,
   updateDepartmentStatus,
   assignDepartmentHead,

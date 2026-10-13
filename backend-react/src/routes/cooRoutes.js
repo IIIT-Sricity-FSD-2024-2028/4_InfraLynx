@@ -20,7 +20,6 @@ router.get('/dashboard', cooController.getDashboard);
 
 // 2. Department Management APIs
 router.get('/departments', cooController.getDepartments);
-router.post('/departments', cooController.createDepartment);
 router.put('/departments/:id', cooController.updateDepartment);
 router.patch('/departments/:id/status', cooController.updateDepartmentStatus);
 router.patch('/departments/:id/head', cooController.assignDepartmentHead);

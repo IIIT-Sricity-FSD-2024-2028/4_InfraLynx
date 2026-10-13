@@ -291,7 +291,7 @@ export default function RwaDashboard({
 
         {/* Category Filters */}
         <div className="filter-group">
-          {['ALL', 'CIVIL', 'ELECTRICAL', 'WATER'].map((cat) => (
+          {['ALL', 'CIVIL', 'ELECTRICAL', 'WATER', 'HORTICULTURE'].map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
@@ -345,7 +345,7 @@ export default function RwaDashboard({
             const statusBadge = getStatusBadge(c.status)
             const sla = getSlaStatus(c.slaDeadline)
 
-            const catClass = c.category === 'Electrical' ? 'electrical' : c.category === 'Water' ? 'water' : 'civil'
+            const catClass = c.category === 'Electrical' ? 'electrical' : c.category === 'Water' ? 'water' : c.category === 'Horticulture' ? 'horticulture' : 'civil'
             const sevClass = c.severity === 'Emergency' ? 'emergency' : c.severity === 'High' ? 'high' : 'normal'
 
             return (

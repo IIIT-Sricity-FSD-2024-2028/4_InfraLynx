@@ -12,7 +12,6 @@ export default function CooDashboard({ dashboardData, onNavigateTab }) {
   };
 
   const departments = dashboardData?.departmentPerformance || [];
-  const recentActivities = dashboardData?.recentActivities || [];
 
   return (
     <div>
@@ -190,76 +189,6 @@ export default function CooDashboard({ dashboardData, onNavigateTab }) {
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
-
-      {/* Recent Activity Audit Stream */}
-      <div className="coo-panel">
-        <div className="coo-panel-header">
-          <div>
-            <h3 className="coo-panel-title">Recent Township Activity Stream</h3>
-            <p className="coo-panel-subtitle">Real-time municipal audit log entries across all actors</p>
-          </div>
-          <span style={{ fontSize: '12px', color: 'var(--text-soft)', fontWeight: 600 }}>
-            ⚡ Live Event Stream
-          </span>
-        </div>
-
-        <div className="coo-panel-body">
-          {recentActivities.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-soft)' }}>
-              No recent audit trail entries logged.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {recentActivities.map((log) => (
-                <div
-                  key={log.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                    padding: '12px 16px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--surface)',
-                    border: '1px solid var(--line)',
-                    gap: '16px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        background: 'var(--primary-subtle)',
-                        color: 'var(--primary-dark)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '14px',
-                        fontWeight: 700,
-                        flexShrink: 0,
-                      }}
-                    >
-                      🛡️
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)' }}>
-                        {log.action} · <span style={{ fontWeight: 500, color: 'var(--text-soft)' }}>{log.notes}</span>
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-soft)', marginTop: '2px' }}>
-                        By <strong>{log.actorName}</strong> ({log.actorRole}) · Target: {log.entityType} ({log.entityId?.slice(0, 8)}...)
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ fontSize: '11.5px', color: 'var(--text-soft)', whiteSpace: 'nowrap' }}>
-                    {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>

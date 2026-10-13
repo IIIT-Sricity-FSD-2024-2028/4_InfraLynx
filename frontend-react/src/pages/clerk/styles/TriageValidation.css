@@ -1,4 +1,4 @@
-﻿/* TriageValidation.css - Styles for Screen 2: Triage & Validate */
+/* TriageValidation.css - Styles for Screen 2: Triage & Validate */
 
 .tv-root {
   display: flex;
@@ -182,6 +182,7 @@
 .tv-cat-pill.civil       { background: #f0f9ff; color: #0369a1; }
 .tv-cat-pill.electrical  { background: #fefce8; color: #854d0e; }
 .tv-cat-pill.water       { background: #eff6ff; color: #1d4ed8; }
+.tv-cat-pill.horticulture{ background: #f0fdf4; color: #166534; }
 
 .tv-sev-pill {
   font-size: 12px;
