@@ -464,7 +464,7 @@ export default function ContractorPortal({ onExitToLanding }) {
               <img src="/assets/CRIMS_logo.png" alt="TIMS" className="contractor-brand-logo" />
               <div>
                 <span className="contractor-brand-title">TIMS</span>
-                <span className="contractor-brand-sub">Township Infrastructure Management</span>
+                <span className="contractor-brand-sub">Township Infrastructure Management System</span>
               </div>
             </div>
 
@@ -664,7 +664,7 @@ export default function ContractorPortal({ onExitToLanding }) {
 
       {/* ── Civic Footer ────────────────────────────────────────── */}
       <footer className="contractor-footer">
-        TIMS Township Infrastructure Management System • Member 3: Field Contractor Module • Inspect &rarr; Estimate &rarr; Execute &rarr; Complete
+        Township Infrastructure Management System
       </footer>
     </div>
   )

@@ -23,16 +23,38 @@ export default function AmcEstimateBuilder({
     return filtered.length > 0 ? filtered : amcRateCards
   }, [amcRateCards, currentJob])
 
-  // Line items state
-  // Default to the prompt's exact example: 2×₹500 + 3×₹300 + 10×₹150 = ₹3,400
-  const [lineItems, setLineItems] = useState([
-    { rateCardId: 'rate-01', service: 'Electrician', unit: 'Hour', rate: 500, qty: 2 },
-    { rateCardId: 'rate-02', service: 'General Labour', unit: 'Hour', rate: 300, qty: 3 },
-    { rateCardId: 'rate-03', service: 'Cable Work', unit: 'Meter', rate: 150, qty: 10 },
-  ])
+  // Line items state - starts empty; contractor adds items manually per inspection
+  const [lineItems, setLineItems] = useState(() => {
+    if (selectedJob?.estimate?.items && selectedJob.estimate.items.length > 0) {
+      return selectedJob.estimate.items
+    }
+    return []
+  })
 
   const [justification, setJustification] = useState('')
   const [submittedMessage, setSubmittedMessage] = useState(null)
+  const [formErrors, setFormErrors] = useState({})
+  const [touched, setTouched] = useState(false)
+
+  // Validation function
+  function validateForm(items = lineItems, just = justification) {
+    const errors = {}
+
+    if (!items || items.length === 0) {
+      errors.items = 'Please add at least one contractual AMC line item to build the estimate.'
+    } else {
+      const hasInvalidQty = items.some((it) => !it.qty || Number(it.qty) <= 0 || isNaN(Number(it.qty)))
+      if (hasInvalidQty) {
+        errors.quantity = 'Every item must have a valid quantity / hour count of at least 1.'
+      }
+    }
+
+    if (!just || just.trim().length < 10) {
+      errors.justification = 'Technical justification & scope remarks are required (minimum 10 characters).'
+    }
+
+    return errors
+  }
 
   // Sync if job has existing estimate or revision details
   useEffect(() => {
@@ -40,14 +62,13 @@ export default function AmcEstimateBuilder({
       setLineItems(currentJob.estimate.items)
       setJustification(currentJob.estimate.justification || '')
     } else {
-      // Default initial line items
-      setLineItems([
-        { rateCardId: 'rate-01', service: 'Electrician', unit: 'Hour', rate: 500, qty: 2 },
-        { rateCardId: 'rate-02', service: 'General Labour', unit: 'Hour', rate: 300, qty: 3 },
-        { rateCardId: 'rate-03', service: 'Cable Work', unit: 'Meter', rate: 150, qty: 10 },
-      ])
-      setJustification('Work calculated strictly adhering to approved AMC Rate Card schedule.')
+      // Start empty - contractor adds items manually
+      setLineItems([])
+      setJustification('')
     }
+    setFormErrors({})
+    setSubmittedMessage(null)
+    setTouched(false)
   }, [currentJob])
 
   // Handle changing rate card selection for a row
@@ -64,21 +85,27 @@ export default function AmcEstimateBuilder({
         rate: card.rate,
         qty: copy[index]?.qty || 1,
       }
+      if (touched) {
+        setFormErrors(validateForm(copy, justification))
+      }
       return copy
     })
   }
 
   // Handle changing quantity
   function handleQtyChange(index, val) {
-    const num = Math.max(1, parseInt(val, 10) || 1)
+    const num = val === '' ? '' : parseInt(val, 10)
     setLineItems((prev) => {
       const copy = [...prev]
       copy[index] = { ...copy[index], qty: num }
+      if (touched) {
+        setFormErrors(validateForm(copy, justification))
+      }
       return copy
     })
   }
 
-  // Add new empty row
+  // Add new row with first available rate card
   function handleAddRow() {
     const firstAvailable = availableRateCards[0] || amcRateCards[0] || {
       id: 'rate-01',
@@ -86,8 +113,8 @@ export default function AmcEstimateBuilder({
       unit: 'Hour',
       rate: 300,
     }
-    setLineItems((prev) => [
-      ...prev,
+    const newItems = [
+      ...lineItems,
       {
         rateCardId: firstAvailable.id,
         service: firstAvailable.service,
@@ -95,23 +122,28 @@ export default function AmcEstimateBuilder({
         rate: firstAvailable.rate,
         qty: 1,
       },
-    ])
+    ]
+    setLineItems(newItems)
+    if (touched) {
+      setFormErrors(validateForm(newItems, justification))
+    }
   }
 
   // Remove row
   function handleRemoveRow(index) {
-    if (lineItems.length <= 1) return
-    setLineItems((prev) => prev.filter((_, i) => i !== index))
+    const next = lineItems.filter((_, i) => i !== index)
+    setLineItems(next)
+    if (touched) {
+      setFormErrors(validateForm(next, justification))
+    }
   }
 
-  // Reset to prompt example
-  function handleLoadPromptExample() {
-    setLineItems([
-      { rateCardId: 'rate-01', service: 'Electrician', unit: 'Hour', rate: 500, qty: 2 },
-      { rateCardId: 'rate-02', service: 'General Labour', unit: 'Hour', rate: 300, qty: 3 },
-      { rateCardId: 'rate-03', service: 'Cable Work', unit: 'Meter', rate: 150, qty: 10 },
-    ])
-    setJustification('AMC Example Standard: 2×₹500 + 3×₹300 + 10×₹150 = ₹3,400')
+  function handleJustificationChange(e) {
+    const val = e.target.value
+    setJustification(val)
+    if (touched) {
+      setFormErrors(validateForm(lineItems, val))
+    }
   }
 
   // Calculations
@@ -128,7 +160,8 @@ export default function AmcEstimateBuilder({
 
   // Calculation formula string for the callout
   const formulaString = useMemo(() => {
-    return calculatedItems.map((i) => `${i.qty}×₹${i.rate}`).join(' + ') + ` = ₹${totalEstimate.toLocaleString('en-IN')}`
+    if (calculatedItems.length === 0) return '0 items selected (click + Add Item to begin)'
+    return calculatedItems.map((i) => `${i.qty || 0}×₹${i.rate}`).join(' + ') + ` = ₹${totalEstimate.toLocaleString('en-IN')}`
   }, [calculatedItems, totalEstimate])
 
   const exceedsThreshold = totalEstimate > 10000
@@ -138,10 +171,19 @@ export default function AmcEstimateBuilder({
     e.preventDefault()
     if (!currentJob) return
 
+    setTouched(true)
+    const errors = validateForm(lineItems, justification)
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors)
+      return
+    }
+
+    setFormErrors({})
+
     const estimateData = {
       items: calculatedItems,
       total: totalEstimate,
-      justification,
+      justification: justification.trim(),
       submittedAt: new Date().toISOString(),
       status: exceedsThreshold ? 'PENDING_APPROVAL' : 'APPROVED',
     }
@@ -190,7 +232,7 @@ export default function AmcEstimateBuilder({
             AMC Contractual Estimate Builder
           </h1>
           <p style={{ color: 'var(--text-soft)', fontSize: 13.5, margin: '2px 0 0' }}>
-            Screen 4: Select empanelled AMC rate items — automatic quantity × contractual rate computation.
+            Select empanelled AMC rate items — automatic quantity × contractual rate computation.
           </p>
         </div>
 
@@ -295,18 +337,9 @@ export default function AmcEstimateBuilder({
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <button
             type="button"
-            onClick={handleLoadPromptExample}
-            className="btn-contractor-secondary"
-            style={{ fontSize: 12 }}
-            title="Pre-populate 2×₹500 + 3×₹300 + 10×₹150 = ₹3,400"
-          >
-            ⚡ Load AMC Standard Preset (₹3,400)
-          </button>
-          <button
-            type="button"
             onClick={() => onNavigate('inspection')}
             className="btn-contractor-secondary"
-            style={{ fontSize: 12 }}
+            style={{ fontSize: 12.5 }}
           >
             🔍 View Inspection Data
           </button>
@@ -315,7 +348,35 @@ export default function AmcEstimateBuilder({
 
       {/* Main AMC Line Items Form Card */}
       <div className="contractor-card" style={{ border: '1.5px solid var(--line-strong)' }}>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
+          {/* Validation Errors Summary Banner */}
+          {touched && Object.keys(formErrors).length > 0 && (
+            <div
+              style={{
+                padding: '12px 16px',
+                borderRadius: 'var(--radius-sm)',
+                background: '#fef2f2',
+                border: '1.5px solid #fca5a5',
+                color: '#991b1b',
+                fontSize: 13,
+                marginBottom: 20,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 5,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
+                <span style={{ fontSize: 16 }}>⚠️</span>
+                <span>Please resolve the following before submitting the estimate:</span>
+              </div>
+              <ul style={{ margin: '4px 0 0 24px', padding: 0, fontSize: 12.5, lineHeight: 1.5 }}>
+                {formErrors.items && <li>{formErrors.items}</li>}
+                {formErrors.quantity && <li>{formErrors.quantity}</li>}
+                {formErrors.justification && <li>{formErrors.justification}</li>}
+              </ul>
+            </div>
+          )}
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div>
               <h3 style={{ fontSize: 17, fontWeight: 800, margin: 0, color: 'var(--text)' }}>
@@ -328,8 +389,8 @@ export default function AmcEstimateBuilder({
             <button
               type="button"
               onClick={handleAddRow}
-              className="btn-contractor-secondary"
-              style={{ fontSize: 12.5 }}
+              className="btn-contractor-primary"
+              style={{ fontSize: 13, padding: '7px 16px' }}
             >
               + Add Item
             </button>
@@ -345,112 +406,143 @@ export default function AmcEstimateBuilder({
                   <th style={{ width: '15%' }}>Contractual Rate</th>
                   <th style={{ width: '15%' }}>Quantity / Hours</th>
                   <th style={{ width: '15%', textAlign: 'right' }}>Subtotal (₹)</th>
-                  <th></th>
+                  <th style={{ width: '5%', textAlign: 'center' }}></th>
                 </tr>
               </thead>
               <tbody>
-                {calculatedItems.map((item, idx) => (
-                  <tr key={idx}>
-                    <td>
-                      <select
-                        value={item.rateCardId}
-                        onChange={(e) => handleRateCardChange(idx, e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '8px 10px',
-                          borderRadius: 'var(--radius-sm)',
-                          border: '1px solid var(--line-strong)',
-                          fontSize: 13,
-                          fontWeight: 600,
-                          background: '#ffffff',
-                        }}
-                      >
-                        {amcRateCards.map((rc) => (
-                          <option key={rc.id} value={rc.id}>
-                            {rc.service} ({rc.department}) — ₹{rc.rate}/{rc.unit}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-
-                    <td>
-                      <span
-                        style={{
-                          padding: '4px 8px',
-                          background: '#f1f5f9',
-                          borderRadius: 4,
-                          fontSize: 12,
-                          fontFamily: 'var(--font-mono)',
-                          color: '#475569',
-                          fontWeight: 600,
-                        }}
-                      >
-                        {item.unit}
-                      </span>
-                    </td>
-
-                    <td>
-                      <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 13.5 }}>
-                        ₹{item.rate}
+                {lineItems.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '36px 20px', background: '#f8fafc' }}>
+                      <div style={{ fontSize: 26, marginBottom: 6 }}>📋</div>
+                      <strong style={{ display: 'block', fontSize: 14.5, color: 'var(--text)', marginBottom: 4 }}>
+                        No AMC Line Items Added
                       </strong>
-                    </td>
-
-                    <td>
-                      <input
-                        type="number"
-                        min="1"
-                        max="999"
-                        value={item.qty}
-                        onChange={(e) => handleQtyChange(idx, e.target.value)}
-                        style={{
-                          width: 80,
-                          padding: '6px 8px',
-                          borderRadius: 'var(--radius-sm)',
-                          border: '1px solid var(--line-strong)',
-                          fontSize: 13.5,
-                          fontFamily: 'var(--font-mono)',
-                          fontWeight: 700,
-                        }}
-                      />
-                    </td>
-
-                    <td style={{ textAlign: 'right' }}>
-                      <strong
-                        style={{
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: 14,
-                          color: '#0369a1',
-                        }}
-                      >
-                        ₹{item.subtotal.toLocaleString('en-IN')}
-                      </strong>
-                    </td>
-
-                    <td style={{ textAlign: 'center' }}>
+                      <p style={{ fontSize: 12.5, color: 'var(--text-soft)', margin: '0 0 14px' }}>
+                        Line items are not pre-filled. Add required contractual services and materials for this job.
+                      </p>
                       <button
                         type="button"
-                        onClick={() => handleRemoveRow(idx)}
-                        disabled={lineItems.length <= 1}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: lineItems.length <= 1 ? '#cbd5e1' : '#ef4444',
-                          cursor: lineItems.length <= 1 ? 'not-allowed' : 'pointer',
-                          fontSize: 16,
-                          fontWeight: 700,
-                        }}
-                        title="Remove row"
+                        onClick={handleAddRow}
+                        className="btn-contractor-primary"
+                        style={{ fontSize: 13, padding: '7px 18px' }}
                       >
-                        ✕
+                        + Add First Item
                       </button>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  calculatedItems.map((item, idx) => {
+                    const isQtyInvalid = touched && (!item.qty || Number(item.qty) <= 0 || isNaN(Number(item.qty)))
+                    return (
+                      <tr key={idx}>
+                        <td>
+                          <select
+                            value={item.rateCardId}
+                            onChange={(e) => handleRateCardChange(idx, e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px',
+                              borderRadius: 'var(--radius-sm)',
+                              border: '1px solid var(--line-strong)',
+                              fontSize: 13,
+                              fontWeight: 600,
+                              background: '#ffffff',
+                            }}
+                          >
+                            {amcRateCards.map((rc) => (
+                              <option key={rc.id} value={rc.id}>
+                                {rc.service} ({rc.department}) — ₹{rc.rate}/{rc.unit}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+
+                        <td>
+                          <span
+                            style={{
+                              padding: '4px 8px',
+                              background: '#f1f5f9',
+                              borderRadius: 4,
+                              fontSize: 12,
+                              fontFamily: 'var(--font-mono)',
+                              color: '#475569',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {item.unit}
+                          </span>
+                        </td>
+
+                        <td>
+                          <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 13.5 }}>
+                            ₹{item.rate}
+                          </strong>
+                        </td>
+
+                        <td>
+                          <input
+                            type="number"
+                            min="1"
+                            max="999"
+                            value={item.qty}
+                            onChange={(e) => handleQtyChange(idx, e.target.value)}
+                            style={{
+                              width: 80,
+                              padding: '6px 8px',
+                              borderRadius: 'var(--radius-sm)',
+                              border: isQtyInvalid ? '1.5px solid #ef4444' : '1px solid var(--line-strong)',
+                              backgroundColor: isQtyInvalid ? '#fff5f5' : '#ffffff',
+                              fontSize: 13.5,
+                              fontFamily: 'var(--font-mono)',
+                              fontWeight: 700,
+                            }}
+                          />
+                          {isQtyInvalid && (
+                            <span style={{ display: 'block', color: '#dc2626', fontSize: 11, marginTop: 2 }}>
+                              Min 1
+                            </span>
+                          )}
+                        </td>
+
+                        <td style={{ textAlign: 'right' }}>
+                          <strong
+                            style={{
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: 14,
+                              color: '#0369a1',
+                            }}
+                          >
+                            ₹{item.subtotal.toLocaleString('en-IN')}
+                          </strong>
+                        </td>
+
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveRow(idx)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              fontSize: 16,
+                              fontWeight: 700,
+                              padding: '4px 8px',
+                            }}
+                            title="Remove row"
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
               </tbody>
             </table>
           </div>
 
-          {/* Automatic Calculation Callout (Prompt Example Match) */}
+          {/* Automatic Calculation Callout */}
           <div className="formula-callout">
             <div>
               <span style={{ fontSize: 11, textTransform: 'uppercase', display: 'block', color: '#166534', fontWeight: 700 }}>
@@ -499,23 +591,40 @@ export default function AmcEstimateBuilder({
 
           {/* Scope & Justification Notes */}
           <div style={{ marginBottom: 20 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-              Technical Estimate Justification & Scope Remarks
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                Technical Estimate Justification & Scope Remarks <span style={{ color: '#dc2626' }}>*</span>
+              </label>
+              <span
+                style={{
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  color: justification.trim().length >= 10 ? '#16a34a' : (touched ? '#dc2626' : '#64748b'),
+                }}
+              >
+                {justification.trim().length} / 10 min chars
+              </span>
+            </div>
             <textarea
-              rows={2}
+              rows={3}
               value={justification}
-              onChange={(e) => setJustification(e.target.value)}
-              placeholder="e.g. Standard rate card repair for blown driver, cable replacement and ground labour..."
+              onChange={handleJustificationChange}
+              placeholder="Provide technical reason for replacement and scope adherence (minimum 10 characters)..."
               style={{
                 width: '100%',
                 padding: '9px 12px',
                 borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--line-strong)',
+                border: (touched && formErrors.justification) ? '1.5px solid #ef4444' : '1px solid var(--line-strong)',
+                backgroundColor: (touched && formErrors.justification) ? '#fff5f5' : '#ffffff',
                 fontSize: 13,
                 fontFamily: 'inherit',
               }}
             />
+            {touched && formErrors.justification && (
+              <span style={{ color: '#dc2626', fontSize: 12, fontWeight: 600, display: 'block', marginTop: 4 }}>
+                ⚠️ {formErrors.justification}
+              </span>
+            )}
           </div>
 
           {/* Actions */}
@@ -532,7 +641,7 @@ export default function AmcEstimateBuilder({
               className="btn-contractor-primary"
               style={{ padding: '11px 24px', fontSize: 14 }}
             >
-              Submit AMC Estimate (₹{totalEstimate.toLocaleString('en-IN')}) &rarr;
+              Submit AMC Estimate {totalEstimate > 0 ? `(₹${totalEstimate.toLocaleString('en-IN')})` : ''} &rarr;
             </button>
           </div>
         </form>
