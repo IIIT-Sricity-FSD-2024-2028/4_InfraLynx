@@ -31,16 +31,12 @@ export function validateCivilAccess(req, resourceDeptId = null) {
   if (req.user.role === 'TOWNSHIP_COO') return true;
 
   const userDeptId = req.user.departmentId || req.user.department_id;
-  if (resourceDeptId && resourceDeptId !== userDeptId) {
-    throw new AppError('Forbidden: Access to other department records is strictly prohibited.', 403, 'FORBIDDEN');
+  if (!userDeptId) {
+    throw new AppError('Access Restricted: You are not currently assigned to a department. Please contact the Township COO.', 403, 'UNASSIGNED_DEPARTMENT');
   }
 
-  // At this stage, Department Head module is exclusive to Civil Department
-  if (userDeptId && userDeptId !== CIVIL_DEPT_ID) {
-    const dept = db.findById('departments', userDeptId);
-    if (!dept?.name?.toLowerCase().includes('civil')) {
-      throw new AppError('Access Restricted: Department Head functionality is currently enabled exclusively for the Civil Department.', 403, 'CIVIL_DEPARTMENT_ONLY');
-    }
+  if (resourceDeptId && resourceDeptId !== userDeptId) {
+    throw new AppError('Forbidden: Access to other department records is strictly prohibited.', 403, 'FORBIDDEN');
   }
 
   return true;
@@ -318,10 +314,10 @@ export const getDashboard = async (req, res, next) => {
     const { deptId, deptName } = getUserDepartment(req);
     validateCivilAccess(req, deptId);
 
-    // Filter complaints strictly for Civil Department
+    // Filter complaints strictly for the authenticated department
     const complaints = db.findAll('complaints', (c) => {
       const matchTownship = !townshipId || c.township_id === townshipId;
-      const matchDept = c.department_id === deptId || (c.category && c.category.toLowerCase() === 'civil');
+      const matchDept = c.department_id === deptId || (deptId === CIVIL_DEPT_ID && c.category && c.category.toLowerCase() === 'civil');
       return matchTownship && matchDept;
     });
 

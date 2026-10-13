@@ -37,7 +37,7 @@ export default function DeptDashboard({ onNavigate }) {
           width: '40px', height: '40px', borderRadius: '50%', border: '3px solid #e0e7ff', borderTopColor: '#4f46e5', 
           animation: 'spin 1s linear infinite', marginBottom: '16px' 
         }}></div>
-        <p style={{ fontSize: '15px', fontWeight: '500', letterSpacing: '0.5px' }}>Loading Civil department metrics...</p>
+        <p style={{ fontSize: '15px', fontWeight: '500', letterSpacing: '0.5px' }}>Loading department metrics...</p>
         <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -100,7 +100,7 @@ export default function DeptDashboard({ onNavigate }) {
             </span>
           </div>
           <p style={{ color: '#64748b', margin: 0, fontSize: '15px' }}>
-            Real-time operational metrics, work order SLA tracking, and estimate authorization for Civil Department only.
+            Real-time operational metrics, work order SLA tracking, and estimate authorization for {data.departmentName || 'your department'}.
           </p>
         </div>
         <button 
@@ -124,7 +124,7 @@ export default function DeptDashboard({ onNavigate }) {
         >
           <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#3b82f6', transition: 'width 0.2s', ...(hoveredCard === 1 && { width: '8px' }) }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', paddingLeft: '8px' }}>
-            <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Civil Work Orders</span>
+            <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Work Orders</span>
             <div style={{ background: '#eff6ff', padding: '8px', borderRadius: '10px', color: '#3b82f6' }}>🏗️</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', paddingLeft: '8px' }}>
@@ -208,7 +208,7 @@ export default function DeptDashboard({ onNavigate }) {
         <div style={{ background: 'white', padding: '30px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
           <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ width: '8px', height: '8px', background: '#3b82f6', borderRadius: '50%' }}></span>
-            Civil Department Expenditure & Compliance
+            {data.departmentName || 'Department'} Expenditure & Compliance
           </h4>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -227,7 +227,7 @@ export default function DeptDashboard({ onNavigate }) {
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '2px dashed #e2e8f0', paddingTop: '20px', marginTop: '6px' }}>
               <div>
-                <span style={{ display: 'block', color: '#334155', fontSize: '14px', fontWeight: '700', marginBottom: '4px' }}>Civil Department Expenditure</span>
+                <span style={{ display: 'block', color: '#334155', fontSize: '14px', fontWeight: '700', marginBottom: '4px' }}>{data.departmentName || 'Department'} Expenditure</span>
                 <span style={{ fontSize: '12px', color: '#94a3b8' }}>Cumulative across active & closed work orders</span>
               </div>
               <strong style={{ fontSize: '26px', color: '#0f172a', fontWeight: '900', letterSpacing: '-0.5px' }}>
@@ -338,12 +338,12 @@ export default function DeptDashboard({ onNavigate }) {
       <div style={{ background: 'white', padding: '30px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
         <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ width: '8px', height: '8px', background: '#10b981', borderRadius: '50%' }}></span>
-          Recent Civil Department Activity
+          Recent Activity ({data.departmentName || 'Department'})
         </h4>
 
         {(!data.recentActivity || data.recentActivity.length === 0) ? (
           <div style={{ padding: '32px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>
-            No recent activity logged for the Civil Department yet.
+            No recent activity logged for {data.departmentName || 'this department'} yet.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

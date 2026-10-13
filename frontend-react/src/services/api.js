@@ -548,14 +548,6 @@ export const cooApi = {
     return res.data;
   },
 
-  async updateDepartmentStatus(id, status) {
-    const res = await apiRequest(`/coo/departments/${id}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
-    });
-    return res.data;
-  },
-
   async assignDepartmentHead(deptId, departmentHeadId) {
     const res = await apiRequest(`/coo/departments/${deptId}/head`, {
       method: 'PATCH',
@@ -567,6 +559,21 @@ export const cooApi = {
   async getDepartmentHeads() {
     const res = await apiRequest('/coo/department-heads');
     return res.data || [];
+  },
+
+  async createDepartmentHead(payload) {
+    const res = await apiRequest('/coo/department-heads', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async unassignDepartmentHead(headId) {
+    const res = await apiRequest(`/coo/department-heads/${headId}/unassign`, {
+      method: 'POST',
+    });
+    return res.data;
   },
 
   async getDepartmentStaff(deptId) {

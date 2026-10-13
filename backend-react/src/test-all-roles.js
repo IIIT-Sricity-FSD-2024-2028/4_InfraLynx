@@ -294,12 +294,69 @@ async function testAllRoleEndpoints() {
   }, cooToken);
   report('PUT /coo/departments/:id (Update Department)', updateDeptRes.status === 200 && updateDeptRes.data?.data?.budget === 1800000, `Updated: ${updateDeptRes.data?.data?.name}`);
 
-  const updateDeptStatusRes = await req('/coo/departments/d0000000-0000-0000-0000-000000000004/status', 'PATCH', { status: 'INACTIVE' }, cooToken);
-  report('PATCH /coo/departments/:id/status (Deactivate Department)', updateDeptStatusRes.status === 200 && updateDeptStatusRes.data?.data?.status === 'INACTIVE', `Status: ${updateDeptStatusRes.data?.data?.status}`);
-  await req('/coo/departments/d0000000-0000-0000-0000-000000000004/status', 'PATCH', { status: 'ACTIVE' }, cooToken);
+
 
   const cooHeadsRes = await req('/coo/department-heads', 'GET', null, cooToken);
   report('GET /coo/department-heads (View Department Heads)', cooHeadsRes.status === 200 && Array.isArray(cooHeadsRes.data?.data), `Heads Count: ${cooHeadsRes.data?.count}`);
+
+  // Test: Creation rejected when department is already occupied (Civil Infrastructure)
+  const occupiedCreateRes = await req('/coo/department-heads', 'POST', {
+    name: 'Duplicate Head',
+    email: 'duplicate.civil@infralynx.gov.in',
+    password: 'Password@123',
+    departmentId: 'd0000000-0000-0000-0000-000000000001',
+  }, cooToken);
+  report(
+    'POST /coo/department-heads (Rejected when department occupied)',
+    occupiedCreateRes.status === 400 && occupiedCreateRes.data?.error?.code === 'DEPARTMENT_ALREADY_OCCUPIED',
+    `Code: ${occupiedCreateRes.data?.error?.code}`
+  );
+
+  // Test: Creation succeeds for unoccupied department (Electrical)
+  const newHeadEmail = `head.electrical.${Date.now()}@infralynx.gov.in`;
+  const createHeadRes = await req('/coo/department-heads', 'POST', {
+    name: 'Er. Vikram Mehta',
+    email: newHeadEmail,
+    password: 'SecurePassword@123',
+    phone: '+91 98765 43210',
+    departmentId: 'd0000000-0000-0000-0000-000000000002',
+  }, cooToken);
+  report(
+    'POST /coo/department-heads (Create Head with assigned dept)',
+    createHeadRes.status === 201 && !!createHeadRes.data?.data?.id,
+    `Created: ${createHeadRes.data?.data?.name} (ID: ${createHeadRes.data?.data?.id})`
+  );
+  const newHeadId = createHeadRes.data?.data?.id;
+
+  // Test: New Department Head can immediately log in with COO-assigned credentials
+  const headLoginRes = await req('/auth/login', 'POST', {
+    email: newHeadEmail,
+    password: 'SecurePassword@123',
+  });
+  report(
+    'POST /auth/login (New Department Head can authenticate)',
+    headLoginRes.status === 200 && headLoginRes.data?.data?.user?.role === 'DEPARTMENT_HEAD',
+    `Role: ${headLoginRes.data?.data?.user?.role}, Token issued: ${!!headLoginRes.data?.data?.token}`
+  );
+
+  // Test: New Department Head can access their dashboard without Civil-only restriction
+  const newHeadToken = headLoginRes.data?.data?.token;
+  const newHeadDashRes = await req('/dept-head/dashboard', 'GET', null, newHeadToken);
+  report(
+    'GET /dept-head/dashboard (Non-Civil Head accesses dashboard without error)',
+    newHeadDashRes.status === 200 && newHeadDashRes.data?.data?.departmentName === 'Electrical & Power Distribution',
+    `Dept: ${newHeadDashRes.data?.data?.departmentName}`
+  );
+
+  // Test: Unassign Department Head to vacate department
+  if (newHeadId) {
+    const unassignRes = await req(`/coo/department-heads/${newHeadId}/unassign`, 'POST', {}, cooToken);
+    report(
+      'POST /coo/department-heads/:id/unassign (Vacate Department)',
+      unassignRes.status === 200 && unassignRes.data?.data?.departmentId === null,
+      `Unassigned successfully, departmentId is now null`
+    );
+  }
 
   const deptStaffRes = await req(`/coo/departments/d0000000-0000-0000-0000-000000000002/staff`, 'GET', null, cooToken);
   report('GET /coo/departments/:id/staff (View Dept Staff)', deptStaffRes.status === 200 && Array.isArray(deptStaffRes.data?.data), `Staff: ${deptStaffRes.data?.count}`);
