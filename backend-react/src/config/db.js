@@ -260,6 +260,13 @@ export const logAudit = (auditData) => {
 };
 
 /**
+ * Log super admin audit trail entry (platform-level events)
+ */
+export const logSuperAudit = (auditData) => {
+  return inMemoryDb.logSuperAudit(auditData);
+};
+
+/**
  * Reset memory store (used by tests)
  */
 export const reset = () => {
@@ -281,6 +288,7 @@ export default {
   update,
   delete: deleteRecord,
   logAudit,
+  logSuperAudit,
   reset,
   tables: inMemoryDb.tables,
   inMemoryDb,

@@ -12,12 +12,88 @@ const SEED_DATA = {
     {
       id: 'a0000000-0000-0000-0000-000000000001',
       name: 'Enterprise Municipal Plan',
+      plan_label: 'Enterprise',
       price: 150000.0,
       billing_cycle: 'YEARLY',
       max_users: 100,
       max_departments: 15,
       features: ['3_WAY_RECONCILIATION', 'AMC_RATE_CARD_ENGINE', 'ESCALATION_MONITOR', 'EXECUTIVE_TELEMETRY'],
       created_at: new Date().toISOString(),
+    },
+    {
+      id: 'a0000000-0000-0000-0000-000000000002',
+      name: 'Professional Township Plan',
+      plan_label: 'Professional',
+      price: 60000.0,
+      billing_cycle: 'YEARLY',
+      max_users: 30,
+      max_departments: 6,
+      features: ['AMC_RATE_CARD_ENGINE', 'BASIC_REPORTING'],
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: 'a0000000-0000-0000-0000-000000000003',
+      name: 'Starter Free Trial',
+      plan_label: 'Starter',
+      price: 0.0,
+      billing_cycle: 'MONTHLY',
+      max_users: 10,
+      max_departments: 2,
+      features: ['BASIC_COMPLAINTS'],
+      created_at: new Date().toISOString(),
+    },
+  ],
+
+  tenant_subscriptions: [
+    {
+      id: 'sub-0000000-0000-0000-0000-000000000001',
+      township_id: 'b0000000-0000-0000-0000-000000000001',
+      plan_id: 'a0000000-0000-0000-0000-000000000001',
+      plan_label: 'Enterprise',
+      billing_cycle: 'YEARLY',
+      status: 'ACTIVE',
+      start_date: '2025-04-01',
+      expiry_date: '2026-03-31',
+      primary_contact: 'Col. (Retd.) Sanjeev Dewan',
+      contact_email: 'coo@infralynx.com',
+      contact_phone: '+91 98111 99887',
+      legal_entity: 'DLF Infrastructure Management Ltd.',
+      max_users: 100,
+      max_complaints_monthly: 500,
+      max_storage_gb: 50,
+      history: [
+        { action: 'CREATED', date: '2025-04-01', note: 'Initial subscription created.', by: 'superadmin@infralynx.com' },
+      ],
+      created_at: new Date('2025-04-01').toISOString(),
+    },
+  ],
+
+  global_config: [
+    { id: 'cfg-001', key: 'DEPT_HEAD_APPROVAL_THRESHOLD', value: '10000', description: 'Maximum amount (₹) a Department Head can approve independently', category: 'FINANCIAL', updated_by: null, updated_at: null },
+    { id: 'cfg-002', key: 'COO_APPROVAL_THRESHOLD', value: '50000', description: 'Maximum amount (₹) the Township COO can approve independently', category: 'FINANCIAL', updated_by: null, updated_at: null },
+    { id: 'cfg-003', key: 'JOINT_APPROVAL_THRESHOLD', value: '100000', description: 'Amount (₹) requiring both Dept Head + COO joint approval', category: 'FINANCIAL', updated_by: null, updated_at: null },
+    { id: 'cfg-004', key: 'SLA_EMERGENCY_HOURS', value: '24', description: 'Default SLA resolution time for EMERGENCY severity (hours)', category: 'SLA', updated_by: null, updated_at: null },
+    { id: 'cfg-005', key: 'SLA_HIGH_HOURS', value: '48', description: 'Default SLA resolution time for HIGH severity (hours)', category: 'SLA', updated_by: null, updated_at: null },
+    { id: 'cfg-006', key: 'SLA_MEDIUM_HOURS', value: '72', description: 'Default SLA resolution time for MEDIUM severity (hours)', category: 'SLA', updated_by: null, updated_at: null },
+    { id: 'cfg-007', key: 'SLA_LOW_HOURS', value: '120', description: 'Default SLA resolution time for LOW severity (hours)', category: 'SLA', updated_by: null, updated_at: null },
+    { id: 'cfg-008', key: 'AUTO_CLOSURE_DAYS', value: '3', description: 'Days residents have to verify or dispute completed work before auto-closure', category: 'WORKFLOW', updated_by: null, updated_at: null },
+  ],
+
+  super_audit_logs: [
+    {
+      id: 'sau-001',
+      timestamp: new Date().toISOString(),
+      admin_id: 'sa-0000000-0000-0000-0000-000000000001',
+      admin_name: 'Platform Super Admin',
+      admin_role: 'SUPER_ADMIN',
+      action: 'SYSTEM_INITIALIZED',
+      entity_type: 'PLATFORM',
+      entity_id: 'PLATFORM',
+      tenant_id: null,
+      previous_value: null,
+      new_value: null,
+      outcome: 'SUCCESS',
+      notes: 'InfraLynx platform initialized with seed data.',
     },
   ],
 
@@ -121,6 +197,20 @@ const SEED_DATA = {
   ],
 
   users: [
+    {
+      id: 'sa-0000000-0000-0000-0000-000000000001',
+      township_id: null,
+      name: 'Platform Super Admin',
+      email: 'superadmin@infralynx.com',
+      username: 'super_admin',
+      password_hash: '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', // Password@123
+      role: 'SUPER_ADMIN',
+      department_id: null,
+      contractor_id: null,
+      sector: null,
+      phone: '+91 98000 00001',
+      status: 'ACTIVE',
+    },
     {
       id: '10000000-0000-0000-0000-000000000001',
       township_id: 'b0000000-0000-0000-0000-000000000001',
@@ -994,6 +1084,23 @@ class InMemoryStore {
       from_state,
       to_state,
       notes,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  logSuperAudit({ admin_id, admin_name, admin_role, action, entity_type, entity_id, tenant_id, previous_value, new_value, outcome, notes }) {
+    return this.insert('super_audit_logs', {
+      admin_id: admin_id || 'sa-0000000-0000-0000-0000-000000000001',
+      admin_name: admin_name || 'Super Admin',
+      admin_role: admin_role || 'SUPER_ADMIN',
+      action,
+      entity_type,
+      entity_id,
+      tenant_id: tenant_id || null,
+      previous_value: previous_value ? JSON.stringify(previous_value) : null,
+      new_value: new_value ? JSON.stringify(new_value) : null,
+      outcome: outcome || 'SUCCESS',
+      notes: notes || null,
       timestamp: new Date().toISOString(),
     });
   }

@@ -110,6 +110,24 @@ const ACTORS = [
       quarterlySpend: '₹42.8L',
     },
   },
+  {
+    id: 'superadmin',
+    title: 'Super Admin',
+    type: 'Platform Governance',
+    summary: 'Platform-level administrator responsible for tenant onboarding, global access, subscriptions, and operational policy.',
+    responsibilities: [
+      'Onboard townships and manage subscription plans, limits, and renewal status.',
+      'Create platform accounts and review user access across all tenants.',
+      'Configure approval thresholds and SLA defaults used by live workflows.',
+      'Review system health and the platform administrative audit trail.',
+    ],
+    consoleAction: 'Manage Platform',
+    mockData: {
+      tenantControls: 'Global',
+      accessScope: 'All tenants',
+      policyAreas: 3,
+    },
+  },
 ]
 
 export default function Roles({ onOpenAuth }) {
@@ -128,7 +146,7 @@ export default function Roles({ onOpenAuth }) {
             Built for Every Seat at the Township
           </h2>
           <p style={{ marginTop: 14, fontSize: 16, color: 'var(--text-soft)' }}>
-            Seven distinct operational actors operate on a shared, tamper-evident ledger.
+            Seven distinct platform actors operate on a shared, tamper-evident ledger.
             Select any role to preview their authority matrix and workflow console.
           </p>
         </div>
@@ -222,7 +240,7 @@ export default function Roles({ onOpenAuth }) {
                   className="button button-primary"
                   style={{ padding: '12px 24px' }}
                 >
-                  Official Sign In as {actor.title.split(' ')[0]} →
+                  Official Sign In as {actor.id === 'superadmin' ? 'Super Admin' : actor.title.split(' ')[0]} →
                 </button>
               </div>
             </div>

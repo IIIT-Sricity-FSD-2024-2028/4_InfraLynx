@@ -10,6 +10,7 @@ function mapRoleToPortal(role, email = '') {
   if (r === 'FINANCE_CLERK') return 'finance'
   if (r === 'RWA') return 'rwa'
   if (r === 'TOWNSHIP_COO') return 'coo'
+  if (r === 'SUPER_ADMIN') return 'superadmin'
 
   // Intelligent fallback from email pattern
   const em = (email || '').toLowerCase()
@@ -29,6 +30,7 @@ function getPortalTitle(portalKey) {
     case 'finance': return 'Finance & Audit Console'
     case 'rwa': return 'RWA Representative Portal'
     case 'coo': return 'Township COO Directorate'
+    case 'superadmin': return 'Super Admin Console'
     default: return 'Township Portal'
   }
 }
@@ -58,6 +60,7 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
       else if (r === 'clerk') email = 'clerk@infralynx.com'
       else if (r === 'dept_head' || r === 'depthead') email = 'head@infralynx.com'
       else if (r === 'contractor') email = 'contractor@infralynx.com'
+      else if (r === 'superadmin' || r === 'super_admin') email = 'superadmin@infralynx.com'
       setFormData({ email, password: 'Password@123' })
     }
   }, [isOpen, initialRole])
@@ -250,6 +253,7 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
                       { label: 'Contractor', email: 'contractor@infralynx.com' },
                       { label: 'Finance', email: 'finance@infralynx.com' },
                       { label: 'Township COO', email: 'coo@infralynx.com' },
+                      { label: '🔮 Super Admin', email: 'superadmin@infralynx.com' },
                     ].map((acc) => (
                       <button
                         key={acc.label}

@@ -12,9 +12,23 @@ import db from '../config/db.js';
 
 export const APPROVAL_THRESHOLDS = {
   CLERK_LIMIT: 10000,
+  COO_LIMIT: 50000,
   MAJOR_EXPENDITURE_THRESHOLD: 100000, // Above ₹100,000 requires joint Dept Head + COO sign-off
-  COO_LIMIT: Infinity,
 };
+
+function getConfiguredThreshold(key, fallback) {
+  const configured = db.findOne('global_config', (item) => item.key === key);
+  const value = Number(configured?.value);
+  return Number.isFinite(value) && value >= 0 ? value : fallback;
+}
+
+export function getApprovalThresholds() {
+  return {
+    CLERK_LIMIT: getConfiguredThreshold('DEPT_HEAD_APPROVAL_THRESHOLD', APPROVAL_THRESHOLDS.CLERK_LIMIT),
+    COO_LIMIT: getConfiguredThreshold('COO_APPROVAL_THRESHOLD', APPROVAL_THRESHOLDS.COO_LIMIT),
+    MAJOR_EXPENDITURE_THRESHOLD: getConfiguredThreshold('JOINT_APPROVAL_THRESHOLD', APPROVAL_THRESHOLDS.MAJOR_EXPENDITURE_THRESHOLD),
+  };
+}
 
 /**
  * Checks whether an estimate requires Department Head approval
@@ -22,7 +36,7 @@ export const APPROVAL_THRESHOLDS = {
  * @returns {boolean}
  */
 export function requiresDeptHeadApproval(amount = 0) {
-  return Number(amount) > APPROVAL_THRESHOLDS.CLERK_LIMIT;
+  return Number(amount) > getApprovalThresholds().CLERK_LIMIT;
 }
 
 /**
@@ -81,13 +95,14 @@ export function processApprovalDecision(wo, complaint, action, notes, user) {
     0
   );
 
-  const isMajorExpenditure = estimateAmount > APPROVAL_THRESHOLDS.MAJOR_EXPENDITURE_THRESHOLD;
+  const thresholds = getApprovalThresholds();
+  const isMajorExpenditure = estimateAmount > thresholds.MAJOR_EXPENDITURE_THRESHOLD;
 
   if (normalizedAction === 'APPROVE') {
     // If estimate exceeds major expenditure threshold (> ₹100,000), require joint approval by Township COO
     if (isMajorExpenditure && user.role !== 'TOWNSHIP_COO') {
       const targetStatus = 'AWAITING_COO';
-      const historyNote = `Estimate of ₹${estimateAmount.toLocaleString()} approved by Civil Department Head ${actorName}. Major expenditure threshold exceeded (> ₹${APPROVAL_THRESHOLDS.MAJOR_EXPENDITURE_THRESHOLD.toLocaleString()}) — forwarded to Township COO for required executive joint approval. ${notes ? `Notes: "${notes}"` : ''}`;
+      const historyNote = `Estimate of ₹${estimateAmount.toLocaleString()} approved by Civil Department Head ${actorName}. Major expenditure threshold exceeded (> ₹${thresholds.MAJOR_EXPENDITURE_THRESHOLD.toLocaleString()}) — forwarded to Township COO for required executive joint approval. ${notes ? `Notes: "${notes}"` : ''}`;
 
       if (wo) {
         wo = db.update('work_orders', wo.id, {
@@ -356,6 +371,7 @@ export function processApprovalDecision(wo, complaint, action, notes, user) {
 
 export default {
   APPROVAL_THRESHOLDS,
+  getApprovalThresholds,
   requiresDeptHeadApproval,
   canApproveWorkOrder,
   processApprovalDecision,

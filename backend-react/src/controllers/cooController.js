@@ -13,6 +13,7 @@
 import crypto from 'crypto';
 import db from '../config/db.js';
 import { AppError } from '../middleware/error.js';
+import { getApprovalThresholds } from '../services/approvalService.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Township Executive Dashboard
@@ -782,15 +783,14 @@ export const escalateWorkOrder = async (req, res, next) => {
 export const getPendingApprovals = async (req, res, next) => {
   try {
     const townshipId = req.user.township_id || req.user.townshipId;
+    const thresholds = getApprovalThresholds();
 
     const workOrders = db.findAll('work_orders', (wo) => {
       if (townshipId && wo.township_id !== townshipId) return false;
       const isPending =
         wo.status === 'AWAITING_COO' ||
-        wo.status === 'AWAITING_DEPT_HEAD' ||
         wo.status === 'ESCALATED_TO_COO' ||
-        wo.requires_coo === true ||
-        (Number(wo.estimated_cost) > 10000 && wo.status === 'ASSIGNED');
+        (wo.requires_coo === true && wo.dept_head_approved === true);
       return isPending;
     });
 
@@ -815,7 +815,7 @@ export const getPendingApprovals = async (req, res, next) => {
         ],
         submittedAt: wo.created_at,
         deptHeadRecommendation: wo.dept_head_notes || 'Reviewed by Department Head. Transmitted for executive joint authorization.',
-        requiresCooOverride: Number(wo.estimated_cost) > 10000,
+        requiresCooOverride: Number(wo.estimated_cost || wo.estimate_amount) > thresholds.COO_LIMIT,
       };
     });
 
@@ -837,13 +837,35 @@ export const getPendingApprovals = async (req, res, next) => {
 export const processApprovalDecision = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { action = 'APPROVE', remarks = '' } = req.body;
+    const action = (req.body.action || 'APPROVE').toUpperCase();
+    const { remarks = '' } = req.body;
 
     const wo = db.findById('work_orders', id);
     if (!wo) {
       return res.status(404).json({
         success: false,
         error: { message: `Work Order '${id}' not found.` },
+      });
+    }
+
+    const townshipId = req.user.township_id || req.user.townshipId;
+    if (townshipId && wo.township_id !== townshipId) {
+      return res.status(403).json({ success: false, error: { message: 'Cross-township approval is forbidden.' } });
+    }
+    const isAwaitingCoo = wo.status === 'AWAITING_COO' || wo.status === 'ESCALATED_TO_COO' || (wo.requires_coo === true && wo.dept_head_approved === true);
+    if (!isAwaitingCoo) {
+      return res.status(409).json({ success: false, error: { message: 'This work order is not awaiting COO approval.' } });
+    }
+    if (!['APPROVE', 'REJECT', 'REQUEST_REVISION'].includes(action)) {
+      return res.status(400).json({ success: false, error: { message: 'Action must be APPROVE, REJECT, or REQUEST_REVISION.' } });
+    }
+    const thresholds = getApprovalThresholds();
+    const estimateAmount = Number(wo.estimate_amount || wo.estimated_cost || 0);
+    const hasDepartmentHeadSignoff = wo.dept_head_approved === true || wo.status === 'AWAITING_COO';
+    if (action === 'APPROVE' && estimateAmount > thresholds.COO_LIMIT && !hasDepartmentHeadSignoff) {
+      return res.status(409).json({
+        success: false,
+        error: { message: `Estimates above ₹${thresholds.COO_LIMIT.toLocaleString()} require Department Head sign-off before independent COO approval.` },
       });
     }
 

@@ -13,8 +13,7 @@
 import db from '../config/db.js';
 import { AppError } from '../middleware/error.js';
 import { calculateVerifiedEstimate } from '../services/estimateService.js';
-
-const DEPT_HEAD_APPROVAL_THRESHOLD = 10000;
+import { getApprovalThresholds, requiresDeptHeadApproval } from '../services/approvalService.js';
 
 /**
  * @desc   Get all jobs / work orders assigned to the contractor
@@ -250,13 +249,14 @@ export const submitEstimate = async (req, res, next) => {
 
     // Backend calculates official rate card totals (strict compliance rule)
     const verified = calculateVerifiedEstimate(lineItems, req.user.contractorId || wo.contractor_id);
-    const requiresDeptHead = verified.totalAmount > DEPT_HEAD_APPROVAL_THRESHOLD;
+    const requiresDeptHead = requiresDeptHeadApproval(verified.totalAmount);
+    const deptHeadThreshold = getApprovalThresholds().CLERK_LIMIT;
     const nextStatus = requiresDeptHead ? 'AWAITING_DEPT_HEAD' : 'WORK_ORDER_CREATED';
 
     const now = new Date().toISOString();
     const actorName = req.user.name || 'Contractor Lead';
     const note = `Estimate of ₹${verified.totalAmount.toLocaleString()} submitted by ${actorName}. ${
-      requiresDeptHead ? 'Threshold exceeded (> ₹10k) → Forwarded to Dept Head for approval.' : 'Ready for execution.'
+      requiresDeptHead ? `Threshold exceeded (> ₹${deptHeadThreshold.toLocaleString()}) → Forwarded to Dept Head for approval.` : 'Ready for execution.'
     }`;
 
     const updatedWo = db.update('work_orders', wo.id, {

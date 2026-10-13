@@ -1,6 +1,8 @@
 import http from 'http';
 import app from './app.js';
 import inMemoryDb from './config/inMemoryDb.js';
+import { getApprovalThresholds } from './services/approvalService.js';
+import { getSlaHours } from './services/slaService.js';
 
 async function testAllRoleEndpoints() {
   console.log('========================================================================');
@@ -62,6 +64,61 @@ async function testAllRoleEndpoints() {
   const cooLogin = await req('/auth/login', 'POST', { email: 'coo@infralynx.com', password: 'Password@123' });
   const cooToken = cooLogin.data?.data?.token;
   report('Township COO Login', cooLogin.status === 200 && !!cooToken, `Role: ${cooLogin.data?.data?.user?.role}`);
+
+  const superAdminLogin = await req('/auth/login', 'POST', { email: 'superadmin@infralynx.com', password: 'Password@123' });
+  const superAdminToken = superAdminLogin.data?.data?.token;
+  report('Platform Super Admin Login', superAdminLogin.status === 200 && !!superAdminToken, `Role: ${superAdminLogin.data?.data?.user?.role}`);
+
+  console.log('\n─── SUPER ADMIN SECURITY & CONFIGURATION REGRESSIONS ───────────────────');
+  const deniedOverview = await req('/super-admin/overview', 'GET', null, rwaToken);
+  report('Tenant role cannot access platform overview', deniedOverview.status === 403 && deniedOverview.data?.error?.code === 'SUPER_ADMIN_REQUIRED');
+
+  const adminOverview = await req('/super-admin/overview', 'GET', null, superAdminToken);
+  report('Super Admin overview identifies actual memory storage', adminOverview.status === 200 && adminOverview.data?.data?.dbHealth?.mode === 'IN_MEMORY');
+
+  const initialConfig = await req('/super-admin/config', 'GET', null, superAdminToken);
+  const originalDeptThreshold = initialConfig.data?.data?.find((item) => item.key === 'DEPT_HEAD_APPROVAL_THRESHOLD')?.value;
+  const originalEmergencySla = initialConfig.data?.data?.find((item) => item.key === 'SLA_EMERGENCY_HOURS')?.value;
+  const partialConfig = await req('/super-admin/config', 'PUT', {
+    updates: { DEPT_HEAD_APPROVAL_THRESHOLD: '15000', UNKNOWN_THRESHOLD: '1' },
+  }, superAdminToken);
+  const afterRejectedConfig = await req('/super-admin/config', 'GET', null, superAdminToken);
+  report('Invalid config batch is rejected without partial changes',
+    partialConfig.status === 400 && afterRejectedConfig.data?.data?.find((item) => item.key === 'DEPT_HEAD_APPROVAL_THRESHOLD')?.value === originalDeptThreshold);
+
+  const validConfig = await req('/super-admin/config', 'PUT', {
+    updates: { DEPT_HEAD_APPROVAL_THRESHOLD: '15000', SLA_EMERGENCY_HOURS: '30' }, reason: 'Integration test',
+  }, superAdminToken);
+  const liveConfigApplied = validConfig.status === 200 && getApprovalThresholds().CLERK_LIMIT === 15000 && getSlaHours('EMERGENCY') === 30;
+  await req('/super-admin/config', 'PUT', {
+    updates: { DEPT_HEAD_APPROVAL_THRESHOLD: originalDeptThreshold, SLA_EMERGENCY_HOURS: originalEmergencySla }, reason: 'Integration test cleanup',
+  }, superAdminToken);
+  report('Saved approval and SLA rules are applied by live workflow services', liveConfigApplied);
+
+  const invalidTenant = await req('/super-admin/tenants', 'POST', {
+    name: 'Invalid Plan Check', contact_email: 'invalid@example.com', plan_label: 'Nonexistent',
+    billing_cycle: 'YEARLY', start_date: '2026-01-01', expiry_date: '2027-01-01',
+  }, superAdminToken);
+  report('Tenant onboarding rejects unknown subscription plan', invalidTenant.status === 400);
+
+  const invalidContractorUser = await req('/super-admin/users', 'POST', {
+    name: 'Unassigned Contractor', email: 'unassigned@example.com', username: 'unassigned-contractor',
+    password: 'Temporary123!', role: 'FIELD_CONTRACTOR', township_id: 'b0000000-0000-0000-0000-000000000001',
+  }, superAdminToken);
+  report('Contractor account requires a valid contractor assignment', invalidContractorUser.status === 400);
+
+  const deptHeadPendingAtCoo = await req('/coo/approvals/40000000-0000-0000-0000-000000000006', 'POST', { action: 'APPROVE' }, cooToken);
+  report('COO cannot bypass Department Head approval', deptHeadPendingAtCoo.status === 409);
+
+  const suspendTenant = await req('/super-admin/tenants/b0000000-0000-0000-0000-000000000001/status', 'PATCH', {
+    status: 'SUSPENDED', reason: 'Authentication regression test',
+  }, superAdminToken);
+  const suspendedTenantAccess = await req('/complaints', 'GET', null, rwaToken);
+  const reactivateTenant = await req('/super-admin/tenants/b0000000-0000-0000-0000-000000000001/status', 'PATCH', {
+    status: 'ACTIVE', reason: 'Authentication regression test cleanup',
+  }, superAdminToken);
+  report('Township suspension revokes existing user tokens immediately',
+    suspendTenant.status === 200 && suspendedTenantAccess.status === 403 && suspendedTenantAccess.data?.error?.code === 'TOWNSHIP_SUSPENDED' && reactivateTenant.status === 200);
 
   // 2. Test Master Data Routes (Shared reference data)
   console.log('\n─── 2. MASTER & CONTRACTOR REFERENCE DATA ──────────────────────────────');
