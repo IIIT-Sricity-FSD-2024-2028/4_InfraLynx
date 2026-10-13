@@ -36,6 +36,17 @@ const CATEGORY_DATA = {
       { id: 'sewage', name: 'Sewage Line Blockage / Backflow', defaultAsset: 'WTR-SEW-061 (Sewer Line)' },
     ],
   },
+  Horticulture: {
+    icon: '🌳',
+    description: 'Parks, green belts, fallen trees, green waste, urban sanitation',
+    subcategories: [
+      { id: 'tree_hazard', name: 'Overhanging / Fallen Tree Hazard', defaultAsset: 'HORT-TR-018 (Green Belt Tree)' },
+      { id: 'green_waste', name: 'Uncollected Green Waste / Trimmings', defaultAsset: 'HORT-GW-012 (Waste Dump Point)' },
+      { id: 'park_maint', name: 'Park Lawn & Landscaping Damage', defaultAsset: 'HORT-PK-004 (Central Park Lawn)' },
+      { id: 'bin_overflow', name: 'Garbage Bin Overflow / Littering', defaultAsset: 'SAN-BIN-031 (Sector Compactor)' },
+      { id: 'overgrowth', name: 'Wild Overgrowth Blocking Pathway', defaultAsset: 'HORT-WL-009 (Perimeter Walkway)' },
+    ],
+  },
 }
 
 export default function ReportIssue({

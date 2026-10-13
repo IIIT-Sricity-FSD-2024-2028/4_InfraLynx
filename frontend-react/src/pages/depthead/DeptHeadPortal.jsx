@@ -17,13 +17,14 @@ export default function DeptHeadPortal({ onExitToLanding }) {
   const [currentScreen, setCurrentScreen] = useState('dashboard')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
   
-  // Pending approvals (status AWAITING_DEPT_HEAD for Civil department)
+  const deptName = currentUser?.departmentName || currentUser?.department || 'Municipal Department';
+  const userDeptId = currentUser?.departmentId || currentUser?.department_id;
+
+  // Pending approvals (status AWAITING_DEPT_HEAD for assigned department)
   const pendingApprovalsCount = complaints.filter(
     (c) =>
       c.status === 'AWAITING_DEPT_HEAD' &&
-      (!c.department_id ||
-        c.department_id === 'd0000000-0000-0000-0000-000000000001' ||
-        c.category?.toLowerCase() === 'civil')
+      (!userDeptId || c.department_id === userDeptId)
   ).length;
 
   function handleNavigate(screen) {
@@ -45,19 +46,19 @@ export default function DeptHeadPortal({ onExitToLanding }) {
               <img src="/assets/CRIMS_logo.png" alt="TIMS" className="depthead-brand-logo" />
               <div>
                 <span className="depthead-brand-title">TIMS</span>
-                <span className="depthead-brand-sub">Civil Infrastructure & Roads</span>
+                <span className="depthead-brand-sub">{deptName}</span>
               </div>
             </div>
             <div className="depthead-role-badge">
               <span className="depthead-role-dot" />
-              Civil Dept Head
+              Dept Head
             </div>
           </div>
 
           <div className="depthead-user-actions">
             <div className="depthead-user-badge">
-              <div className="depthead-user-name">{currentUser.name || 'Er. Rajesh K. Sharma'}</div>
-              <div className="depthead-user-role">{currentUser.title || 'Department Head'} &bull; Civil Infrastructure</div>
+              <div className="depthead-user-name">{currentUser?.name || 'Department Head'}</div>
+              <div className="depthead-user-role">{currentUser?.title || 'Department Head'} &bull; {deptName}</div>
             </div>
 
             {onExitToLanding && (

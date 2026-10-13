@@ -14,13 +14,14 @@ import crypto from 'crypto';
 import db from '../config/db.js';
 import { AppError } from '../middleware/error.js';
 import { getApprovalThresholds } from '../services/approvalService.js';
+import { hashPassword } from '../utils/auth.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Township Executive Dashboard
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * @desc    Get township-wide metrics, SLA health, and recent activity stream
+ * @desc    Get township-wide metrics and SLA health
  * @route   GET /api/v1/coo/dashboard
  * @access  Private (TOWNSHIP_COO)
  */
@@ -32,7 +33,6 @@ export const getDashboard = async (req, res, next) => {
     const complaints = db.findAll('complaints', (c) => !townshipId || c.township_id === townshipId);
     const workOrders = db.findAll('work_orders', (wo) => !townshipId || wo.township_id === townshipId);
     const invoices = db.findAll('invoices', (inv) => !townshipId || inv.township_id === townshipId);
-    const auditLogs = db.findAll('audit_logs', (log) => !townshipId || log.township_id === townshipId);
 
     // Metric Calculations
     const totalDepartments = departments.length;
@@ -92,24 +92,6 @@ export const getDashboard = async (req, res, next) => {
       };
     });
 
-    // Recent activity stream (Audit logs + synthetic status updates)
-    const sortedLogs = auditLogs
-      .slice(-15)
-      .reverse()
-      .map((log) => {
-        const actor = log.actor_id ? db.findById('users', log.actor_id) : null;
-        return {
-          id: log.id,
-          action: log.action || 'SYSTEM_EVENT',
-          entityType: log.entity_type,
-          entityId: log.entity_id,
-          notes: log.notes || `State updated from ${log.from_state || 'PREV'} to ${log.to_state || 'NEW'}`,
-          actorName: actor ? actor.name : (log.actor_role || 'System Automation'),
-          actorRole: actor ? actor.role : (log.actor_role || 'ADMIN'),
-          timestamp: log.timestamp || log.created_at || new Date().toISOString(),
-        };
-      });
-
     res.status(200).json({
       success: true,
       data: {
@@ -123,7 +105,6 @@ export const getDashboard = async (req, res, next) => {
           totalPaidAmount: invoices.filter((i) => i.status === 'PAID').reduce((sum, inv) => sum + (Number(inv.total_amount) || 0), 0),
         },
         departmentPerformance,
-        recentActivities: sortedLogs,
       },
     });
   } catch (error) {
@@ -186,59 +167,6 @@ export const getDepartments = async (req, res, next) => {
 };
 
 /**
- * @desc    Create a new civic department
- * @route   POST /api/v1/coo/departments
- * @access  Private (TOWNSHIP_COO)
- */
-export const createDepartment = async (req, res, next) => {
-  try {
-    const townshipId = req.user.township_id || req.user.townshipId || 'b0000000-0000-0000-0000-000000000001';
-    const { name, description, code, budget, departmentHeadId } = req.body;
-
-    if (!name || !name.trim()) {
-      return res.status(400).json({
-        success: false,
-        error: { message: 'Department name is required.' },
-      });
-    }
-
-    const newDept = db.insert('departments', {
-      id: crypto.randomUUID(),
-      township_id: townshipId,
-      name: name.trim(),
-      description: description?.trim() || '',
-      code: (code || name.slice(0, 4)).toUpperCase(),
-      budget: Number(budget) || 1200000,
-      department_head_id: departmentHeadId || null,
-      status: 'ACTIVE',
-      created_at: new Date().toISOString(),
-    });
-
-    if (departmentHeadId) {
-      db.update('users', departmentHeadId, { department_id: newDept.id });
-    }
-
-    db.logAudit({
-      township_id: townshipId,
-      entity_type: 'DEPARTMENT',
-      entity_id: newDept.id,
-      actor_id: req.user.id,
-      actor_role: req.user.role,
-      action: 'DEPARTMENT_CREATED',
-      notes: `Created new municipal department: ${newDept.name}`,
-    });
-
-    res.status(201).json({
-      success: true,
-      message: `Department '${newDept.name}' created successfully.`,
-      data: newDept,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
  * @desc    Update department details
  * @route   PUT /api/v1/coo/departments/:id
  * @access  Private (TOWNSHIP_COO)
@@ -285,57 +213,6 @@ export const updateDepartment = async (req, res, next) => {
 };
 
 /**
- * @desc    Toggle department active / inactive status
- * @route   PATCH /api/v1/coo/departments/:id/status
- * @access  Private (TOWNSHIP_COO)
- */
-export const updateDepartmentStatus = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    const valid = ['ACTIVE', 'INACTIVE'];
-    if (!valid.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        error: { message: 'Invalid status. Permitted values: ACTIVE, INACTIVE' },
-      });
-    }
-
-    const dept = db.findById('departments', id);
-    if (!dept) {
-      return res.status(404).json({
-        success: false,
-        error: { message: `Department '${id}' not found.` },
-      });
-    }
-
-    const updated = db.update('departments', id, {
-      status,
-      updated_at: new Date().toISOString(),
-    });
-
-    db.logAudit({
-      township_id: dept.township_id,
-      entity_type: 'DEPARTMENT',
-      entity_id: id,
-      actor_id: req.user.id,
-      actor_role: req.user.role,
-      action: status === 'ACTIVE' ? 'DEPARTMENT_ACTIVATED' : 'DEPARTMENT_DEACTIVATED',
-      notes: `Department '${dept.name}' set to ${status}.`,
-    });
-
-    res.status(200).json({
-      success: true,
-      message: `Department '${dept.name}' status set to ${status}.`,
-      data: updated,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
  * @desc    Assign or change Department Head for a department
  * @route   PATCH /api/v1/coo/departments/:id/head
  * @access  Private (TOWNSHIP_COO)
@@ -353,6 +230,18 @@ export const assignDepartmentHead = async (req, res, next) => {
       });
     }
 
+    // If assigning a new head and department already has a DIFFERENT head assigned
+    if (departmentHeadId && dept.department_head_id && dept.department_head_id !== departmentHeadId) {
+      const currentHead = db.findById('users', dept.department_head_id);
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'DEPARTMENT_ALREADY_OCCUPIED',
+          message: `Department '${dept.name}' already has an assigned head (${currentHead?.name || 'Assigned'}). You must remove or unassign the current head before assigning a new one.`,
+        },
+      });
+    }
+
     if (departmentHeadId) {
       const headUser = db.findById('users', departmentHeadId);
       if (!headUser) {
@@ -361,10 +250,31 @@ export const assignDepartmentHead = async (req, res, next) => {
           error: { message: `User '${departmentHeadId}' not found.` },
         });
       }
+
+      // If user was previously assigned to a different department, clear that department
+      if (headUser.department_id && headUser.department_id !== id) {
+        const oldDept = db.findById('departments', headUser.department_id);
+        if (oldDept && oldDept.department_head_id === departmentHeadId) {
+          db.update('departments', oldDept.id, {
+            department_head_id: null,
+            updated_at: new Date().toISOString(),
+          });
+        }
+      }
+
       db.update('users', departmentHeadId, {
         department_id: id,
         role: 'DEPARTMENT_HEAD',
+        updated_at: new Date().toISOString(),
       });
+    } else {
+      // Unassigning current head if departmentHeadId is null/empty
+      if (dept.department_head_id) {
+        db.update('users', dept.department_head_id, {
+          department_id: null,
+          updated_at: new Date().toISOString(),
+        });
+      }
     }
 
     const updated = db.update('departments', id, {
@@ -390,6 +300,194 @@ export const assignDepartmentHead = async (req, res, next) => {
       success: true,
       message: `Department Head assigned for '${dept.name}'.`,
       data: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Create a new Department Head and optionally assign to an available department
+ * @route   POST /api/v1/coo/department-heads
+ * @access  Private (TOWNSHIP_COO)
+ */
+export const createDepartmentHead = async (req, res, next) => {
+  try {
+    const townshipId = req.user.township_id || req.user.townshipId || 'b0000000-0000-0000-0000-000000000001';
+    const { name, email, password, phone, departmentId } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Department Head name is required.' },
+      });
+    }
+
+    if (!email || !email.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Official email address is required.' },
+      });
+    }
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'A secure password of at least 6 characters is required.' },
+      });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check email uniqueness
+    const existingUser = db.findOne('users', (u) => u.email?.toLowerCase() === cleanEmail);
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        error: { message: `A user with email '${cleanEmail}' already exists in the system.` },
+      });
+    }
+
+    let dept = null;
+    if (departmentId) {
+      dept = db.findById('departments', departmentId);
+      if (!dept) {
+        return res.status(404).json({
+          success: false,
+          error: { message: `Department '${departmentId}' not found.` },
+        });
+      }
+
+      // Check if department already has a head
+      if (dept.department_head_id) {
+        const currentHead = db.findById('users', dept.department_head_id);
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'DEPARTMENT_ALREADY_OCCUPIED',
+            message: `Department '${dept.name}' already has an assigned head (${currentHead?.name || 'Assigned'}). You must remove or unassign the current head before assigning a new one.`,
+          },
+        });
+      }
+    }
+
+    // Hash the password using bcrypt for immediate login access
+    const hashedPassword = await hashPassword(password);
+    const userId = crypto.randomUUID();
+
+    const newHead = db.insert('users', {
+      id: userId,
+      township_id: townshipId,
+      name: name.trim(),
+      email: cleanEmail,
+      username: cleanEmail.split('@')[0],
+      password_hash: hashedPassword,
+      role: 'DEPARTMENT_HEAD',
+      department_id: departmentId || null,
+      phone: phone?.trim() || '+91 99100 00000',
+      status: 'ACTIVE',
+      created_at: new Date().toISOString(),
+    });
+
+    if (departmentId) {
+      db.update('departments', departmentId, {
+        department_head_id: userId,
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    db.logAudit({
+      township_id: townshipId,
+      entity_type: 'USER',
+      entity_id: userId,
+      actor_id: req.user.id,
+      actor_role: req.user.role,
+      action: 'DEPARTMENT_HEAD_CREATED',
+      notes: `Created Department Head '${newHead.name}' (${newHead.email})${dept ? ` assigned to ${dept.name}` : ' on standby'}.`,
+    });
+
+    const safeResponse = {
+      id: newHead.id,
+      name: newHead.name,
+      email: newHead.email,
+      phone: newHead.phone,
+      role: newHead.role,
+      status: newHead.status,
+      assignedDepartment: dept ? { id: dept.id, name: dept.name, code: dept.code } : null,
+      staffCount: 0,
+      activeTicketsCount: 0,
+    };
+
+    res.status(201).json({
+      success: true,
+      message: `Department Head '${newHead.name}' created successfully. Login credentials generated.`,
+      data: safeResponse,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Unassign a Department Head from their current department
+ * @route   POST /api/v1/coo/department-heads/:id/unassign
+ * @access  Private (TOWNSHIP_COO)
+ */
+export const unassignDepartmentHead = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const user = db.findById('users', id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: { message: `Department Head with ID '${id}' not found.` },
+      });
+    }
+
+    let deptName = 'Department';
+    if (user.department_id) {
+      const dept = db.findById('departments', user.department_id);
+      if (dept) {
+        deptName = dept.name;
+        if (dept.department_head_id === id) {
+          db.update('departments', dept.id, {
+            department_head_id: null,
+            updated_at: new Date().toISOString(),
+          });
+        }
+      }
+    }
+
+    // Also check if any department is currently referencing this user as head
+    const assignedDepts = db.findAll('departments', (d) => d.department_head_id === id);
+    for (const d of assignedDepts) {
+      db.update('departments', d.id, {
+        department_head_id: null,
+        updated_at: new Date().toISOString(),
+      });
+      deptName = d.name;
+    }
+
+    db.update('users', id, {
+      department_id: null,
+      updated_at: new Date().toISOString(),
+    });
+
+    db.logAudit({
+      township_id: user.township_id,
+      entity_type: 'USER',
+      entity_id: id,
+      actor_id: req.user.id,
+      actor_role: req.user.role,
+      action: 'DEPARTMENT_HEAD_UNASSIGNED',
+      notes: `Unassigned ${user.name} from ${deptName}. Official placed on standby.`,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Department Head '${user.name}' has been unassigned from ${deptName} and placed on standby.`,
+      data: { id: user.id, name: user.name, department_id: null, departmentId: null },
     });
   } catch (error) {
     next(error);
@@ -932,10 +1030,10 @@ export const processApprovalDecision = async (req, res, next) => {
 export default {
   getDashboard,
   getDepartments,
-  createDepartment,
   updateDepartment,
-  updateDepartmentStatus,
   assignDepartmentHead,
+  createDepartmentHead,
+  unassignDepartmentHead,
   getDepartmentHeads,
   getDepartmentStaff,
   getTownshipWorkOrders,

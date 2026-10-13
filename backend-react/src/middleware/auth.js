@@ -229,23 +229,12 @@ export const requireCivilDepartmentHead = (req, res, next) => {
 
   if (req.user.role === 'DEPARTMENT_HEAD') {
     const deptId = req.user.departmentId || req.user.department_id;
-    let deptName = req.user.departmentName || req.user.department_name;
-
-    if (!deptName && deptId) {
-      const dept = db.findById('departments', deptId);
-      deptName = dept?.name || '';
-    }
-
-    const isCivil =
-      deptId === 'd0000000-0000-0000-0000-000000000001' ||
-      (deptName && deptName.toLowerCase().includes('civil'));
-
-    if (!isCivil) {
+    if (!deptId) {
       return res.status(403).json({
         success: false,
         error: {
-          message: 'Access Restricted: Department Head functionality is currently enabled exclusively for the Civil Department.',
-          code: 'CIVIL_DEPARTMENT_ONLY',
+          message: 'Access Restricted: You are not currently assigned to a department. Please contact the Township COO.',
+          code: 'UNASSIGNED_DEPARTMENT',
           statusCode: 403,
         },
       });

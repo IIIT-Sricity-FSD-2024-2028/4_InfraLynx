@@ -214,7 +214,7 @@ export default function EmployeeManagement() {
             {employees.length === 0 && (
               <tr>
                 <td colSpan="7" style={{ padding: '48px', textAlign: 'center', color: 'var(--text-soft)' }}>
-                  No employees found in Civil Department.
+                  No employees found in {departmentName}.
                 </td>
               </tr>
             )}

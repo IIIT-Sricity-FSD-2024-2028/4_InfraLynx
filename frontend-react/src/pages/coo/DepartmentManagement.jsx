@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { cooApi } from '../../services/api.js';
 
 export default function DepartmentManagement({ departments, departmentHeads, onRefresh }) {
-  const [modalMode, setModalMode] = useState(null); // 'ADD' | 'EDIT' | 'ASSIGN_HEAD' | 'VIEW_STAFF'
+  const [modalMode, setModalMode] = useState(null); // 'EDIT' | 'VIEW_STAFF'
   const [selectedDept, setSelectedDept] = useState(null);
   const [staffList, setStaffList] = useState([]);
   const [loadingStaff, setLoadingStaff] = useState(false);
@@ -12,17 +12,7 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
   const [formDescription, setFormDescription] = useState('');
   const [formCode, setFormCode] = useState('');
   const [formBudget, setFormBudget] = useState(1500000);
-  const [selectedHeadId, setSelectedHeadId] = useState('');
   const [submitting, setSubmitting] = useState(false);
-
-  function openAddModal() {
-    setFormName('');
-    setFormDescription('');
-    setFormCode('');
-    setFormBudget(1500000);
-    setSelectedHeadId('');
-    setModalMode('ADD');
-  }
 
   function openEditModal(dept) {
     setSelectedDept(dept);
@@ -31,12 +21,6 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
     setFormCode(dept.code || '');
     setFormBudget(dept.budget || 1500000);
     setModalMode('EDIT');
-  }
-
-  function openAssignHeadModal(dept) {
-    setSelectedDept(dept);
-    setSelectedHeadId(dept.departmentHead?.id || '');
-    setModalMode('ASSIGN_HEAD');
   }
 
   async function openStaffModal(dept) {
@@ -53,61 +37,23 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
     }
   }
 
-  async function handleToggleStatus(dept) {
-    const nextStatus = dept.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    if (!confirm(`Are you sure you want to mark '${dept.name}' as ${nextStatus}?`)) return;
-
-    try {
-      await cooApi.updateDepartmentStatus(dept.id, nextStatus);
-      onRefresh();
-    } catch (err) {
-      alert(`Status update failed: ${err.message}`);
-    }
-  }
-
   async function handleSubmitDepartment(e) {
     e.preventDefault();
-    if (!formName.trim()) return;
+    if (!formName.trim() || !selectedDept) return;
 
     try {
       setSubmitting(true);
-      if (modalMode === 'ADD') {
-        await cooApi.createDepartment({
-          name: formName.trim(),
-          description: formDescription.trim(),
-          code: formCode.trim() || undefined,
-          budget: Number(formBudget),
-          departmentHeadId: selectedHeadId || undefined,
-        });
-        alert(`Department '${formName}' created successfully!`);
-      } else if (modalMode === 'EDIT') {
-        await cooApi.updateDepartment(selectedDept.id, {
-          name: formName.trim(),
-          description: formDescription.trim(),
-          code: formCode.trim(),
-          budget: Number(formBudget),
-        });
-        alert(`Department '${formName}' updated successfully!`);
-      }
+      await cooApi.updateDepartment(selectedDept.id, {
+        name: formName.trim(),
+        description: formDescription.trim(),
+        code: formCode.trim(),
+        budget: Number(formBudget),
+      });
+      alert(`Department '${formName}' updated successfully!`);
       setModalMode(null);
       onRefresh();
     } catch (err) {
       alert(`Operation failed: ${err.message}`);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleAssignHeadSubmit(e) {
-    e.preventDefault();
-    try {
-      setSubmitting(true);
-      await cooApi.assignDepartmentHead(selectedDept.id, selectedHeadId || null);
-      alert(`Department Head assignment saved for '${selectedDept.name}'!`);
-      setModalMode(null);
-      onRefresh();
-    } catch (err) {
-      alert(`Assignment failed: ${err.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -120,12 +66,9 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
         <div>
           <h2 className="coo-banner-title">Municipal Department Governance</h2>
           <p className="coo-banner-sub">
-            Establish new civic infrastructure departments, configure budget caps, assign executive heads, and monitor workforce capacity.
+            Configure budget caps, department parameters, and monitor workforce capacity across township municipal departments.
           </p>
         </div>
-        <button onClick={openAddModal} className="btn-coo-primary">
-          ➕ Establish New Department
-        </button>
       </div>
 
       {/* Departments Table Panel */}
@@ -207,15 +150,6 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
                         <button onClick={() => openEditModal(dept)} className="btn-coo-secondary" title="Edit Department Parameters">
                           ✏️ Edit
                         </button>
-                        <button onClick={() => openAssignHeadModal(dept)} className="btn-coo-secondary" title="Assign or Change Department Head">
-                          👤 Head
-                        </button>
-                        <button
-                          onClick={() => handleToggleStatus(dept)}
-                          className={dept.status === 'ACTIVE' ? 'btn-coo-danger' : 'btn-coo-secondary'}
-                        >
-                          {dept.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -226,13 +160,13 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
         </div>
       </div>
 
-      {/* MODAL: ADD / EDIT DEPARTMENT */}
-      {(modalMode === 'ADD' || modalMode === 'EDIT') && (
+      {/* MODAL: EDIT DEPARTMENT */}
+      {modalMode === 'EDIT' && selectedDept && (
         <div className="coo-modal-overlay" onClick={() => setModalMode(null)}>
           <div className="coo-modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="coo-modal-header">
               <h3 style={{ margin: 0, fontSize: '16px' }}>
-                {modalMode === 'ADD' ? 'Establish New Municipal Department' : `Edit Department: ${selectedDept?.name}`}
+                Edit Department: {selectedDept.name}
               </h3>
               <button onClick={() => setModalMode(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
             </div>
@@ -248,7 +182,7 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
                     required
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
-                    placeholder="e.g. Smart Energy & Solar Microgrid"
+                    placeholder="e.g. Civil Infrastructure & Roads"
                     className="coo-input"
                     style={{ width: '100%', boxSizing: 'border-box' }}
                   />
@@ -257,7 +191,7 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
-                      Department Code (e.g. SESG)
+                      Department Code (e.g. CIVL)
                     </label>
                     <input
                       type="text"
@@ -294,27 +228,6 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
                     style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--line-strong)', fontSize: '13px', boxSizing: 'border-box' }}
                   />
                 </div>
-
-                {modalMode === 'ADD' && (
-                  <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
-                      Assign Initial Department Head (Optional)
-                    </label>
-                    <select
-                      value={selectedHeadId}
-                      onChange={(e) => setSelectedHeadId(e.target.value)}
-                      className="coo-select"
-                      style={{ width: '100%', boxSizing: 'border-box' }}
-                    >
-                      <option value="">-- Leave Unassigned (Assign Later) --</option>
-                      {departmentHeads.map((head) => (
-                        <option key={head.id} value={head.id}>
-                          {head.name} ({head.email})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
               </div>
 
               <div className="coo-modal-footer">
@@ -322,7 +235,7 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
                   Cancel
                 </button>
                 <button type="submit" disabled={submitting} className="btn-coo-primary">
-                  {submitting ? 'Saving...' : modalMode === 'ADD' ? 'Create Department' : 'Save Changes'}
+                  {submitting ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>
@@ -330,55 +243,6 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
         </div>
       )}
 
-      {/* MODAL: ASSIGN DEPARTMENT HEAD */}
-      {modalMode === 'ASSIGN_HEAD' && selectedDept && (
-        <div className="coo-modal-overlay" onClick={() => setModalMode(null)}>
-          <div className="coo-modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="coo-modal-header">
-              <h3 style={{ margin: 0, fontSize: '16px' }}>
-                Assign Department Head: {selectedDept.name}
-              </h3>
-              <button onClick={() => setModalMode(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
-            </div>
-
-            <form onSubmit={handleAssignHeadSubmit}>
-              <div className="coo-modal-body">
-                <p style={{ fontSize: '13.5px', color: 'var(--text-soft)', marginTop: 0 }}>
-                  Select an accredited executive official to head operations, approve contractor estimates, and govern staff for this department.
-                </p>
-
-                <div style={{ marginTop: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
-                    Select Department Head:
-                  </label>
-                  <select
-                    value={selectedHeadId}
-                    onChange={(e) => setSelectedHeadId(e.target.value)}
-                    className="coo-select"
-                    style={{ width: '100%', boxSizing: 'border-box', padding: '10px' }}
-                  >
-                    <option value="">-- No Department Head (Vacant) --</option>
-                    {departmentHeads.map((head) => (
-                      <option key={head.id} value={head.id}>
-                        {head.name} · {head.email} {head.assignedDepartment ? `(Currently: ${head.assignedDepartment.name})` : '(Available)'}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="coo-modal-footer">
-                <button type="button" onClick={() => setModalMode(null)} className="btn-coo-secondary">
-                  Cancel
-                </button>
-                <button type="submit" disabled={submitting} className="btn-coo-primary">
-                  {submitting ? 'Saving...' : 'Confirm Assignment'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* MODAL: VIEW DEPARTMENT STAFF */}
       {modalMode === 'VIEW_STAFF' && selectedDept && (

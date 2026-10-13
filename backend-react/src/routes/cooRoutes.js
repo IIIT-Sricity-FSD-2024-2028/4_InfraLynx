@@ -20,14 +20,14 @@ router.get('/dashboard', cooController.getDashboard);
 
 // 2. Department Management APIs
 router.get('/departments', cooController.getDepartments);
-router.post('/departments', cooController.createDepartment);
 router.put('/departments/:id', cooController.updateDepartment);
-router.patch('/departments/:id/status', cooController.updateDepartmentStatus);
 router.patch('/departments/:id/head', cooController.assignDepartmentHead);
 
 // 3. Department Head Management APIs
 router.get('/department-heads', cooController.getDepartmentHeads);
+router.post('/department-heads', cooController.createDepartmentHead);
 router.post('/department-heads/:id/assign', cooController.assignDepartmentHead);
+router.post('/department-heads/:id/unassign', cooController.unassignDepartmentHead);
 router.get('/departments/:id/staff', cooController.getDepartmentStaff);
 
 // 4. Township Work Orders & Inspection Dossier

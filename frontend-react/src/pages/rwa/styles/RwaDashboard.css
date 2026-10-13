@@ -466,6 +466,11 @@
   color: #475569;
 }
 
+.badge-category.horticulture {
+  background: #dcfce7;
+  color: #15803d;
+}
+
 .badge-severity {
   font-size: 11.5px;
   font-weight: 700;

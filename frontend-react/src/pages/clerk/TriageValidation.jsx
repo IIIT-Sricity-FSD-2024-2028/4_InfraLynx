@@ -156,7 +156,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
   }
 
   const isActed = active.status === 'VALIDATED' || active.status === 'REJECTED'
-  const catCls  = active.category === 'Electrical' ? 'electrical' : active.category === 'Water' ? 'water' : 'civil'
+  const catCls  = active.category === 'Electrical' ? 'electrical' : active.category === 'Water' ? 'water' : active.category === 'Horticulture' ? 'horticulture' : 'civil'
   const sevCls  = active.severity === 'Emergency'  ? 'emergency'  : active.severity === 'High'  ? 'high' : 'normal'
   const b       = badge(active.status)
 
