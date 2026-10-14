@@ -7,7 +7,7 @@ export default function FinanceDashboard({
   onOpenInvoice,
   onAuthorizeInvoice,
 }) {
-  // Calculate key financial metrics from active in-memory state
+  // Calculate key financial metrics from active state
   const pendingInvoices = invoices.filter((i) => i.auditStatus === 'PENDING_AUDIT')
   const flaggedInvoices = invoices.filter((i) => i.auditStatus === 'VARIANCE_FLAGGED')
   const authorizedInvoices = invoices.filter((i) => i.auditStatus === 'AUTHORIZED' || i.auditStatus === 'PAID')
@@ -16,7 +16,7 @@ export default function FinanceDashboard({
   const totalVarianceAmount = invoices.reduce((acc, curr) => acc + (curr.varianceAmount || 0), 0)
   const totalAuthorized = authorizedInvoices.reduce((acc, curr) => acc + (curr.billedAmount || 0), 0)
 
-  // Derive Department Budgets dynamically from in-memory invoices
+  // Derive Department Budgets dynamically from invoices
   const departmentBudgets = {
     Civil: { allocated: 1500000, spent: 0, pending: 0 },
     Electrical: { allocated: 1200000, spent: 0, pending: 0 },

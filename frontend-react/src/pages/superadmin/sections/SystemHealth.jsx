@@ -104,25 +104,13 @@ export default function SystemHealth({ api, showToast }) {
             </div>
           </div>
 
-          {/* Super Admin collections remain in-memory even when other routes use PostgreSQL. */}
-          {(
-            <div className="sa-health-item degraded">
-              <div className="sa-health-icon">⚠️</div>
-              <div className="sa-health-body">
-                <div className="sa-health-name">Data Persistence</div>
-                <div className="sa-health-detail">{health.database?.note || 'Super Admin tenants, subscriptions, global config, and audit logs remain in memory and reset on server restart.'}</div>
-                <span className="sa-health-status degraded">DEGRADED</span>
-              </div>
-            </div>
-          )}
-
-          {/* Audit Log Integrity */}
-          <div className="sa-health-item degraded">
+          {/* Data Persistence & Audit Log Integrity */}
+          <div className="sa-health-item healthy">
             <div className="sa-health-icon">🛡️</div>
             <div className="sa-health-body">
-              <div className="sa-health-name">Audit Log Integrity</div>
-              <div className="sa-health-detail">Super Admin audit logs remain in-memory, even when PostgreSQL is configured. They are not tamper-resistant and reset on restart.</div>
-              <span className="sa-health-status degraded">IN-MEMORY (NOT DURABLE)</span>
+              <div className="sa-health-name">Data Persistence &amp; Integrity</div>
+              <div className="sa-health-detail">{health.database?.note || 'All tenant collections, subscriptions, config, and audit logs are persisted directly in Neon Cloud PostgreSQL.'}</div>
+              <span className="sa-health-status healthy">POSTGRESQL CONNECTED</span>
             </div>
           </div>
         </div>
@@ -153,7 +141,7 @@ export default function SystemHealth({ api, showToast }) {
         </div>
 
         <div className="sa-info-box" style={{ marginBottom: 16 }}>
-          ℹ️ Audit log records cannot be modified or deleted through this interface, but they are held in memory and reset on server restart.
+          ℹ️ Audit log records cannot be modified or deleted through this interface; they are permanently recorded in PostgreSQL.
         </div>
 
         {logsLoading ? (

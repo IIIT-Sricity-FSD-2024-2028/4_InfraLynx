@@ -1,11 +1,5 @@
-import { useState, useEffect } from 'react'
-
-const SAMPLE_AFTER_PHOTOS = [
-  { label: 'Streetlight Fixed & Lit', url: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Pavement Asphalter Complete', url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Water Pipe Welded & Flanged', url: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Cable Panel Terminated & Tested', url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80' },
-]
+import { useState, useEffect, useRef } from 'react'
+import './styles/WorkExecution.css'
 
 export default function WorkExecution({
   jobs = [],
@@ -18,25 +12,72 @@ export default function WorkExecution({
   const [activeJobId, setActiveJobId] = useState(selectedJob ? selectedJob.id : (jobs[0]?.id || ''))
   const currentJob = jobs.find((j) => j.id === activeJobId) || selectedJob || jobs[0]
 
-  // Form states
+  // Form states - Starts completely empty (no prefilled dummy values)
   const [actualWork, setActualWork] = useState('')
   const [labourDeployed, setLabourDeployed] = useState('')
-  const [afterPhoto, setAfterPhoto] = useState(SAMPLE_AFTER_PHOTOS[0].url)
-  const [customPhotoUrl, setCustomPhotoUrl] = useState('')
+  const [afterPhoto, setAfterPhoto] = useState('')
+  const [uploadedFileInfo, setUploadedFileInfo] = useState(null)
+  const [isDragOver, setIsDragOver] = useState(false)
   const [completionRemarks, setCompletionRemarks] = useState('')
   const [submittedMessage, setSubmittedMessage] = useState(null)
 
+  const fileInputRef = useRef(null)
+
+  function handleFileSelect(file) {
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file (PNG, JPG, JPEG, WEBP, etc.).')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      setAfterPhoto(e.target.result)
+      setUploadedFileInfo({
+        name: file.name,
+        size: (file.size / 1024).toFixed(1) + ' KB',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  function handleTriggerFileInput() {
+    if (fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
+  function handleRemovePhoto() {
+    setAfterPhoto('')
+    setUploadedFileInfo(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  // Populate existing execution data ONLY if previously saved
   useEffect(() => {
     if (currentJob?.execution?.actualWorkSummary) {
       setActualWork(currentJob.execution.actualWorkSummary)
       setLabourDeployed(currentJob.execution.actualLabourDetails || '')
-      setAfterPhoto(currentJob.execution.afterPhoto || currentJob.afterPhotos?.[0] || SAMPLE_AFTER_PHOTOS[0].url)
+      setAfterPhoto(currentJob.execution.afterPhoto || currentJob.afterPhotos?.[0] || '')
       setCompletionRemarks(currentJob.completionRemarks || '')
-    } else if (currentJob) {
-      setActualWork(`Completed full physical intervention on ${currentJob.title}. Replaced degraded elements and verified circuit continuity.`)
-      setLabourDeployed('1 Senior Technician (Lead) + 2 Assistant Technicians. 3.5 total on-site hours.')
-      setAfterPhoto(SAMPLE_AFTER_PHOTOS[0].url)
-      setCompletionRemarks('Repair verified with insulation tester. Area restored, debris cleaned, all warning cones removed.')
+      if (currentJob.execution.afterPhoto || currentJob.afterPhotos?.[0]) {
+        setUploadedFileInfo({
+          name: 'Resolution Evidence',
+          size: 'Saved',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        })
+      } else {
+        setUploadedFileInfo(null)
+      }
+    } else {
+      // Clean slate - No prefilled values
+      setActualWork('')
+      setLabourDeployed('')
+      setAfterPhoto('')
+      setUploadedFileInfo(null)
+      setCompletionRemarks('')
     }
   }, [currentJob])
 
@@ -54,10 +95,15 @@ export default function WorkExecution({
     e.preventDefault()
     if (!currentJob) return
 
+    if (!afterPhoto) {
+      alert('Please upload after-repair resolution photographic evidence before marking work completed.')
+      return
+    }
+
     const completionData = {
       actualWorkSummary: actualWork,
       actualLabourDetails: labourDeployed,
-      afterPhoto: customPhotoUrl.trim() || afterPhoto,
+      afterPhoto: afterPhoto,
       completionRemarks,
       completedAt: new Date().toISOString(),
     }
@@ -70,7 +116,7 @@ export default function WorkExecution({
 
   if (!currentJob) {
     return (
-      <div className="contractor-card" style={{ textAlign: 'center', padding: 48 }}>
+      <div className="contractor-card execution-empty-card">
         <h3>No Work Order Selected</h3>
         <p style={{ color: 'var(--text-soft)' }}>Please select a job from the Work Orders tab.</p>
         <button onClick={() => onNavigate('workorders')} className="btn-contractor-primary" style={{ marginTop: 16 }}>
@@ -80,32 +126,30 @@ export default function WorkExecution({
     )
   }
 
-  const beforeImage = currentJob.inspection?.inspectionPhoto || currentJob.beforePhotos?.[0] || 'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&w=800&q=80'
-  const activeAfterImage = customPhotoUrl.trim() || afterPhoto
+  const beforeImage = currentJob.inspection?.inspectionPhoto || currentJob.beforePhotos?.[0] || ''
 
   return (
-    <div>
+    <div className="execution-root">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+      <div className="execution-header">
         <div>
           <button
             onClick={() => onNavigate('workorders')}
-            className="btn-contractor-ghost"
-            style={{ padding: 0, marginBottom: 4 }}
+            className="btn-contractor-ghost execution-back-btn"
           >
             &larr; Back to Work Orders
           </button>
-          <h1 style={{ fontFamily: 'var(--font-head)', fontSize: 24, fontWeight: 800, color: 'var(--text)', margin: 0 }}>
-            Work Order Execution & Completion Proof
+          <h1 className="execution-title">
+            Work Order Execution &amp; Completion Proof
           </h1>
-          <p style={{ color: 'var(--text-soft)', fontSize: 13.5, margin: '2px 0 0' }}>
-            Screen 6: Lifecycle management (ASSIGNED &rarr; IN PROGRESS &rarr; COMPLETED) with mandatory after-repair photo proof.
+          <p className="execution-sub">
+            Lifecycle management (ASSIGNED &rarr; IN PROGRESS &rarr; COMPLETED) with mandatory after-repair photo proof.
           </p>
         </div>
 
         {/* Switch Job */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Switch Job:</label>
+        <div className="execution-job-switcher">
+          <label className="execution-switch-label">Switch Job:</label>
           <select
             value={currentJob.id}
             onChange={(e) => {
@@ -113,14 +157,7 @@ export default function WorkExecution({
               const sel = jobs.find((j) => j.id === e.target.value)
               if (sel) onSelectJob(sel)
             }}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--line-strong)',
-              fontSize: 13,
-              fontWeight: 600,
-              background: '#ffffff',
-            }}
+            className="execution-select"
           >
             {jobs.map((j) => (
               <option key={j.id} value={j.id}>
@@ -132,33 +169,15 @@ export default function WorkExecution({
       </div>
 
       {submittedMessage && (
-        <div
-          style={{
-            padding: '14px 18px',
-            background: '#ecfdf5',
-            border: '1.5px solid #10b981',
-            borderRadius: 'var(--radius-md)',
-            color: '#065f46',
-            fontSize: 14,
-            fontWeight: 700,
-            marginBottom: 20,
-          }}
-        >
+        <div className="execution-alert-success">
           ✓ {submittedMessage}
         </div>
       )}
 
       {/* Lifecycle Status Stepper (ASSIGNED -> IN_PROGRESS -> COMPLETED) */}
-      <div
-        className="contractor-card"
-        style={{
-          marginBottom: 24,
-          padding: '20px 24px',
-          background: '#ffffff',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+      <div className="contractor-card execution-lifecycle-card">
+        <div className="execution-lifecycle-header">
+          <span className="execution-lifecycle-label">
             EXECUTION STATUS LIFECYCLE
           </span>
           <span className={`status-pill ${currentJob.status.toLowerCase()}`}>
@@ -166,99 +185,42 @@ export default function WorkExecution({
           </span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        <div className="execution-stepper-grid">
           {/* Step 1: Assigned */}
-          <div
-            style={{
-              padding: '12px 14px',
-              borderRadius: 'var(--radius-sm)',
-              border: isAssigned ? '2px solid #0284c7' : '1px solid var(--line)',
-              background: isAssigned ? '#f0f9ff' : '#f8fafc',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: '50%',
-                  background: isAssigned || isInProgress || isCompleted ? '#0284c7' : '#cbd5e1',
-                  color: '#ffffff',
-                  fontSize: 11,
-                  fontWeight: 800,
-                  display: 'grid',
-                  placeItems: 'center',
-                }}
-              >
+          <div className={`execution-step-card ${isAssigned ? 'active-assigned' : ''}`}>
+            <div className="execution-step-head">
+              <span className={`execution-step-num ${isAssigned || isInProgress || isCompleted ? 'num-assigned' : ''}`}>
                 1
               </span>
-              <strong style={{ fontSize: 13, color: 'var(--text)' }}>ASSIGNED</strong>
+              <strong className="execution-step-title">ASSIGNED</strong>
             </div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-soft)', marginTop: 4 }}>
+            <div className="execution-step-desc">
               Dispatched by Desk Clerk; site inspected.
             </div>
           </div>
 
           {/* Step 2: In Progress */}
-          <div
-            style={{
-              padding: '12px 14px',
-              borderRadius: 'var(--radius-sm)',
-              border: isInProgress ? '2px solid #f59e0b' : '1px solid var(--line)',
-              background: isInProgress ? '#fffbeb' : '#f8fafc',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: '50%',
-                  background: isInProgress || isCompleted ? '#f59e0b' : '#cbd5e1',
-                  color: '#ffffff',
-                  fontSize: 11,
-                  fontWeight: 800,
-                  display: 'grid',
-                  placeItems: 'center',
-                }}
-              >
+          <div className={`execution-step-card ${isInProgress ? 'active-progress' : ''}`}>
+            <div className="execution-step-head">
+              <span className={`execution-step-num ${isInProgress || isCompleted ? 'num-progress' : ''}`}>
                 2
               </span>
-              <strong style={{ fontSize: 13, color: 'var(--text)' }}>IN PROGRESS</strong>
+              <strong className="execution-step-title">IN PROGRESS</strong>
             </div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-soft)', marginTop: 4 }}>
+            <div className="execution-step-desc">
               Ground repairs actively underway.
             </div>
           </div>
 
           {/* Step 3: Completed */}
-          <div
-            style={{
-              padding: '12px 14px',
-              borderRadius: 'var(--radius-sm)',
-              border: isCompleted ? '2px solid #16a34a' : '1px solid var(--line)',
-              background: isCompleted ? '#f0fdf4' : '#f8fafc',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: '50%',
-                  background: isCompleted ? '#16a34a' : '#cbd5e1',
-                  color: '#ffffff',
-                  fontSize: 11,
-                  fontWeight: 800,
-                  display: 'grid',
-                  placeItems: 'center',
-                }}
-              >
+          <div className={`execution-step-card ${isCompleted ? 'active-completed' : ''}`}>
+            <div className="execution-step-head">
+              <span className={`execution-step-num ${isCompleted ? 'num-completed' : ''}`}>
                 3
               </span>
-              <strong style={{ fontSize: 13, color: 'var(--text)' }}>COMPLETED</strong>
+              <strong className="execution-step-title">COMPLETED</strong>
             </div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-soft)', marginTop: 4 }}>
+            <div className="execution-step-desc">
               Photo proof submitted; pending RWA check.
             </div>
           </div>
@@ -266,14 +228,13 @@ export default function WorkExecution({
 
         {/* Start Work Action if Assigned */}
         {isAssigned && (
-          <div style={{ marginTop: 18, padding: 14, background: '#f0f9ff', borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 13, color: '#0369a1', fontWeight: 600 }}>
+          <div className="execution-start-banner">
+            <span className="execution-start-banner-text">
               Ready to deploy crew on ground? Click to initiate active status.
             </span>
             <button
               onClick={handleStart}
-              className="btn-contractor-primary"
-              style={{ background: '#f59e0b', borderColor: '#d97706' }}
+              className="btn-contractor-primary execution-start-btn"
             >
               🚀 Start Work (Mark IN_PROGRESS)
             </button>
@@ -282,52 +243,66 @@ export default function WorkExecution({
       </div>
 
       {/* Side-by-Side Photo Comparison Strip (Before vs After) */}
-      <div className="contractor-card" style={{ marginBottom: 24 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 4px', color: 'var(--text)' }}>
+      <div className="contractor-card execution-photo-card">
+        <h3 className="execution-photo-title">
           Mandatory Photo Evidence Verification
         </h3>
-        <p style={{ fontSize: 12.5, color: 'var(--text-soft)', margin: '0 0 16px' }}>
+        <p className="execution-photo-sub">
           Municipal audit requires clear photographic proof comparing site failure before and after repair.
         </p>
 
-        <div className="photo-compare-grid">
+        <div className="execution-photo-grid">
           {/* Before Photo */}
-          <div className="photo-preview-box">
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12, fontWeight: 700 }}>
-              <span style={{ color: '#dc2626' }}>BEFORE REPAIR (INSPECTION PROOF)</span>
-              <span style={{ color: 'var(--text-muted)' }}>Initial Site State</span>
+          <div className="execution-photo-box before">
+            <div className="execution-photo-box-head">
+              <span className="execution-photo-badge-before">BEFORE REPAIR (INSPECTION PROOF)</span>
+              <span className="execution-photo-state">Initial Site State</span>
             </div>
-            <img src={beforeImage} alt="Before repair" className="photo-preview-img" />
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-              Asset: {currentJob.location?.assetName} • Location: {currentJob.location?.sector || 'Township Site'}, {currentJob.location?.block || ''}
+            {beforeImage ? (
+              <img src={beforeImage} alt="Before repair" className="execution-photo-img" />
+            ) : (
+              <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', color: 'var(--text-muted)', fontSize: 13, borderBottom: '1px solid var(--line)' }}>
+                No before-repair photo uploaded
+              </div>
+            )}
+            <div className="execution-photo-meta">
+              Asset: {currentJob.location?.assetName || 'Township Asset'} • Location: {currentJob.location?.sector || 'Township Site'}, {currentJob.location?.block || ''}
             </div>
           </div>
 
           {/* After Photo */}
-          <div className="photo-preview-box" style={{ borderColor: '#16a34a', background: '#f0fdf4' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12, fontWeight: 700 }}>
-              <span style={{ color: '#16a34a' }}>AFTER REPAIR (COMPLETION PROOF)</span>
-              <span style={{ color: '#15803d' }}>Ready for Verification</span>
+          <div className="execution-photo-box after">
+            <div className="execution-photo-box-head">
+              <span className="execution-photo-badge-after">AFTER REPAIR (COMPLETION PROOF)</span>
+              <span className="execution-photo-badge-after">{afterPhoto ? 'Ready for Verification' : 'Pending Upload'}</span>
             </div>
-            <img src={activeAfterImage} alt="After repair" className="photo-preview-img" />
-            <div style={{ fontSize: 11, color: '#166534', marginTop: 6 }}>
-              Verified Resolution Photo Proof
+            {afterPhoto ? (
+              <img src={afterPhoto} alt="After repair" className="execution-photo-img" />
+            ) : (
+              <div style={{ height: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', color: 'var(--text-muted)', fontSize: 13, borderBottom: '1px solid var(--line)' }}>
+                <span style={{ fontSize: 24, marginBottom: 4 }}>📷</span>
+                <span>No resolution photo uploaded yet</span>
+                <span style={{ fontSize: 11, color: 'var(--text-soft)', marginTop: 2 }}>Upload completion photo below</span>
+              </div>
+            )}
+            <div className="execution-photo-meta after">
+              {afterPhoto ? 'Verified Resolution Photo Proof' : 'Upload photo below to complete work order'}
             </div>
           </div>
         </div>
       </div>
 
       {/* Completion Form (Active if IN_PROGRESS or allow editing) */}
-      <div className="contractor-card" style={{ border: '1.5px solid var(--line-strong)' }}>
-        <h3 style={{ fontSize: 17, fontWeight: 800, margin: '0 0 14px', color: 'var(--text)' }}>
+      <div className="contractor-card execution-form-card">
+        <h3 className="execution-form-title">
           {isCompleted ? 'Completed Execution Record' : 'Record Actual Work & Submit Completion Proof'}
         </h3>
 
-        <form onSubmit={handleComplete} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <form onSubmit={handleComplete} className="execution-form">
           {/* 1. Actual Work Performed */}
-          <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-              Actual Work Performed (Technical Description) <span style={{ color: '#dc2626' }}>*</span>
+          <div className="execution-form-group">
+            <label className="execution-label">
+              Actual Work Performed (Technical Description) <span className="execution-req">*</span>
             </label>
             <textarea
               rows={3}
@@ -336,22 +311,14 @@ export default function WorkExecution({
               value={actualWork}
               onChange={(e) => setActualWork(e.target.value)}
               placeholder="e.g. Replaced 150W industrial driver, installed new MCB protection and re-calibrated twilight timer..."
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--line-strong)',
-                fontSize: 13.5,
-                fontFamily: 'inherit',
-                background: isCompleted ? '#f8fafc' : '#ffffff',
-              }}
+              className="execution-textarea"
             />
           </div>
 
           {/* 2. Actual Labour & Service Quantity */}
-          <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-              Actual Labour & Service Quantity Utilized <span style={{ color: '#dc2626' }}>*</span>
+          <div className="execution-form-group">
+            <label className="execution-label">
+              Actual Labour &amp; Service Quantity Utilized <span className="execution-req">*</span>
             </label>
             <input
               type="text"
@@ -360,67 +327,113 @@ export default function WorkExecution({
               value={labourDeployed}
               onChange={(e) => setLabourDeployed(e.target.value)}
               placeholder="e.g. 2x Electrician hours, 3x General Labour hours, 10m Cable installed"
-              style={{
-                width: '100%',
-                padding: '9px 12px',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--line-strong)',
-                fontSize: 13.5,
-                background: isCompleted ? '#f8fafc' : '#ffffff',
-              }}
+              className="execution-input"
             />
           </div>
 
-          {/* 3. After Photo Selection */}
+          {/* 3. After Photo Upload (File Upload Only - No Presets, No Prefills) */}
           {!isCompleted && (
-            <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-                Select After-Repair Resolution Photo Evidence
-              </label>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-                {SAMPLE_AFTER_PHOTOS.map((p, idx) => (
+            <div className="execution-form-group">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <label className="execution-label" style={{ marginBottom: 0 }}>
+                  After-Repair Physical Resolution Photo Evidence <span className="execution-req">*</span>
+                </label>
+                {afterPhoto && (
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: 12 }}>
+                    ✓ Proof Ready
+                  </span>
+                )}
+              </div>
+
+              {/* Hidden File Input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handleFileSelect(file)
+                }}
+                style={{ display: 'none' }}
+              />
+
+              {!afterPhoto ? (
+                <div
+                  className={`execution-dropzone ${isDragOver ? 'dragover' : ''}`}
+                  onClick={handleTriggerFileInput}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    setIsDragOver(true)
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault()
+                    setIsDragOver(false)
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setIsDragOver(false)
+                    const file = e.dataTransfer.files?.[0]
+                    if (file) handleFileSelect(file)
+                  }}
+                >
+                  <div className="execution-dropzone-icon">📷</div>
+                  <div className="execution-dropzone-title">
+                    Upload After-Repair Resolution Photo Evidence
+                  </div>
+                  <div className="execution-dropzone-sub">
+                    Click to browse or drag &amp; drop image (PNG, JPG, JPEG, WEBP)
+                  </div>
                   <button
-                    key={idx}
                     type="button"
-                    onClick={() => {
-                      setAfterPhoto(p.url)
-                      setCustomPhotoUrl('')
-                    }}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 4,
-                      fontSize: 11.5,
-                      border: afterPhoto === p.url ? '1.5px solid #16a34a' : '1px solid var(--line)',
-                      background: afterPhoto === p.url ? '#dcfce7' : '#ffffff',
-                      color: afterPhoto === p.url ? '#15803d' : 'var(--text-soft)',
-                      fontWeight: 600,
-                      cursor: 'pointer',
+                    className="execution-dropzone-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleTriggerFileInput()
                     }}
                   >
-                    {p.label}
+                    📁 Choose Image to Upload
                   </button>
-                ))}
-              </div>
-              <input
-                type="text"
-                placeholder="Or paste external after-repair photo URL..."
-                value={customPhotoUrl}
-                onChange={(e) => setCustomPhotoUrl(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '7px 10px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--line)',
-                  fontSize: 12,
-                }}
-              />
+                </div>
+              ) : (
+                <div className="execution-photo-card">
+                  <div className="execution-photo-card-top">
+                    <div className="execution-photo-card-info">
+                      <span className="execution-photo-card-badge">📷 Resolution Photo Proof</span>
+                      <span className="execution-photo-card-meta">
+                        {uploadedFileInfo ? `${uploadedFileInfo.name} (${uploadedFileInfo.size})` : 'After-Repair Photo'} • {uploadedFileInfo?.timestamp || new Date().toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <div className="execution-photo-card-actions">
+                      <button
+                        type="button"
+                        onClick={handleTriggerFileInput}
+                        className="execution-photo-card-action-btn replace"
+                        title="Upload a different image"
+                      >
+                        🔄 Change Image
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRemovePhoto}
+                        className="execution-photo-card-action-btn remove"
+                        title="Remove image"
+                      >
+                        🗑️ Remove
+                      </button>
+                    </div>
+                  </div>
+                  <div className="execution-photo-card-preview">
+                    <img src={afterPhoto} alt="After repair preview" />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {/* 4. Completion Remarks */}
-          <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-              Completion Remarks & Quality Certifications
+          <div className="execution-form-group">
+            <label className="execution-label">
+              Completion Remarks &amp; Quality Certifications
             </label>
             <input
               type="text"
@@ -428,28 +441,20 @@ export default function WorkExecution({
               value={completionRemarks}
               onChange={(e) => setCompletionRemarks(e.target.value)}
               placeholder="e.g. Work inspected by Lead Engineer; site restored to pristine condition."
-              style={{
-                width: '100%',
-                padding: '9px 12px',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--line-strong)',
-                fontSize: 13.5,
-                background: isCompleted ? '#f8fafc' : '#ffffff',
-              }}
+              className="execution-input"
             />
           </div>
 
           {/* Submission action */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 8 }}>
+          <div className="execution-form-actions">
             {isCompleted ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#166534', fontWeight: 700, fontSize: 13.5 }}>
-                <span>✓ Completed & Transferred to RWA for verification</span>
+              <div className="execution-completed-badge">
+                <span>✓ Completed &amp; Transferred to RWA for verification</span>
               </div>
             ) : (
               <button
                 type="submit"
-                className="btn-contractor-primary"
-                style={{ background: '#16a34a', padding: '11px 24px', fontSize: 14 }}
+                className="btn-contractor-primary execution-submit-btn"
               >
                 Submit Completion Proof (Mark COMPLETED) &rarr;
               </button>

@@ -1,6 +1,6 @@
 /**
  * TIMS Complaint Controller (Member 1 - RWA Backend)
- * 100% In-Memory Architecture - Zero external PostgreSQL daemon required.
+ * Native PostgreSQL Architecture
  */
 
 import db from '../config/db.js';
@@ -8,6 +8,19 @@ import { generateComplaintCode } from '../utils/generateId.js';
 import { calculateSlaDeadline, evaluateSlaStatus } from '../services/slaService.js';
 import { verifyComplaint as verifyService, disputeComplaint as disputeService } from '../services/verificationService.js';
 import { AppError } from '../middleware/error.js';
+
+const isSafePhotoUrl = (url) => {
+  if (typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (trimmed.startsWith('/uploads/')) return !trimmed.includes('..') && !trimmed.includes('\\');
+  if (trimmed.startsWith('data:image/')) return true;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' || parsed.protocol === 'data:';
+  } catch {
+    return false;
+  }
+};
 
 /**
  * Helper to match department by category name
@@ -135,8 +148,11 @@ export const createComplaint = async (req, res, next) => {
     const locSector = location.sector || sector || req.user.sector || 'Sector 54';
     const locBlock = location.block || block || 'Block A';
     const locStreet = location.street || street || 'Gulmohar Marg';
-    const locAssetId = location.assetId || assetId || 'ASSET-GEN-01';
-    const locAssetName = location.assetName || assetName || 'Township Infrastructure Fixture';
+    const rawAssetId = location.assetId || assetId;
+    const isUuid = (str) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+    const matchedAsset = rawAssetId ? db.findOne('assets', (a) => a.id === rawAssetId || a.name === rawAssetId) : null;
+    const locAssetId = matchedAsset ? matchedAsset.id : (isUuid(rawAssetId) ? rawAssetId : null);
+    const locAssetName = location.assetName || assetName || (typeof rawAssetId === 'string' ? rawAssetId : 'Township Infrastructure Fixture');
     const locLandmark = location.landmark || landmark || `Near ${locBlock} entrance`;
 
     // Department Auto-Routing
@@ -150,7 +166,11 @@ export const createComplaint = async (req, res, next) => {
     // Process photo URLs from files upload or body payload
     const uploadedFileUrls = (req.files || []).map((file) => `/uploads/${file.filename}`);
     const bodyPhotos = Array.isArray(rawPhotos) ? rawPhotos : (rawPhotos ? [rawPhotos] : []);
-    const photoUrls = [...uploadedFileUrls, ...bodyPhotos];
+    const safeBodyPhotos = bodyPhotos.map((url) => String(url).trim()).filter(isSafePhotoUrl);
+    if (safeBodyPhotos.length !== bodyPhotos.length) {
+      return next(new AppError('Photo evidence must use safe http(s) URLs or server upload paths.', 400, 'INVALID_PHOTO_URL'));
+    }
+    const photoUrls = [...uploadedFileUrls, ...safeBodyPhotos];
 
     const newComplaint = db.insert('complaints', {
       complaint_code: complaintCode,
@@ -229,13 +249,16 @@ export const getComplaints = async (req, res, next) => {
   try {
     const { status, severity, category, sector, myOnly } = req.query;
 
-    const userTownshipId = req.user.townshipId;
+    const userTownshipId = req.user.townshipId || req.user.township_id;
+
+    // Refresh live cache directly from Neon PostgreSQL to guarantee 100% current data
+    await db.refreshTablesFromPostgres();
 
     let complaints = db.find('complaints', (c) => {
       // 1. Township isolation
-      if (userTownshipId && c.township_id !== userTownshipId) return false;
+      if (userTownshipId && c.township_id && c.township_id !== userTownshipId) return false;
 
-      // 2. Filter by user if myOnly is true
+      // 2. RWA Secretary sees all complaints in their township/jurisdiction; filter only if myOnly is set
       if (myOnly === 'true' && c.reported_by !== req.user.id) return false;
 
       // 3. Filter by status
@@ -273,7 +296,8 @@ export const getComplaints = async (req, res, next) => {
 export const getComplaintById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const complaint = db.findById('complaints', id);
+    await db.refreshTablesFromPostgres();
+    const complaint = db.findOne('complaints', (c) => c.id === id || c.complaint_code === id);
 
     if (!complaint) {
       return next(new AppError(`Complaint with identifier '${id}' not found.`, 404, 'NOT_FOUND'));
@@ -328,7 +352,11 @@ export const disputeComplaint = async (req, res, next) => {
     // Collect uploaded dispute evidence files if any
     const uploadedFileUrls = (req.files || []).map((file) => `/uploads/${file.filename}`);
     const incomingPhotos = Array.isArray(bodyPhotos) ? bodyPhotos : (bodyPhotos ? [bodyPhotos] : []);
-    const photos = [...uploadedFileUrls, ...incomingPhotos];
+    const safeIncomingPhotos = incomingPhotos.map((url) => String(url).trim()).filter(isSafePhotoUrl);
+    if (safeIncomingPhotos.length !== incomingPhotos.length) {
+      return next(new AppError('Dispute photo evidence must use safe http(s) URLs or server upload paths.', 400, 'INVALID_PHOTO_URL'));
+    }
+    const photos = [...uploadedFileUrls, ...safeIncomingPhotos];
 
     const updated = await disputeService(id, req.user, {
       reason,

@@ -15,6 +15,56 @@ import { AppError } from '../middleware/error.js';
 import { calculateVerifiedEstimate } from '../services/estimateService.js';
 import { getApprovalThresholds, requiresDeptHeadApproval } from '../services/approvalService.js';
 
+const getUserTownshipId = (user) => user.townshipId || user.township_id;
+const getUserContractorId = (user) => user.contractorId || user.contractor_id;
+
+const normalizeId = (value = '') => String(value).trim();
+
+const findWorkOrderByReference = (id, complaintId = null) => {
+  const targetId = normalizeId(id);
+  const targetComplaintId = normalizeId(complaintId);
+  return db.findOne(
+    'work_orders',
+    (w) =>
+      w.id === targetId ||
+      w.work_order_code === targetId ||
+      w.work_order_number === targetId ||
+      (targetComplaintId && w.complaint_id === targetComplaintId) ||
+      (targetId && w.complaint_id === targetId)
+  );
+};
+
+const assertContractorWorkOrderAccess = (req, wo) => {
+  if (!wo) {
+    throw new AppError('Work order not found.', 404, 'NOT_FOUND');
+  }
+
+  const townshipId = getUserTownshipId(req.user);
+  if (townshipId && wo.township_id && wo.township_id !== townshipId) {
+    throw new AppError('Cross-township work order access is forbidden.', 403, 'FORBIDDEN');
+  }
+
+  if (req.user.role === 'FIELD_CONTRACTOR') {
+    const contractorId = getUserContractorId(req.user);
+    if (!contractorId || wo.contractor_id !== contractorId) {
+      throw new AppError('This work order is not assigned to your contractor account.', 403, 'CONTRACTOR_ASSIGNMENT_REQUIRED');
+    }
+  }
+};
+
+const isSafeEvidenceUrl = (url) => {
+  if (typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (trimmed.startsWith('data:image/')) return true;
+  if (trimmed.startsWith('/uploads/')) return !trimmed.includes('..') && !trimmed.includes('\\');
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+};
+
 /**
  * @desc   Get all jobs / work orders assigned to the contractor
  * @route  GET /api/v1/contractor/jobs
@@ -22,11 +72,18 @@ import { getApprovalThresholds, requiresDeptHeadApproval } from '../services/app
  */
 export const getAssignedJobs = async (req, res, next) => {
   try {
-    const contractorId = req.user.contractorId;
+    if (typeof db.refreshTablesFromPostgres === 'function') {
+      await db.refreshTablesFromPostgres();
+    }
+    const contractorId = getUserContractorId(req.user);
+    const townshipId = getUserTownshipId(req.user);
     const { status } = req.query;
 
     const workOrders = db.findAll('work_orders', (wo) => {
-      const matchContractor = !contractorId || wo.contractor_id === contractorId;
+      if (townshipId && wo.township_id && wo.township_id !== townshipId) return false;
+      const matchContractor = req.user.role === 'TOWNSHIP_COO'
+        ? true
+        : Boolean(contractorId && wo.contractor_id === contractorId);
       const matchStatus = !status || wo.status === status.toUpperCase();
       return matchContractor && matchStatus;
     });
@@ -106,14 +163,12 @@ export const getJobById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const wo = db.findOne(
-      'work_orders',
-      (w) => w.id === id || w.work_order_code === id || w.work_order_number === id
-    );
+    const wo = findWorkOrderByReference(id);
 
     if (!wo) {
       return next(new AppError(`Work order '${id}' not found.`, 404, 'NOT_FOUND'));
     }
+    assertContractorWorkOrderAccess(req, wo);
 
     const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
     const evidence = db.findAll('complaint_evidence', (ev) => ev.complaint_id === wo.complaint_id);
@@ -163,19 +218,12 @@ export const submitSiteInspection = async (req, res, next) => {
   try {
     const { workOrderId, complaintId, inspectionNotes, severityConfirmed } = req.body;
 
-    const wo = db.findOne(
-      'work_orders',
-      (w) =>
-        w.id === workOrderId ||
-        w.work_order_code === workOrderId ||
-        w.work_order_number === workOrderId ||
-        w.complaint_id === complaintId ||
-        w.complaint_id === workOrderId
-    );
+    const wo = findWorkOrderByReference(workOrderId, complaintId);
 
     if (!wo) {
       return next(new AppError('Valid workOrderId or complaintId is required.', 404, 'NOT_FOUND'));
     }
+    assertContractorWorkOrderAccess(req, wo);
 
     const now = new Date().toISOString();
     const actorName = req.user.name || 'Contractor Lead';
@@ -233,22 +281,18 @@ export const submitEstimate = async (req, res, next) => {
       return next(new AppError('Estimate must include at least one AMC service line item.', 400, 'VALIDATION_ERROR'));
     }
 
-    const wo = db.findOne(
-      'work_orders',
-      (w) =>
-        w.id === workOrderId ||
-        w.work_order_code === workOrderId ||
-        w.work_order_number === workOrderId ||
-        w.complaint_id === complaintId ||
-        w.complaint_id === workOrderId
-    );
+    const wo = findWorkOrderByReference(workOrderId, complaintId);
 
     if (!wo) {
       return next(new AppError('Work order not found for estimate submission.', 404, 'NOT_FOUND'));
     }
+    assertContractorWorkOrderAccess(req, wo);
+    if (!wo.inspection_notes || !wo.inspected_at) {
+      return next(new AppError('Site inspection must be submitted before creating an AMC estimate.', 409, 'INSPECTION_REQUIRED'));
+    }
 
     // Backend calculates official rate card totals (strict compliance rule)
-    const verified = calculateVerifiedEstimate(lineItems, req.user.contractorId || wo.contractor_id);
+    const verified = calculateVerifiedEstimate(lineItems, getUserContractorId(req.user) || wo.contractor_id);
     const requiresDeptHead = requiresDeptHeadApproval(verified.totalAmount);
     const deptHeadThreshold = getApprovalThresholds().CLERK_LIMIT;
     const nextStatus = requiresDeptHead ? 'AWAITING_DEPT_HEAD' : 'WORK_ORDER_CREATED';
@@ -278,9 +322,9 @@ export const submitEstimate = async (req, res, next) => {
     // Persist into relational estimates table if present
     const estimateRecord = db.insert('estimates', {
       work_order_id: wo.id,
-      contractor_id: req.user.contractorId || wo.contractor_id,
+      contractor_id: getUserContractorId(req.user) || wo.contractor_id,
       total_amount: verified.totalAmount,
-      status: nextStatus,
+      status: requiresDeptHead ? 'SUBMITTED' : 'APPROVED',
       submitted_at: now,
       submitted_by: actorName,
     });
@@ -289,9 +333,14 @@ export const submitEstimate = async (req, res, next) => {
       verified.lineItems.forEach((item) => {
         db.insert('estimate_items', {
           estimate_id: estimateRecord.id,
+          amc_rate_id: item.rateCardId || null,
+          description: item.service || item.description || item.itemName || 'Remediation Service',
+          unit: item.unit || 'Unit',
+          quantity: Number(item.qty || item.quantity || 1),
+          rate_snapshot: Number(item.officialRate || item.rate || 500),
+          amount: Number(item.totalAmount || item.amount || ((item.qty || 1) * (item.rate || 500))),
           rate_card_id: item.rateCardId || item.itemCode,
-          quantity: item.qty || item.quantity,
-          rate: item.rate,
+          rate: item.rate || item.officialRate,
           total_price: item.totalAmount || item.amount,
         });
       });
@@ -349,20 +398,43 @@ export const updateJobStatus = async (req, res, next) => {
     const { id } = req.params;
     const { status, remarks } = req.body;
 
-    const normalizedStatus = (status || '').toUpperCase();
-    if (!['IN_PROGRESS', 'COMPLETED', 'REWORK'].includes(normalizedStatus)) {
+    const normalizedStatus = (status || '').toUpperCase() === 'REWORK' ? 'REWORK_REQUESTED' : (status || '').toUpperCase();
+    if (!['IN_PROGRESS', 'COMPLETED', 'REWORK_REQUESTED'].includes(normalizedStatus)) {
       return next(
-        new AppError("Status must be 'IN_PROGRESS', 'COMPLETED', or 'REWORK'.", 400, 'VALIDATION_ERROR')
+        new AppError("Status must be 'IN_PROGRESS', 'COMPLETED', or 'REWORK_REQUESTED'.", 400, 'VALIDATION_ERROR')
       );
     }
 
-    const wo = db.findOne(
-      'work_orders',
-      (w) => w.id === id || w.work_order_code === id || w.work_order_number === id || w.complaint_id === id
-    );
+    const wo = findWorkOrderByReference(id);
 
     if (!wo) {
       return next(new AppError(`Work order '${id}' not found.`, 404, 'NOT_FOUND'));
+    }
+    assertContractorWorkOrderAccess(req, wo);
+
+    const currentStatus = (wo.status || '').toUpperCase();
+    if (normalizedStatus === 'IN_PROGRESS') {
+      const startableStatuses = ['ASSIGNED', 'APPROVED', 'WORK_ORDER_CREATED', 'REWORK_REQUESTED'];
+      if (!startableStatuses.includes(currentStatus)) {
+        return next(new AppError(`Cannot start work from status '${wo.status}'.`, 409, 'INVALID_STATUS_TRANSITION'));
+      }
+      if (!wo.inspection_notes || !wo.inspected_at) {
+        return next(new AppError('Site inspection is required before work can start.', 409, 'INSPECTION_REQUIRED'));
+      }
+    }
+
+    if (normalizedStatus === 'COMPLETED') {
+      const completableStatuses = ['IN_PROGRESS', 'REWORK_REQUESTED'];
+      if (!completableStatuses.includes(currentStatus)) {
+        return next(new AppError(`Cannot complete work from status '${wo.status}'.`, 409, 'INVALID_STATUS_TRANSITION'));
+      }
+      const afterEvidence = db.findAll(
+        'complaint_evidence',
+        (ev) => ev.complaint_id === wo.complaint_id && (ev.evidence_type || ev.type) === 'AFTER'
+      );
+      if (afterEvidence.length === 0) {
+        return next(new AppError('After-repair evidence must be uploaded before marking work completed.', 409, 'AFTER_EVIDENCE_REQUIRED'));
+      }
     }
 
     const now = new Date().toISOString();
@@ -385,7 +457,14 @@ export const updateJobStatus = async (req, res, next) => {
     let createdInvoice = null;
     if (normalizedStatus === 'COMPLETED') {
       const estimatedCost = Number(wo.estimated_cost || wo.estimate_amount || wo.estimatedAmount || 0);
-      const actualCost = Number(req.body.actualCost || req.body.actual_cost || req.body.billedAmount || wo.actual_cost || (estimatedCost > 0 ? estimatedCost : 3500));
+      if (estimatedCost <= 0) {
+        return next(new AppError('Approved estimate amount is required before completion can be invoiced.', 409, 'APPROVED_ESTIMATE_REQUIRED'));
+      }
+      const requestedActualCost = Number(req.body.actualCost || req.body.actual_cost || req.body.billedAmount || estimatedCost);
+      if (Number.isFinite(requestedActualCost) && requestedActualCost > estimatedCost) {
+        return next(new AppError('Completion billing cannot exceed the approved AMC estimate. Submit a revised estimate for additional work.', 409, 'BILLING_EXCEEDS_ESTIMATE'));
+      }
+      const actualCost = estimatedCost;
       const variance = actualCost - estimatedCost;
 
       // Update work order with actual cost
@@ -414,7 +493,7 @@ export const updateJobStatus = async (req, res, next) => {
         createdInvoice = db.insert('invoices', {
           invoice_code: invoiceCode,
           township_id: wo.township_id || req.user.township_id || 'b0000000-0000-0000-0000-000000000001',
-          contractor_id: wo.contractor_id || req.user.contractorId,
+          contractor_id: wo.contractor_id || getUserContractorId(req.user),
           work_order_id: wo.id,
           invoice_number: invoiceNum,
           invoice_date: now.split('T')[0],
@@ -509,19 +588,22 @@ export const uploadEvidence = async (req, res, next) => {
     const type = (evidenceType || 'AFTER').toUpperCase();
     const now = new Date().toISOString();
 
-    let targetComplaintId = complaintId;
-    if (!targetComplaintId && workOrderId) {
-      const wo = db.findOne(
-        'work_orders',
-        (w) => w.id === workOrderId || w.work_order_code === workOrderId || w.work_order_number === workOrderId
-      );
-      if (wo) targetComplaintId = wo.complaint_id;
+    const wo = findWorkOrderByReference(workOrderId, complaintId);
+    if (!wo) {
+      return next(new AppError('Valid workOrderId or complaintId is required for evidence upload.', 404, 'NOT_FOUND'));
+    }
+    assertContractorWorkOrderAccess(req, wo);
+
+    let targetComplaintId = complaintId || wo.complaint_id;
+    const safePhotoList = photoList.map((url) => String(url).trim()).filter(isSafeEvidenceUrl);
+    if (safePhotoList.length !== photoList.length) {
+      return next(new AppError('Evidence photos must be safe http(s) URLs or server upload paths.', 400, 'INVALID_EVIDENCE_URL'));
     }
 
     const createdEvidence = [];
-    for (const url of photoList) {
+    for (const url of safePhotoList) {
       const rec = db.insert('complaint_evidence', {
-        complaint_id: targetComplaintId || workOrderId,
+        complaint_id: targetComplaintId,
         evidence_type: type,
         file_url: url,
         caption: caption || `${type} repair photo evidence`,
@@ -538,13 +620,13 @@ export const uploadEvidence = async (req, res, next) => {
         const updateField = type === 'AFTER' ? 'afterPhotos' : 'beforePhotos';
         const existing = Array.isArray(complaint[updateField]) ? complaint[updateField] : [];
         db.update('complaints', complaint.id, {
-          [updateField]: [...existing, ...photoList],
+          [updateField]: [...existing, ...safePhotoList],
         });
       }
     }
 
     db.logAudit({
-      township_id: req.user.townshipId,
+      township_id: wo.township_id || getUserTownshipId(req.user),
       entity_type: 'EVIDENCE',
       entity_id: complaintId || workOrderId,
       actor_id: req.user.id,

@@ -9,10 +9,12 @@ import { authenticate, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
+router.use(authenticate);
+
 router.get('/contractors', getContractors);
 router.get('/departments', getDepartments);
 router.get('/amc-rates', getAmcRates);
-// Protected: Only Township COO can reset in-memory database via API
-router.post('/reset', authenticate, requireRole('TOWNSHIP_COO'), resetDatabase);
+// Protected: Only Township COO can refresh database state via API
+router.post('/reset', requireRole('TOWNSHIP_COO'), resetDatabase);
 
 export default router;

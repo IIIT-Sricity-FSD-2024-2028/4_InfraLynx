@@ -15,20 +15,22 @@ export const config = {
   isDev: (process.env.NODE_ENV || 'development') === 'development',
   isProd: process.env.NODE_ENV === 'production',
 
-  // Database mode: PostgreSQL when DATABASE_URL is set, otherwise In-Memory
-  dbMode: process.env.DATABASE_URL ? 'POSTGRES' : 'IN_MEMORY',
+  // Database mode: 100% Native Neon Cloud PostgreSQL
+  dbMode: 'POSTGRES',
   databaseUrl: process.env.DATABASE_URL || null,
 
   // JWT configuration
   jwt: {
     secret: process.env.JWT_SECRET || 'tims_super_secret_jwt_key_development_only_change_in_production',
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    issuer: process.env.JWT_ISSUER || 'infralynx-api',
+    audience: process.env.JWT_AUDIENCE || 'infralynx-client',
   },
 
   // Upload configuration
   upload: {
     dir: path.resolve(__dirname, '../../', process.env.UPLOAD_DIR || 'uploads'),
-    maxFileSize: parseInt(process.env.MAX_FILE_SIZE_MB || '10', 10) * 1024 * 1024, // in bytes
+    maxFileSize: parseInt(process.env.MAX_FILE_SIZE_MB || '5', 10) * 1024 * 1024, // in bytes
   },
 
   // CORS origins

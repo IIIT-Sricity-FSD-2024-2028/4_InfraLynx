@@ -1,5 +1,5 @@
-﻿/**
- * slaService.js — TIMS SLA Service (In-Memory Engine)
+/**
+ * slaService.js — TIMS SLA Service (PostgreSQL Database Engine)
  *
  * Computes SLA turnaround deadlines, tracks remaining time, and flags breach states.
  * Supports:

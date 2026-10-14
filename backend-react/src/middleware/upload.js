@@ -1,6 +1,7 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import config from '../config/env.js';
 import { AppError } from './error.js';
 
@@ -9,15 +10,15 @@ if (!fs.existsSync(config.upload.dir)) {
   fs.mkdirSync(config.upload.dir, { recursive: true });
 }
 
-// Allowed MIME types for complaint images, completion evidence, and PDF invoices/contracts
+// Allowed image MIME types for complaint photos and work evidence.
 const ALLOWED_MIME_TYPES = [
   'image/jpeg',
   'image/jpg',
   'image/png',
   'image/webp',
-  'image/gif',
-  'application/pdf',
 ];
+
+const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 
 // Configure Disk Storage with sanitized unique file names
 const storage = multer.diskStorage({
@@ -26,28 +27,67 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    const sanitizedBase = path
-      .basename(file.originalname, ext)
-      .replace(/[^a-zA-Z0-9_-]/g, '_')
-      .substring(0, 40);
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
-    cb(null, `${sanitizedBase}-${uniqueSuffix}${ext}`);
+    cb(null, `${crypto.randomUUID()}${ext}`);
   },
 });
 
 // File type filter
 const fileFilter = (req, file, cb) => {
-  if (ALLOWED_MIME_TYPES.includes(file.mimetype.toLowerCase())) {
+  const mimetype = (file.mimetype || '').toLowerCase();
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  if (ALLOWED_MIME_TYPES.includes(mimetype) && ALLOWED_EXTENSIONS.has(ext)) {
     cb(null, true);
   } else {
     cb(
       new AppError(
-        `Unsupported file type '${file.mimetype}'. Allowed types: JPG, PNG, WEBP, GIF, PDF.`,
+        `Unsupported file type '${file.mimetype}'. Allowed image types: JPG, PNG, WEBP.`,
         400,
         'INVALID_FILE_TYPE'
       ),
       false
     );
+  }
+};
+
+const hasAllowedImageSignature = (filePath) => {
+  const buffer = fs.readFileSync(filePath);
+  if (buffer.length < 12) return false;
+
+  const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  const isPng =
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47 &&
+    buffer[4] === 0x0d &&
+    buffer[5] === 0x0a &&
+    buffer[6] === 0x1a &&
+    buffer[7] === 0x0a;
+  const isWebp =
+    buffer.toString('ascii', 0, 4) === 'RIFF' &&
+    buffer.toString('ascii', 8, 12) === 'WEBP';
+
+  return isJpeg || isPng || isWebp;
+};
+
+const normalizeFiles = (req) => {
+  if (!req.files) return req.file ? [req.file] : [];
+  if (Array.isArray(req.files)) return req.files;
+  return Object.values(req.files).flat();
+};
+
+export const validateUploadedImages = (req, res, next) => {
+  try {
+    const files = normalizeFiles(req);
+    for (const file of files) {
+      if (!hasAllowedImageSignature(file.path)) {
+        fs.unlink(file.path, () => {});
+        return next(new AppError('Uploaded file content does not match an allowed image format.', 400, 'INVALID_FILE_SIGNATURE'));
+      }
+    }
+    next();
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -64,24 +104,25 @@ export const upload = multer({
  * Middleware helper for a single file upload
  * @param {string} fieldName - Form field name
  */
-export const uploadSingle = (fieldName = 'file') => upload.single(fieldName);
+export const uploadSingle = (fieldName = 'file') => [upload.single(fieldName), validateUploadedImages];
 
 /**
  * Middleware helper for multiple file uploads under the same field
  * @param {string} fieldName - Form field name (e.g., 'images', 'proof')
  * @param {number} maxCount - Max files (default 5)
  */
-export const uploadArray = (fieldName = 'images', maxCount = 5) => upload.array(fieldName, maxCount);
+export const uploadArray = (fieldName = 'images', maxCount = 5) => [upload.array(fieldName, maxCount), validateUploadedImages];
 
 /**
  * Middleware helper for multiple fields with different names
  * @param {Array<{ name: string, maxCount: number }>} fields
  */
-export const uploadFields = (fields) => upload.fields(fields);
+export const uploadFields = (fields) => [upload.fields(fields), validateUploadedImages];
 
 export default {
   upload,
   uploadSingle,
   uploadArray,
   uploadFields,
+  validateUploadedImages,
 };

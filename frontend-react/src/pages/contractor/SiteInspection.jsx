@@ -1,11 +1,5 @@
-import { useState, useEffect } from 'react'
-
-const SAMPLE_INSPECTION_PHOTOS = [
-  { label: 'Substation Panel Fault', url: 'https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Streetlight Cable Damage', url: 'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Pavement Asphalt Cavity', url: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Ruptured Pipe Flange', url: 'https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&fit=crop&w=800&q=80' },
-]
+import { useState, useEffect, useRef } from 'react'
+import './styles/SiteInspection.css'
 
 export default function SiteInspection({
   jobs = [],
@@ -18,42 +12,93 @@ export default function SiteInspection({
 
   const currentJob = jobs.find((j) => j.id === activeJobId) || selectedJob || jobs[0]
 
-  // Form State
+  // Form State - Starts completely empty (no prefilled dummy values)
   const [problemObserved, setProblemObserved] = useState('')
-  const [equipmentCondition, setEquipmentCondition] = useState('Moderate Damage')
+  const [equipmentCondition, setEquipmentCondition] = useState('')
   const [requiredWork, setRequiredWork] = useState('')
-  const [beforePhoto, setBeforePhoto] = useState(SAMPLE_INSPECTION_PHOTOS[0].url)
-  const [customPhotoUrl, setCustomPhotoUrl] = useState('')
+  const [beforePhoto, setBeforePhoto] = useState('')
+  const [uploadedFileInfo, setUploadedFileInfo] = useState(null)
+  const [isDragOver, setIsDragOver] = useState(false)
   const [remarks, setRemarks] = useState('')
   const [isSaved, setIsSaved] = useState(false)
 
-  // Populate existing inspection data if present
+  const fileInputRef = useRef(null)
+
+  // Populate existing inspection data ONLY if previously saved
   useEffect(() => {
     if (currentJob?.inspection) {
       setProblemObserved(currentJob.inspection.observedProblem || '')
-      setEquipmentCondition(currentJob.inspection.equipmentCondition || 'Moderate Damage')
+      setEquipmentCondition(currentJob.inspection.equipmentCondition || '')
       setRequiredWork(currentJob.inspection.requiredWork || '')
-      setBeforePhoto(currentJob.inspection.inspectionPhoto || SAMPLE_INSPECTION_PHOTOS[0].url)
+      setBeforePhoto(currentJob.inspection.inspectionPhoto || '')
       setRemarks(currentJob.inspection.remarks || '')
-    } else if (currentJob) {
-      // Sensible defaults based on category
-      setProblemObserved(`Technical inspection conducted on ${currentJob.title}. Initial symptoms verified on ground.`)
-      setEquipmentCondition('Moderate Damage')
-      setRequiredWork('Replace defective components under AMC rate terms and verify operational load.')
-      setBeforePhoto(currentJob.beforePhotos?.[0] || SAMPLE_INSPECTION_PHOTOS[0].url)
-      setRemarks(`Inspected by Field Contractor team. Site secured with safety perimeter.`)
+      if (currentJob.inspection.inspectionPhoto) {
+        setUploadedFileInfo({
+          name: 'Site Inspection Evidence',
+          size: 'Saved',
+          timestamp: new Date(currentJob.inspection.inspectedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        })
+      } else {
+        setUploadedFileInfo(null)
+      }
+    } else {
+      // Clean slate - No prefilled values
+      setProblemObserved('')
+      setEquipmentCondition('')
+      setRequiredWork('')
+      setBeforePhoto('')
+      setUploadedFileInfo(null)
+      setRemarks('')
     }
     setIsSaved(false)
   }, [currentJob])
 
+  function handleFileSelect(file) {
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (PNG, JPG, JPEG, WEBP, etc.).')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (uploadEvent) => {
+      setBeforePhoto(uploadEvent.target.result)
+      setUploadedFileInfo({
+        name: file.name,
+        size: (file.size / 1024).toFixed(1) + ' KB',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  function handleTriggerFileInput() {
+    if (fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
+  function handleRemovePhoto() {
+    setBeforePhoto('')
+    setUploadedFileInfo(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   function handleSave(proceedToEstimate = false) {
     if (!currentJob) return
 
+    if (!beforePhoto) {
+      alert('Please upload photographic evidence before saving the inspection.')
+      return
+    }
+
     const inspectionData = {
       observedProblem: problemObserved,
-      equipmentCondition,
+      equipmentCondition: equipmentCondition || 'Moderate Damage',
       requiredWork,
-      inspectionPhoto: customPhotoUrl.trim() || beforePhoto,
+      inspectionPhoto: beforePhoto,
       remarks,
       inspectedAt: new Date().toISOString(),
     }
@@ -69,9 +114,9 @@ export default function SiteInspection({
 
   if (!currentJob) {
     return (
-      <div className="contractor-card" style={{ textAlign: 'center', padding: 48 }}>
+      <div className="contractor-card inspection-empty-card">
         <h3>No Work Order Selected for Inspection</h3>
-        <p style={{ color: 'var(--text-soft)' }}>Please select a job from the Work Orders tab.</p>
+        <p className="inspection-sub">Please select a job from the Work Orders tab.</p>
         <button onClick={() => onNavigate('workorders')} className="btn-contractor-primary" style={{ marginTop: 16 }}>
           View Work Orders &rarr;
         </button>
@@ -80,10 +125,10 @@ export default function SiteInspection({
   }
 
   return (
-    <div>
+    <div className="inspection-root">
       {/* Top Banner / Breadcrumb */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <div>
+      <div className="inspection-header">
+        <div className="inspection-header-left">
           <button
             onClick={() => onNavigate('workorders')}
             className="btn-contractor-ghost"
@@ -91,17 +136,17 @@ export default function SiteInspection({
           >
             &larr; Back to Work Orders
           </button>
-          <h1 style={{ fontFamily: 'var(--font-head)', fontSize: 24, fontWeight: 800, color: 'var(--text)', margin: 0 }}>
-            Site Inspection & Technical Assessment
+          <h1 className="inspection-title">
+            Site Inspection &amp; Technical Assessment
           </h1>
-          <p style={{ color: 'var(--text-soft)', fontSize: 13.5, margin: '2px 0 0' }}>
-            Screen 3: Log ground condition, observed failure mode, before-repair photo, and scope for AMC estimate.
+          <p className="inspection-sub">
+            Log ground condition, observed failure mode, before-repair photo, and scope for AMC estimate.
           </p>
         </div>
 
         {/* Job Selector Dropdown */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+        <div className="inspection-switcher">
+          <label className="inspection-switcher-label">
             Switch Work Order:
           </label>
           <select
@@ -111,15 +156,7 @@ export default function SiteInspection({
               const selected = jobs.find((j) => j.id === e.target.value)
               if (selected) onSelectJob(selected)
             }}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--line-strong)',
-              fontSize: 13,
-              fontWeight: 600,
-              background: '#ffffff',
-              color: 'var(--text)',
-            }}
+            className="inspection-select"
           >
             {jobs.map((j) => (
               <option key={j.id} value={j.id}>
@@ -131,44 +168,23 @@ export default function SiteInspection({
       </div>
 
       {isSaved && (
-        <div
-          style={{
-            padding: '12px 18px',
-            background: '#ecfdf5',
-            border: '1px solid #10b981',
-            borderRadius: 'var(--radius-sm)',
-            color: '#065f46',
-            fontSize: 13.5,
-            fontWeight: 600,
-            marginBottom: 20,
-          }}
-        >
+        <div className="inspection-saved-alert">
           ✓ Inspection record saved successfully. You can now build the contractual AMC estimate.
         </div>
       )}
 
       {/* Two Column Layout: Left = Citizen/RWA Details, Right = Contractor Inspection Form */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 24 }} className="inspection-grid">
+      <div className="inspection-grid">
         {/* Left Column: Complaint & Site Context */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="inspection-left-col">
           {/* Work Order Overview Card */}
           <div className="contractor-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+            <div className="inspection-wo-header">
               <div>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: 4,
-                    background: '#e0f2fe',
-                    color: '#0369a1',
-                    fontFamily: 'var(--font-mono)',
-                  }}
-                >
+                <span className="inspection-wo-code-badge">
                   {currentJob.workOrderId || 'WO-PENDING'}
                 </span>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 8 }}>
+                <span className="inspection-wo-ref">
                   Ref: {currentJob.id}
                 </span>
               </div>
@@ -177,39 +193,27 @@ export default function SiteInspection({
               </span>
             </div>
 
-            <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)', margin: '0 0 8px' }}>
+            <h3 className="inspection-complaint-title">
               {currentJob.title}
             </h3>
 
-            <div style={{ fontSize: 13.5, color: 'var(--text-soft)', lineHeight: 1.6, marginBottom: 16 }}>
+            <div className="inspection-complaint-desc">
               <strong>Citizen / RWA Complaint:</strong> {currentJob.description}
             </div>
 
-            <div
-              style={{
-                background: '#f8fafc',
-                border: '1px solid var(--line)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '12px 14px',
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 12,
-                fontSize: 12.5,
-              }}
-            >
+            <div className="inspection-meta-box">
               <div>
-                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: 11 }}>SECTOR & BLOCK</span>
-                <strong>{currentJob.location?.sector}, {currentJob.location?.block}</strong>
+                <span className="inspection-meta-lbl">SECTOR &amp; BLOCK</span>
+                <strong className="inspection-meta-val">{currentJob.location?.sector}, {currentJob.location?.block}</strong>
               </div>
               <div>
-                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: 11 }}>STREET / LANDMARK</span>
-                <strong>{currentJob.location?.street || currentJob.location?.landmark || 'Main Road'}</strong>
+                <span className="inspection-meta-lbl">STREET / LANDMARK</span>
+                <strong className="inspection-meta-val">{currentJob.location?.street || currentJob.location?.landmark || 'Main Road'}</strong>
               </div>
               <div>
-                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: 11 }}>ASSET ID</span>
-                <strong style={{ fontFamily: 'var(--font-mono)' }}>{currentJob.location?.assetId || 'ASSET-GEN'}</strong>
+                <span className="inspection-meta-lbl">ASSET ID</span>
+                <strong className="inspection-meta-val inspection-meta-mono">{currentJob.location?.assetId || 'ASSET-GEN'}</strong>
               </div>
-              
             </div>
           </div>
 
@@ -218,32 +222,38 @@ export default function SiteInspection({
             <h4 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 10px', color: 'var(--text)' }}>
               Initial Evidence (Uploaded by Citizen / RWA)
             </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
-              {(currentJob.beforePhotos?.length ? currentJob.beforePhotos : [SAMPLE_INSPECTION_PHOTOS[0].url]).map((photo, idx) => (
-                <div key={idx} style={{ borderRadius: 6, overflow: 'hidden', border: '1px solid var(--line)' }}>
-                  <img
-                    src={photo}
-                    alt={`RWA Photo ${idx + 1}`}
-                    style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block' }}
-                  />
-                  <div style={{ padding: '6px 8px', fontSize: 11, color: 'var(--text-soft)', background: '#f8fafc' }}>
-                    Citizen Proof #{idx + 1}
+            {currentJob.beforePhotos && currentJob.beforePhotos.length > 0 ? (
+              <div className="inspection-evidence-grid">
+                {currentJob.beforePhotos.map((photo, idx) => (
+                  <div key={idx} className="inspection-evidence-thumb">
+                    <img
+                      src={photo}
+                      alt={`Citizen Proof ${idx + 1}`}
+                      className="inspection-evidence-img"
+                    />
+                    <div className="inspection-evidence-caption">
+                      Citizen Proof #{idx + 1}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ padding: '24px 16px', textAlign: 'center', background: '#f8fafc', borderRadius: 8, border: '1px dashed var(--line)', color: 'var(--text-muted)', fontSize: 13 }}>
+                No initial citizen evidence photos attached to this complaint.
+              </div>
+            )}
           </div>
         </div>
 
         {/* Right Column: Technical Site Inspection Form */}
-        <div className="contractor-card" style={{ border: '1.5px solid #0284c7' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+        <div className="contractor-card inspection-form-card">
+          <div className="inspection-form-header">
             <span style={{ fontSize: 20 }}>🛠️</span>
             <div>
-              <h3 style={{ fontSize: 17, fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+              <h3 className="inspection-form-title">
                 Field Technical Inspection Form
               </h3>
-              <div style={{ fontSize: 12, color: 'var(--text-soft)' }}>
+              <div className="inspection-form-sub">
                 Required before creating official AMC line-item estimate
               </div>
             </div>
@@ -257,8 +267,8 @@ export default function SiteInspection({
             style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
           >
             {/* 1. Problem Observed */}
-            <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+            <div className="inspection-form-group">
+              <label className="inspection-form-label">
                 Problem Observed on Ground <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <textarea
@@ -267,35 +277,23 @@ export default function SiteInspection({
                 value={problemObserved}
                 onChange={(e) => setProblemObserved(e.target.value)}
                 placeholder="Describe actual mechanical / electrical failure, damage level, and root cause..."
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--line-strong)',
-                  fontSize: 13.5,
-                  fontFamily: 'inherit',
-                  resize: 'vertical',
-                }}
+                className="inspection-form-textarea"
               />
             </div>
 
             {/* 2. Structural / Equipment Condition */}
-            <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+            <div className="inspection-form-group">
+              <label className="inspection-form-label">
                 Structural / Equipment Condition <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <select
                 value={equipmentCondition}
                 onChange={(e) => setEquipmentCondition(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--line-strong)',
-                  fontSize: 13.5,
-                  background: '#ffffff',
-                }}
+                className="inspection-select"
+                style={{ width: '100%', padding: '9px 12px', fontSize: 13.5 }}
+                required
               >
+                <option value="">-- Select Condition --</option>
                 <option value="Minor Wear">Minor Wear (Routine consumable replacement)</option>
                 <option value="Moderate Damage">Moderate Damage (Components need overhaul / rewiring)</option>
                 <option value="Severe Breakdown">Severe Breakdown (Full replacement required)</option>
@@ -304,9 +302,9 @@ export default function SiteInspection({
             </div>
 
             {/* 3. Required Work Scope */}
-            <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-                Required Work & Material Scope <span style={{ color: '#dc2626' }}>*</span>
+            <div className="inspection-form-group">
+              <label className="inspection-form-label">
+                Required Work &amp; Material Scope <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <textarea
                 rows={3}
@@ -314,101 +312,130 @@ export default function SiteInspection({
                 value={requiredWork}
                 onChange={(e) => setRequiredWork(e.target.value)}
                 placeholder="Specify labour requirements, spare parts, and tools needed under AMC terms..."
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--line-strong)',
-                  fontSize: 13.5,
-                  fontFamily: 'inherit',
-                  resize: 'vertical',
-                }}
+                className="inspection-form-textarea"
               />
             </div>
 
-            {/* 4. Before Photo Upload & Preview */}
-            <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-                Contractor Before-Repair Photo Evidence <span style={{ color: '#dc2626' }}>*</span>
-              </label>
-              <div style={{ display: 'flex', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
-                {SAMPLE_INSPECTION_PHOTOS.map((p, idx) => (
+            {/* 4. Before Photo Evidence Upload (File Upload Only - No Presets, No Prefills) */}
+            <div className="inspection-form-group">
+              <div className="inspection-evidence-header">
+                <label className="inspection-form-label" style={{ marginBottom: 0 }}>
+                  Contractor Before-Repair Photo Evidence <span style={{ color: '#dc2626' }}>*</span>
+                </label>
+                {beforePhoto && (
+                  <span className="inspection-evidence-tag">
+                    ✓ Photo Attached
+                  </span>
+                )}
+              </div>
+
+              {/* Hidden File Input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handleFileSelect(file)
+                }}
+                style={{ display: 'none' }}
+              />
+
+              {/* Upload Dropzone if no photo, or Photo Card with preview & replace/remove actions */}
+              {!beforePhoto ? (
+                <div
+                  className={`inspection-dropzone ${isDragOver ? 'dragover' : ''}`}
+                  onClick={handleTriggerFileInput}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    setIsDragOver(true)
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault()
+                    setIsDragOver(false)
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setIsDragOver(false)
+                    const file = e.dataTransfer.files?.[0]
+                    if (file) handleFileSelect(file)
+                  }}
+                >
+                  <div className="inspection-dropzone-icon">📷</div>
+                  <div className="inspection-dropzone-title">
+                    Upload Before-Repair Photo Evidence
+                  </div>
+                  <div className="inspection-dropzone-sub">
+                    Click to browse or drag &amp; drop image (PNG, JPG, JPEG, WEBP)
+                  </div>
                   <button
-                    key={idx}
                     type="button"
-                    onClick={() => {
-                      setBeforePhoto(p.url)
-                      setCustomPhotoUrl('')
-                    }}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 4,
-                      fontSize: 11.5,
-                      border: beforePhoto === p.url ? '1.5px solid #0284c7' : '1px solid var(--line)',
-                      background: beforePhoto === p.url ? '#e0f2fe' : '#ffffff',
-                      color: beforePhoto === p.url ? '#0369a1' : 'var(--text-soft)',
-                      fontWeight: 600,
-                      cursor: 'pointer',
+                    className="inspection-dropzone-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleTriggerFileInput()
                     }}
                   >
-                    {p.label}
+                    📁 Choose Image to Upload
                   </button>
-                ))}
-              </div>
-
-              {/* Photo preview box */}
-              <div className="photo-preview-box" style={{ marginBottom: 10 }}>
-                <img
-                  src={customPhotoUrl.trim() || beforePhoto}
-                  alt="Contractor Inspection Before Preview"
-                  className="photo-preview-img"
-                  onError={(e) => {
-                    e.target.src = SAMPLE_INSPECTION_PHOTOS[0].url
-                  }}
-                />
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-                  Site Inspection Photo • Timestamp: {new Date().toLocaleTimeString()}
                 </div>
-              </div>
+              ) : (
+                <div className="inspection-photo-card">
+                  <div className="inspection-photo-card-top">
+                    <div className="inspection-photo-card-info">
+                      <span className="inspection-photo-badge">📷 Uploaded Evidence</span>
+                      <span className="inspection-photo-meta-text">
+                        {uploadedFileInfo ? `${uploadedFileInfo.name} (${uploadedFileInfo.size})` : 'Before-Repair Inspection Photo'} • {uploadedFileInfo?.timestamp || new Date().toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <div className="inspection-photo-card-actions">
+                      <button
+                        type="button"
+                        onClick={handleTriggerFileInput}
+                        className="inspection-photo-action-btn replace"
+                        title="Upload a different image"
+                      >
+                        🔄 Change Image
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRemovePhoto}
+                        className="inspection-photo-action-btn remove"
+                        title="Remove image"
+                      >
+                        🗑️ Remove
+                      </button>
+                    </div>
+                  </div>
 
-              {/* Custom Image URL input option */}
-              <input
-                type="text"
-                placeholder="Or paste external photo image URL..."
-                value={customPhotoUrl}
-                onChange={(e) => setCustomPhotoUrl(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '7px 10px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--line)',
-                  fontSize: 12,
-                }}
-              />
+                  <div className="inspection-photo-preview-wrap">
+                    <img
+                      src={beforePhoto}
+                      alt="Contractor Inspection Before Preview"
+                      className="photo-preview-img"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 5. Remarks */}
-            <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-                Inspection Remarks & Safety Notes
+            <div className="inspection-form-group">
+              <label className="inspection-form-label">
+                Inspection Remarks &amp; Safety Notes
               </label>
               <input
                 type="text"
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
                 placeholder="Additional notes for Department Head or Desk Clerk..."
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--line-strong)',
-                  fontSize: 13.5,
-                }}
+                className="inspection-form-input"
+                style={{ marginTop: 0 }}
               />
             </div>
 
             {/* Submit & Next Button Group */}
-            <div style={{ display: 'flex', gap: 12, marginTop: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+            <div className="inspection-actions-row">
               <button
                 type="button"
                 onClick={() => handleSave(false)}
@@ -422,20 +449,12 @@ export default function SiteInspection({
                 className="btn-contractor-primary"
                 style={{ padding: '10px 22px' }}
               >
-                Save & Create AMC Estimate &rarr;
+                Save &amp; Create AMC Estimate &rarr;
               </button>
             </div>
           </form>
         </div>
       </div>
-
-      <style>{`
-        @media (max-width: 860px) {
-          .inspection-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </div>
   )
 }

@@ -37,8 +37,8 @@ router.post('/register-township', authRateLimiter, registerTownship);
 /**
  * @route   POST /api/v1/auth/set-password
  * @desc    Update / set user password with strict validation
- * @access  Public
+ * @access  Private
  */
-router.post('/set-password', authRateLimiter, setPassword);
+router.post('/set-password', authenticate, authRateLimiter, setPassword);
 
 export default router;

@@ -53,7 +53,7 @@ const router = express.Router();
 
 // Allowed roles for clerk actions
 const CLERK_ROLES = ['DESK_CLERK', 'TOWNSHIP_COO'];
-const VIEW_ROLES  = ['DESK_CLERK', 'TOWNSHIP_COO', 'DEPARTMENT_HEAD', 'FIELD_CONTRACTOR', 'FINANCE_OFFICER'];
+const VIEW_ROLES  = ['DESK_CLERK', 'TOWNSHIP_COO', 'DEPARTMENT_HEAD', 'FIELD_CONTRACTOR', 'FINANCE_CLERK'];
 
 // -----------------------------------------------------------------------------
 // Complaint Triage, Queue & Validation

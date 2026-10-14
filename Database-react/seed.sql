@@ -79,7 +79,8 @@ VALUES
     ('10000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000001', 'Er. Rajesh K. Sharma', 'head@infralynx.com', 'dept_head', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'DEPARTMENT_HEAD', 'd0000000-0000-0000-0000-000000000001', NULL, NULL, '+91 99100 87654'),
     ('10000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000001', 'Sunil Agrawal, CA', 'finance@infralynx.com', 'finance_clerk', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'FINANCE_CLERK', NULL, NULL, 'Finance Block A', '+91 98188 76543'),
     ('10000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000001', 'Col. (Retd.) Sanjeev Dewan', 'coo@infralynx.com', 'township_coo', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'TOWNSHIP_COO', NULL, NULL, 'Executive Tower', '+91 98111 99887'),
-    ('10000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000001', 'Anjali Gupta', 'anjali.gupta@infralynx.com', 'clerk_anjali', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'DESK_CLERK', 'd0000000-0000-0000-0000-000000000001', NULL, 'Sector 54', '+91 98733 44556');
+    ('10000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000001', 'Anjali Gupta', 'anjali.gupta@infralynx.com', 'clerk_anjali', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'DESK_CLERK', 'd0000000-0000-0000-0000-000000000001', NULL, 'Sector 54', '+91 98733 44556'),
+    ('10000000-0000-0000-0000-000000000008', 'b0000000-0000-0000-0000-000000000001', 'Platform Super Admin', 'superadmin@infralynx.com', 'superadmin', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'SUPER_ADMIN', NULL, NULL, 'Headquarters', '+91 99999 00001');
 
 -- Bind Department Head
 UPDATE departments SET department_head_id = '10000000-0000-0000-0000-000000000004' WHERE id = 'd0000000-0000-0000-0000-000000000001';

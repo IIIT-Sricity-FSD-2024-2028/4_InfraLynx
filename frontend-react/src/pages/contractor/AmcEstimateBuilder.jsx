@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
+import './styles/AmcEstimateBuilder.css'
 
 export default function AmcEstimateBuilder({
   jobs = [],
@@ -206,9 +207,9 @@ export default function AmcEstimateBuilder({
 
   if (!currentJob) {
     return (
-      <div className="contractor-card" style={{ textAlign: 'center', padding: 48 }}>
+      <div className="contractor-card estimate-empty-card">
         <h3>No Work Order Selected</h3>
-        <p style={{ color: 'var(--text-soft)' }}>Please select a job from the Work Orders tab.</p>
+        <p className="estimate-sub">Please select a job from the Work Orders tab.</p>
         <button onClick={() => onNavigate('workorders')} className="btn-contractor-primary" style={{ marginTop: 16 }}>
           View Work Orders &rarr;
         </button>
@@ -217,9 +218,9 @@ export default function AmcEstimateBuilder({
   }
 
   return (
-    <div>
+    <div className="estimate-builder-root">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+      <div className="estimate-header">
         <div>
           <button
             onClick={() => onNavigate('workorders')}
@@ -228,17 +229,17 @@ export default function AmcEstimateBuilder({
           >
             &larr; Back to Work Orders
           </button>
-          <h1 style={{ fontFamily: 'var(--font-head)', fontSize: 24, fontWeight: 800, color: 'var(--text)', margin: 0 }}>
+          <h1 className="estimate-title">
             AMC Contractual Estimate Builder
           </h1>
-          <p style={{ color: 'var(--text-soft)', fontSize: 13.5, margin: '2px 0 0' }}>
+          <p className="estimate-sub">
             Select empanelled AMC rate items — automatic quantity × contractual rate computation.
           </p>
         </div>
 
         {/* Work Order Switcher */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Job:</label>
+        <div className="estimate-switcher">
+          <label className="estimate-switcher-label">Job:</label>
           <select
             value={currentJob.id}
             onChange={(e) => {
@@ -246,14 +247,8 @@ export default function AmcEstimateBuilder({
               const sel = jobs.find((j) => j.id === e.target.value)
               if (sel) onSelectJob(sel)
             }}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--line-strong)',
-              fontSize: 13,
-              fontWeight: 600,
-              background: '#ffffff',
-            }}
+            className="estimate-rate-select"
+            style={{ width: 'auto', minWidth: 200 }}
           >
             {jobs.map((j) => (
               <option key={j.id} value={j.id}>
@@ -265,42 +260,20 @@ export default function AmcEstimateBuilder({
       </div>
 
       {submittedMessage && (
-        <div
-          style={{
-            padding: '14px 18px',
-            background: '#ecfdf5',
-            border: '1.5px solid #10b981',
-            borderRadius: 'var(--radius-md)',
-            color: '#065f46',
-            fontSize: 14,
-            fontWeight: 700,
-            marginBottom: 20,
-          }}
-        >
+        <div className="estimate-success-alert">
           ✓ {submittedMessage}
         </div>
       )}
 
       {/* Dept Head Revision Alert if in revision status */}
       {currentJob.status === 'REVISION_REQUESTED' && (
-        <div
-          style={{
-            background: '#fff7ed',
-            border: '1.5px solid #fdba74',
-            borderRadius: 'var(--radius-md)',
-            padding: '16px 20px',
-            marginBottom: 20,
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 12,
-          }}
-        >
+        <div className="estimate-threshold-warning exceeded" style={{ padding: '16px 20px', marginBottom: 20 }}>
           <span style={{ fontSize: 24 }}>⚠️</span>
           <div>
-            <div style={{ fontWeight: 800, color: '#9a3412', fontSize: 14.5 }}>
+            <div style={{ fontWeight: 800, fontSize: 14.5 }}>
               Department Head Revision Notice
             </div>
-            <div style={{ fontSize: 13.5, color: '#7c2d12', marginTop: 3 }}>
+            <div style={{ fontSize: 13.5, marginTop: 3 }}>
               {currentJob.estimate?.revisionReason ||
                 'Please adjust general labour or material quantities to align with municipal rate card ceilings.'}
             </div>
@@ -377,12 +350,12 @@ export default function AmcEstimateBuilder({
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div className="estimate-card-header">
             <div>
-              <h3 style={{ fontSize: 17, fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+              <h3 className="estimate-card-title">
                 Contractual Line Items
               </h3>
-              <p style={{ fontSize: 12.5, color: 'var(--text-soft)', margin: '2px 0 0' }}>
+              <p className="estimate-card-sub">
                 Unit and rate are locked by the empanelled AMC Agreement ({currentJob.category || 'Electrical'} Schedule)
               </p>
             </div>
@@ -398,7 +371,7 @@ export default function AmcEstimateBuilder({
 
           {/* Table of Line Items */}
           <div className="contractor-table-wrap" style={{ marginBottom: 20 }}>
-            <table className="contractor-table">
+            <table className="contractor-table estimate-items-table">
               <thead>
                 <tr>
                   <th style={{ width: '40%' }}>AMC Service / Material Item</th>
@@ -439,15 +412,7 @@ export default function AmcEstimateBuilder({
                           <select
                             value={item.rateCardId}
                             onChange={(e) => handleRateCardChange(idx, e.target.value)}
-                            style={{
-                              width: '100%',
-                              padding: '8px 10px',
-                              borderRadius: 'var(--radius-sm)',
-                              border: '1px solid var(--line-strong)',
-                              fontSize: 13,
-                              fontWeight: 600,
-                              background: '#ffffff',
-                            }}
+                            className="estimate-rate-select"
                           >
                             {amcRateCards.map((rc) => (
                               <option key={rc.id} value={rc.id}>
@@ -458,23 +423,13 @@ export default function AmcEstimateBuilder({
                         </td>
 
                         <td>
-                          <span
-                            style={{
-                              padding: '4px 8px',
-                              background: '#f1f5f9',
-                              borderRadius: 4,
-                              fontSize: 12,
-                              fontFamily: 'var(--font-mono)',
-                              color: '#475569',
-                              fontWeight: 600,
-                            }}
-                          >
+                          <span className="contractor-category-tag">
                             {item.unit}
                           </span>
                         </td>
 
                         <td>
-                          <strong style={{ fontFamily: 'var(--font-mono)', fontSize: 13.5 }}>
+                          <strong className="estimate-rate-val">
                             ₹{item.rate}
                           </strong>
                         </td>
@@ -486,15 +441,10 @@ export default function AmcEstimateBuilder({
                             max="999"
                             value={item.qty}
                             onChange={(e) => handleQtyChange(idx, e.target.value)}
+                            className="estimate-qty-input"
                             style={{
-                              width: 80,
-                              padding: '6px 8px',
-                              borderRadius: 'var(--radius-sm)',
-                              border: isQtyInvalid ? '1.5px solid #ef4444' : '1px solid var(--line-strong)',
-                              backgroundColor: isQtyInvalid ? '#fff5f5' : '#ffffff',
-                              fontSize: 13.5,
-                              fontFamily: 'var(--font-mono)',
-                              fontWeight: 700,
+                              borderColor: isQtyInvalid ? '#ef4444' : undefined,
+                              backgroundColor: isQtyInvalid ? '#fff5f5' : undefined,
                             }}
                           />
                           {isQtyInvalid && (
@@ -505,13 +455,7 @@ export default function AmcEstimateBuilder({
                         </td>
 
                         <td style={{ textAlign: 'right' }}>
-                          <strong
-                            style={{
-                              fontFamily: 'var(--font-mono)',
-                              fontSize: 14,
-                              color: '#0369a1',
-                            }}
-                          >
+                          <strong className="estimate-subtotal-val">
                             ₹{item.subtotal.toLocaleString('en-IN')}
                           </strong>
                         </td>
@@ -520,15 +464,7 @@ export default function AmcEstimateBuilder({
                           <button
                             type="button"
                             onClick={() => handleRemoveRow(idx)}
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              color: '#ef4444',
-                              cursor: 'pointer',
-                              fontSize: 16,
-                              fontWeight: 700,
-                              padding: '4px 8px',
-                            }}
+                            className="estimate-del-btn"
                             title="Remove row"
                           >
                             ✕
@@ -561,20 +497,7 @@ export default function AmcEstimateBuilder({
           </div>
 
           {/* Threshold Notice Box */}
-          <div
-            style={{
-              padding: '12px 16px',
-              borderRadius: 'var(--radius-sm)',
-              background: exceedsThreshold ? '#fff7ed' : '#f0f9ff',
-              border: exceedsThreshold ? '1px solid #fdba74' : '1px solid #bae6fd',
-              fontSize: 12.5,
-              color: exceedsThreshold ? '#9a3412' : '#0369a1',
-              marginBottom: 20,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-            }}
-          >
+          <div className={`estimate-threshold-warning ${exceedsThreshold ? 'exceeded' : ''}`} style={{ marginBottom: 20 }}>
             <span style={{ fontSize: 18 }}>{exceedsThreshold ? 'ℹ️' : '✓'}</span>
             <span>
               {exceedsThreshold ? (
@@ -590,10 +513,10 @@ export default function AmcEstimateBuilder({
           </div>
 
           {/* Scope & Justification Notes */}
-          <div style={{ marginBottom: 20 }}>
+          <div className="estimate-form-group">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
-                Technical Estimate Justification & Scope Remarks <span style={{ color: '#dc2626' }}>*</span>
+              <label className="estimate-label">
+                Technical Estimate Justification &amp; Scope Remarks <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <span
                 style={{
@@ -610,25 +533,21 @@ export default function AmcEstimateBuilder({
               value={justification}
               onChange={handleJustificationChange}
               placeholder="Provide technical reason for replacement and scope adherence (minimum 10 characters)..."
+              className="estimate-textarea"
               style={{
-                width: '100%',
-                padding: '9px 12px',
-                borderRadius: 'var(--radius-sm)',
-                border: (touched && formErrors.justification) ? '1.5px solid #ef4444' : '1px solid var(--line-strong)',
-                backgroundColor: (touched && formErrors.justification) ? '#fff5f5' : '#ffffff',
-                fontSize: 13,
-                fontFamily: 'inherit',
+                borderColor: (touched && formErrors.justification) ? '#ef4444' : undefined,
+                backgroundColor: (touched && formErrors.justification) ? '#fff5f5' : undefined,
               }}
             />
             {touched && formErrors.justification && (
-              <span style={{ color: '#dc2626', fontSize: 12, fontWeight: 600, display: 'block', marginTop: 4 }}>
+              <span className="estimate-validation-error">
                 ⚠️ {formErrors.justification}
               </span>
             )}
           </div>
 
           {/* Actions */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, alignItems: 'center' }}>
+          <div className="estimate-actions-row">
             <button
               type="button"
               onClick={() => onNavigate('workorders')}

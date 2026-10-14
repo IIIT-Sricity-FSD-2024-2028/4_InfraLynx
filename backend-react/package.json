@@ -2,7 +2,7 @@
   "name": "backend-react",
   "version": "1.0.0",
   "type": "module",
-  "description": "TIMS Backend API with In-Memory Relational Engine using Express.js",
+  "description": "TIMS Backend API with Neon Cloud PostgreSQL using Express.js",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -13,7 +13,7 @@
   "keywords": [
     "tims",
     "express",
-    "in-memory",
+    "postgresql",
     "infralynx"
   ],
   "author": "TIMS Engineering Team",

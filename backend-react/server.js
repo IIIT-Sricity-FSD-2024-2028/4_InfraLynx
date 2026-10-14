@@ -7,16 +7,17 @@ const PORT = config.port || 5000;
 const startServer = async () => {
   try {
     console.log('---------------------------------------------------------');
-    console.log(`  TIMS Backend API Server (Express + ${config.dbMode === 'POSTGRES' ? 'Neon PostgreSQL' : 'In-Memory Engine'})   `);
+    console.log(`  TIMS Backend API Server (Express + Neon PostgreSQL)   `);
     console.log('---------------------------------------------------------');
     console.log(`[Config] Environment: ${config.nodeEnv}`);
     console.log(`[Config] Port: ${PORT}`);
-    console.log(`[Config] Database Engine: ${config.dbMode === 'POSTGRES' ? 'PostgreSQL (Neon Cloud Connected)' : '100% In-Memory RAM Store'}`);
+    console.log(`[Config] Database Engine: PostgreSQL (Neon Cloud Connected)`);
     console.log(`[Config] Upload Directory: ${config.upload.dir}`);
     console.log('---------------------------------------------------------');
 
-    // Confirm In-Memory DB connection
+    // Confirm Neon Cloud PostgreSQL connection
     await db.testConnection();
+    await db.refreshTablesFromPostgres();
 
     const server = app.listen(PORT, () => {
       console.log(`🚀 [Server] Listening on http://localhost:${PORT}`);

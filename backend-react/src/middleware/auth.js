@@ -95,7 +95,7 @@ export const authenticate = async (req, res, next) => {
 
     // Tenant suspension must revoke access immediately, including for existing JWTs.
     const township = user.township_id ? db.findById('townships', user.township_id) : null;
-    if (township?.status === 'SUSPENDED') {
+    if (user.role !== 'SUPER_ADMIN' && township?.status === 'SUSPENDED') {
       return res.status(403).json({
         success: false,
         error: {

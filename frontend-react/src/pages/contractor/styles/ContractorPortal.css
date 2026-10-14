@@ -73,12 +73,12 @@
   display: block;
 }
 
-/* Blue Role Badge */
+/* Role Badge - Matches Image 2 */
 .contractor-role-badge {
-  background: rgba(2, 132, 199, 0.12);
-  color: #0369a1;
-  border: 1px solid rgba(2, 132, 199, 0.35);
-  padding: 4px 12px;
+  background: var(--primary-subtle, #ecfdf5);
+  color: var(--primary-darker, #15803d);
+  border: 1px solid rgba(22, 163, 74, 0.25);
+  padding: 3px 10px;
   border-radius: var(--radius-full);
   font-size: 12px;
   font-weight: 700;
@@ -91,12 +91,11 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #0284c7;
-  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.3);
+  background: var(--primary, #16a34a);
   display: inline-block;
 }
 
-/* User Actions */
+/* User Actions - Matches Image 2 */
 .contractor-user-actions {
   display: flex;
   align-items: center;
@@ -118,7 +117,13 @@
 }
 
 .contractor-user-badge {
+  font-size: 13px;
   text-align: right;
+  line-height: 1.3;
+  background: #f8faf8;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
 }
 
 .contractor-user-name {
@@ -130,30 +135,31 @@
 }
 
 .contractor-user-role {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--text-soft);
   white-space: nowrap;
+  margin-top: 1px;
 }
 
 .contractor-btn-exit {
-  background: #0284c7;
-  border: none;
-  color: #ffffff;
-  font-size: 12.5px;
-  font-weight: 700;
   padding: 7px 14px;
   border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: #f1f5f9;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
-  box-shadow: 0 1px 3px rgba(2, 132, 199, 0.3);
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
 }
 
 .contractor-btn-exit:hover {
-  background: #0369a1;
-  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.4);
+  background: #e2e8f0;
+  border-color: var(--line-strong);
 }
 
 /* ── Tabs Navigation ────────────────────────────────────────────── */

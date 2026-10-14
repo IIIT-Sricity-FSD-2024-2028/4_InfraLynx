@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import config from '../config/env.js';
 
-const SALT_ROUNDS = 10;
+const SALT_ROUNDS = 12;
 
 /**
  * Hash a plain text password using bcrypt
@@ -43,6 +43,8 @@ export const generateToken = (user) => {
 
   return jwt.sign(payload, config.jwt.secret, {
     expiresIn: config.jwt.expiresIn,
+    issuer: config.jwt.issuer,
+    audience: config.jwt.audience,
   });
 };
 
@@ -52,7 +54,10 @@ export const generateToken = (user) => {
  * @returns {Object} Decoded payload
  */
 export const verifyToken = (token) => {
-  return jwt.verify(token, config.jwt.secret);
+  return jwt.verify(token, config.jwt.secret, {
+    issuer: config.jwt.issuer,
+    audience: config.jwt.audience,
+  });
 };
 
 export default {

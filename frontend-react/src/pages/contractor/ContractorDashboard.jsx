@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import './styles/ContractorDashboard.css'
 
 export default function ContractorDashboard({
   jobs = [],
@@ -50,36 +51,14 @@ export default function ContractorDashboard({
   }
 
   return (
-    <div>
+    <div className="contractor-dashboard-root">
       {/* Toast Notice */}
       {successNotice && (
-        <div
-          style={{
-            padding: '14px 18px',
-            background: '#ecfdf5',
-            border: '1.5px solid #34d399',
-            borderRadius: 'var(--radius-md)',
-            color: '#065f46',
-            fontWeight: 600,
-            fontSize: 14,
-            marginBottom: 20,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            boxShadow: 'var(--shadow-sm)',
-          }}
-        >
+        <div className="contractor-success-toast">
           <span>✓ {successNotice.message}</span>
           <button
             onClick={onDismissNotice}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#065f46',
-              fontSize: 16,
-              fontWeight: 800,
-              cursor: 'pointer',
-            }}
+            className="contractor-toast-close"
           >
             ✕
           </button>
@@ -88,27 +67,14 @@ export default function ContractorDashboard({
 
       {/* Disputed / Rework Alert Banner */}
       {disputedJobs.length > 0 && (
-        <div
-          style={{
-            background: '#fef2f2',
-            border: '1.5px solid #f87171',
-            borderRadius: 'var(--radius-md)',
-            padding: '16px 20px',
-            marginBottom: 24,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 16,
-            boxShadow: 'var(--shadow-sm)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <span style={{ fontSize: 24 }}>⚠️</span>
+        <div className="contractor-alert-banner">
+          <div className="contractor-alert-content">
+            <span className="contractor-alert-icon">⚠️</span>
             <div>
-              <div style={{ fontWeight: 800, color: '#991b1b', fontSize: 15 }}>
+              <div className="contractor-alert-title">
                 Priority Action: {disputedJobs.length} RWA Disputed Job Requiring Corrective Rework
               </div>
-              <div style={{ fontSize: 13, color: '#7f1d1d', marginTop: 2 }}>
+              <div className="contractor-alert-sub">
                 Resident representative flagged defect or incomplete repair. Zero-cost rework mandate applies under AMC agreement.
               </div>
             </div>
@@ -120,8 +86,7 @@ export default function ContractorDashboard({
                 onNavigate('rework')
               }
             }}
-            className="btn-contractor-primary"
-            style={{ background: '#dc2626', borderColor: '#b91c1c', whiteSpace: 'nowrap' }}
+            className="btn-contractor-primary contractor-alert-btn"
           >
             Review Disputed Rework →
           </button>
@@ -129,18 +94,18 @@ export default function ContractorDashboard({
       )}
 
       {/* Header with Title & Quick Info */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+      <div className="contractor-dash-header">
         <div>
-          <h1 style={{ fontFamily: 'var(--font-head)', fontSize: 24, fontWeight: 800, color: 'var(--text)', margin: 0 }}>
+          <h1 className="contractor-dash-title">
             Field Contractor Operations Center
           </h1>
-          <p style={{ color: 'var(--text-soft)', fontSize: 14, margin: '4px 0 0' }}>
+          <p className="contractor-dash-sub">
             Inspect ground assets, generate AMC rate-card estimates, execute repairs, and submit verifiable photo evidence.
           </p>
         </div>
 
         {/* Quick actions button group */}
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div className="contractor-quick-actions">
           <button
             onClick={() => onNavigate('workorders')}
             className="btn-contractor-secondary"
@@ -165,29 +130,27 @@ export default function ContractorDashboard({
         <div
           className="contractor-stat-tile"
           onClick={() => onNavigate('workorders')}
-          style={{ cursor: 'pointer' }}
         >
           <div>
             <div className="contractor-stat-val">{assignedJobs.length}</div>
             <div className="contractor-stat-lbl">Assigned Jobs</div>
           </div>
-          <div style={{ fontSize: 11.5, color: '#0284c7', marginTop: 8, fontWeight: 700 }}>
-            Pending Inspection & Estimate →
+          <div className="contractor-stat-link blue">
+            Pending Inspection &amp; Estimate →
           </div>
         </div>
 
         <div
           className="contractor-stat-tile amber"
           onClick={() => onNavigate('execution')}
-          style={{ cursor: 'pointer' }}
         >
           <div>
-            <div className="contractor-stat-val" style={{ color: '#d97706' }}>
+            <div className="contractor-stat-val">
               {inProgressJobs.length}
             </div>
             <div className="contractor-stat-lbl">Jobs in Progress</div>
           </div>
-          <div style={{ fontSize: 11.5, color: '#d97706', marginTop: 8, fontWeight: 700 }}>
+          <div className="contractor-stat-link amber">
             Active Field Work →
           </div>
         </div>
@@ -195,15 +158,14 @@ export default function ContractorDashboard({
         <div
           className="contractor-stat-tile green"
           onClick={() => onNavigate('workorders')}
-          style={{ cursor: 'pointer' }}
         >
           <div>
-            <div className="contractor-stat-val" style={{ color: '#16a34a' }}>
+            <div className="contractor-stat-val">
               {completedJobs.length}
             </div>
             <div className="contractor-stat-lbl">Completed Jobs</div>
           </div>
-          <div style={{ fontSize: 11.5, color: '#16a34a', marginTop: 8, fontWeight: 700 }}>
+          <div className="contractor-stat-link green">
             Awaiting RWA Sign-off / Closed →
           </div>
         </div>
@@ -211,15 +173,14 @@ export default function ContractorDashboard({
         <div
           className="contractor-stat-tile red"
           onClick={() => onNavigate('rework')}
-          style={{ cursor: 'pointer' }}
         >
           <div>
-            <div className="contractor-stat-val" style={{ color: '#dc2626' }}>
+            <div className="contractor-stat-val">
               {disputedJobs.length}
             </div>
             <div className="contractor-stat-lbl">Reopened / Disputed Jobs</div>
           </div>
-          <div style={{ fontSize: 11.5, color: '#dc2626', marginTop: 8, fontWeight: 700 }}>
+          <div className="contractor-stat-link red">
             Requires Corrective Rework →
           </div>
         </div>
@@ -227,33 +188,32 @@ export default function ContractorDashboard({
         <div
           className="contractor-stat-tile purple"
           onClick={() => onNavigate('approvals')}
-          style={{ cursor: 'pointer' }}
         >
           <div>
-            <div className="contractor-stat-val" style={{ color: '#7c3aed' }}>
+            <div className="contractor-stat-val">
               {revisionJobs.length}
             </div>
             <div className="contractor-stat-lbl">Revisions Requested</div>
           </div>
-          <div style={{ fontSize: 11.5, color: '#7c3aed', marginTop: 8, fontWeight: 700 }}>
+          <div className="contractor-stat-link purple">
             Dept Head Feedback Pending →
           </div>
         </div>
       </div>
 
       {/* Active Work Orders & SLA Countdown Table */}
-      <div className="contractor-card" style={{ marginBottom: 28 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+      <div className="contractor-card contractor-table-card">
+        <div className="contractor-table-header-row">
           <div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0, color: 'var(--text)' }}>
-              Active Jobs & Real-Time SLA Countdown
+            <h3 className="contractor-table-title">
+              Active Jobs &amp; Real-Time SLA Countdown
             </h3>
-            <p style={{ fontSize: 13, color: 'var(--text-soft)', margin: '3px 0 0' }}>
+            <p className="contractor-table-sub">
               Real-time countdown timer tracking contractual service level agreement compliance.
             </p>
           </div>
-          <span style={{ fontSize: 12, color: 'var(--text-soft)', fontFamily: 'var(--font-mono)' }}>
-            Contractual SLA Rate: <strong style={{ color: '#16a34a' }}>98.4% Compliant</strong>
+          <span className="contractor-compliance-badge">
+            Contractual SLA Rate: <strong className="contractor-compliance-val">98.4% Compliant</strong>
           </span>
         </div>
 
@@ -276,49 +236,29 @@ export default function ContractorDashboard({
                 return (
                   <tr key={job.id}>
                     <td>
-                      <strong style={{ fontFamily: 'var(--font-mono)', color: '#0369a1' }}>
+                      <strong className="contractor-wo-code">
                         {job.workOrderId || job.id}
                       </strong>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                      <div className="contractor-location-sub">
                         {job.location?.sector} • {job.location?.block}
                       </div>
                     </td>
 
-                    <td style={{ maxWidth: 320 }}>
-                      <div style={{ fontWeight: 700, color: 'var(--text)' }}>{job.title}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-soft)' }}>
+                    <td className="contractor-asset-cell">
+                      <div className="contractor-asset-title">{job.title}</div>
+                      <div className="contractor-asset-sub">
                         Asset: {job.location?.assetName || job.location?.assetId}
                       </div>
                     </td>
 
                     <td>
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          padding: '3px 8px',
-                          background: '#f1f5f9',
-                          borderRadius: 4,
-                          color: '#334155',
-                        }}
-                      >
+                      <span className="contractor-category-tag">
                         {job.category}
                       </span>
                     </td>
 
                     <td>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color:
-                            job.severity === 'Emergency'
-                              ? '#dc2626'
-                              : job.severity === 'High'
-                              ? '#ea580c'
-                              : '#475569',
-                        }}
-                      >
+                      <span className={`contractor-severity-dot ${job.severity?.toLowerCase() || 'medium'}`}>
                         ● {job.severity}
                       </span>
                     </td>
@@ -360,8 +300,7 @@ export default function ContractorDashboard({
                             onSelectJob(job)
                             onNavigate('inspection')
                           }}
-                          className="btn-contractor-primary"
-                          style={{ padding: '6px 12px', fontSize: 12 }}
+                          className="btn-contractor-primary btn-table-action"
                         >
                           Inspect Site →
                         </button>
@@ -373,8 +312,7 @@ export default function ContractorDashboard({
                             onSelectJob(job)
                             onNavigate('estimate')
                           }}
-                          className="btn-contractor-primary"
-                          style={{ padding: '6px 12px', fontSize: 12, background: '#ea580c' }}
+                          className="btn-contractor-primary btn-table-action orange"
                         >
                           Revise Estimate →
                         </button>
@@ -386,8 +324,7 @@ export default function ContractorDashboard({
                             onSelectJob(job)
                             onNavigate('execution')
                           }}
-                          className="btn-contractor-primary"
-                          style={{ padding: '6px 12px', fontSize: 12, background: '#d97706' }}
+                          className="btn-contractor-primary btn-table-action amber"
                         >
                           Execute Work →
                         </button>
@@ -399,8 +336,7 @@ export default function ContractorDashboard({
                             onSelectJob(job)
                             onNavigate('rework')
                           }}
-                          className="btn-contractor-primary"
-                          style={{ padding: '6px 12px', fontSize: 12, background: '#dc2626' }}
+                          className="btn-contractor-primary btn-table-action red"
                         >
                           Rework Details →
                         </button>
@@ -412,8 +348,7 @@ export default function ContractorDashboard({
                             onSelectJob(job)
                             onNavigate('execution')
                           }}
-                          className="btn-contractor-secondary"
-                          style={{ padding: '6px 12px', fontSize: 12 }}
+                          className="btn-contractor-secondary btn-table-action"
                         >
                           View Evidence ✓
                         </button>
@@ -425,8 +360,7 @@ export default function ContractorDashboard({
                             onSelectJob(job)
                             onNavigate('approvals')
                           }}
-                          className="btn-contractor-secondary"
-                          style={{ padding: '6px 12px', fontSize: 12 }}
+                          className="btn-contractor-secondary btn-table-action"
                         >
                           Approval Status ⏳
                         </button>
@@ -441,12 +375,12 @@ export default function ContractorDashboard({
       </div>
 
       {/* Bottom Guidance Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-        <div className="contractor-card" style={{ background: '#f8fafc' }}>
-          <h4 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 8px', color: '#0369a1' }}>
+      <div className="contractor-guidance-grid">
+        <div className="contractor-card contractor-guidance-card blue">
+          <h4 className="contractor-guidance-title blue">
             Field AMC Guidelines
           </h4>
-          <ul style={{ paddingLeft: 18, fontSize: 13, color: 'var(--text-soft)', lineHeight: 1.6 }}>
+          <ul className="contractor-guidance-list">
             <li>Every estimate must reference contractual AMC Rate Cards (no open pricing).</li>
             <li>Estimates exceeding ₹10,000 threshold require Department Head sign-off.</li>
             <li>Before and After photographs are required for municipal invoice clearance.</li>
@@ -454,18 +388,17 @@ export default function ContractorDashboard({
           </ul>
         </div>
 
-        <div className="contractor-card" style={{ background: '#f0fdf4' }}>
-          <h4 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 8px', color: '#166534' }}>
+        <div className="contractor-card contractor-guidance-card green">
+          <h4 className="contractor-guidance-title green">
             Contractor AMC Settlement Cycle
           </h4>
-          <p style={{ fontSize: 13, color: 'var(--text-soft)', lineHeight: 1.6, margin: 0 }}>
+          <p className="contractor-guidance-text">
             Completed jobs verified by RWA transition directly to Finance for 3-way invoice audit against rate cards. Fast sign-offs unlock immediate staged payment authorization.
           </p>
-          <div style={{ marginTop: 12 }}>
+          <div>
             <button
               onClick={() => onNavigate('workorders')}
-              className="btn-contractor-ghost"
-              style={{ color: '#15803d', padding: 0 }}
+              className="btn-contractor-ghost contractor-guidance-btn"
             >
               Browse Assigned Work Orders &rarr;
             </button>

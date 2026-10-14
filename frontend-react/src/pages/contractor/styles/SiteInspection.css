@@ -1,0 +1,630 @@
+/* SiteInspection.css - Styles for Screen 3: Site Inspection & Preliminary Scoping */
+
+.inspection-root {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Top Header & Job Switcher ──────────────────────────────────── */
+.inspection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.inspection-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inspection-title {
+  font-family: var(--font-head);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+
+.inspection-sub {
+  color: var(--text-soft);
+  font-size: 13.5px;
+  margin: 2px 0 0;
+}
+
+.inspection-switcher {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inspection-switcher-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.inspection-select {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  font-size: 13px;
+  font-weight: 600;
+  background: #ffffff;
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+}
+
+.inspection-select:focus {
+  border-color: #0284c7;
+}
+
+.inspection-empty-card {
+  text-align: center;
+  padding: 48px;
+}
+
+.inspection-saved-alert {
+  padding: 12px 18px;
+  background: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: var(--radius-sm);
+  color: #065f46;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+/* ── 2-Column Responsive Layout ─────────────────────────────────── */
+.inspection-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .inspection-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.inspection-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.inspection-wo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.inspection-wo-code-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-family: var(--font-mono);
+}
+
+.inspection-wo-ref {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+.inspection-complaint-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+
+.inspection-complaint-desc {
+  font-size: 13.5px;
+  color: var(--text-soft);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.inspection-meta-box {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  font-size: 12.5px;
+}
+
+.inspection-meta-lbl {
+  color: var(--text-muted);
+  display: block;
+  font-size: 11px;
+}
+
+.inspection-meta-val {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.inspection-meta-mono {
+  font-family: var(--font-mono);
+}
+
+.inspection-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.inspection-evidence-thumb {
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.inspection-evidence-img {
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+  display: block;
+}
+
+.inspection-evidence-caption {
+  padding: 6px 8px;
+  font-size: 11px;
+  color: var(--text-soft);
+  background: #f8fafc;
+}
+
+/* ── Right Column: Form ────────────────────────────────────────── */
+.inspection-form-card {
+  border: 1.5px solid #0284c7;
+}
+
+.inspection-form-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.inspection-form-title {
+  font-size: 17px;
+  font-weight: 800;
+  margin: 0;
+  color: var(--text);
+}
+
+.inspection-form-sub {
+  font-size: 12px;
+  color: var(--text-soft);
+}
+
+.inspection-form-group {
+  margin-bottom: 18px;
+}
+
+.inspection-form-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.inspection-form-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  font-size: 13.5px;
+  font-family: inherit;
+  line-height: 1.5;
+  outline: none;
+  resize: vertical;
+  min-height: 75px;
+  background: #ffffff;
+  color: var(--text);
+  box-sizing: border-box;
+}
+
+.inspection-form-textarea:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+.inspection-form-input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  font-size: 13px;
+  outline: none;
+  margin-top: 8px;
+  background: #ffffff;
+  color: var(--text);
+  box-sizing: border-box;
+}
+
+.inspection-form-input:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+.inspection-preview-thumb {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  display: block;
+  margin-top: 8px;
+}
+
+.inspection-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+/* ── Condition Selector Toggle Buttons ──────────────────────────── */
+.condition-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.condition-btn {
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--line);
+  background: #ffffff;
+  cursor: pointer;
+  text-align: center;
+  transition: all var(--transition-fast);
+}
+
+.condition-btn:hover {
+  border-color: #0284c7;
+  background: #f0f9ff;
+}
+
+.condition-btn.active {
+  border-color: #0284c7;
+  background: #e0f2fe;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+}
+
+.condition-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  display: block;
+}
+
+.condition-desc {
+  font-size: 11px;
+  color: var(--text-soft);
+  margin-top: 2px;
+  display: block;
+}
+
+/* ── Sample Photo Selector Grid ─────────────────────────────────── */
+.sample-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.sample-photo-tile {
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 2px solid transparent;
+  cursor: pointer;
+  position: relative;
+  aspect-ratio: 4/3;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.sample-photo-tile:hover {
+  transform: scale(1.03);
+}
+
+.sample-photo-tile.selected {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.4);
+}
+
+.sample-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sample-photo-tag {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(15, 23, 42, 0.85);
+  color: #ffffff;
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 3px 6px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Add Image Dropzone & Photo Card Styles ───────────────────────── */
+.inspection-evidence-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.inspection-evidence-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: #15803d;
+  background: #dcfce7;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(22, 163, 74, 0.25);
+}
+
+.inspection-dropzone {
+  border: 2px dashed #94a3b8;
+  border-radius: var(--radius-md);
+  padding: 28px 20px;
+  text-align: center;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.inspection-dropzone:hover,
+.inspection-dropzone.dragover {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+}
+
+.inspection-dropzone-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.inspection-dropzone-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.inspection-dropzone-sub {
+  font-size: 12px;
+  color: var(--text-soft);
+  margin-bottom: 14px;
+}
+
+.inspection-dropzone-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #ffffff;
+  border: 1.5px solid #0284c7;
+  color: #0369a1;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.inspection-dropzone-btn:hover {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.inspection-photo-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  overflow: hidden;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.inspection-photo-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inspection-photo-card-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.inspection-photo-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0369a1;
+  background: #e0f2fe;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.inspection-photo-meta-text {
+  font-size: 11.5px;
+  color: var(--text-soft);
+}
+
+.inspection-photo-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inspection-photo-action-btn {
+  padding: 5px 11px;
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all var(--transition-fast);
+}
+
+.inspection-photo-action-btn.replace {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: var(--text);
+}
+
+.inspection-photo-action-btn.replace:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.inspection-photo-action-btn.remove {
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #be123c;
+}
+
+.inspection-photo-action-btn.remove:hover {
+  background: #ffe4e6;
+  border-color: #fda4af;
+}
+
+.inspection-photo-preview-wrap {
+  width: 100%;
+  max-height: 280px;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.inspection-photo-preview-wrap img {
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  display: block;
+}
+
+.inspection-secondary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.inspection-secondary-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.inspection-secondary-label {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.inspection-sample-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.inspection-sample-chip {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--text-soft);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.inspection-sample-chip:hover {
+  border-color: #0284c7;
+  color: #0284c7;
+}
+
+.inspection-sample-chip.active {
+  border-color: #0284c7;
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.inspection-link-toggle {
+  background: transparent;
+  border: none;
+  font-size: 11.5px;
+  color: #0284c7;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.inspection-link-toggle:hover {
+  text-decoration: underline;
+}
+
+.inspection-url-box {
+  margin-top: 8px;
+}
