@@ -72,7 +72,7 @@ export default function Overview({ api }) {
     { icon: '⏸', value: data.suspended ?? 0, label: 'Suspended tenants', sub: 'Access is paused', tone: data.suspended > 0 ? 'red' : 'green' },
     { icon: '👥', value: data.totalUsers ?? 0, label: 'Platform users', sub: 'Tenant accounts', tone: 'blue' },
     { icon: '▤', value: data.totalComplaints ?? 0, label: 'Total complaints', sub: 'Across all tenants', tone: 'blue' },
-    { icon: data.dbHealth?.status === 'HEALTHY' ? '✓' : '!', value: data.dbHealth?.status || '—', label: 'Database status', sub: data.dbHealth?.mode || 'Not reported', tone: data.dbHealth?.status === 'HEALTHY' ? 'green' : 'red' },
+
   ]
 
   return (
@@ -90,10 +90,6 @@ export default function Overview({ api }) {
             </div>
           </div>
           <div className="sa-overview-header-actions">
-            <span className={`sa-store-pill ${data.dbHealth?.status === 'HEALTHY' ? 'healthy' : 'degraded'}`}>
-              <span className="sa-store-status-dot" />
-              {data.dbHealth?.status === 'HEALTHY' ? 'API online' : 'Database unavailable'}
-            </span>
             <button type="button" className="sa-btn sa-btn-secondary sa-overview-refresh" onClick={refreshOverview} disabled={refreshing}>
               <span className={refreshing ? 'sa-refresh-icon is-refreshing' : 'sa-refresh-icon'}>↻</span>
               {refreshing ? 'Refreshing' : 'Refresh'}
@@ -103,8 +99,7 @@ export default function Overview({ api }) {
         <div className="sa-overview-context-row">
           <span>{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
           <span className="sa-overview-context-divider" />
-          <span>{data.dbHealth?.mode === 'IN_MEMORY' ? 'In-memory data store' : data.dbHealth?.mode || 'Platform status'}</span>
-          {data.dbHealth?.postgresConfigured && <span className="sa-overview-context-note">PostgreSQL configured for other services</span>}
+          <span>Platform status</span>
         </div>
       </section>
 
@@ -199,27 +194,7 @@ export default function Overview({ api }) {
             </div>
           </section>
 
-          <section className={`sa-overview-attention${attentionCount ? ' has-alerts' : ''}`} aria-label="Platform attention items">
-            <div className="sa-overview-attention-icon">{attentionCount ? '!' : '✓'}</div>
-            <div className="sa-overview-attention-copy">
-              <div className="sa-overview-attention-title">{attentionCount ? 'Needs attention' : 'Looking good'}</div>
-              <div className="sa-overview-attention-text">
-                {attentionCount
-                  ? `${data.expiringSoon || 0} expiring · ${data.overdue || 0} overdue · ${data.suspended || 0} suspended`
-                  : 'No subscription or tenant issues to review.'}
-              </div>
-            </div>
-          </section>
 
-          {data.dbHealth?.mode === 'IN_MEMORY' && (
-            <section className="sa-overview-persistence" aria-label="Data persistence notice">
-              <div className="sa-overview-persistence-icon">↻</div>
-              <div>
-                <div className="sa-overview-persistence-title">Session-only data</div>
-                <div className="sa-overview-persistence-text">Super Admin records reset when the backend restarts. Durable storage for these records is not yet configured.</div>
-              </div>
-            </section>
-          )}
         </aside>
       </div>
     </div>
