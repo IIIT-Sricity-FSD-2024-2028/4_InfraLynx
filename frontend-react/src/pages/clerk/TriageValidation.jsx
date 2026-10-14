@@ -226,7 +226,6 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
             { label: 'Asset ID',      value: active.location.assetId, mono: true },
             { label: 'Asset Name',    value: active.location.assetName },
             { label: 'Landmark',      value: active.location.landmark || '—' },
-            { label: 'GPS',           value: active.location.gps },
           ].map(a => (
             <div key={a.label} className="tv-attr-item">
               <span className="tv-attr-label">{a.label}</span>

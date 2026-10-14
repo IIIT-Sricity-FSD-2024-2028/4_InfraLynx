@@ -113,7 +113,6 @@ export default function WorkOrderDossierModal({ workOrderId, onClose, onEscalate
                   <div className="dossier-card-content">
                     <p style={{ margin: '0 0 6px' }}><strong>Code:</strong> {data.complaint?.code || 'N/A'}</p>
                     <p style={{ margin: '0 0 6px' }}><strong>Location:</strong> {data.complaint?.sector}, {data.complaint?.block}, {data.complaint?.street}</p>
-                    <p style={{ margin: '0 0 6px' }}><strong>GPS:</strong> {data.complaint?.latitude && data.complaint?.longitude ? `${data.complaint.latitude}° N, ${data.complaint.longitude}° E` : '28.5355° N, 77.3910° E'}</p>
                     <p style={{ margin: '0 0 6px', color: 'var(--text-soft)' }}>{data.complaint?.description}</p>
                     {data.complaint?.photos && data.complaint.photos.length > 0 && (
                       <div style={{ marginTop: '10px' }}>

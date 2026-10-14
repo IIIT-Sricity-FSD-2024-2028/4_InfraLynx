@@ -41,7 +41,6 @@ function sanitizeComplaintHistory(c) {
     assetId: loc.assetId || c.asset_id || 'ASSET-GEN-01',
     assetName: loc.assetName || c.asset_name || c.location_details || 'Township Infrastructure Fixture',
     landmark: loc.landmark || c.location_details || '',
-    gps: loc.gps || c.gps || '28.5355° N, 77.3910° E',
   }
 
   // Resolve contractor entity purely from in-memory database record

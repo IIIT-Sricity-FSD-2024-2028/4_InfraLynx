@@ -209,10 +209,7 @@ export default function SiteInspection({
                 <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: 11 }}>ASSET ID</span>
                 <strong style={{ fontFamily: 'var(--font-mono)' }}>{currentJob.location?.assetId || 'ASSET-GEN'}</strong>
               </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: 11 }}>GPS POSITION</span>
-                <strong style={{ fontFamily: 'var(--font-mono)' }}>{currentJob.location?.gps || '28.5355° N, 77.3910° E'}</strong>
-              </div>
+              
             </div>
           </div>
 
@@ -370,7 +367,7 @@ export default function SiteInspection({
                   }}
                 />
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-                  Geo-tagged Before Photo: {currentJob.location?.gps} • Timestamp: {new Date().toLocaleTimeString()}
+                  Site Inspection Photo • Timestamp: {new Date().toLocaleTimeString()}
                 </div>
               </div>
 

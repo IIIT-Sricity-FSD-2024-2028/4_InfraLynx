@@ -50,6 +50,50 @@ export default function ClerkDashboard({
 
   const deptDisplay = currentUser?.departmentName || currentUser?.department_name || currentUser?.department || 'Operations'
 
+  // Detect clerk's department domain
+  const clerkDeptCategory = useMemo(() => {
+    const name = (currentUser?.departmentName || currentUser?.department_name || currentUser?.department || '').toLowerCase()
+    if (name.includes('electr')) return 'Electrical'
+    if (name.includes('civil') || name.includes('road')) return 'Civil'
+    if (name.includes('water') || name.includes('drain') || name.includes('plumb')) return 'Water'
+    if (name.includes('horticult') || name.includes('garden')) return 'Horticulture'
+    return complaints[0]?.category || null
+  }, [currentUser, complaints])
+
+  // Subcategories belonging strictly to the clerk's department
+  const subcategoryOptions = useMemo(() => {
+    const list = []
+    const seen = new Set()
+
+    // 1. Gather all actual subcategories from complaints in this department
+    complaints.forEach(c => {
+      const sub = c.subCategory || c.subcategory
+      if (sub && typeof sub === 'string' && sub.trim() && !seen.has(sub.trim())) {
+        seen.add(sub.trim())
+        list.push(sub.trim())
+      }
+    })
+
+    // 2. Department-specific standard subcategory defaults
+    const defaults = {
+      Electrical: ['Streetlight Failure', 'Distribution Failure', 'Transformer / Feeder'],
+      Civil: ['Road Damage', 'Drainage Overflow', 'Footpath Hazard'],
+      Water: ['Pipeline Burst', 'Overhead Tank Leak', 'Waterlogging'],
+      Horticulture: ['Tree Pruning', 'Lawn Maintenance', 'Irrigation'],
+    }
+
+    if (clerkDeptCategory && defaults[clerkDeptCategory]) {
+      defaults[clerkDeptCategory].forEach(d => {
+        if (!seen.has(d)) {
+          seen.add(d)
+          list.push(d)
+        }
+      })
+    }
+
+    return list
+  }, [complaints, clerkDeptCategory])
+
   // ── KPI metrics ──────────────────────────────────────────────────────────
   const stats = useMemo(() => ({
     total:            complaints.length,
@@ -77,7 +121,11 @@ export default function ClerkDashboard({
         selectedStatus === 'CLOSED'    ? (c.status === 'CLOSED' || c.status === 'REJECTED') :
         c.status === selectedStatus
 
-      const matchCat = selectedCategory === 'ALL' || (c.category || '').toUpperCase() === selectedCategory
+      const matchCat =
+        selectedCategory === 'ALL'
+          ? true
+          : (c.subCategory || c.subcategory || c.title || '').toLowerCase().includes(selectedCategory.toLowerCase()) ||
+            selectedCategory.toLowerCase().includes((c.subCategory || c.subcategory || '').toLowerCase())
 
       return matchSearch && matchStatus && matchCat
     })
@@ -170,13 +218,19 @@ export default function ClerkDashboard({
           />
         </div>
         <div className="cd-filter-group">
-          {['ALL','CIVIL','ELECTRICAL','WATER','HORTICULTURE'].map(cat => (
+          <button
+            onClick={() => setSelectedCategory('ALL')}
+            className={`cd-filter-btn${selectedCategory === 'ALL' ? ' active' : ''}`}
+          >
+            All Subcategories
+          </button>
+          {subcategoryOptions.map(sub => (
             <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`cd-filter-btn${selectedCategory === cat ? ' active' : ''}`}
+              key={sub}
+              onClick={() => setSelectedCategory(sub)}
+              className={`cd-filter-btn${selectedCategory === sub ? ' active' : ''}`}
             >
-              {cat === 'ALL' ? 'All Subcategories' : cat.charAt(0) + cat.slice(1).toLowerCase()}
+              {sub}
             </button>
           ))}
         </div>

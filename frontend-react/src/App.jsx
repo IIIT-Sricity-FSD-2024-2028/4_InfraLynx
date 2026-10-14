@@ -56,7 +56,7 @@ function updateUrlForPortal(portalKey) {
 }
 
 function AppContent() {
-  const { currentUser, logout } = useTIMS()
+  const { currentUser, logout, setCurrentUser } = useTIMS()
   const [authOpen, setAuthOpen] = useState(false)
   const [authRole, setAuthRole] = useState('rwa')
   const [authNotice, setAuthNotice] = useState(null)
@@ -139,8 +139,17 @@ function AppContent() {
     setAuthOpen(true)
   }
 
-  function handleLoginSuccess(role) {
-    const r = (role || '').toLowerCase()
+  function handleLoginSuccess(userOrRole) {
+    let roleStr = ''
+    if (typeof userOrRole === 'string') {
+      roleStr = userOrRole
+    } else if (userOrRole && typeof userOrRole === 'object') {
+      roleStr = userOrRole.role || ''
+      if (setCurrentUser) {
+        setCurrentUser(userOrRole)
+      }
+    }
+    const r = (roleStr || '').toLowerCase()
     let target = 'rwa'
     if (r === 'finance' || r === 'finance_clerk') target = 'finance'
     else if (r === 'clerk' || r === 'desk_clerk') target = 'clerk'

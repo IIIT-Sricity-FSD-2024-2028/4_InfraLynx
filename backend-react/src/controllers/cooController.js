@@ -760,8 +760,6 @@ export const getWorkOrderDetails = async (req, res, next) => {
               block: complaint.block,
               street: complaint.street,
               locationDetails: complaint.location_details,
-              latitude: complaint.latitude,
-              longitude: complaint.longitude,
               photos: complaint.photos || [],
               history: complaint.history || [],
               verification: complaint.verification || null,

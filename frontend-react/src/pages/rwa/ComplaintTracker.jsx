@@ -264,11 +264,6 @@ export default function ComplaintTracker({
               <strong style={{ fontFamily: 'var(--font-mono)' }}>{activeComplaint.location?.assetId || activeComplaint.asset_id || 'ASSET-01'}</strong>
             </div>
 
-            <div>
-              <span className="attr-label">GPS Township Pin</span>
-              <span style={{ fontSize: 12, color: 'var(--text-soft)' }}>{activeComplaint.location?.gps || activeComplaint.gps || '28.5355° N, 77.3910° E'}</span>
-            </div>
-
             {activeComplaint.assignedContractor && (
               <div>
                 <span className="attr-label">Assigned Agency</span>

@@ -97,9 +97,6 @@ function formatComplaintDetail(complaint) {
       street:          complaint.street || complaint.location?.street || '',
       locationDetails: complaint.location_details || complaint.location?.landmark || '',
       landmark:        complaint.location_details || complaint.location?.landmark || '',
-      latitude:        complaint.latitude || (complaint.location?.gps ? null : 28.5355),
-      longitude:       complaint.longitude || (complaint.location?.gps ? null : 77.3910),
-      gps:             complaint.location?.gps || (complaint.latitude ? `${complaint.latitude}° N, ${complaint.longitude}° E` : null),
     },
     asset: asset
       ? {

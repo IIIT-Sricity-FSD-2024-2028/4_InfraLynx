@@ -70,10 +70,7 @@ export function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
 export function findNearbyDuplicates(targetComplaint, allComplaints = [], radiusMeters = 100) {
   if (!targetComplaint) return [];
 
-  const targetCoords = parseCoordinates(
-    targetComplaint.location?.gps || targetComplaint.gps || targetComplaint.location_details ||
-    (targetComplaint.latitude && targetComplaint.longitude ? { lat: targetComplaint.latitude, lng: targetComplaint.longitude } : null)
-  );
+
   const targetCategory = (targetComplaint.category || '').toLowerCase();
   const targetSector = (targetComplaint.location?.sector || targetComplaint.sector || '').toLowerCase();
   const targetId = targetComplaint.id || targetComplaint.complaint_code;
@@ -92,33 +89,18 @@ export function findNearbyDuplicates(targetComplaint, allComplaints = [], radius
     const categoryMatch = targetCategory && itemCategory && targetCategory === itemCategory;
     const sectorMatch = targetSector && itemSector && targetSector === itemSector;
 
-    const itemCoords = parseCoordinates(
-      item.location?.gps || item.gps || item.location_details ||
-      (item.latitude && item.longitude ? { lat: item.latitude, lng: item.longitude } : null)
-    );
 
-    let distanceMeters = null;
-    let isWithinRadius = false;
 
-    if (targetCoords && itemCoords) {
-      distanceMeters = haversineDistanceMeters(
-        targetCoords.lat,
-        targetCoords.lng,
-        itemCoords.lat,
-        itemCoords.lng
-      );
-      isWithinRadius = distanceMeters <= radiusMeters;
-    } else {
-      // If GPS is missing, check sector + street/asset similarity
-      const targetAsset = (targetComplaint.location?.assetId || targetComplaint.asset_id || '').toLowerCase();
-      const itemAsset = (item.location?.assetId || item.asset_id || '').toLowerCase();
-      if (sectorMatch && targetAsset && targetAsset === itemAsset) {
-        distanceMeters = 25; // estimated proximity
-        isWithinRadius = true;
-      }
-    }
+    // Sector and category similarity check for Desk Clerk review (no GPS required)
+    const targetAsset = (targetComplaint.location?.assetId || targetComplaint.asset_id || '').toLowerCase();
+    const itemAsset = (item.location?.assetId || item.asset_id || '').toLowerCase();
+    const assetMatch = targetAsset && itemAsset && targetAsset === itemAsset;
 
-    if (isWithinRadius || (categoryMatch && sectorMatch && distanceMeters !== null && distanceMeters <= 150)) {
+    const isSuspectedDuplicate = (categoryMatch && sectorMatch) || (sectorMatch && assetMatch);
+
+    if (isSuspectedDuplicate) {
+      const distanceMeters = assetMatch ? 20 : 50;
+      const isWithinRadius = true;
       // Calculate confidence score (0 to 100%)
       let confidence = 50;
       if (categoryMatch) confidence += 30;
