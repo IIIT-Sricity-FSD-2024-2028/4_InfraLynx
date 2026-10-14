@@ -4,16 +4,13 @@ import { superAdminApi } from '../../services/api.js'
 import Overview from './sections/Overview.jsx'
 import TenantsSubscriptions from './sections/TenantsSubscriptions.jsx'
 import UsersAccess from './sections/UsersAccess.jsx'
-import GlobalRules from './sections/GlobalRules.jsx'
-import SystemHealth from './sections/SystemHealth.jsx'
+
 import './styles/SuperAdminPortal.css'
 
 const NAV_TABS = [
   { id: 'overview',  label: 'Overview',                icon: '📊' },
   { id: 'tenants',   label: 'Subscriptions & Tenants', icon: '🏢' },
   { id: 'users',     label: 'Users & Access',          icon: '👥' },
-  { id: 'rules',     label: 'Global Rules & Catalogs', icon: '⚙️' },
-  { id: 'health',    label: 'System Health & Audit',   icon: '🛡️' },
 ]
 
 export default function SuperAdminPortal({ onExitToLanding }) {
@@ -98,8 +95,7 @@ export default function SuperAdminPortal({ onExitToLanding }) {
         {activeTab === 'overview' && <Overview {...sectionProps} />}
         {activeTab === 'tenants'  && <TenantsSubscriptions {...sectionProps} />}
         {activeTab === 'users'    && <UsersAccess {...sectionProps} />}
-        {activeTab === 'rules'    && <GlobalRules {...sectionProps} />}
-        {activeTab === 'health'   && <SystemHealth {...sectionProps} />}
+
       </main>
 
       {/* ── Toast Notification ────────────────────────────────────────── */}
