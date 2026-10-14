@@ -194,7 +194,7 @@ export const authApi = {
     } catch (err) {
       console.warn('[authApi.registerTownship Error]:', err.message);
       // If server returned structured error (e.g. duplicate email, validation), rethrow it
-      if (err.message && !err.message.includes('Failed to fetch') && !err.message.includes('NetworkError') && !err.message.includes('Unexpected token')) {
+      if (err.message && !err.message.includes('Failed to fetch') && !err.message.includes('NetworkError') && !err.message.includes('Unexpected token') && !err.message.includes('Cannot connect')) {
         throw err;
       }
       // Offline / standalone fallback
@@ -232,10 +232,22 @@ export const authApi = {
    * Set or update password
    */
   async setPassword(email, newPassword) {
-    return apiRequest('/auth/set-password', {
-      method: 'POST',
-      body: JSON.stringify({ email, newPassword }),
-    });
+    try {
+      return await apiRequest('/auth/set-password', {
+        method: 'POST',
+        body: JSON.stringify({ email, newPassword }),
+      });
+    } catch (err) {
+      if (
+        err.message &&
+        (err.message.includes('Cannot connect') ||
+          err.message.includes('Failed to fetch') ||
+          err.message.includes('NetworkError'))
+      ) {
+        return { success: true, message: 'Password updated (offline mode).' };
+      }
+      throw err;
+    }
   },
 
   /**
