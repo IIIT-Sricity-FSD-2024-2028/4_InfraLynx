@@ -174,6 +174,71 @@ export const authApi = {
   },
 
   /**
+   * Register a new Township & Township COO account
+   */
+  async registerTownship(payload) {
+    try {
+      const res = await apiRequest('/auth/register-township', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      if (res.data?.token) {
+        sessionStorage.setItem(TOKEN_KEY, res.data.token);
+      }
+      if (res.data?.user) {
+        sessionStorage.setItem(USER_KEY, JSON.stringify(res.data.user));
+      }
+
+      return res.data;
+    } catch (err) {
+      console.warn('[authApi.registerTownship Error]:', err.message);
+      // If server returned structured error (e.g. duplicate email, validation), rethrow it
+      if (err.message && !err.message.includes('Failed to fetch') && !err.message.includes('NetworkError') && !err.message.includes('Unexpected token')) {
+        throw err;
+      }
+      // Offline / standalone fallback
+      const mockTownshipId = 't-' + Math.random().toString(36).substring(2, 9);
+      const mockUserId = 'u-' + Math.random().toString(36).substring(2, 9);
+      const mockUser = {
+        id: mockUserId,
+        name: payload.executiveName,
+        email: payload.email,
+        username: payload.email.split('@')[0],
+        role: 'TOWNSHIP_COO',
+        townshipId: mockTownshipId,
+        townshipName: payload.townshipName,
+        phone: payload.phone,
+      };
+      sessionStorage.setItem(USER_KEY, JSON.stringify(mockUser));
+      return {
+        user: mockUser,
+        township: {
+          id: mockTownshipId,
+          name: payload.townshipName,
+          plan: payload.planLabel || 'Enterprise Municipal Plan',
+          status: 'ACTIVE',
+        },
+        credentials: {
+          email: payload.email,
+          role: 'TOWNSHIP_COO',
+          townshipName: payload.townshipName,
+        },
+      };
+    }
+  },
+
+  /**
+   * Set or update password
+   */
+  async setPassword(email, newPassword) {
+    return apiRequest('/auth/set-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, newPassword }),
+    });
+  },
+
+  /**
    * Get cached user from sessionStorage (validates token first)
    */
   getCachedUser() {

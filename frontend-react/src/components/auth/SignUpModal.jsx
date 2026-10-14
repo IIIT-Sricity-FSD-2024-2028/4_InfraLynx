@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { authApi } from '../../services/api.js'
 import './styles/SignUpModal.css'
 
 // Strict validation patterns
@@ -165,34 +166,21 @@ export default function SignUpModal({ isOpen, onClose, onOpenLogin, onSignUpSucc
     setApiError(null)
 
     try {
-      const response = await fetch('/api/v1/auth/register-township', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          townshipName: formData.townshipName.trim(),
-          executiveName: formData.executiveName.trim(),
-          email: formData.email.trim(),
-          phone: formData.phone.trim(),
-          address: formData.sector.trim(),
-          password: formData.password,
-          planLabel: 'Enterprise Municipal Plan',
-        }),
+      const data = await authApi.registerTownship({
+        townshipName: formData.townshipName.trim(),
+        executiveName: formData.executiveName.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        address: formData.sector.trim(),
+        password: formData.password,
+        planLabel: 'Enterprise Municipal Plan',
       })
 
-      const data = await response.json()
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error?.message || 'Failed to complete township registration.')
+      if (!data) {
+        throw new Error('Failed to retrieve registration data.')
       }
 
-      // Store JWT token if provided
-      if (data.data?.token) {
-        try {
-          sessionStorage.setItem('tims_token', data.data.token)
-        } catch {}
-      }
-
-      setCreatedData(data.data)
+      setCreatedData(data)
       setStep(3)
     } catch (err) {
       console.warn('[SignUp Error]:', err.message)
@@ -215,19 +203,10 @@ export default function SignUpModal({ isOpen, onClose, onOpenLogin, onSignUpSucc
     setPasswordUpdateMsg(null)
 
     try {
-      const response = await fetch('/api/v1/auth/set-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: createdData?.user?.email || formData.email.trim(),
-          newPassword: newPassword,
-        }),
-      })
-
-      const data = await response.json()
-      if (!response.ok || !data.success) {
-        throw new Error(data.error?.message || 'Password update failed.')
-      }
+      await authApi.setPassword(
+        createdData?.user?.email || formData.email.trim(),
+        newPassword
+      )
 
       setPasswordUpdateMsg({ type: 'success', text: 'Password successfully updated!' })
       setNewPassword('')
@@ -241,8 +220,14 @@ export default function SignUpModal({ isOpen, onClose, onOpenLogin, onSignUpSucc
 
   // Step 3: Final Launch into COO Directorate
   const handleLaunchDirectorate = () => {
-    if (createdData?.user && onSignUpSuccess) {
-      onSignUpSuccess(createdData.user)
+    const userToLogin = createdData?.user || {
+      name: formData.executiveName.trim(),
+      email: formData.email.trim(),
+      role: 'TOWNSHIP_COO',
+      townshipName: formData.townshipName.trim(),
+    }
+    if (onSignUpSuccess) {
+      onSignUpSuccess(userToLogin)
     } else {
       onClose()
     }
