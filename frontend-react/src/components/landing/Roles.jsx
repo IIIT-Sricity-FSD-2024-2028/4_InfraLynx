@@ -7,7 +7,7 @@ const ACTORS = [
     type: 'External Liaison',
     summary: 'The external voice connecting township residents directly with infrastructure operations.',
     responsibilities: [
-      'Report infrastructure issues with category, GPS coordinates, severity, and photo evidence.',
+      'Report infrastructure issues with category, sector/location, severity, and photo evidence.',
       'Track live ticket progress and view assigned contractor and estimated completion time.',
       'Inspect contractor resolution evidence (mandatory before/after photo documentation).',
       'Officially confirm issue resolution or trigger the dispute/rework cycle for incomplete repairs.',
@@ -28,7 +28,7 @@ const ACTORS = [
       'Receive dispatched work orders with SLA deadlines and severity level.',
       'Perform technical site inspections and log actual labour and material needs.',
       'Prepare AMC-based estimates using fixed rate cards — no arbitrary markups.',
-      'Upload mandatory geo-tagged before/after proof to mark work completed.',
+      'Upload mandatory before/after photo proof to mark work completed.',
       'Respond immediately to RWA disputes and perform corrective rework without extra billing.',
     ],
     consoleAction: 'Submit AMC Estimate',

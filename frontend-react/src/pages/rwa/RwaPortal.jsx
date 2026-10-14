@@ -68,7 +68,6 @@ export default function RwaPortal({ onExitToLanding }) {
           assetId: 'ASSET-GEN-01',
           assetName: 'General Infrastructure Fixture',
           landmark: '',
-          gps: '28.5355° N, 77.3910° E',
         },
         severity: formData.severity || 'Medium',
         status: 'REPORTED',

@@ -129,7 +129,6 @@ export default function ReportIssue({
           assetId: assetName.split(' ')[0] || 'ASSET-01',
           assetName,
           landmark: landmark.trim() || `Near ${block} entrance`,
-          gps: '28.5355° N, 77.3910° E',
         },
         description,
         photos,

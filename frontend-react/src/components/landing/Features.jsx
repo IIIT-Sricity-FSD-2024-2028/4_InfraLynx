@@ -5,7 +5,7 @@ const HIERARCHY_STEPS = [
   { level: '2. Sector / Zone', desc: 'Geographic and demographic subdivisions' },
   { level: '3. Block / Street', desc: 'Precise micro-location mapping' },
   { level: '4. Physical Asset', desc: 'Identified road, transformer, or pipeline' },
-  { level: '5. Complaint', desc: 'Citizen / RWA geo-tagged issue' },
+  { level: '5. Complaint', desc: 'Citizen / RWA verified issue' },
   { level: '6. Work Order', desc: 'AMC contractor assignment & repair' },
 ]
 
@@ -54,7 +54,7 @@ const TIMS_MODULES = [
     title: 'Complaint Management & Duplicate Triage',
     category: 'operations',
     desc: 'Citizen and RWA photo complaint intake with automated proximity-based duplicate clustering to avoid redundant jobs.',
-    tags: ['Duplicate Filter', 'GPS Photos', 'Triage'],
+    tags: ['Duplicate Review', 'Photo Evidence', 'Triage'],
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />

@@ -26,7 +26,7 @@ export default function Pricing({ onOpenAuth }) {
         'Three-Tier Financial Approval Engine',
         'Location-Based Duplicate Detection Triage',
         'Unlimited AMC Rate Cards & Historical Versions',
-        'Mandatory Before/After GPS Photo Evidence Gate',
+        'Mandatory Before/After Photo Evidence Gate',
         '24/7 SLA Alert Dispatching & Escalations',
       ],
       featured: true,

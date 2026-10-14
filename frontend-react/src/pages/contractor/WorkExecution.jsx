@@ -299,7 +299,7 @@ export default function WorkExecution({
             </div>
             <img src={beforeImage} alt="Before repair" className="photo-preview-img" />
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-              Asset: {currentJob.location?.assetName} • GPS: {currentJob.location?.gps}
+              Asset: {currentJob.location?.assetName} • Location: {currentJob.location?.sector || 'Township Site'}, {currentJob.location?.block || ''}
             </div>
           </div>
 

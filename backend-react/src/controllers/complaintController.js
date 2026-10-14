@@ -52,7 +52,6 @@ const formatComplaintResponse = (complaint) => {
     assetId: loc.assetId || complaint.asset_id || 'ASSET-GEN-01',
     assetName: loc.assetName || complaint.asset_name || complaint.location_details || 'Township Infrastructure Fixture',
     landmark: loc.landmark || complaint.location_details || '',
-    gps: loc.gps || complaint.gps || '28.5355° N, 77.3910° E',
   };
 
   const contractorId = (wo && wo.contractor_id) || complaint.assigned_contractor_id || (complaint.assignedContractor && complaint.assignedContractor.id);
@@ -121,7 +120,6 @@ export const createComplaint = async (req, res, next) => {
       assetId,
       assetName,
       landmark,
-      gps,
       photos: rawPhotos = [],
     } = req.body;
 
@@ -140,7 +138,6 @@ export const createComplaint = async (req, res, next) => {
     const locAssetId = location.assetId || assetId || 'ASSET-GEN-01';
     const locAssetName = location.assetName || assetName || 'Township Infrastructure Fixture';
     const locLandmark = location.landmark || landmark || `Near ${locBlock} entrance`;
-    const locGps = location.gps || gps || '28.5355° N, 77.3910° E';
 
     // Department Auto-Routing
     const dept = findDepartmentByCategory(chosenCategory);
@@ -173,7 +170,6 @@ export const createComplaint = async (req, res, next) => {
       asset_id: locAssetId,
       asset_name: locAssetName,
       location_details: `${locBlock}, ${locStreet} (${locLandmark})`,
-      gps: locGps,
       reported_by_name: req.user.name,
       reported_by_role: req.user.role,
       created_at: now,
