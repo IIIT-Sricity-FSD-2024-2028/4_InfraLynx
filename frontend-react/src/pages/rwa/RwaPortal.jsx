@@ -50,7 +50,7 @@ export default function RwaPortal({ onExitToLanding }) {
     try {
       const created = await complaintApi.createComplaint(formData)
       const newRecord = created?.data || created
-      setComplaints((prev) => [newRecord, ...prev])
+      await loadComplaints()
       return newRecord
     } catch (err) {
       console.warn('[RwaPortal] Offline/Backend notice on create:', err.message)

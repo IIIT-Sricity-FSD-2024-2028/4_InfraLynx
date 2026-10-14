@@ -1,5 +1,5 @@
 /**
- * TIMS Verification & Dispute Service (In-Memory Engine)
+ * TIMS Verification & Dispute Service (PostgreSQL Database Engine)
  * Handles citizen / RWA verification of completed work, dispute logging,
  * and routing tickets back for mandatory rework.
  */
@@ -17,7 +17,7 @@ import { AppError } from '../middleware/error.js';
  * @returns {object} Updated complaint record
  */
 export const verifyComplaint = async (complaintId, user, { rating = 5, remarks = '' } = {}) => {
-  const complaint = db.findById('complaints', complaintId);
+  const complaint = db.findOne('complaints', (c) => c.id === complaintId || c.complaint_code === complaintId);
   if (!complaint) {
     throw new AppError(`Complaint with ID '${complaintId}' not found.`, 404, 'NOT_FOUND');
   }
@@ -25,6 +25,10 @@ export const verifyComplaint = async (complaintId, user, { rating = 5, remarks =
   // Multi-Township isolation check
   if (complaint.township_id !== user.townshipId) {
     throw new AppError('Cross-township operation forbidden.', 403, 'FORBIDDEN');
+  }
+
+  if (user.role === 'RWA' && complaint.reported_by !== user.id) {
+    throw new AppError('Only the reporting RWA user can verify this complaint.', 403, 'COMPLAINT_OWNER_REQUIRED');
   }
 
   // Only complaints awaiting verification can be confirmed
@@ -100,7 +104,7 @@ export const verifyComplaint = async (complaintId, user, { rating = 5, remarks =
  * @returns {object} Updated complaint record
  */
 export const disputeComplaint = async (complaintId, user, { reason = '', remarks = '', notes = '', photos = [] } = {}) => {
-  const complaint = db.findById('complaints', complaintId);
+  const complaint = db.findOne('complaints', (c) => c.id === complaintId || c.complaint_code === complaintId);
   if (!complaint) {
     throw new AppError(`Complaint with ID '${complaintId}' not found.`, 404, 'NOT_FOUND');
   }
@@ -108,6 +112,10 @@ export const disputeComplaint = async (complaintId, user, { reason = '', remarks
   // Multi-Township isolation check
   if (complaint.township_id !== user.townshipId) {
     throw new AppError('Cross-township operation forbidden.', 403, 'FORBIDDEN');
+  }
+
+  if (user.role === 'RWA' && complaint.reported_by !== user.id) {
+    throw new AppError('Only the reporting RWA user can dispute this complaint.', 403, 'COMPLAINT_OWNER_REQUIRED');
   }
 
   // Only complaints awaiting verification can be disputed

@@ -1,6 +1,6 @@
 /**
  * TIMS Complaint Routes (Member 1 - RWA Backend)
- * Connects Express router with JWT Auth, Role RBAC, Multer upload, and In-Memory Controller.
+ * Connects Express router with JWT Auth, Role RBAC, Multer upload, and Complaint Controller.
  */
 
 import express from 'express';

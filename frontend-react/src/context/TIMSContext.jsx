@@ -43,7 +43,7 @@ function sanitizeComplaintHistory(c) {
     landmark: loc.landmark || c.location_details || '',
   }
 
-  // Resolve contractor entity purely from in-memory database record
+  // Resolve contractor entity from database record
   const assignedContractor = c.assignedContractor || (c.assigned_contractor_name ? {
     id: c.assigned_contractor_id || null,
     name: c.assigned_contractor_name,
@@ -166,7 +166,7 @@ export function TIMSProvider({ children }) {
     }
   }, [])
 
-  // Sync live contractors & rate cards from backend master in-memory API
+  // Sync live contractors & rate cards from backend PostgreSQL API
   useEffect(() => {
     let isMounted = true
     if (backendStatus.connected) {
@@ -195,17 +195,18 @@ export function TIMSProvider({ children }) {
     }
   }, [backendStatus.connected])
 
-  // Refresh complaints from in-memory database
+  // Refresh complaints from backend database
   const refreshComplaints = useCallback(async () => {
     try {
       const data = await complaintApi.getComplaints()
       if (Array.isArray(data)) {
         const sanitized = data.map(sanitizeComplaintHistory)
         setComplaints(sanitized)
+        sessionStorage.setItem('tims_complaints_v3', JSON.stringify(sanitized))
         return sanitized
       }
     } catch (err) {
-      console.warn('[TIMSContext] Master in-memory DB complaints sync error:', err.message)
+      console.warn('[TIMSContext] Backend DB complaints sync error:', err.message)
     }
     return []
   }, [])

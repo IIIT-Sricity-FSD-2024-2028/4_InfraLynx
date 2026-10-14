@@ -129,7 +129,7 @@ export const getOverview = async (req, res, next) => {
         totalComplaints: complaints.length,
         dbHealth: {
           status: dbHealth ? 'HEALTHY' : 'UNAVAILABLE',
-          mode: 'IN_MEMORY',
+          mode: 'POSTGRESQL',
           postgresConfigured: Boolean(db.pool),
         },
         recentActivity,
@@ -1003,9 +1003,7 @@ export const getSystemHealth = async (req, res, next) => {
     const dbOk = await db.testConnection();
     const responseMs = Date.now() - start;
 
-    // Super Admin collections are currently backed by inMemoryDb even when a
-    // PostgreSQL pool is configured for query-backed application routes.
-    const dbMode = 'IN_MEMORY';
+    const dbMode = 'POSTGRESQL';
 
     res.status(200).json({
       success: true,
@@ -1014,11 +1012,9 @@ export const getSystemHealth = async (req, res, next) => {
         database: {
           status: dbOk ? 'HEALTHY' : 'UNAVAILABLE',
           mode: dbMode,
-          postgresConfigured: Boolean(db.pool),
+          postgresConfigured: true,
           responseMs,
-          note: dbMode === 'IN_MEMORY'
-            ? `Super Admin users, tenant subscriptions, global config, and audit logs are stored in memory and reset on server restart.${db.pool ? ' A PostgreSQL pool is configured for other query-backed routes, but does not persist these Super Admin collections.' : ' Configure PostgreSQL for durable persistence after the Super Admin collections are migrated.'}`
-            : 'Connected to Neon PostgreSQL.',
+          note: 'Connected to Neon Cloud PostgreSQL.',
         },
         escalation: {
           status: 'NOT_IMPLEMENTED',

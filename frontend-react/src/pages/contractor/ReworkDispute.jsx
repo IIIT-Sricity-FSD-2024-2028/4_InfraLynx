@@ -1,10 +1,5 @@
-import { useState, useEffect } from 'react'
-
-const SAMPLE_REWORK_PHOTOS = [
-  { label: 'Culvert Flushed & Flowing', url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Recalibrated Streetlight Assembly', url: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=800&q=80' },
-  { label: 'Pipe Joint Re-sealed & Pressure Tested', url: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=800&q=80' },
-]
+import { useState, useEffect, useRef } from 'react'
+import './styles/ReworkDispute.css'
 
 export default function ReworkDispute({
   jobs = [],
@@ -21,25 +16,71 @@ export default function ReworkDispute({
 
   const currentJob = jobs.find((j) => j.id === activeJobId) || selectedJob || disputedJobs[0] || jobs[0]
 
-  // Form states
+  // Form states - Starts completely empty (no prefilled dummy values)
   const [correctiveAction, setCorrectiveAction] = useState('')
   const [labourDeployed, setLabourDeployed] = useState('')
-  const [newAfterPhoto, setNewAfterPhoto] = useState(SAMPLE_REWORK_PHOTOS[0].url)
-  const [customPhotoUrl, setCustomPhotoUrl] = useState('')
+  const [newAfterPhoto, setNewAfterPhoto] = useState('')
+  const [uploadedFileInfo, setUploadedFileInfo] = useState(null)
+  const [isDragOver, setIsDragOver] = useState(false)
   const [reworkRemarks, setReworkRemarks] = useState('')
   const [submittedMessage, setSubmittedMessage] = useState(null)
+
+  const fileInputRef = useRef(null)
+
+  function handleFileSelect(file) {
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file (PNG, JPG, JPEG, WEBP, etc.).')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      setNewAfterPhoto(e.target.result)
+      setUploadedFileInfo({
+        name: file.name,
+        size: (file.size / 1024).toFixed(1) + ' KB',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  function handleTriggerFileInput() {
+    if (fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
+  function handleRemovePhoto() {
+    setNewAfterPhoto('')
+    setUploadedFileInfo(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
 
   useEffect(() => {
     if (currentJob?.rework) {
       setCorrectiveAction(currentJob.rework.correctiveAction || '')
       setLabourDeployed(currentJob.rework.labourDeployed || '')
-      setNewAfterPhoto(currentJob.rework.newPhoto || SAMPLE_REWORK_PHOTOS[0].url)
+      setNewAfterPhoto(currentJob.rework.newPhoto || '')
       setReworkRemarks(currentJob.rework.remarks || '')
-    } else if (currentJob) {
-      setCorrectiveAction(`Conducted full on-site corrective intervention to rectify dispute points raised by RWA. Deployed motorized mechanical equipment.`)
-      setLabourDeployed('2 Senior Technicians + high-pressure equipment crew. Work completed at zero additional cost under AMC clause 14.2.')
-      setNewAfterPhoto(SAMPLE_REWORK_PHOTOS[0].url)
-      setReworkRemarks('Disputed defects addressed. Water flow tested and verified clear. Site thoroughly washed.')
+      if (currentJob.rework.newPhoto) {
+        setUploadedFileInfo({
+          name: 'Corrective Photo Evidence',
+          size: 'Saved',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        })
+      } else {
+        setUploadedFileInfo(null)
+      }
+    } else {
+      // Clean slate - No prefilled values
+      setCorrectiveAction('')
+      setLabourDeployed('')
+      setNewAfterPhoto('')
+      setUploadedFileInfo(null)
+      setReworkRemarks('')
     }
   }, [currentJob])
 
@@ -47,10 +88,15 @@ export default function ReworkDispute({
     e.preventDefault()
     if (!currentJob) return
 
+    if (!newAfterPhoto) {
+      alert('Please upload new corrective photographic evidence before submitting rework.')
+      return
+    }
+
     const reworkData = {
       correctiveAction,
       labourDeployed,
-      newPhoto: customPhotoUrl.trim() || newAfterPhoto,
+      newPhoto: newAfterPhoto,
       remarks: reworkRemarks,
       reworkSubmittedAt: new Date().toISOString(),
     }
@@ -63,7 +109,7 @@ export default function ReworkDispute({
 
   if (!currentJob) {
     return (
-      <div className="contractor-card" style={{ textAlign: 'center', padding: 48 }}>
+      <div className="contractor-card rework-empty-card">
         <h3>No Disputed Jobs Found</h3>
         <p style={{ color: 'var(--text-soft)' }}>There are currently no active RWA disputes requiring rework.</p>
         <button onClick={() => onNavigate('dashboard')} className="btn-contractor-primary" style={{ marginTop: 16 }}>
@@ -81,119 +127,81 @@ export default function ReworkDispute({
     photos: currentJob.beforePhotos || [],
   }
 
-  const originalBefore = currentJob.beforePhotos?.[0] || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80'
-  const rejectedAfter = currentJob.afterPhotos?.[0] || 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=800&q=80'
-  const activeNewPhoto = customPhotoUrl.trim() || newAfterPhoto
+  const originalBefore = currentJob.beforePhotos?.[0] || ''
+  const rejectedAfter = currentJob.afterPhotos?.[0] || ''
 
   return (
-    <div>
+    <div className="rework-root">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+      <div className="rework-header">
         <div>
           <button
             onClick={() => onNavigate('dashboard')}
-            className="btn-contractor-ghost"
-            style={{ padding: 0, marginBottom: 4 }}
+            className="btn-contractor-ghost rework-back-btn"
           >
             &larr; Back to Dashboard
           </button>
-          <h1 style={{ fontFamily: 'var(--font-head)', fontSize: 24, fontWeight: 800, color: '#991b1b', margin: 0 }}>
-            Rework & Dispute Resolution Desk
+          <h1 className="rework-title">
+            Rework Mandate &amp; Dispute Remediation
           </h1>
-          <p style={{ color: 'var(--text-soft)', fontSize: 13.5, margin: '2px 0 0' }}>
-            Screen 7: Analyze RWA rejection, review prior photographic evidence, and submit zero-cost corrective rework.
+          <p className="rework-sub">
+            Contractual rework execution under AMC warranty (Clause 14.2) following RWA inspection rejection.
           </p>
         </div>
 
-        {/* Job selector */}
-        {disputedJobs.length > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Dispute:</label>
-            <select
-              value={currentJob.id}
-              onChange={(e) => {
-                setActiveJobId(e.target.value)
-                const sel = jobs.find((j) => j.id === e.target.value)
-                if (sel) onSelectJob(sel)
-              }}
-              style={{
-                padding: '8px 12px',
-                borderRadius: 'var(--radius-sm)',
-                border: '1.5px solid #dc2626',
-                fontSize: 13,
-                fontWeight: 600,
-                background: '#fff',
-              }}
-            >
-              {disputedJobs.map((j) => (
+        {/* Switch Job */}
+        <div className="rework-job-switcher">
+          <label className="rework-switch-label">Select Disputed Work Order:</label>
+          <select
+            value={currentJob.id}
+            onChange={(e) => {
+              setActiveJobId(e.target.value)
+              const sel = jobs.find((j) => j.id === e.target.value)
+              if (sel) onSelectJob(sel)
+            }}
+            className="rework-select"
+          >
+            {disputedJobs.length > 0 ? (
+              disputedJobs.map((j) => (
                 <option key={j.id} value={j.id}>
-                  {j.workOrderId || j.id} — {j.title.slice(0, 30)}...
+                  {j.workOrderId || j.id} — {j.title.slice(0, 30)}... (DISPUTED)
                 </option>
-              ))}
-            </select>
-          </div>
-        )}
+              ))
+            ) : (
+              <option value={currentJob.id}>
+                {currentJob.workOrderId || currentJob.id} — {currentJob.title.slice(0, 30)}...
+              </option>
+            )}
+          </select>
+        </div>
       </div>
 
       {submittedMessage && (
-        <div
-          style={{
-            padding: '14px 18px',
-            background: '#ecfdf5',
-            border: '1.5px solid #10b981',
-            borderRadius: 'var(--radius-md)',
-            color: '#065f46',
-            fontSize: 14,
-            fontWeight: 700,
-            marginBottom: 20,
-          }}
-        >
+        <div className="rework-alert-success">
           ✓ {submittedMessage}
         </div>
       )}
 
-      {/* Prominent Dispute Reason & Mandate Alert */}
-      <div
-        style={{
-          background: '#fef2f2',
-          border: '1.5px solid #ef4444',
-          borderRadius: 'var(--radius-md)',
-          padding: '18px 22px',
-          marginBottom: 24,
-          boxShadow: 'var(--shadow-sm)',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10, marginBottom: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 24 }}>🚨</span>
+      {/* Prominent Dispute Mandate Box */}
+      <div className="rework-mandate-card">
+        <div className="rework-mandate-top">
+          <div className="rework-mandate-left">
+            <span className="rework-mandate-icon">⚠️</span>
             <div>
-              <span style={{ fontSize: 11, fontWeight: 800, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                OFFICIAL RWA DISPUTE FILED
-              </span>
-              <h3 style={{ fontSize: 17, fontWeight: 800, color: '#991b1b', margin: '2px 0 0' }}>
-                Dispute Reason: &ldquo;{disputeInfo.reason}&rdquo;
-              </h3>
+              <span className="rework-mandate-tag">RWA INSPECTION DISPUTE MANDATE</span>
+              <h2 className="rework-mandate-title">
+                {currentJob.title}
+              </h2>
             </div>
           </div>
-          <span
-            style={{
-              fontSize: 11,
-              background: '#fee2e2',
-              color: '#991b1b',
-              padding: '3px 8px',
-              borderRadius: 4,
-              fontWeight: 700,
-            }}
-          >
-            AMC CLAUSE 14.2 APPLIES (ZERO-COST REWORK)
-          </span>
+          <span className="rework-clause-badge">AMC Clause 14.2 Warranty Rework</span>
         </div>
 
-        <p style={{ fontSize: 13.5, color: '#7f1d1d', lineHeight: 1.55, margin: '8px 0 0' }}>
+        <p className="rework-remarks-text">
           <strong>Resident Inspection Remarks:</strong> &ldquo;{disputeInfo.remarks}&rdquo;
         </p>
 
-        <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 12, color: '#991b1b' }}>
+        <div className="rework-meta-row">
           <span>Disputed By: <strong>{disputeInfo.disputedBy}</strong></span>
           <span>•</span>
           <span>Timestamp: <strong>{new Date(disputeInfo.disputedAt).toLocaleString()}</strong></span>
@@ -201,39 +209,51 @@ export default function ReworkDispute({
       </div>
 
       {/* Previous Evidence: Original Before vs Rejected Previous After Photo */}
-      <div className="contractor-card" style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+      <div className="contractor-card rework-card">
+        <div className="rework-card-head">
           <div>
-            <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+            <h3 className="rework-card-title">
               Audit of Previous Evidence (Basis of Dispute)
             </h3>
-            <p style={{ fontSize: 12.5, color: 'var(--text-soft)', margin: '2px 0 0' }}>
+            <p className="rework-card-sub">
               Inspect the initial failure and the contractor photo rejected by RWA.
             </p>
           </div>
         </div>
 
-        <div className="photo-compare-grid">
+        <div className="rework-photo-grid">
           {/* Original Before */}
-          <div className="photo-preview-box">
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12, fontWeight: 700 }}>
-              <span style={{ color: '#475569' }}>ORIGINAL REPORTED DEFECT</span>
-              <span style={{ color: 'var(--text-muted)' }}>Initial Report</span>
+          <div className="rework-photo-box original">
+            <div className="rework-photo-box-head">
+              <span className="rework-photo-label-muted">ORIGINAL REPORTED DEFECT</span>
+              <span className="rework-photo-state-muted">Initial Report</span>
             </div>
-            <img src={originalBefore} alt="Original defect" className="photo-preview-img" />
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-              Asset: {currentJob.location?.assetName}
+            {originalBefore ? (
+              <img src={originalBefore} alt="Original defect" className="rework-photo-img" />
+            ) : (
+              <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', color: 'var(--text-muted)', fontSize: 13 }}>
+                No original photo available
+              </div>
+            )}
+            <div className="rework-photo-meta">
+              Asset: {currentJob.location?.assetName || 'Township Asset'}
             </div>
           </div>
 
           {/* Rejected Previous After */}
-          <div className="photo-preview-box" style={{ borderColor: '#ef4444', background: '#fef2f2' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12, fontWeight: 700 }}>
-              <span style={{ color: '#dc2626' }}>PREVIOUS REPAIR (REJECTED BY RWA)</span>
-              <span style={{ color: '#dc2626', fontWeight: 800 }}>FAILED INSPECTION ✕</span>
+          <div className="rework-photo-box rejected">
+            <div className="rework-photo-box-head">
+              <span className="rework-photo-label-danger">PREVIOUS REPAIR (REJECTED BY RWA)</span>
+              <span className="rework-photo-state-danger">FAILED INSPECTION ✕</span>
             </div>
-            <img src={rejectedAfter} alt="Rejected after" className="photo-preview-img" />
-            <div style={{ fontSize: 11, color: '#b91c1c', marginTop: 6 }}>
+            {rejectedAfter ? (
+              <img src={rejectedAfter} alt="Rejected after" className="rework-photo-img" />
+            ) : (
+              <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fef2f2', color: '#b91c1c', fontSize: 13 }}>
+                No rejected photo attached
+              </div>
+            )}
+            <div className="rework-photo-meta rejected">
               Defect: {disputeInfo.reason}
             </div>
           </div>
@@ -241,24 +261,24 @@ export default function ReworkDispute({
       </div>
 
       {/* Corrective Action Submission Form */}
-      <div className="contractor-card" style={{ border: '2px solid #0284c7' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <span style={{ fontSize: 22 }}>🔄</span>
+      <div className="contractor-card rework-form-card">
+        <div className="rework-form-header">
+          <span className="rework-form-icon">🔄</span>
           <div>
-            <h3 style={{ fontSize: 17, fontWeight: 800, margin: 0, color: 'var(--text)' }}>
-              Submit New Work Details & Re-verification Evidence
+            <h3 className="rework-form-title">
+              Submit New Work Details &amp; Re-verification Evidence
             </h3>
-            <p style={{ fontSize: 12.5, color: 'var(--text-soft)', margin: '2px 0 0' }}>
+            <p className="rework-form-sub">
               Document the corrective steps executed to address the RWA grievance.
             </p>
           </div>
         </div>
 
-        <form onSubmit={handleReworkSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <form onSubmit={handleReworkSubmit} className="rework-form">
           {/* 1. Corrective Work Executed */}
-          <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-              Corrective Work Details Executed <span style={{ color: '#dc2626' }}>*</span>
+          <div className="rework-form-group">
+            <label className="rework-label">
+              Corrective Work Details Executed <span className="rework-req">*</span>
             </label>
             <textarea
               rows={3}
@@ -266,21 +286,14 @@ export default function ReworkDispute({
               value={correctiveAction}
               onChange={(e) => setCorrectiveAction(e.target.value)}
               placeholder="Detail the specific corrective actions taken to resolve the RWA complaint..."
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--line-strong)',
-                fontSize: 13.5,
-                fontFamily: 'inherit',
-              }}
+              className="rework-textarea"
             />
           </div>
 
           {/* 2. Additional Labour & Equipment Deployed */}
-          <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-              Additional Crew & Equipment Deployed (AMC Zero-Cost Warranty) <span style={{ color: '#dc2626' }}>*</span>
+          <div className="rework-form-group">
+            <label className="rework-label">
+              Additional Crew &amp; Equipment Deployed (AMC Zero-Cost Warranty) <span className="rework-req">*</span>
             </label>
             <input
               type="text"
@@ -288,76 +301,110 @@ export default function ReworkDispute({
               value={labourDeployed}
               onChange={(e) => setLabourDeployed(e.target.value)}
               placeholder="e.g. 2 Senior Technicians + specialized motorized rodding equipment"
-              style={{
-                width: '100%',
-                padding: '9px 12px',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--line-strong)',
-                fontSize: 13.5,
-              }}
+              className="rework-input"
             />
           </div>
 
-          {/* 3. New After-Repair Photo */}
-          <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-              New Corrective Photographic Evidence <span style={{ color: '#dc2626' }}>*</span>
-            </label>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-              {SAMPLE_REWORK_PHOTOS.map((p, idx) => (
+          {/* 3. New After-Repair Photo (File Upload Only - No Presets, No Prefills) */}
+          <div className="rework-form-group">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <label className="rework-label" style={{ marginBottom: 0 }}>
+                New Corrective Photographic Evidence <span className="rework-req">*</span>
+              </label>
+              {newAfterPhoto && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: 12 }}>
+                  ✓ Evidence Attached
+                </span>
+              )}
+            </div>
+
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) handleFileSelect(file)
+              }}
+              style={{ display: 'none' }}
+            />
+
+            {!newAfterPhoto ? (
+              <div
+                className={`execution-dropzone ${isDragOver ? 'dragover' : ''}`}
+                onClick={handleTriggerFileInput}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  setIsDragOver(true)
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault()
+                  setIsDragOver(false)
+                }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  setIsDragOver(false)
+                  const file = e.dataTransfer.files?.[0]
+                  if (file) handleFileSelect(file)
+                }}
+              >
+                <div className="execution-dropzone-icon">📷</div>
+                <div className="execution-dropzone-title">
+                  Upload New Corrective Photographic Evidence
+                </div>
+                <div className="execution-dropzone-sub">
+                  Click to browse or drag &amp; drop image (PNG, JPG, JPEG, WEBP)
+                </div>
                 <button
-                  key={idx}
                   type="button"
-                  onClick={() => {
-                    setNewAfterPhoto(p.url)
-                    setCustomPhotoUrl('')
-                  }}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: 4,
-                    fontSize: 11.5,
-                    border: newAfterPhoto === p.url ? '1.5px solid #0284c7' : '1px solid var(--line)',
-                    background: newAfterPhoto === p.url ? '#e0f2fe' : '#ffffff',
-                    color: newAfterPhoto === p.url ? '#0369a1' : 'var(--text-soft)',
-                    fontWeight: 600,
-                    cursor: 'pointer',
+                  className="execution-dropzone-btn"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleTriggerFileInput()
                   }}
                 >
-                  {p.label}
+                  📁 Choose Image to Upload
                 </button>
-              ))}
-            </div>
-
-            {/* Preview of new photo */}
-            <div className="photo-preview-box" style={{ borderColor: '#0284c7', background: '#f0f9ff', marginBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 12, fontWeight: 700 }}>
-                <span style={{ color: '#0369a1' }}>NEW CORRECTIVE AFTER-PHOTO (RE-VERIFICATION)</span>
-                <span style={{ color: '#16a34a' }}>Clean Ground State</span>
               </div>
-              <img src={activeNewPhoto} alt="New corrective photo" className="photo-preview-img" />
-              <div style={{ fontSize: 11, color: '#0369a1', marginTop: 6 }}>
-                Fresh Evidence Captured: {new Date().toLocaleTimeString()}
+            ) : (
+              <div className="execution-photo-card">
+                <div className="execution-photo-card-top">
+                  <div className="execution-photo-card-info">
+                    <span className="execution-photo-card-badge">📷 Corrective Photo Proof</span>
+                    <span className="execution-photo-card-meta">
+                      {uploadedFileInfo ? `${uploadedFileInfo.name} (${uploadedFileInfo.size})` : 'Corrective Evidence'} • {uploadedFileInfo?.timestamp || new Date().toLocaleTimeString()}
+                    </span>
+                  </div>
+                  <div className="execution-photo-card-actions">
+                    <button
+                      type="button"
+                      onClick={handleTriggerFileInput}
+                      className="execution-photo-card-action-btn replace"
+                      title="Upload a different image"
+                    >
+                      🔄 Change Image
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemovePhoto}
+                      className="execution-photo-card-action-btn remove"
+                      title="Remove image"
+                    >
+                      🗑️ Remove
+                    </button>
+                  </div>
+                </div>
+                <div className="execution-photo-card-preview">
+                  <img src={newAfterPhoto} alt="New corrective photo preview" />
+                </div>
               </div>
-            </div>
-
-            <input
-              type="text"
-              placeholder="Or paste external new photo URL..."
-              value={customPhotoUrl}
-              onChange={(e) => setCustomPhotoUrl(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '7px 10px',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--line)',
-                fontSize: 12,
-              }}
-            />
+            )}
           </div>
 
           {/* 4. Remarks */}
-          <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+          <div className="rework-form-group">
+            <label className="rework-label">
               Contractor Re-Submission Remarks for RWA Sign-off
             </label>
             <input
@@ -365,18 +412,12 @@ export default function ReworkDispute({
               value={reworkRemarks}
               onChange={(e) => setReworkRemarks(e.target.value)}
               placeholder="e.g. Defect completely rectified. Requesting RWA Secretary for digital sign-off."
-              style={{
-                width: '100%',
-                padding: '9px 12px',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--line-strong)',
-                fontSize: 13.5,
-              }}
+              className="rework-input"
             />
           </div>
 
           {/* Actions */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 8 }}>
+          <div className="rework-form-actions">
             <button
               type="button"
               onClick={() => onNavigate('dashboard')}
@@ -386,8 +427,7 @@ export default function ReworkDispute({
             </button>
             <button
               type="submit"
-              className="btn-contractor-primary"
-              style={{ background: '#0284c7', padding: '11px 24px', fontSize: 14 }}
+              className="btn-contractor-primary rework-submit-btn"
             >
               Submit Rework for Re-Verification &rarr;
             </button>

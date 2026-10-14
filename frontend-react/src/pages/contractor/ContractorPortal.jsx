@@ -20,10 +20,10 @@ function mapBackendJobToUi(wo) {
     : (wo.evidence || []).filter((e) => (e.evidence_type || e.type) === 'AFTER').map((e) => e.file_url || e.fileUrl)
 
   const inspection = wo.inspectionNotes || wo.inspected_at || wo.inspectedAt ? {
-    observedProblem: wo.inspectionNotes || 'Site inspected by contractor team.',
-    equipmentCondition: 'Moderate Damage',
-    requiredWork: 'Remediation per AMC guidelines',
-    inspectionPhoto: beforePhotos[0] || null,
+    observedProblem: wo.observedProblem || wo.inspectionNotes || '',
+    equipmentCondition: wo.equipmentCondition || '',
+    requiredWork: wo.requiredWork || '',
+    inspectionPhoto: wo.inspectionPhoto || null,
     remarks: wo.inspectionNotes || '',
     inspectedAt: wo.inspectedAt || wo.inspected_at || new Date().toISOString(),
   } : null
@@ -46,7 +46,7 @@ function mapBackendJobToUi(wo) {
     startedAt: wo.started_at || wo.createdAt,
     completedAt: wo.completed_at || wo.completedAt,
     actualWorkSummary: wo.completionRemarks || wo.completion_remarks || '',
-    actualLabourDetails: 'Field contractor technical crew deployed.',
+    actualLabourDetails: wo.actualLabourDetails || '',
     afterPhoto: afterPhotos[0] || '',
   } : null
 
@@ -102,21 +102,19 @@ export default function ContractorPortal({ onExitToLanding }) {
     updateComplaintStatus,
   } = useTIMS()
 
-  // Local state for contractor jobs (loaded directly from inMemoryDb)
+  // Local state for contractor jobs (loaded from backend API)
   const [jobs, setJobs] = useState([])
 
   // Navigation tab state: 'dashboard' | 'workorders' | 'inspection' | 'estimate' | 'approvals' | 'execution' | 'rework'
   const [currentScreen, setCurrentScreen] = useState('dashboard')
   const [selectedJob, setSelectedJob] = useState(null)
   const [successNotice, setSuccessNotice] = useState(null)
-  const [apiConnected, setApiConnected] = useState(false)
 
   // Fetch live jobs from backend API on mount and on screen switch
   const loadBackendJobs = useCallback(async () => {
     try {
       const liveWorkOrders = await contractorApi.getJobs()
       if (Array.isArray(liveWorkOrders)) {
-        setApiConnected(true)
         const mappedJobs = liveWorkOrders.map(mapBackendJobToUi)
         setJobs(mappedJobs)
       }
@@ -464,7 +462,7 @@ export default function ContractorPortal({ onExitToLanding }) {
               <img src="/assets/CRIMS_logo.png" alt="TIMS" className="contractor-brand-logo" />
               <div>
                 <span className="contractor-brand-title">TIMS</span>
-                <span className="contractor-brand-sub">Township Infrastructure Management System</span>
+                <span className="contractor-brand-sub">Township Infrastructure Management</span>
               </div>
             </div>
 
@@ -472,51 +470,18 @@ export default function ContractorPortal({ onExitToLanding }) {
               <span className="contractor-role-dot" />
               Field Contractor
             </div>
-
-            {/* AMC Contract Reference Badge */}
-            <div className="contractor-contract-tag">
-              AMC Ref: <strong>{CONTRACTOR_PROFILE.amcContractId}</strong>
-            </div>
-
-            {/* Backend Sync Indicator Badge */}
-            <div
-              className="contractor-contract-tag"
-              style={{
-                backgroundColor: apiConnected ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                color: apiConnected ? '#059669' : '#d97706',
-                border: apiConnected ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                fontWeight: 600,
-                fontSize: 12,
-              }}
-            >
-              <span
-                style={{
-                  display: 'inline-block',
-                  width: 7,
-                  height: 7,
-                  borderRadius: '50%',
-                  backgroundColor: apiConnected ? '#10b981' : '#f59e0b',
-                  marginRight: 6,
-                }}
-              />
-              {apiConnected ? 'Neon PostgreSQL API Connected' : 'In-Memory / Offline Mode'}
-            </div>
           </div>
 
           {/* User Details & Exit Actions */}
           <div className="contractor-user-actions">
             <div className="contractor-user-badge">
               <div className="contractor-user-name">
-                {CONTRACTOR_PROFILE.lead} • {CONTRACTOR_PROFILE.name}
+                {CONTRACTOR_PROFILE.lead}
               </div>
               <div className="contractor-user-role">
-                {CONTRACTOR_PROFILE.title} • {CONTRACTOR_PROFILE.rating} ★ Rating
+                Field Contractor • Sector 54
               </div>
             </div>
-
-
 
             {onExitToLanding && (
               <button onClick={onExitToLanding} className="contractor-btn-exit">

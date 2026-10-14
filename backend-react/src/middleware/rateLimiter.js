@@ -1,5 +1,5 @@
 /**
- * In-Memory Sliding Window Rate Limiter Middleware
+ * Sliding Window Rate Limiter Middleware
  * Protects against brute-force attacks and denial-of-service without external dependencies.
  */
 
@@ -28,11 +28,7 @@ class MemoryRateLimiter {
 
   middleware() {
     return (req, res, next) => {
-      const ip =
-        req.ip ||
-        req.headers['x-forwarded-for'] ||
-        req.connection.remoteAddress ||
-        'unknown_client';
+      const ip = req.ip || req.socket?.remoteAddress || req.connection?.remoteAddress || 'unknown_client';
 
       const now = Date.now();
       const clientTimestamps = this.clients.get(ip) || [];

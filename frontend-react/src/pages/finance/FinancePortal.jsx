@@ -10,7 +10,7 @@ export default function FinancePortal({ onExitToLanding }) {
   // Navigation Tabs: 'dashboard' | 'audit' | 'rates' | 'releases'
   const [currentScreen, setCurrentScreen] = useState('dashboard')
 
-  // In-memory Finance State (loaded from inMemoryDb backend)
+  // Finance State (loaded from backend API)
   const [invoices, setInvoices] = useState([])
   const [activeInvoiceModal, setActiveInvoiceModal] = useState(null)
   const [notice, setNotice] = useState(null)

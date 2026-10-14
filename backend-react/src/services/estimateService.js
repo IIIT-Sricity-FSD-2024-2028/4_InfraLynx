@@ -7,6 +7,9 @@
  */
 
 import db from '../config/db.js';
+import { AppError } from '../middleware/error.js';
+
+const normalizeRateKey = (value = '') => String(value).trim().toLowerCase();
 
 /**
  * Calculates a verified estimate from official AMC rate cards
@@ -19,38 +22,69 @@ export function calculateVerifiedEstimate(lineItems = [], contractorId = null) {
     return { lineItems: [], totalAmount: 0, rateCardMatches: true };
   }
 
-  // Fetch all official rate cards
-  const allRates = db.findAll('amc_rates');
+  const activeAmcs = db.findAll('amcs', (amc) => {
+    if ((amc.status || 'ACTIVE') !== 'ACTIVE') return false;
+    return !contractorId || amc.contractor_id === contractorId;
+  });
+  if (contractorId && activeAmcs.length === 0) {
+    throw new AppError('No active AMC contract exists for this contractor.', 403, 'ACTIVE_AMC_REQUIRED');
+  }
+  const activeAmcIds = new Set(activeAmcs.map((amc) => amc.id));
+  const allRates = db.findAll('amc_rates', (rate) => {
+    if ((rate.status || 'ACTIVE') !== 'ACTIVE') return false;
+    return activeAmcIds.size === 0 || activeAmcIds.has(rate.amc_id);
+  });
 
   let totalAmount = 0;
   const verifiedLineItems = [];
 
   for (const item of lineItems) {
-    const qty = Math.max(1, Number(item.quantity || item.qty) || 1);
+    const qty = Number(item.quantity || item.qty);
+    if (!Number.isFinite(qty) || qty <= 0 || qty > 100000) {
+      throw new AppError('Estimate line item quantity must be a positive number within the allowed range.', 400, 'INVALID_ESTIMATE_QUANTITY');
+    }
 
-    // Match by item_code (e.g. 'RATE-01') or ID
+    const rateKeys = [
+      item.rateCardId,
+      item.rate_card_id,
+      item.amcRateId,
+      item.amc_rate_id,
+      item.itemCode,
+      item.item_code,
+      item.description,
+      item.service,
+    ].map(normalizeRateKey).filter(Boolean);
+
+    // Match only official AMC rate cards. Client-supplied prices are ignored.
     const officialRate = allRates.find(
       (r) =>
-        r.id === item.rateCardId ||
-        r.item_code === item.itemCode ||
-        r.item_code === item.rateCardId ||
-        r.item_name?.toLowerCase() === item.description?.toLowerCase()
+        rateKeys.includes(normalizeRateKey(r.id)) ||
+        rateKeys.includes(normalizeRateKey(r.item_code)) ||
+        rateKeys.includes(normalizeRateKey(r.item_name))
     );
 
-    const unitPrice = officialRate ? Number(officialRate.rate) : Number(item.unitCost || item.rate || 500);
+    if (!officialRate) {
+      throw new AppError(
+        `Estimate line item '${item.description || item.service || item.itemCode || item.rateCardId || 'unknown'}' is not backed by an active AMC rate card.`,
+        400,
+        'AMC_RATE_REQUIRED'
+      );
+    }
+
+    const unitPrice = Number(officialRate.rate);
     const itemTotal = unitPrice * qty;
     totalAmount += itemTotal;
 
     verifiedLineItems.push({
-      rateCardId: officialRate?.id || item.rateCardId || 'RATE-GEN',
-      itemCode: officialRate?.item_code || item.itemCode || 'RATE-CUSTOM',
-      description: officialRate?.item_name || item.description || 'Remediation Service',
-      serviceType: officialRate?.service_type || 'Labour & Materials',
-      unit: officialRate?.unit || 'Unit',
+      rateCardId: officialRate.id,
+      itemCode: officialRate.item_code,
+      description: officialRate.item_name,
+      serviceType: officialRate.service_type || 'Labour & Materials',
+      unit: officialRate.unit || 'Unit',
       officialRate: unitPrice,
       quantity: qty,
       totalAmount: itemTotal,
-      isOfficialRateApplied: !!officialRate,
+      isOfficialRateApplied: true,
     });
   }
 

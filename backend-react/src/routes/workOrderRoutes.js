@@ -26,7 +26,7 @@ import { authenticate, requireRole } from '../middleware/auth.js';
 const router = express.Router();
 
 const CLERK_ROLES = ['DESK_CLERK', 'TOWNSHIP_COO'];
-const VIEW_ROLES  = ['DESK_CLERK', 'TOWNSHIP_COO', 'DEPARTMENT_HEAD', 'FIELD_CONTRACTOR', 'FINANCE_OFFICER'];
+const VIEW_ROLES  = ['DESK_CLERK', 'TOWNSHIP_COO', 'DEPARTMENT_HEAD', 'FIELD_CONTRACTOR', 'FINANCE_CLERK'];
 
 /**
  * @route  POST /api/v1/work-orders

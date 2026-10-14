@@ -1,0 +1,551 @@
+/* WorkExecution.css - Styles for Screen 6: Work Execution & Photo Evidence Submission */
+
+.execution-root {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Top Header ─────────────────────────────────────────────────── */
+.execution-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.execution-back-btn {
+  padding: 0;
+  margin-bottom: 4px;
+}
+
+.execution-title {
+  font-family: var(--font-head);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+
+.execution-sub {
+  color: var(--text-soft);
+  font-size: 13.5px;
+  margin: 2px 0 0;
+}
+
+.execution-job-switcher {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.execution-switch-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.execution-select {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  font-size: 13px;
+  font-weight: 600;
+  background: #ffffff;
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+}
+
+.execution-select:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+/* ── Alerts ─────────────────────────────────────────────────────── */
+.execution-alert-success {
+  padding: 14px 18px;
+  background: #ecfdf5;
+  border: 1.5px solid #10b981;
+  border-radius: var(--radius-md);
+  color: #065f46;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Lifecycle Stepper Card ─────────────────────────────────────── */
+.execution-lifecycle-card {
+  margin-bottom: 24px;
+  padding: 20px 24px;
+  background: #ffffff;
+}
+
+.execution-lifecycle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.execution-lifecycle-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.execution-stepper-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .execution-stepper-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.execution-step-card {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: #f8fafc;
+  transition: all var(--transition-fast);
+}
+
+.execution-step-card.active-assigned {
+  border: 2px solid #0284c7;
+  background: #f0f9ff;
+}
+
+.execution-step-card.active-progress {
+  border: 2px solid #f59e0b;
+  background: #fffbeb;
+}
+
+.execution-step-card.active-completed {
+  border: 2px solid #16a34a;
+  background: #f0fdf4;
+}
+
+.execution-step-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.execution-step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  background: #cbd5e1;
+}
+
+.execution-step-num.num-assigned {
+  background: #0284c7;
+}
+
+.execution-step-num.num-progress {
+  background: #f59e0b;
+}
+
+.execution-step-num.num-completed {
+  background: #16a34a;
+}
+
+.execution-step-title {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.execution-step-desc {
+  font-size: 11.5px;
+  color: var(--text-soft);
+  margin-top: 4px;
+}
+
+/* ── Start Banner ───────────────────────────────────────────────── */
+.execution-start-banner {
+  margin-top: 18px;
+  padding: 14px;
+  background: #f0f9ff;
+  border-radius: var(--radius-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.execution-start-banner-text {
+  font-size: 13px;
+  color: #0369a1;
+  font-weight: 600;
+}
+
+.execution-start-btn {
+  background: #f59e0b;
+  border-color: #d97706;
+}
+
+/* ── Side-by-Side Photo Comparison ──────────────────────────────── */
+.execution-photo-card {
+  margin-bottom: 24px;
+}
+
+.execution-photo-title {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0 0 4px;
+  color: var(--text);
+}
+
+.execution-photo-sub {
+  font-size: 12.5px;
+  color: var(--text-soft);
+  margin: 0 0 16px;
+}
+
+.execution-photo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .execution-photo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.execution-photo-box {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.execution-photo-box.before {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.execution-photo-box.after {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.execution-photo-box-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.execution-photo-badge-before {
+  color: #dc2626;
+}
+
+.execution-photo-badge-after {
+  color: #16a34a;
+}
+
+.execution-photo-state {
+  color: var(--text-muted);
+}
+
+.execution-photo-img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+}
+
+.execution-photo-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.execution-photo-meta.after {
+  color: #166534;
+}
+
+/* ── Completion Record & Form ───────────────────────────────────── */
+.execution-form-card {
+  border: 1.5px solid var(--line-strong);
+}
+
+.execution-form-title {
+  font-size: 17px;
+  font-weight: 800;
+  margin: 0 0 14px;
+  color: var(--text);
+}
+
+.execution-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.execution-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.execution-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.execution-req {
+  color: #dc2626;
+}
+
+.execution-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  font-size: 13.5px;
+  font-family: inherit;
+  background: #ffffff;
+  color: var(--text);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.execution-textarea:disabled,
+.execution-input:disabled {
+  background: #f8fafc;
+  color: var(--text-soft);
+  cursor: not-allowed;
+}
+
+.execution-textarea:focus,
+.execution-input:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+.execution-input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  font-size: 13.5px;
+  background: #ffffff;
+  color: var(--text);
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* ── Image Upload Dropzone & Photo Card ─────────────────────────── */
+.execution-dropzone {
+  border: 2px dashed #86efac;
+  border-radius: var(--radius-md);
+  padding: 28px 20px;
+  text-align: center;
+  background: #f0fdf4;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.execution-dropzone:hover,
+.execution-dropzone.dragover {
+  border-color: #16a34a;
+  background: #dcfce7;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+
+.execution-dropzone-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #bbf7d0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.execution-dropzone-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.execution-dropzone-sub {
+  font-size: 12px;
+  color: var(--text-soft);
+  margin-bottom: 14px;
+}
+
+.execution-dropzone-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: #ffffff;
+  border: 1.5px solid #16a34a;
+  color: #15803d;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.execution-dropzone-btn:hover {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.execution-photo-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  overflow: hidden;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.execution-photo-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.execution-photo-card-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.execution-photo-card-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #15803d;
+  background: #dcfce7;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.execution-photo-card-meta {
+  font-size: 11.5px;
+  color: var(--text-soft);
+}
+
+.execution-photo-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.execution-photo-card-action-btn {
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--text);
+  transition: all var(--transition-fast);
+}
+
+.execution-photo-card-action-btn.replace:hover {
+  border-color: #0284c7;
+  color: #0284c7;
+  background: #f0f9ff;
+}
+
+.execution-photo-card-action-btn.remove {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.execution-photo-card-action-btn.remove:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+.execution-photo-card-preview {
+  padding: 12px;
+  background: #0f172a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.execution-photo-card-preview img {
+  max-width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 4px;
+  display: block;
+}
+
+.execution-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+  align-items: center;
+}
+
+.execution-completed-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #166534;
+  font-weight: 700;
+  font-size: 13.5px;
+}
+
+.execution-submit-btn {
+  background: #16a34a;
+  padding: 11px 24px;
+  font-size: 14px;
+}
+
+.execution-empty-card {
+  text-align: center;
+  padding: 48px;
+}

@@ -231,11 +231,15 @@ export const authApi = {
   /**
    * Set or update password
    */
-  async setPassword(email, newPassword) {
+  async setPassword(emailOrNewPassword, maybeNewPassword, currentPassword = '') {
+    const newPassword = maybeNewPassword || emailOrNewPassword;
+    const body = currentPassword
+      ? { currentPassword, newPassword }
+      : { newPassword };
     try {
       return await apiRequest('/auth/set-password', {
         method: 'POST',
-        body: JSON.stringify({ email, newPassword }),
+        body: JSON.stringify(body),
       });
     } catch (err) {
       if (

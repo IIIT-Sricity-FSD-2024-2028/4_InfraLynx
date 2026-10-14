@@ -1,6 +1,6 @@
 import http from 'http';
 import app from './app.js';
-import inMemoryDb from './config/inMemoryDb.js';
+import db from './config/db.js';
 import { getApprovalThresholds } from './services/approvalService.js';
 import { getSlaHours } from './services/slaService.js';
 
@@ -9,7 +9,7 @@ async function testAllRoleEndpoints() {
   console.log('   🧪 COMPREHENSIVE ROLE-BASED TEST: RWA, CLERK, DEPT HEAD & CONTRACTOR  ');
   console.log('========================================================================\n');
 
-  inMemoryDb.reset();
+  await db.reset();
 
   const server = http.createServer(app);
   await new Promise((resolve) => server.listen(0, resolve));
@@ -74,7 +74,7 @@ async function testAllRoleEndpoints() {
   report('Tenant role cannot access platform overview', deniedOverview.status === 403 && deniedOverview.data?.error?.code === 'SUPER_ADMIN_REQUIRED');
 
   const adminOverview = await req('/super-admin/overview', 'GET', null, superAdminToken);
-  report('Super Admin overview identifies actual memory storage', adminOverview.status === 200 && adminOverview.data?.data?.dbHealth?.mode === 'IN_MEMORY');
+  report('Super Admin overview identifies PostgreSQL storage', adminOverview.status === 200 && adminOverview.data?.data?.dbHealth?.mode === 'POSTGRESQL');
 
   const initialConfig = await req('/super-admin/config', 'GET', null, superAdminToken);
   const originalDeptThreshold = initialConfig.data?.data?.find((item) => item.key === 'DEPT_HEAD_APPROVAL_THRESHOLD')?.value;

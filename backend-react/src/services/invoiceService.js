@@ -53,9 +53,9 @@ export const perform3WayCheck = async (invoiceId) => {
              item.description?.toLowerCase().includes(r.item_name?.toLowerCase())
     );
 
-    const amcRate = matchingRate ? Number(matchingRate.rate) : Number(item.rate);
+    const amcRate = matchingRate ? Number(matchingRate.rate) : null;
     const billedRate = Number(item.rate);
-    const isRateValid = matchingRate ? billedRate <= amcRate : true;
+    const isRateValid = Boolean(matchingRate) && billedRate <= amcRate;
 
     if (!isRateValid) {
       allRatesMatch = false;
@@ -81,15 +81,26 @@ export const perform3WayCheck = async (invoiceId) => {
     : 0;
 
   // Verify Citizen / RWA signoff
+  const workCompleted = workOrder?.status === 'COMPLETED' || workOrder?.status === 'CLOSED';
   const rwaVerified = complaint
-    ? complaint.status === 'CLOSED' || complaint.is_resolved_by_resident === true
+    ? complaint.status === 'CLOSED' || complaint.is_resolved_by_resident === true || complaint.verification?.status === 'CONFIRMED'
     : false;
+  const isDisputed = complaint?.status === 'DISPUTED' || complaint?.verification?.status === 'DISPUTED';
 
   // Determine Reconciliation Status
   let reconciliationStatus = 'MATCH';
   let message = 'All 3 pillars reconciled successfully: Estimate, Work Proof, and AMC Rate Card match.';
 
-  if (!rwaVerified) {
+  if (!workOrder || !complaint) {
+    reconciliationStatus = 'MISSING_LINKAGE';
+    message = 'Invoice must be linked to an existing work order and complaint before payment authorization.';
+  } else if (!workCompleted) {
+    reconciliationStatus = 'WORK_NOT_COMPLETED';
+    message = 'Linked work order must be completed before payment authorization.';
+  } else if (isDisputed) {
+    reconciliationStatus = 'DISPUTED_WORK';
+    message = 'RWA / citizen dispute blocks payment authorization until corrective rework is completed.';
+  } else if (!rwaVerified) {
     reconciliationStatus = 'UNVERIFIED_WORK';
     message = 'Work completion awaiting RWA / citizen confirmation before payment release.';
   } else if (!allRatesMatch) {

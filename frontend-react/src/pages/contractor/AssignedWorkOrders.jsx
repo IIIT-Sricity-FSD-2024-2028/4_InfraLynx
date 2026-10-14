@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import './styles/AssignedWorkOrders.css'
 
 export default function AssignedWorkOrders({
   jobs = [],
@@ -55,51 +56,34 @@ export default function AssignedWorkOrders({
   }
 
   return (
-    <div>
+    <div className="assigned-wo-root">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+      <div className="assigned-wo-toolbar">
         <div>
-          <h1 style={{ fontFamily: 'var(--font-head)', fontSize: 24, fontWeight: 800, color: 'var(--text)', margin: 0 }}>
+          <h1 className="assigned-wo-header-title">
             Assigned Work Orders
           </h1>
-          <p style={{ color: 'var(--text-soft)', fontSize: 14, margin: '4px 0 0' }}>
+          <p className="assigned-wo-header-sub">
             Browse and filter municipal work orders dispatched to your empanelled contractor team.
           </p>
         </div>
 
         {/* Search Input */}
-        <div style={{ position: 'relative', minWidth: 280 }}>
+        <div className="assigned-wo-search-wrap">
           <input
             type="text"
             placeholder="Search WO ID, Asset, Location..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '9px 14px 9px 34px',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--line-strong)',
-              fontSize: 13.5,
-              outline: 'none',
-              background: '#ffffff',
-            }}
+            className="assigned-wo-search-input"
           />
-          <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 14 }}>
+          <span className="assigned-wo-search-icon">
             🔍
           </span>
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              style={{
-                position: 'absolute',
-                right: 10,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--text-muted)',
-              }}
+              className="assigned-wo-search-clear"
             >
               ✕
             </button>
@@ -108,16 +92,7 @@ export default function AssignedWorkOrders({
       </div>
 
       {/* Filter Tabs (Screen 2 core requirement: Assigned, In Progress, Completed, Reopened) */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 8,
-          marginBottom: 20,
-          borderBottom: '1px solid var(--line)',
-          paddingBottom: 10,
-          overflowX: 'auto',
-        }}
-      >
+      <div className="assigned-wo-tabs">
         {[
           { id: 'ALL', label: 'All Jobs', count: jobs.length },
           {
@@ -146,32 +121,10 @@ export default function AssignedWorkOrders({
             <button
               key={tab.id}
               onClick={() => setFilter(tab.id)}
-              style={{
-                padding: '7px 14px',
-                borderRadius: 'var(--radius-sm)',
-                border: isActive ? '1px solid #0284c7' : '1px solid var(--line)',
-                background: isActive ? '#0284c7' : '#ffffff',
-                color: isActive ? '#ffffff' : 'var(--text-soft)',
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                transition: 'all var(--transition-fast)',
-                whiteSpace: 'nowrap',
-              }}
+              className={`assigned-wo-tab-btn ${isActive ? 'active' : ''}`}
             >
               <span>{tab.label}</span>
-              <span
-                style={{
-                  background: isActive ? 'rgba(255,255,255,0.25)' : 'var(--surface-muted)',
-                  color: isActive ? '#ffffff' : 'var(--text-muted)',
-                  fontSize: 11,
-                  padding: '1px 6px',
-                  borderRadius: 10,
-                }}
-              >
+              <span className="assigned-wo-tab-count">
                 {tab.count}
               </span>
             </button>
@@ -181,10 +134,10 @@ export default function AssignedWorkOrders({
 
       {/* Work Orders List / Table */}
       {filteredJobs.length === 0 ? (
-        <div className="contractor-card" style={{ textAlign: 'center', padding: '48px 24px' }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>📭</div>
-          <h3 style={{ fontSize: 17, color: 'var(--text)', margin: '0 0 6px' }}>No work orders found</h3>
-          <p style={{ fontSize: 13.5, color: 'var(--text-soft)', maxWidth: 420, margin: '0 auto' }}>
+        <div className="contractor-card assigned-wo-empty">
+          <div className="assigned-wo-empty-icon">📭</div>
+          <h3 className="assigned-wo-empty-title">No work orders found</h3>
+          <p className="assigned-wo-empty-sub">
             No work orders match the current filter &ldquo;{filter}&rdquo; {searchQuery ? `or search "${searchQuery}"` : ''}.
           </p>
           <button
@@ -192,8 +145,7 @@ export default function AssignedWorkOrders({
               setFilter('ALL')
               setSearchQuery('')
             }}
-            className="btn-contractor-secondary"
-            style={{ marginTop: 16 }}
+            className="btn-contractor-secondary assigned-wo-clear-btn"
           >
             Clear Filters
           </button>
@@ -203,11 +155,11 @@ export default function AssignedWorkOrders({
           <table className="contractor-table">
             <thead>
               <tr>
-                <th>Work Order ID & Date</th>
+                <th>Work Order ID &amp; Date</th>
                 <th>Issue / Description</th>
-                <th>Asset & Location</th>
+                <th>Asset &amp; Location</th>
                 <th>Priority / Category</th>
-                <th>Money Estimated & Used</th>
+                <th>Money Estimated &amp; Used</th>
                 <th>SLA Deadline</th>
                 <th>Current Status</th>
                 <th>Action</th>
@@ -219,82 +171,52 @@ export default function AssignedWorkOrders({
                 return (
                   <tr key={job.id}>
                     <td>
-                      <strong style={{ fontFamily: 'var(--font-mono)', color: '#0369a1', fontSize: 14 }}>
+                      <strong className="assigned-wo-code">
                         {job.workOrderId || job.id}
                       </strong>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                      <div className="assigned-wo-ref-sub">
                         Ref: {job.id}
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-soft)', marginTop: 2 }}>
+                      <div className="assigned-wo-date-sub">
                         {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'Recent'}
                       </div>
                     </td>
 
-                    <td style={{ maxWidth: 300 }}>
-                      <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: 14 }}>{job.title}</div>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: 'var(--text-soft)',
-                          marginTop: 3,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                        }}
-                      >
+                    <td className="assigned-wo-desc-cell">
+                      <div className="assigned-wo-title">{job.title}</div>
+                      <div className="assigned-wo-desc">
                         {job.description}
                       </div>
                     </td>
 
                     <td>
-                      <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>
+                      <div className="assigned-wo-asset-name">
                         {job.location?.assetName || job.location?.assetId}
                       </div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-soft)', marginTop: 1 }}>
+                      <div className="assigned-wo-loc-sector">
                         {job.location?.sector}, {job.location?.block}
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                      <div className="assigned-wo-loc-street">
                         {job.location?.landmark || job.location?.street}
                       </div>
                     </td>
 
                     <td>
                       <div>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: '2px 6px',
-                            borderRadius: 4,
-                            background:
-                              job.severity === 'Emergency'
-                                ? '#fee2e2'
-                                : job.severity === 'High'
-                                ? '#ffedd5'
-                                : '#f1f5f9',
-                            color:
-                              job.severity === 'Emergency'
-                                ? '#b91c1c'
-                                : job.severity === 'High'
-                                ? '#c2410c'
-                                : '#475569',
-                          }}
-                        >
+                        <span className={`assigned-wo-severity-badge ${job.severity?.toLowerCase() || 'medium'}`}>
                           {job.severity}
                         </span>
                       </div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-soft)', marginTop: 4 }}>
+                      <div className="assigned-wo-cat-lbl">
                         {job.category}
                       </div>
                     </td>
 
                     <td>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0369a1' }}>
+                      <div className="assigned-wo-money-est">
                         Est: ₹{(job.moneyEstimated || job.estimatedCost || job.estimate?.total || 0).toLocaleString('en-IN')}
                       </div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: (job.status === 'COMPLETED' || job.actualCost || job.moneyUsed) ? '#16a34a' : 'var(--text-soft)', marginTop: 3 }}>
+                      <div className={`assigned-wo-money-used ${(job.status === 'COMPLETED' || job.actualCost || job.moneyUsed) ? 'used' : 'pending'}`}>
                         Used: ₹{(job.moneyUsed || job.actualCost || (job.status === 'COMPLETED' ? (job.moneyEstimated || job.estimatedCost || 0) : 0)).toLocaleString('en-IN')}
                       </div>
                     </td>
@@ -307,7 +229,7 @@ export default function AssignedWorkOrders({
                       >
                         {sla.text}
                       </span>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>
+                      <div className="assigned-wo-sla-target">
                         Target: {new Date(job.slaDeadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </td>
@@ -333,7 +255,7 @@ export default function AssignedWorkOrders({
                     </td>
 
                     <td>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div className="assigned-wo-actions-col">
                         {job.status === 'ASSIGNED' && (
                           <>
                             <button
@@ -341,8 +263,7 @@ export default function AssignedWorkOrders({
                                 onSelectJob(job)
                                 onNavigate('inspection')
                               }}
-                              className="btn-contractor-primary"
-                              style={{ padding: '6px 10px', fontSize: 12 }}
+                              className="btn-contractor-primary assigned-wo-action-btn"
                             >
                               Inspect Site →
                             </button>
@@ -351,8 +272,7 @@ export default function AssignedWorkOrders({
                                 onSelectJob(job)
                                 onNavigate('estimate')
                               }}
-                              className="btn-contractor-secondary"
-                              style={{ padding: '4px 8px', fontSize: 11 }}
+                              className="btn-contractor-secondary assigned-wo-action-subbtn"
                             >
                               Draft Estimate
                             </button>
@@ -365,8 +285,7 @@ export default function AssignedWorkOrders({
                               onSelectJob(job)
                               onNavigate('execution')
                             }}
-                            className="btn-contractor-primary"
-                            style={{ padding: '6px 10px', fontSize: 12, background: '#d97706' }}
+                            className="btn-contractor-primary assigned-wo-action-btn amber"
                           >
                             Log Execution →
                           </button>
@@ -378,8 +297,7 @@ export default function AssignedWorkOrders({
                               onSelectJob(job)
                               onNavigate('estimate')
                             }}
-                            className="btn-contractor-primary"
-                            style={{ padding: '6px 10px', fontSize: 12, background: '#ea580c' }}
+                            className="btn-contractor-primary assigned-wo-action-btn orange"
                           >
                             Revise Estimate ⚠️
                           </button>
@@ -391,8 +309,7 @@ export default function AssignedWorkOrders({
                               onSelectJob(job)
                               onNavigate('rework')
                             }}
-                            className="btn-contractor-primary"
-                            style={{ padding: '6px 10px', fontSize: 12, background: '#dc2626' }}
+                            className="btn-contractor-primary assigned-wo-action-btn red"
                           >
                             Address Rework ⚠️
                           </button>
@@ -404,8 +321,7 @@ export default function AssignedWorkOrders({
                               onSelectJob(job)
                               onNavigate('execution')
                             }}
-                            className="btn-contractor-secondary"
-                            style={{ padding: '6px 10px', fontSize: 12 }}
+                            className="btn-contractor-secondary assigned-wo-action-btn"
                           >
                             View Evidence
                           </button>
@@ -417,8 +333,7 @@ export default function AssignedWorkOrders({
                               onSelectJob(job)
                               onNavigate('approvals')
                             }}
-                            className="btn-contractor-secondary"
-                            style={{ padding: '6px 10px', fontSize: 12 }}
+                            className="btn-contractor-secondary assigned-wo-action-btn"
                           >
                             Pending Approval
                           </button>

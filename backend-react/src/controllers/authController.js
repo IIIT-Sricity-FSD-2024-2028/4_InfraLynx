@@ -312,11 +312,11 @@ export const registerTownship = async (req, res, next) => {
 /**
  * @desc    Set or update password for user with strict validation
  * @route   POST /api/v1/auth/set-password
- * @access  Public / Private
+ * @access  Private
  */
 export const setPassword = async (req, res, next) => {
   try {
-    const { email, newPassword } = req.body;
+    const { currentPassword, newPassword } = req.body;
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
     if (!newPassword || !passwordRegex.test(newPassword)) {
       return res.status(400).json({
@@ -328,20 +328,22 @@ export const setPassword = async (req, res, next) => {
       });
     }
 
-    const userEmail = email || req.user?.email;
-    if (!userEmail) {
-      return res.status(400).json({
-        success: false,
-        error: { message: 'Email identifier required to update password.', statusCode: 400 },
-      });
-    }
-
-    const user = db.findOne('users', (u) => u.email.toLowerCase() === userEmail.trim().toLowerCase());
+    const user = db.findById('users', req.user.id);
     if (!user) {
       return res.status(404).json({
         success: false,
         error: { message: 'User not found.', statusCode: 404 },
       });
+    }
+
+    if (currentPassword) {
+      const currentPasswordMatches = await comparePassword(currentPassword, user.password_hash);
+      if (!currentPasswordMatches) {
+        return res.status(401).json({
+          success: false,
+          error: { message: 'Current password is incorrect.', statusCode: 401 },
+        });
+      }
     }
 
     const hashedPassword = await hashPassword(newPassword);

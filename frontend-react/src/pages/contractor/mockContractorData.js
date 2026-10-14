@@ -38,7 +38,7 @@ export const INITIAL_CONTRACTOR_JOBS = [
     description: 'Underground armoured XLPE cable sparking intermittently with smoke emission near the main transformer isolator switch.',
     reportedBy: { name: 'Dr. Arvind Swaminathan', role: 'RWA Secretary' },
     createdAt: new Date(Date.now() - 20 * 3600 * 1000).toISOString(),
-    beforePhotos: ['https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?auto=format&fit=crop&w=800&q=80'],
+    beforePhotos: ['https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=800&q=80'],
     afterPhotos: [],
     inspection: null,
     estimate: null,

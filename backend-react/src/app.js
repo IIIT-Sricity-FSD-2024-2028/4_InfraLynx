@@ -21,6 +21,12 @@ import { errorHandler } from './middleware/error.js';
 
 const app = express();
 
+// Trust only the direct deployment proxy when explicitly configured. This keeps
+// rate limiting tied to the socket IP in local/default deployments.
+if (process.env.TRUST_PROXY) {
+  app.set('trust proxy', process.env.TRUST_PROXY);
+}
+
 // Ensure uploads directory exists
 if (!fs.existsSync(config.upload.dir)) {
   fs.mkdirSync(config.upload.dir, { recursive: true });
@@ -32,9 +38,21 @@ import { apiRateLimiter } from './middleware/rateLimiter.js';
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allows React frontend to display uploaded images
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        connectSrc: ["'self'", ...config.corsOrigins],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
     frameguard: { action: 'deny' }, // Anti-clickjacking: Prevents embedding in iframes
     noSniff: true, // Prevents MIME-type sniffing
     xssFilter: true, // Legacy XSS browser filter
+    hsts: config.isProd ? { maxAge: 15552000, includeSubDomains: true } : false,
   })
 );
 
@@ -71,14 +89,14 @@ app.use('/uploads', express.static(config.upload.dir));
 // Healthcheck & System Info Endpoint
 app.get('/health', async (req, res) => {
   const dbStatus = await db.testConnection();
-  const dbType = process.env.DB_MODE === 'postgres' ? 'POSTGRESQL' : 'IN_MEMORY_RAM';
+  const dbType = 'POSTGRESQL';
   res.status(dbStatus ? 200 : 503).json({
     success: dbStatus,
     status: dbStatus ? 'UP' : 'DEGRADED',
     timestamp: new Date().toISOString(),
     environment: config.nodeEnv,
-    database: dbStatus ? `${dbType}_CONNECTED` : 'DISCONNECTED',
-    mode: dbType,
+    database: dbStatus ? 'POSTGRESQL_CONNECTED' : 'DISCONNECTED',
+    mode: 'POSTGRESQL',
   });
 });
 

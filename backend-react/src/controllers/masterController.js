@@ -1,15 +1,18 @@
 /**
- * TIMS Master Data Controller (In-Memory Engine)
- * Exposes reference data: Contractors, Departments, AMC Rate Cards, and DB Reset.
+ * TIMS Master Data Controller (PostgreSQL Engine)
+ * Exposes reference data: Contractors, Departments, AMC Rate Cards, and DB Refresh.
  */
 
 import db from '../config/db.js';
 
+const getUserTownshipId = (user) => user.townshipId || user.township_id;
+
 export const getContractors = async (req, res, next) => {
   try {
-    const rawContractors = db.find('contractors');
-    const amcs = db.find('amcs');
-    const departments = db.find('departments');
+    const townshipId = getUserTownshipId(req.user);
+    const rawContractors = db.find('contractors', (c) => !townshipId || c.township_id === townshipId);
+    const amcs = db.find('amcs', (a) => !townshipId || a.township_id === townshipId);
+    const departments = db.find('departments', (d) => !townshipId || d.township_id === townshipId);
 
     const ratingsMap = {
       'c0000000-0000-0000-0000-000000000001': 4.8,
@@ -56,7 +59,8 @@ export const getContractors = async (req, res, next) => {
 
 export const getDepartments = async (req, res, next) => {
   try {
-    const departments = db.find('departments');
+    const townshipId = getUserTownshipId(req.user);
+    const departments = db.find('departments', (d) => !townshipId || d.township_id === townshipId);
     res.status(200).json({ success: true, count: departments.length, data: departments });
   } catch (error) {
     next(error);
@@ -65,9 +69,11 @@ export const getDepartments = async (req, res, next) => {
 
 export const getAmcRates = async (req, res, next) => {
   try {
-    const rawRates = db.find('amc_rates');
-    const amcs = db.find('amcs');
-    const departments = db.find('departments');
+    const townshipId = getUserTownshipId(req.user);
+    const amcs = db.find('amcs', (a) => !townshipId || a.township_id === townshipId);
+    const amcIds = new Set(amcs.map((a) => a.id));
+    const rawRates = db.find('amc_rates', (r) => amcIds.has(r.amc_id));
+    const departments = db.find('departments', (d) => !townshipId || d.township_id === townshipId);
 
     const rates = rawRates.map((r) => {
       const amc = amcs.find((a) => a.id === r.amc_id);
@@ -103,8 +109,8 @@ export const getAmcRates = async (req, res, next) => {
 
 export const resetDatabase = async (req, res, next) => {
   try {
-    db.reset();
-    res.status(200).json({ success: true, message: 'In-Memory database reset to initial seeds.' });
+    await db.reset();
+    res.status(200).json({ success: true, message: 'Database state refreshed from PostgreSQL.' });
   } catch (error) {
     next(error);
   }

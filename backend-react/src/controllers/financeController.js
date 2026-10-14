@@ -8,6 +8,23 @@
 import crypto from 'crypto';
 import db from '../config/db.js';
 import invoiceService from '../services/invoiceService.js';
+import { AppError } from '../middleware/error.js';
+
+const getUserTownshipId = (user) => user.township_id || user.townshipId;
+
+const findInvoiceForUser = (req, id) => {
+  const invoice = db.findOne('invoices', (inv) => inv.id === id || inv.invoice_code === id || inv.invoice_number === id);
+  if (!invoice) {
+    throw new AppError(`Invoice '${id}' not found.`, 404, 'NOT_FOUND');
+  }
+
+  const townshipId = getUserTownshipId(req.user);
+  if (townshipId && invoice.township_id && invoice.township_id !== townshipId) {
+    throw new AppError('Cross-township invoice access is forbidden.', 403, 'FORBIDDEN');
+  }
+
+  return invoice;
+};
 
 /**
  * @desc    Get all invoices for township with audit details
@@ -16,7 +33,7 @@ import invoiceService from '../services/invoiceService.js';
  */
 export const getInvoices = async (req, res, next) => {
   try {
-    const townshipId = req.user.township_id || req.user.townshipId;
+    const townshipId = getUserTownshipId(req.user);
     const { status, contractorId } = req.query;
 
     const invoices = db.findAll('invoices', (inv) => {
@@ -109,14 +126,7 @@ export const getInvoices = async (req, res, next) => {
 export const getInvoiceById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const invoice = db.findOne('invoices', (inv) => inv.id === id || inv.invoice_code === id);
-
-    if (!invoice) {
-      return res.status(404).json({
-        success: false,
-        error: { message: `Invoice '${id}' not found.` },
-      });
-    }
+    const invoice = findInvoiceForUser(req, id);
 
     const checkReport = await invoiceService.perform3WayCheck(invoice.id);
 
@@ -140,7 +150,8 @@ export const getInvoiceById = async (req, res, next) => {
 export const runThreeWayCheck = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const report = await invoiceService.perform3WayCheck(id);
+    const invoice = findInvoiceForUser(req, id);
+    const report = await invoiceService.perform3WayCheck(invoice.id);
 
     res.status(200).json({
       success: true,
@@ -161,17 +172,41 @@ export const authorizeInvoice = async (req, res, next) => {
     const { id } = req.params;
     const { notes } = req.body;
 
-    const invoice = db.findOne('invoices', (inv) => inv.id === id || inv.invoice_code === id);
-    if (!invoice) {
-      return res.status(404).json({
-        success: false,
-        error: { message: `Invoice '${id}' not found.` },
-      });
-    }
+    const invoice = findInvoiceForUser(req, id);
 
     // Strict Rule: Finance cannot authorize payment until RWA/Citizen verifies the completed work
     const workOrder = invoice.work_order_id ? db.findById('work_orders', invoice.work_order_id) : null;
     const complaint = workOrder && workOrder.complaint_id ? db.findById('complaints', workOrder.complaint_id) : null;
+
+    if (!workOrder || workOrder.township_id !== invoice.township_id || workOrder.status !== 'COMPLETED') {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'WORK_ORDER_COMPLETION_REQUIRED',
+          message: 'Cannot authorize invoice. Linked work order must exist in COMPLETED status for the same township.',
+        },
+      });
+    }
+
+    if (!complaint || complaint.township_id !== invoice.township_id) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'COMPLAINT_LINK_REQUIRED',
+          message: 'Cannot authorize invoice. Linked complaint is missing or outside the invoice township.',
+        },
+      });
+    }
+
+    if ((complaint.status || '').toUpperCase() === 'DISPUTED' || complaint.verification?.status === 'DISPUTED') {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'DISPUTED_WORK_BLOCKS_PAYMENT',
+          message: 'Cannot authorize invoice while the RWA / citizen has disputed the completed work.',
+        },
+      });
+    }
 
     const isRwaVerified = complaint
       ? complaint.status === 'CLOSED' || complaint.is_resolved_by_resident === true || complaint.verification?.status === 'CONFIRMED'
@@ -183,6 +218,18 @@ export const authorizeInvoice = async (req, res, next) => {
         error: {
           code: 'RWA_VERIFICATION_REQUIRED',
           message: 'Cannot authorize invoice. RWA / Citizen on-ground verification is mandatory prior to financial payment authorization.',
+        },
+      });
+    }
+
+    const checkReport = await invoiceService.perform3WayCheck(invoice.id);
+    if (checkReport.compliance.reconciliationStatus !== 'MATCH') {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'THREE_WAY_RECONCILIATION_FAILED',
+          message: checkReport.compliance.message,
+          reconciliationStatus: checkReport.compliance.reconciliationStatus,
         },
       });
     }
@@ -233,13 +280,7 @@ export const flagVariance = async (req, res, next) => {
       });
     }
 
-    const invoice = db.findOne('invoices', (inv) => inv.id === id || inv.invoice_code === id);
-    if (!invoice) {
-      return res.status(404).json({
-        success: false,
-        error: { message: `Invoice '${id}' not found.` },
-      });
-    }
+    const invoice = findInvoiceForUser(req, id);
 
     const updated = db.update('invoices', invoice.id, {
       status: 'VARIANCE_FLAGGED',
@@ -279,15 +320,9 @@ export const releasePayment = async (req, res, next) => {
     const { id } = req.params;
     const { paymentMode, paymentReference } = req.body;
 
-    const invoice = db.findOne('invoices', (inv) => inv.id === id || inv.invoice_code === id);
-    if (!invoice) {
-      return res.status(404).json({
-        success: false,
-        error: { message: `Invoice '${id}' not found.` },
-      });
-    }
+    const invoice = findInvoiceForUser(req, id);
 
-    if (invoice.status !== 'AUTHORIZED' && invoice.status !== 'PENDING_AUDIT') {
+    if (invoice.status !== 'AUTHORIZED') {
       return res.status(400).json({
         success: false,
         error: { message: `Invoice must be in AUTHORIZED status before releasing payment. Current status: ${invoice.status}` },
@@ -301,7 +336,7 @@ export const releasePayment = async (req, res, next) => {
       invoice_id: invoice.id,
       contractor_id: invoice.contractor_id,
       amount: invoice.total_amount,
-      status: 'PAID',
+      status: 'DISBURSED',
       payment_mode: paymentMode || 'RTGS / Township Escrow',
       payment_reference: reference,
       authorized_by: req.user.id,
@@ -317,7 +352,7 @@ export const releasePayment = async (req, res, next) => {
     // Update linked work order
     if (invoice.work_order_id) {
       db.update('work_orders', invoice.work_order_id, {
-        status: 'SETTLED',
+        status: 'CLOSED',
         updated_at: new Date().toISOString(),
       });
     }
@@ -330,7 +365,7 @@ export const releasePayment = async (req, res, next) => {
       actor_role: req.user.role,
       action: 'PAYMENT_RELEASED',
       from_state: 'SCHEDULED',
-      to_state: 'PAID',
+      to_state: 'DISBURSED',
       notes: `Payment released via ${paymentMode || 'RTGS'}. Reference: ${reference}`,
     });
 
@@ -354,8 +389,10 @@ export const releasePayment = async (req, res, next) => {
  */
 export const getRateCards = async (req, res, next) => {
   try {
-    const rawRates = db.findAll('amc_rates');
-    const amcs = db.findAll('amcs');
+    const townshipId = getUserTownshipId(req.user);
+    const amcs = db.findAll('amcs', (amc) => !townshipId || amc.township_id === townshipId);
+    const amcIds = new Set(amcs.map((amc) => amc.id));
+    const rawRates = db.findAll('amc_rates', (rate) => amcIds.has(rate.amc_id));
     const departments = db.findAll('departments');
     const contractors = db.findAll('contractors');
 
@@ -394,7 +431,7 @@ export const getRateCards = async (req, res, next) => {
  */
 export const getFinanceAnalytics = async (req, res, next) => {
   try {
-    const townshipId = req.user.township_id;
+    const townshipId = getUserTownshipId(req.user);
     const invoices = db.findAll('invoices', (inv) => !townshipId || inv.township_id === townshipId);
 
     const pendingAudit = invoices.filter((i) => i.status === 'PENDING_AUDIT').length;
@@ -431,7 +468,7 @@ export const getFinanceAnalytics = async (req, res, next) => {
  */
 export const getPayments = async (req, res, next) => {
   try {
-    const townshipId = req.user.township_id || req.user.townshipId;
+    const townshipId = getUserTownshipId(req.user);
     const payments = db.findAll('payments', (p) => {
       if (townshipId && p.township_id && p.township_id !== townshipId) return false;
       return true;
