@@ -59,4 +59,4 @@ desktop.ini
 # ── Misc cache ────────────────────────────────────────
 .cache/
 .turbo/
-
+gui-test-screenshots/

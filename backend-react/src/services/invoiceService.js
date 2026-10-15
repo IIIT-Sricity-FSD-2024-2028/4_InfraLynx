@@ -47,10 +47,20 @@ export const perform3WayCheck = async (invoiceId) => {
   // Audit Line Items against AMC Rate Cards
   let allRatesMatch = true;
   const itemsBreakdown = items.map((item) => {
-    // Find matching rate in rate card
+    // Find matching rate in rate card by name, substring, or rate code/id
+    const descLower = item.description?.toLowerCase() || '';
     const matchingRate = allRates.find(
-      (r) => r.item_name?.toLowerCase() === item.description?.toLowerCase() ||
-             item.description?.toLowerCase().includes(r.item_name?.toLowerCase())
+      (r) => {
+        const rName = r.item_name?.toLowerCase() || '';
+        const rCode = r.item_code?.toLowerCase() || '';
+        return (
+          rName === descLower ||
+          descLower.includes(rName) ||
+          rName.includes(descLower) ||
+          (item.rate_card_id && (r.id === item.rate_card_id || rCode === item.rate_card_id?.toLowerCase())) ||
+          (item.item_code && rCode === item.item_code?.toLowerCase())
+        );
+      }
     );
 
     const amcRate = matchingRate ? Number(matchingRate.rate) : null;
