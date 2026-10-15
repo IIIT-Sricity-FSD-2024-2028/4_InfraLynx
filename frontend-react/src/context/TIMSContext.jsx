@@ -339,9 +339,22 @@ const CANONICAL_FALLBACK_CONTRACTORS = [
    */
   function updateComplaintStatus(complaintId, newStatus, note = '', extraFields = {}) {
     const now = new Date().toISOString()
-    setComplaints((prev) =>
-      prev.map((c) => {
-        if (c.id !== complaintId && c.complaint_code !== complaintId) return c
+    setComplaints((prev) => {
+      const updated = prev.map((c) => {
+        const isMatch =
+          c.id === complaintId ||
+          c.complaint_code === complaintId ||
+          c.complaintCode === complaintId ||
+          c.workOrderId === complaintId ||
+          c.work_order_id === complaintId ||
+          c.work_order_code === complaintId ||
+          c.work_order_number === complaintId ||
+          c.work_order?.id === complaintId ||
+          c.work_order?.work_order_number === complaintId ||
+          c.work_order?.work_order_code === complaintId
+
+        if (!isMatch) return c
+
         const newRank = STAGE_RANK_MAP[normStage(newStatus)] ?? 0
         const cleanHistory = (c.history || []).filter(
           (evt) => (STAGE_RANK_MAP[normStage(evt.stage)] ?? 0) < newRank
@@ -361,7 +374,18 @@ const CANONICAL_FALLBACK_CONTRACTORS = [
           ],
         })
       })
-    )
+
+      try {
+        const storageCopy = updated.map((c) => ({
+          ...c,
+          beforePhotos: (c.beforePhotos || []).map((p) => (typeof p === 'string' && p.startsWith('data:image/') && p.length > 500 ? '[image]' : p)),
+          afterPhotos: (c.afterPhotos || []).map((p) => (typeof p === 'string' && p.startsWith('data:image/') && p.length > 500 ? '[image]' : p)),
+        }))
+        sessionStorage.setItem('tims_complaints_v3', JSON.stringify(storageCopy))
+      } catch (_) {}
+
+      return updated
+    })
   }
 
   const value = {

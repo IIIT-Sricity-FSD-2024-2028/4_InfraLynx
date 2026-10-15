@@ -25,12 +25,12 @@ export const perform3WayCheck = async (invoiceId) => {
 
   // 2. Fetch linked Work Order
   const workOrder = invoice.work_order_id
-    ? db.findById('work_orders', invoice.work_order_id)
+    ? (db.findById('work_orders', invoice.work_order_id) || db.findOne('work_orders', (w) => w.id === invoice.work_order_id || w.work_order_number === invoice.work_order_id || w.work_order_code === invoice.work_order_id))
     : null;
 
   // 3. Fetch linked Complaint
   const complaint = workOrder && workOrder.complaint_id
-    ? db.findById('complaints', workOrder.complaint_id)
+    ? (db.findById('complaints', workOrder.complaint_id) || db.findOne('complaints', (c) => c.id === workOrder.complaint_id || c.complaint_code === workOrder.complaint_id))
     : null;
 
   // 4. Fetch Contractor
@@ -92,9 +92,7 @@ export const perform3WayCheck = async (invoiceId) => {
 
   // Verify Citizen / RWA signoff
   const workCompleted = workOrder?.status === 'COMPLETED' || workOrder?.status === 'CLOSED';
-  const rwaVerified = complaint
-    ? complaint.status === 'CLOSED' || complaint.is_resolved_by_resident === true || complaint.verification?.status === 'CONFIRMED'
-    : false;
+  const rwaVerified = (complaint && (complaint.status === 'CLOSED' || complaint.status === 'VERIFIED' || complaint.is_resolved_by_resident === true || complaint.verification?.status === 'CONFIRMED')) || invoice.rwa_verified === true;
   const isDisputed = complaint?.status === 'DISPUTED' || complaint?.verification?.status === 'DISPUTED';
 
   // Determine Reconciliation Status

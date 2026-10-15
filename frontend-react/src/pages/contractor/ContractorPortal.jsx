@@ -115,6 +115,7 @@ export default function ContractorPortal({ onExitToLanding }) {
   const {
     complaints = [],
     updateComplaintStatus,
+    refreshComplaints,
   } = useTIMS()
 
   // Local state for contractor jobs (loaded from backend API)
@@ -360,7 +361,7 @@ export default function ContractorPortal({ onExitToLanding }) {
   async function handleSubmitCompletion(jobId, completionData) {
     const targetJob = jobs.find((j) => j.id === jobId)
     const targetId = targetJob?.backendWoId || targetJob?.workOrderId || targetJob?.workOrderCode || jobId
-    const complaintId = targetJob?.complaintId || targetJob?.id || jobId
+    const complaintId = targetJob?.complaintId || targetJob?.complaintCode || targetJob?.id || jobId
 
     // Bridge to backend contractor API
     try {
@@ -407,14 +408,25 @@ export default function ContractorPortal({ onExitToLanding }) {
 
     if (updateComplaintStatus) {
       updateComplaintStatus(
-        jobId,
+        complaintId,
         'PENDING_VERIFICATION',
-        `Repair completed by contractor. Proof uploaded: ${completionData.actualWorkSummary}`
+        `Repair completed by contractor. Proof uploaded: ${completionData.actualWorkSummary || 'Resolution evidence attached'}`,
+        {
+          completedAt: completionData.completedAt,
+          afterPhotos: [completionData.afterPhoto],
+          completionRemarks: completionData.completionRemarks,
+        }
       )
     }
 
+    if (refreshComplaints) {
+      try {
+        await refreshComplaints()
+      } catch (_) {}
+    }
+
     setSuccessNotice({
-      message: `Work Order ${jobId} marked as COMPLETED! Forwarded to RWA for verification.`,
+      message: `Work Order ${jobId} marked as COMPLETED! Forwarded to RWA for verification and Finance for payment authorization.`,
     })
   }
 

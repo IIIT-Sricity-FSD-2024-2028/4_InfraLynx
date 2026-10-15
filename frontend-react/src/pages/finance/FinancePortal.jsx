@@ -4,9 +4,12 @@ import InvoiceAudit from './InvoiceAudit.jsx'
 import RateCardViewer from './RateCardViewer.jsx'
 import PaymentReleases from './PaymentReleases.jsx'
 import { financeApi } from '../../services/api.js'
+import { useTIMS } from '../../context/TIMSContext.jsx'
 import './styles/FinancePortal.css'
 
 export default function FinancePortal({ onExitToLanding }) {
+  const { refreshComplaints } = useTIMS()
+
   // Navigation Tabs: 'dashboard' | 'audit' | 'rates' | 'releases'
   const [currentScreen, setCurrentScreen] = useState('dashboard')
 
@@ -48,14 +51,14 @@ export default function FinancePortal({ onExitToLanding }) {
   }
 
   async function handleAuthorizeInvoice(invoiceId) {
-    const targeted = invoices.find((i) => i.id === invoiceId)
+    const targeted = invoices.find((i) => i.id === invoiceId || i.rawId === invoiceId)
     if (targeted && targeted.rwaVerified === false) {
       alert('Cannot authorize invoice: RWA / Citizen on-ground verification is mandatory prior to financial payment authorization.')
       return
     }
 
     try {
-      await financeApi.authorizeInvoice(invoiceId);
+      await financeApi.authorizeInvoice(targeted?.rawId || invoiceId);
     } catch (err) {
       console.warn('Backend authorization notice:', err.message);
       if (err.message && (err.message.includes('RWA') || err.message.includes('verification'))) {
@@ -65,6 +68,11 @@ export default function FinancePortal({ onExitToLanding }) {
     }
 
     await loadInvoices();
+    if (refreshComplaints) {
+      try {
+        await refreshComplaints()
+      } catch (_) {}
+    }
     setActiveInvoiceModal(null)
     setNotice(`Invoice ${invoiceId} (₹${targeted?.billedAmount?.toLocaleString('en-IN')}) successfully verified and authorized for staged payment release!`)
   }

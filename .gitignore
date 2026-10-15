@@ -44,6 +44,9 @@ backend-react/uploads/*
 backend-react/uploads/.env
 !back-end/uploads/.gitkeep
 
+# ── Local database dumps (contain user data + password hashes) ──
+backend-react/db-backups/
+
 # ── Test coverage ─────────────────────────────────────
 coverage/
 .nyc_output/

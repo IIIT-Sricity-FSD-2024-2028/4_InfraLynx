@@ -111,7 +111,7 @@ export default function WorkExecution({
 
     onSubmitCompletion(currentJob.id, completionData)
     setSubmittedMessage(
-      `Work Order ${currentJob.workOrderId || currentJob.id} marked as COMPLETED! Forwarded to RWA for verification.`
+      `Work Order ${currentJob.workOrderId || currentJob.id} marked as COMPLETED! Forwarded to RWA for verification and Finance for payment authorization.`
     )
   }
 
@@ -222,7 +222,7 @@ export default function WorkExecution({
               <strong className="execution-step-title">COMPLETED</strong>
             </div>
             <div className="execution-step-desc">
-              Photo proof submitted; pending RWA check.
+              Photo proof submitted; forwarded to RWA for verification &amp; Finance for authorization.
             </div>
           </div>
         </div>
@@ -481,7 +481,7 @@ export default function WorkExecution({
           <div className="execution-form-actions">
             {isCompleted ? (
               <div className="execution-completed-badge">
-                <span>✓ Completed &amp; Transferred to RWA for verification</span>
+                <span>✓ Completed &amp; Forwarded to RWA for Verification &amp; Finance for Payment Authorization</span>
               </div>
             ) : (
               <button

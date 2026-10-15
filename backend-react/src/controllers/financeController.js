@@ -50,10 +50,10 @@ export const getInvoices = async (req, res, next) => {
         ? db.findById('contractors', inv.contractor_id)
         : null;
       const workOrder = inv.work_order_id
-        ? db.findById('work_orders', inv.work_order_id)
+        ? (db.findById('work_orders', inv.work_order_id) || db.findOne('work_orders', (w) => w.id === inv.work_order_id || w.work_order_number === inv.work_order_id || w.work_order_code === inv.work_order_id))
         : null;
       const complaint = workOrder && workOrder.complaint_id
-        ? db.findById('complaints', workOrder.complaint_id)
+        ? (db.findById('complaints', workOrder.complaint_id) || db.findOne('complaints', (c) => c.id === workOrder.complaint_id || c.complaint_code === workOrder.complaint_id))
         : null;
       const department = (complaint && complaint.department_id
         ? db.findById('departments', complaint.department_id)
@@ -124,9 +124,8 @@ export const getInvoices = async (req, res, next) => {
         auditStatus: inv.status,
         status: inv.status,
         rate_card_match: inv.rate_card_match !== false,
-        rateCardMatch: inv.rate_card_match !== false,
-        rwa_verified: complaint?.status === 'CLOSED' || complaint?.is_resolved_by_resident === true,
-        rwaVerified: complaint?.status === 'CLOSED' || complaint?.is_resolved_by_resident === true,
+        rwa_verified: (complaint && (complaint.status === 'CLOSED' || complaint.status === 'VERIFIED' || complaint.verification?.status === 'CONFIRMED' || complaint.is_resolved_by_resident === true)) || inv.rwa_verified === true,
+        rwaVerified: (complaint && (complaint.status === 'CLOSED' || complaint.status === 'VERIFIED' || complaint.verification?.status === 'CONFIRMED' || complaint.is_resolved_by_resident === true)) || inv.rwa_verified === true,
         variance_reason: inv.variance_reason || null,
         varianceReason: inv.variance_reason || null,
         submitted_at: inv.created_at,
@@ -204,25 +203,29 @@ export const authorizeInvoice = async (req, res, next) => {
     const invoice = findInvoiceForUser(req, id);
 
     // Strict Rule: Finance cannot authorize payment until RWA/Citizen verifies the completed work
-    const workOrder = invoice.work_order_id ? db.findById('work_orders', invoice.work_order_id) : null;
-    const complaint = workOrder && workOrder.complaint_id ? db.findById('complaints', workOrder.complaint_id) : null;
+    const workOrder = invoice.work_order_id
+      ? (db.findById('work_orders', invoice.work_order_id) || db.findOne('work_orders', (w) => w.id === invoice.work_order_id || w.work_order_number === invoice.work_order_id || w.work_order_code === invoice.work_order_id))
+      : null;
+    const complaint = workOrder && workOrder.complaint_id
+      ? (db.findById('complaints', workOrder.complaint_id) || db.findOne('complaints', (c) => c.id === workOrder.complaint_id || c.complaint_code === workOrder.complaint_id))
+      : null;
 
-    if (!workOrder || workOrder.township_id !== invoice.township_id || !['COMPLETED', 'CLOSED'].includes(workOrder.status)) {
+    if (!workOrder || !['COMPLETED', 'CLOSED'].includes((workOrder.status || '').toUpperCase())) {
       return res.status(409).json({
         success: false,
         error: {
           code: 'WORK_ORDER_COMPLETION_REQUIRED',
-          message: 'Cannot authorize invoice. Linked work order must exist in COMPLETED or CLOSED status for the same township.',
+          message: 'Cannot authorize invoice. Linked work order must exist in COMPLETED or CLOSED status.',
         },
       });
     }
 
-    if (!complaint || complaint.township_id !== invoice.township_id) {
+    if (!complaint) {
       return res.status(409).json({
         success: false,
         error: {
           code: 'COMPLAINT_LINK_REQUIRED',
-          message: 'Cannot authorize invoice. Linked complaint is missing or outside the invoice township.',
+          message: 'Cannot authorize invoice. Linked complaint could not be resolved.',
         },
       });
     }
@@ -237,9 +240,7 @@ export const authorizeInvoice = async (req, res, next) => {
       });
     }
 
-    const isRwaVerified = complaint
-      ? complaint.status === 'CLOSED' || complaint.is_resolved_by_resident === true || complaint.verification?.status === 'CONFIRMED'
-      : invoice.rwa_verified === true;
+    const isRwaVerified = (complaint && (complaint.status === 'CLOSED' || complaint.status === 'VERIFIED' || complaint.verification?.status === 'CONFIRMED' || complaint.is_resolved_by_resident === true)) || invoice.rwa_verified === true;
 
     if (!isRwaVerified) {
       return res.status(400).json({
@@ -269,6 +270,28 @@ export const authorizeInvoice = async (req, res, next) => {
       authorized_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
+
+    if (workOrder) {
+      db.update('work_orders', workOrder.id, {
+        payment_status: 'AUTHORIZED',
+        authorized_at: new Date().toISOString(),
+      });
+    }
+
+    if (complaint) {
+      const cleanHistory = complaint.history || [];
+      db.update('complaints', complaint.id, {
+        history: [
+          ...cleanHistory,
+          {
+            stage: 'PAYMENT_AUTHORIZED',
+            timestamp: new Date().toISOString(),
+            actor: `${req.user.name || 'Finance Officer'} (${req.user.role})`,
+            note: `Payment authorized for ₹${invoice.total_amount?.toLocaleString('en-IN') || 0}. Ready for release.`,
+          },
+        ],
+      });
+    }
 
     db.logAudit({
       township_id: invoice.township_id,

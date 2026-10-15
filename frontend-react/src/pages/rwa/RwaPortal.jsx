@@ -8,8 +8,13 @@ import VerificationDispute from './VerificationDispute.jsx'
 import './styles/RwaPortal.css'
 
 export default function RwaPortal({ onExitToLanding }) {
-  // Global auth context (strictly for user credentials / session info)
-  const { currentUser: contextUser } = useTIMS()
+  // Global auth context and shared complaints sync
+  const {
+    currentUser: contextUser,
+    complaints: contextComplaints = [],
+    updateComplaintStatus,
+    refreshComplaints,
+  } = useTIMS()
   const currentUser = contextUser || {
     id: '10000000-0000-0000-0000-000000000001',
     name: 'Dr. Arvind Swaminathan',
@@ -26,20 +31,25 @@ export default function RwaPortal({ onExitToLanding }) {
   const [selectedComplaint, setSelectedComplaint] = useState(null)
   const [successNotice, setSuccessNotice] = useState(null)
 
-  // 1. Fetch live complaints from backend on mount
+  // 1. Fetch live complaints from backend on mount (with shared context fallback)
   const loadComplaints = useCallback(async () => {
     try {
       setLoading(true)
       const data = await complaintApi.getComplaints()
-      if (Array.isArray(data)) {
+      if (Array.isArray(data) && data.length > 0) {
         setComplaints(data)
+      } else if (contextComplaints && contextComplaints.length > 0) {
+        setComplaints(contextComplaints)
       }
     } catch (err) {
       console.warn('[RwaPortal] Backend fetch notice:', err.message)
+      if (contextComplaints && contextComplaints.length > 0) {
+        setComplaints(contextComplaints)
+      }
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [contextComplaints])
 
   useEffect(() => {
     loadComplaints()
@@ -149,13 +159,24 @@ export default function RwaPortal({ onExitToLanding }) {
           }
         })
       )
-      setSelectedComplaint((prev) => {
-        if (!prev) return null
-        if (prev.id === id || prev.complaint_code === id) {
-          return { ...prev, status: 'CLOSED' }
-        }
-        return prev
+    }
+
+    if (updateComplaintStatus) {
+      updateComplaintStatus(id, 'CLOSED', `Work verified on ground by RWA (${payload.rating || 5} stars): ${payload.remarks || 'Satisfactory'}`, {
+        verification: {
+          status: 'CONFIRMED',
+          rating: payload.rating || 5,
+          remarks: payload.remarks || 'Work completed satisfactorily and verified on ground.',
+          verifiedAt: new Date().toISOString(),
+          verifiedBy: currentUser?.name || 'Dr. Arvind Swaminathan',
+        },
       })
+    }
+
+    if (refreshComplaints) {
+      try {
+        await refreshComplaints()
+      } catch (_) {}
     }
   }
 
@@ -213,6 +234,25 @@ export default function RwaPortal({ onExitToLanding }) {
         }
         return prev
       })
+    }
+
+    if (updateComplaintStatus) {
+      updateComplaintStatus(id, 'DISPUTED', `Work disputed by RWA: ${payload.reason || 'Rework requested'}. ${payload.remarks || ''}`, {
+        dispute: {
+          reason: payload.reason || 'Incomplete resolution / poor quality',
+          remarks: payload.remarks || 'The repaired fixture is still malfunctioning.',
+          notes: payload.remarks || '',
+          disputedAt: new Date().toISOString(),
+          disputedBy: currentUser?.name || 'Dr. Arvind Swaminathan',
+          requestedAction: 'REWORK',
+        },
+      })
+    }
+
+    if (refreshComplaints) {
+      try {
+        await refreshComplaints()
+      } catch (_) {}
     }
   }
 

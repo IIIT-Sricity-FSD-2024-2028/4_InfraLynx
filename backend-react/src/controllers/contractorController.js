@@ -194,8 +194,8 @@ export const getJobById = async (req, res, next) => {
     }
     assertContractorWorkOrderAccess(req, wo);
 
-    const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
-    const evidence = db.findAll('complaint_evidence', (ev) => ev.complaint_id === wo.complaint_id);
+    const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id || c.complaint_code === wo.complaint_id);
+    const evidence = db.findAll('complaint_evidence', (ev) => ev.complaint_id === wo.complaint_id || ev.complaint_id === complaint?.id || ev.complaint_id === complaint?.complaint_code);
     const amcRates = db.findAll('amc_rates');
 
     const estimatedCost = Number(wo.estimated_cost || wo.estimate_amount || 0);
@@ -527,7 +527,7 @@ export const updateJobStatus = async (req, res, next) => {
       completed_at: normalizedStatus === 'COMPLETED' ? now : wo.completed_at,
     });
 
-    const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
+    const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id || c.complaint_code === wo.complaint_id);
 
     let createdInvoice = null;
     if (normalizedStatus === 'COMPLETED') {
@@ -548,7 +548,7 @@ export const updateJobStatus = async (req, res, next) => {
       });
 
       // Find or create invoice for Finance Audit Check
-      let existingInvoice = db.findOne('invoices', (inv) => inv.work_order_id === wo.id);
+      let existingInvoice = db.findOne('invoices', (inv) => inv.work_order_id === wo.id || inv.work_order_id === wo.work_order_number || inv.work_order_id === wo.work_order_code);
       const invoiceCount = db.findAll('invoices').length + 1;
       const invoiceCode = `INV-2026-${String(invoiceCount).padStart(3, '0')}`;
       const invoiceNum = `VT-INV/2026/${String(invoiceCount).padStart(3, '0')}`;
@@ -642,6 +642,7 @@ export const updateJobStatus = async (req, res, next) => {
         workOrder: db.findById('work_orders', wo.id),
         invoice: createdInvoice,
         complaintStatus: complaintNextStatus,
+        complaint: complaint ? db.findById('complaints', complaint.id) : null,
       },
     });
   } catch (err) {
