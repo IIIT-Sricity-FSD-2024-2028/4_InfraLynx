@@ -184,16 +184,16 @@ export const requireTownship = (req, res, next) => {
     });
   }
 
-  // Check possible locations for target townshipId
-  const targetTownshipId =
-    req.params.townshipId ||
+  // Check possible locations for target township_id
+  const target_township_id =
     req.params.township_id ||
-    req.query.townshipId ||
+    req.params.townshipId ||
     req.query.township_id ||
-    req.body.townshipId ||
-    req.body.township_id;
+    req.query.townshipId ||
+    req.body.township_id ||
+    req.body.townshipId;
 
-  if (targetTownshipId && targetTownshipId !== req.user.townshipId) {
+  if (target_township_id && target_township_id !== req.user.township_id) {
     return res.status(403).json({
       success: false,
       error: {
@@ -228,8 +228,8 @@ export const requireCivilDepartmentHead = (req, res, next) => {
   }
 
   if (req.user.role === 'DEPARTMENT_HEAD') {
-    const deptId = req.user.departmentId || req.user.department_id;
-    if (!deptId) {
+    const department_id = req.user.department_id;
+    if (!department_id) {
       return res.status(403).json({
         success: false,
         error: {

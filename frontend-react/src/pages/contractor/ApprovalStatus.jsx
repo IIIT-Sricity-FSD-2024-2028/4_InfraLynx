@@ -126,7 +126,7 @@ export default function ApprovalStatus({
           const isRevision = job.status === 'REVISION_REQUESTED'
           const isApproved = job.status === 'IN_PROGRESS' || job.status === 'COMPLETED' || est?.status === 'APPROVED'
 
-          const total = est?.total || job.estimateAmount || 0
+          const total = job.estimated_cost || 0
           const cardVariant = isRevision ? 'revision' : isAwaiting ? 'pending' : 'approved'
 
           return (
@@ -138,7 +138,7 @@ export default function ApprovalStatus({
                 <div>
                   <div className="approval-job-meta">
                     <span className="approval-job-code">
-                      {job.workOrderId || job.id}
+                      {job.work_order_number || job.id}
                     </span>
                     <span className="approval-job-category">• {job.category}</span>
                   </div>

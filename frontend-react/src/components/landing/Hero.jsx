@@ -100,19 +100,6 @@ export default function Hero({ onOpenAuth }) {
               Official Sign In
             </button>
 
-            <button
-              type="button"
-              onClick={() => onOpenAuth('superadmin')}
-              className="button button-secondary"
-              style={{
-                padding: '14px 24px',
-                fontSize: 15,
-                fontWeight: 700,
-                borderColor: 'rgba(22, 101, 52, 0.24)',
-              }}
-            >
-              Super Admin Sign In
-            </button>
 
             <a
               href="#roles"

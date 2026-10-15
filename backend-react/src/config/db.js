@@ -73,7 +73,7 @@ const UUID_COLUMNS = new Set([
   'asset_id', 'sla_id', 'master_complaint_id', 'validated_by', 'complaint_id',
   'work_order_id', 'assigned_by', 'uploaded_by', 'amc_id', 'amc_rate_id',
   'estimate_id', 'approver_id', 'invoice_id', 'authorized_by', 'user_id',
-  'subscription_plan_id', 'department_head_id'
+  'subscription_plan_id', 'department_head_id', 'entity_id'
 ]);
 
 const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
@@ -89,7 +89,8 @@ const ENUM_MAPPINGS = {
   },
   work_orders: {
     status: (val) => {
-      const valid = new Set(['ASSIGNED', 'WORK_ORDER_CREATED', 'INSPECTION_PENDING', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_DEPT_HEAD', 'AWAITING_COO', 'ESCALATED_TO_COO', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'REWORK_REQUESTED', 'REVISION_REQUESTED', 'REJECTED', 'CLOSED']);
+      const valid = new Set(['ASSIGNED', 'INSPECTION_PENDING', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_DEPT_HEAD', 'AWAITING_COO', 'ESCALATED_TO_COO', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'REWORK_REQUESTED', 'REVISION_REQUESTED', 'REJECTED', 'CLOSED']);
+      if (val === 'WORK_ORDER_CREATED') return 'ASSIGNED';
       if (valid.has(val)) return val;
       if (val === 'SETTLED') return 'CLOSED';
       return 'ASSIGNED';

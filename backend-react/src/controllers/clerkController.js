@@ -1,4 +1,4 @@
-﻿/**
+/**
  * clerkController.js — TIMS Desk Clerk Backend Controller (Member 2)
  *
  * Responsibilities:
@@ -149,13 +149,13 @@ export const getTriageQueue = async (req, res, next) => {
   try {
     const { department_id, department, severity, search, township_id } = req.query;
 
-    const targetTownshipId = township_id || req.user.townshipId || req.user.township_id;
-    const clerkDeptId = req.user.departmentId || req.user.department_id || req.user.deptId;
+    const targetTownshipId = township_id || req.user.township_id;
+    const clerk_department_id = req.user.department_id;
     
     // A desk clerk should only see the complaints that are under their department
-    const targetDeptId = (req.user.role === 'DESK_CLERK' && clerkDeptId)
-      ? clerkDeptId
-      : (department_id || clerkDeptId || null);
+    const targetDeptId = (req.user.role === 'DESK_CLERK' && clerk_department_id)
+      ? clerk_department_id
+      : (department_id || clerk_department_id || null);
 
     // 1. Fetch complaints in queue (REPORTED or UNDER_REVIEW)
     let complaints = db.find('complaints', (c) => {
@@ -644,9 +644,9 @@ export const getEligibleContractors = async (req, res, next) => {
   try {
     const { department_id, department, category, township_id } = req.query;
 
-    const targetTownshipId = township_id || req.user.townshipId || req.user.township_id;
-    const clerkDeptId = req.user.departmentId || req.user.department_id || req.user.deptId;
-    const matchDeptId = department_id || (req.user.role === 'DESK_CLERK' ? clerkDeptId : null);
+    const targetTownshipId = township_id || req.user.township_id;
+    const clerk_department_id = req.user.department_id;
+    const matchDeptId = department_id || (req.user.role === 'DESK_CLERK' ? clerk_department_id : null);
     const allContractors = db.find('contractors');
     const allAmcs = db.find('amcs');
     const allRates = db.find('amc_rates');

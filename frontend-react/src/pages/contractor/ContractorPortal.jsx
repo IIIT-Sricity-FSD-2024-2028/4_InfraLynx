@@ -7,7 +7,7 @@ import SiteInspection from './SiteInspection.jsx'
 import AmcEstimateBuilder from './AmcEstimateBuilder.jsx'
 import ApprovalStatus from './ApprovalStatus.jsx'
 import WorkExecution from './WorkExecution.jsx'
-import ReworkDispute from './ReworkDispute.jsx'
+import ErrorBoundary from '../../components/common/ErrorBoundary.jsx'
 import { CONTRACTOR_PROFILE, INITIAL_CONTRACTOR_JOBS } from './mockContractorData.js'
 import './styles/ContractorPortal.css'
 
@@ -50,23 +50,28 @@ function mapBackendJobToUi(wo) {
     afterPhoto: afterPhotos[0] || '',
   } : null
 
-  const estimatedVal = Number(wo.estimatedCost ?? wo.estimated_cost ?? wo.estimateAmount ?? wo.estimate_amount ?? 0)
-  const actualVal = (wo.actualCost !== null && wo.actualCost !== undefined)
-    ? Number(wo.actualCost)
-    : ((wo.actual_cost !== null && wo.actual_cost !== undefined)
-        ? Number(wo.actual_cost)
-        : (wo.status === 'COMPLETED' ? estimatedVal : null))
+  const estimated_cost = Number(wo.estimated_cost ?? wo.estimate_amount ?? 0)
+  const actual_cost = (wo.actual_cost !== null && wo.actual_cost !== undefined)
+    ? Number(wo.actual_cost)
+    : (wo.status === 'COMPLETED' ? estimated_cost : null)
+
+  const work_order_number = wo.work_order_number || wo.work_order_code || `WO-${wo.id?.slice(0, 8)}`
+  const complaint_code = wo.complaint_code || wo.complaint_id || wo.id
+  const sla_deadline = wo.sla_deadline || wo.due_at || new Date(Date.now() + 24 * 3600 * 1000).toISOString()
+  const created_at = wo.created_at || new Date().toISOString()
+  const special_instructions = wo.special_instructions || wo.description || ''
 
   return {
-    id: wo.complaintId || wo.complaint_id || wo.complaintCode || wo.complaint_code || wo.id,
+    id: complaint_code,
     backendWoId: wo.id,
-    workOrderId: wo.workOrderId || wo.workOrderCode || wo.work_order_code || wo.work_order_number || `WO-${wo.id?.slice(0, 8)}`,
-    workOrderCode: wo.workOrderCode || wo.workOrderId || wo.work_order_code || wo.work_order_number || wo.id,
-    complaintId: wo.complaintId || wo.complaint_id || wo.id,
-    complaintCode: wo.complaintCode || wo.complaint_code || wo.complaintId || wo.complaint_id || wo.id,
+    work_order_id: wo.id,
+    work_order_number,
+    complaint_id: wo.complaint_id || wo.id,
+    complaint_code,
     title: wo.title || 'Field Work Order',
     category: wo.category || 'General',
-    subCategory: wo.subCategory || wo.subcategory || wo.sub_category || '',
+    subcategory: wo.subcategory || '',
+    subCategory: wo.subcategory || '',
     location: typeof wo.location === 'object' && wo.location !== null ? wo.location : {
       sector: wo.sector || 'Sector 54',
       block: wo.block || 'Block A',
@@ -75,16 +80,26 @@ function mapBackendJobToUi(wo) {
     },
     severity: wo.severity || wo.priority || 'Medium',
     priority: wo.priority || wo.severity || 'Medium',
-    slaDeadline: wo.slaDeadline || wo.sla_deadline || wo.dueAt || wo.due_at || new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+    sla_deadline,
     status: wo.status,
-    estimateAmount: estimatedVal,
-    estimatedCost: estimatedVal,
-    actualCost: actualVal,
-    moneyEstimated: estimatedVal,
-    moneyUsed: actualVal !== null ? actualVal : 0,
-    description: wo.description || wo.specialInstructions || wo.special_instructions || '',
-    reportedBy: wo.reportedBy || wo.reported_by || { name: 'Dr. Arvind Swaminathan', role: 'RWA Secretary' },
-    createdAt: wo.createdAt || wo.created_at || new Date().toISOString(),
+    estimated_cost,
+    actual_cost,
+    special_instructions,
+    created_at,
+    // Backwards-compatible aliases
+    workOrderId: work_order_number,
+    workOrderCode: work_order_number,
+    complaintId: wo.complaint_id || wo.id,
+    complaintCode: complaint_code,
+    slaDeadline: sla_deadline,
+    estimateAmount: estimated_cost,
+    estimatedCost: estimated_cost,
+    actualCost: actual_cost,
+    moneyEstimated: estimated_cost,
+    moneyUsed: actual_cost !== null ? actual_cost : 0,
+    description: special_instructions,
+    reportedBy: wo.reported_by || { name: 'Dr. Arvind Swaminathan', role: 'RWA Secretary' },
+    createdAt: created_at,
     beforePhotos,
     afterPhotos,
     inspection,
@@ -127,9 +142,18 @@ export default function ContractorPortal({ onExitToLanding }) {
     loadBackendJobs()
   }, [loadBackendJobs, currentScreen])
 
-  // Persist contractor local jobs in tab-isolated sessionStorage
+  // Persist contractor local jobs in tab-isolated sessionStorage safely
   useEffect(() => {
-    sessionStorage.setItem('tims_contractor_jobs_v1', JSON.stringify(jobs))
+    try {
+      const sanitized = jobs.map((j) => ({
+        ...j,
+        beforePhotos: (j.beforePhotos || []).map((p) => (typeof p === 'string' && p.startsWith('data:image/') && p.length > 500 ? '[image_data]' : p)),
+        afterPhotos: (j.afterPhotos || []).map((p) => (typeof p === 'string' && p.startsWith('data:image/') && p.length > 500 ? '[image_data]' : p)),
+      }))
+      sessionStorage.setItem('tims_contractor_jobs_v1', JSON.stringify(sanitized))
+    } catch (storageErr) {
+      console.warn('[ContractorPortal] Could not persist jobs to sessionStorage:', storageErr.message)
+    }
   }, [jobs])
 
   // Real-time synchronization: If a complaint in shared context was updated or assigned, reflect here
@@ -145,9 +169,12 @@ export default function ContractorPortal({ onExitToLanding }) {
               workOrderId: cmp.workOrderId || `WO-2026-${Math.floor(100 + Math.random() * 900)}`,
               title: cmp.title,
               category: cmp.category,
-              subCategory: cmp.subCategory,
-              location: cmp.location,
-              severity: cmp.severity,
+              location: typeof cmp.location === 'object' && cmp.location !== null ? cmp.location : {
+                sector: cmp.sector || (typeof cmp.location === 'string' ? cmp.location : 'Sector 54'),
+                block: 'Block A',
+                street: 'Gulmohar Marg',
+                landmark: typeof cmp.location === 'string' ? cmp.location : '',
+              },
               slaDeadline: cmp.slaDeadline,
               status: cmp.status === 'REPORTED' || cmp.status === 'UNDER_REVIEW' ? 'ASSIGNED' : cmp.status,
               description: cmp.description,
@@ -558,73 +585,75 @@ export default function ContractorPortal({ onExitToLanding }) {
 
       {/* ── Main Screen Body ────────────────────────────────────── */}
       <main className="contractor-main-container">
-        {currentScreen === 'dashboard' && (
-          <ContractorDashboard
-            jobs={jobs}
-            onNavigate={handleNavigate}
-            onSelectJob={handleSelectJob}
-            successNotice={successNotice}
-            onDismissNotice={() => setSuccessNotice(null)}
-          />
-        )}
+        <ErrorBoundary>
+          {currentScreen === 'dashboard' && (
+            <ContractorDashboard
+              jobs={jobs}
+              onNavigate={handleNavigate}
+              onSelectJob={handleSelectJob}
+              successNotice={successNotice}
+              onDismissNotice={() => setSuccessNotice(null)}
+            />
+          )}
 
-        {currentScreen === 'workorders' && (
-          <AssignedWorkOrders
-            jobs={jobs}
-            onNavigate={handleNavigate}
-            onSelectJob={handleSelectJob}
-          />
-        )}
+          {currentScreen === 'workorders' && (
+            <AssignedWorkOrders
+              jobs={jobs}
+              onNavigate={handleNavigate}
+              onSelectJob={handleSelectJob}
+            />
+          )}
 
-        {currentScreen === 'inspection' && (
-          <SiteInspection
-            jobs={jobs}
-            selectedJob={selectedJob}
-            onSelectJob={handleSelectJob}
-            onSaveInspection={handleSaveInspection}
-            onNavigate={handleNavigate}
-          />
-        )}
+          {currentScreen === 'inspection' && (
+            <SiteInspection
+              jobs={jobs}
+              selectedJob={selectedJob}
+              onSelectJob={handleSelectJob}
+              onSaveInspection={handleSaveInspection}
+              onNavigate={handleNavigate}
+            />
+          )}
 
-        {currentScreen === 'estimate' && (
-          <AmcEstimateBuilder
-            jobs={jobs}
-            selectedJob={selectedJob}
-            onSelectJob={handleSelectJob}
-            onSubmitEstimate={handleSubmitEstimate}
-            onNavigate={handleNavigate}
-          />
-        )}
+          {currentScreen === 'estimate' && (
+            <AmcEstimateBuilder
+              jobs={jobs}
+              selectedJob={selectedJob}
+              onSelectJob={handleSelectJob}
+              onSubmitEstimate={handleSubmitEstimate}
+              onNavigate={handleNavigate}
+            />
+          )}
 
-        {currentScreen === 'approvals' && (
-          <ApprovalStatus
-            jobs={jobs}
-            selectedJob={selectedJob}
-            onSelectJob={handleSelectJob}
-            onNavigate={handleNavigate}
-          />
-        )}
+          {currentScreen === 'approvals' && (
+            <ApprovalStatus
+              jobs={jobs}
+              selectedJob={selectedJob}
+              onSelectJob={handleSelectJob}
+              onNavigate={handleNavigate}
+            />
+          )}
 
-        {currentScreen === 'execution' && (
-          <WorkExecution
-            jobs={jobs}
-            selectedJob={selectedJob}
-            onSelectJob={handleSelectJob}
-            onStartWork={handleStartWork}
-            onSubmitCompletion={handleSubmitCompletion}
-            onNavigate={handleNavigate}
-          />
-        )}
+          {currentScreen === 'execution' && (
+            <WorkExecution
+              jobs={jobs}
+              selectedJob={selectedJob}
+              onSelectJob={handleSelectJob}
+              onStartWork={handleStartWork}
+              onSubmitCompletion={handleSubmitCompletion}
+              onNavigate={handleNavigate}
+            />
+          )}
 
-        {currentScreen === 'rework' && (
-          <ReworkDispute
-            jobs={jobs}
-            selectedJob={selectedJob}
-            onSelectJob={handleSelectJob}
-            onSubmitRework={onSubmitRework}
-            onNavigate={handleNavigate}
-          />
-        )}
+          {currentScreen === 'rework' && (
+            <ReworkDispute
+              jobs={jobs}
+              selectedJob={selectedJob}
+              onSelectJob={handleSelectJob}
+              onSubmitRework={onSubmitRework}
+              onNavigate={handleNavigate}
+            />
+          )}
+        </ErrorBoundary>
       </main>
 
       {/* ── Civic Footer ────────────────────────────────────────── */}

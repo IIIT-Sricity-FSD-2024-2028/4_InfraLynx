@@ -35,45 +35,71 @@ function sanitizeComplaintHistory(c) {
 
   const loc = c.location || {}
   const location = {
-    sector: loc.sector || c.sector || 'Sector 54',
-    block: loc.block || c.block || 'Block B',
-    street: loc.street || c.street || 'Gulmohar Marg',
-    assetId: loc.assetId || c.asset_id || 'ASSET-GEN-01',
-    assetName: loc.assetName || c.asset_name || c.location_details || 'Township Infrastructure Fixture',
-    landmark: loc.landmark || c.location_details || '',
+    sector: c.sector || loc.sector || 'Sector 54',
+    block: c.block || loc.block || 'Block B',
+    street: c.street || loc.street || 'Gulmohar Marg',
+    asset_id: c.asset_id || loc.asset_id || loc.assetId || 'ASSET-GEN-01',
+    asset_name: c.asset_name || loc.asset_name || loc.assetName || c.location_details || 'Township Infrastructure Fixture',
+    landmark: c.location_details || loc.landmark || '',
   }
 
   // Resolve contractor entity from database record
-  const assignedContractor = c.assignedContractor || (c.assigned_contractor_name ? {
+  const assigned_contractor = c.assigned_contractor || (c.assigned_contractor_name ? {
     id: c.assigned_contractor_id || null,
     name: c.assigned_contractor_name,
     company_name: c.assigned_contractor_name,
     lead: c.assigned_contractor_lead || c.contact_person || null,
     phone: c.assigned_contractor_phone || null,
     email: c.assigned_contractor_email || null,
-    amcContractId: c.amc_contract_id || null,
-  } : null)
+    amc_contract_id: c.amc_contract_id || null,
+  } : (c.assignedContractor || null))
 
-  const workOrderId = c.workOrderId || c.work_order_code || c.work_order?.work_order_code || c.work_order?.id || null
-  const estimateAmount = c.estimateAmount ?? c.estimate_amount ?? c.work_order?.estimate_amount ?? 0
-  const lineItems = c.lineItems || c.line_items || c.work_order?.line_items || []
-  const requiresDeptHead = c.requiresDeptHead ?? c.requires_dept_head ?? c.work_order?.requires_dept_head ?? false
+  const complaint_code = c.complaint_code || c.id
+  const work_order_number = c.work_order_number || c.work_order_code || c.work_order?.work_order_number || c.work_order?.work_order_code || c.workOrderId || null
+  const work_order_id = c.work_order_id || c.work_order?.id || null
+  const department_id = c.department_id || c.departmentId || null
+  const township_id = c.township_id || c.townshipId || null
+  const contractor_id = c.contractor_id || c.assigned_contractor_id || (assigned_contractor ? assigned_contractor.id : null)
+  const estimated_cost = Number(c.estimated_cost ?? c.estimate_amount ?? c.estimateAmount ?? c.work_order?.estimated_cost ?? c.work_order?.estimate_amount ?? 0)
+  const actual_cost = Number(c.actual_cost ?? c.work_order?.actual_cost ?? (c.status === 'COMPLETED' ? estimated_cost : 0))
+  const line_items = Array.isArray(c.line_items) ? c.line_items : (Array.isArray(c.lineItems) ? c.lineItems : (c.work_order?.line_items || []))
+  const requires_dept_head = Boolean(c.requires_dept_head ?? c.requiresDeptHead ?? c.work_order?.requires_dept_head)
   const priority = c.priority || c.work_order?.priority || 'Medium'
-  const createdAt = c.createdAt || c.created_at || new Date().toISOString()
+  const created_at = c.created_at || c.createdAt || new Date().toISOString()
 
   return {
     ...c,
-    id: c.complaint_code || c.id,
-    complaint_code: c.complaint_code || c.id,
+    id: complaint_code,
+    complaint_code,
+    work_order_number,
+    work_order_id,
+    department_id,
+    township_id,
+    contractor_id,
+    estimated_cost,
+    actual_cost,
+    line_items,
+    requires_dept_head,
+    priority,
+    created_at,
     location,
     history: cleanHistory,
-    assignedContractor,
-    workOrderId,
-    estimateAmount,
-    lineItems,
-    requiresDeptHead,
-    priority,
-    createdAt,
+    assigned_contractor,
+    // Aliases for seamless compatibility across UI views
+    assignedContractor: assigned_contractor,
+    workOrderId: work_order_number,
+    workOrderCode: work_order_number,
+    estimateAmount: estimated_cost,
+    estimatedCost: estimated_cost,
+    moneyEstimated: estimated_cost,
+    actualCost: actual_cost,
+    moneyUsed: actual_cost,
+    lineItems: line_items,
+    requiresDeptHead: requires_dept_head,
+    createdAt: created_at,
+    departmentId: department_id,
+    townshipId: township_id,
+    contractorId: contractor_id,
     beforePhotos: Array.isArray(c.beforePhotos) ? c.beforePhotos : [],
     afterPhotos: Array.isArray(c.afterPhotos) ? c.afterPhotos : [],
   }
@@ -95,17 +121,68 @@ export function TIMSProvider({ children }) {
     return []
   })
 
+const CANONICAL_FALLBACK_CONTRACTORS = [
+  {
+    id: 'c0000000-0000-0000-0000-000000000001',
+    name: 'Larsen & Toubro Urban Infra Works Ltd.',
+    company_name: 'Larsen & Toubro Urban Infra Works Ltd.',
+    lead: 'Rameshwar Nath Sharma',
+    phone: '+91 98110 45231',
+    email: 'rn.sharma@lt-urbaninfra.co.in',
+    departments: ['Civil', 'Roads'],
+    amcContractId: 'AMC-CIV-2025-08',
+    status: 'Active',
+    rating: 4.8,
+  },
+  {
+    id: 'c0000000-0000-0000-0000-000000000002',
+    name: 'Voltech Power & Electrical Systems Ltd.',
+    company_name: 'Voltech Power & Electrical Systems Ltd.',
+    lead: 'Vikram Singh Rathore',
+    phone: '+91 97230 11984',
+    email: 'vikram.singh@voltechpower.in',
+    departments: ['Electrical', 'Power'],
+    amcContractId: 'AMC-ELE-2025-03',
+    status: 'Active',
+    rating: 4.6,
+  },
+  {
+    id: 'c0000000-0000-0000-0000-000000000003',
+    name: 'Kirloskar HydroTech & Water Systems Pvt. Ltd.',
+    company_name: 'Kirloskar HydroTech & Water Systems Pvt. Ltd.',
+    lead: 'Suresh Narayan Kulkarni',
+    phone: '+91 94220 33819',
+    email: 'suresh.kulkarni@kirloskarhydro.in',
+    departments: ['Water', 'Sanitation'],
+    amcContractId: 'AMC-WTR-2025-11',
+    status: 'Active',
+    rating: 4.9,
+  },
+  {
+    id: 'c0000000-0000-0000-0000-000000000004',
+    name: 'Swachh Urban Environmental Solutions LLP',
+    company_name: 'Swachh Urban Environmental Solutions LLP',
+    lead: 'Gurpreet Singh Sandhu',
+    phone: '+91 98722 55431',
+    email: 'gurpreet@swachhurban.in',
+    departments: ['Horticulture & Urban Waste Management', 'Waste'],
+    amcContractId: 'AMC-SAN-2025-18',
+    status: 'Active',
+    rating: 4.7,
+  },
+]
+
   const [contractors, setContractors] = useState(() => {
     try {
       const saved = sessionStorage.getItem('tims_contractors')
       if (saved) {
         const parsed = JSON.parse(saved)
-        return Array.isArray(parsed) ? parsed : []
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
       }
     } catch {
-      return []
+      return CANONICAL_FALLBACK_CONTRACTORS
     }
-    return []
+    return CANONICAL_FALLBACK_CONTRACTORS
   })
 
   const [amcRateCards, setAmcRateCards] = useState(() => {
@@ -166,34 +243,35 @@ export function TIMSProvider({ children }) {
     }
   }, [])
 
+  // Function to explicitly sync live contractors & rate cards
+  const refreshMasterData = useCallback(async () => {
+    try {
+      const data = await masterApi.getContractors()
+      if (Array.isArray(data) && data.length > 0) {
+        setContractors(data)
+        sessionStorage.setItem('tims_contractors', JSON.stringify(data))
+      }
+    } catch (err) {
+      console.warn('[TIMSContext] Master contractors error:', err.message)
+    }
+
+    try {
+      const rates = await masterApi.getAmcRates()
+      if (Array.isArray(rates) && rates.length > 0) {
+        setAmcRateCards(rates)
+        sessionStorage.setItem('tims_rate_cards', JSON.stringify(rates))
+      }
+    } catch (err) {
+      console.warn('[TIMSContext] Master AMC rates error:', err.message)
+    }
+  }, [])
+
   // Sync live contractors & rate cards from backend PostgreSQL API
   useEffect(() => {
-    let isMounted = true
     if (backendStatus.connected) {
-      masterApi
-        .getContractors()
-        .then((data) => {
-          if (isMounted && Array.isArray(data) && data.length > 0) {
-            setContractors(data)
-            sessionStorage.setItem('tims_contractors', JSON.stringify(data))
-          }
-        })
-        .catch((err) => console.warn('[TIMSContext] Master contractors error:', err.message))
-
-      masterApi
-        .getAmcRates()
-        .then((data) => {
-          if (isMounted && Array.isArray(data) && data.length > 0) {
-            setAmcRateCards(data)
-            sessionStorage.setItem('tims_rate_cards', JSON.stringify(data))
-          }
-        })
-        .catch((err) => console.warn('[TIMSContext] Master AMC rates error:', err.message))
+      refreshMasterData()
     }
-    return () => {
-      isMounted = false
-    }
-  }, [backendStatus.connected])
+  }, [backendStatus.connected, currentUser?.id, refreshMasterData])
 
   // Refresh complaints from backend database
   const refreshComplaints = useCallback(async () => {
@@ -202,7 +280,16 @@ export function TIMSProvider({ children }) {
       if (Array.isArray(data)) {
         const sanitized = data.map(sanitizeComplaintHistory)
         setComplaints(sanitized)
-        sessionStorage.setItem('tims_complaints_v3', JSON.stringify(sanitized))
+        try {
+          const storageCopy = sanitized.map((c) => ({
+            ...c,
+            beforePhotos: (c.beforePhotos || []).map((p) => (typeof p === 'string' && p.startsWith('data:image/') && p.length > 500 ? '[image]' : p)),
+            afterPhotos: (c.afterPhotos || []).map((p) => (typeof p === 'string' && p.startsWith('data:image/') && p.length > 500 ? '[image]' : p)),
+          }))
+          sessionStorage.setItem('tims_complaints_v3', JSON.stringify(storageCopy))
+        } catch (storageErr) {
+          console.warn('[TIMSContext] Could not cache complaints in sessionStorage:', storageErr.message)
+        }
         return sanitized
       }
     } catch (err) {
@@ -268,7 +355,7 @@ export function TIMSProvider({ children }) {
             {
               stage: newStatus,
               timestamp: now,
-              actor: currentUser.name,
+              actor: currentUser?.name || 'Authorized Staff',
               note: note || `Status updated to ${newStatus.replace(/_/g, ' ')}`,
             },
           ],
@@ -287,6 +374,7 @@ export function TIMSProvider({ children }) {
     logout,
     backendStatus,
     refreshComplaints,
+    refreshMasterData,
     updateComplaintStatus,
   }
 

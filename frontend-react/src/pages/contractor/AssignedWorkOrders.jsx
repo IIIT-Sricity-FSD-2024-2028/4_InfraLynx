@@ -214,10 +214,10 @@ export default function AssignedWorkOrders({
 
                     <td>
                       <div className="assigned-wo-money-est">
-                        Est: ₹{(job.moneyEstimated || job.estimatedCost || job.estimate?.total || 0).toLocaleString('en-IN')}
+                        Est: ₹{(job.estimated_cost || 0).toLocaleString('en-IN')}
                       </div>
-                      <div className={`assigned-wo-money-used ${(job.status === 'COMPLETED' || job.actualCost || job.moneyUsed) ? 'used' : 'pending'}`}>
-                        Used: ₹{(job.moneyUsed || job.actualCost || (job.status === 'COMPLETED' ? (job.moneyEstimated || job.estimatedCost || 0) : 0)).toLocaleString('en-IN')}
+                      <div className={`assigned-wo-money-used ${(job.status === 'COMPLETED' || job.actual_cost) ? 'used' : 'pending'}`}>
+                        Used: ₹{(job.actual_cost || (job.status === 'COMPLETED' ? (job.estimated_cost || 0) : 0)).toLocaleString('en-IN')}
                       </div>
                     </td>
 

@@ -118,7 +118,7 @@ export default function WorkOrderDetails({ complaint, onBack }) {
         { item: 'Bitumen Cold-Mix Asphalt Pothole Repair', qty: 5, rate: 1200, total: 6000 },
       ];
       
-  const totalAmount = wo.estimate_amount || wo.estimateAmount || amcItems.reduce((acc, curr) => acc + curr.total, 0);
+  const totalAmount = Number(wo.estimated_cost || amcItems.reduce((acc, curr) => acc + curr.total, 0));
   const isAwaitingApproval = wo.status === 'AWAITING_DEPT_HEAD' || comp.status === 'AWAITING_DEPT_HEAD';
 
   return (
@@ -130,14 +130,14 @@ export default function WorkOrderDetails({ complaint, onBack }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h2 className="dept-page-title" style={{ marginBottom: 0 }}>
-            Details: {wo.work_order_code || wo.workOrderId || wo.id.substring(0, 8)}
+            Details: {wo.work_order_number || wo.id}
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
             <span className="badge-eyebrow" style={{ background: '#f3f4f6', color: '#374151' }}>
               {wo.status?.replace(/_/g, ' ') || 'Unknown'}
             </span>
             <span style={{ color: 'var(--text-soft)', fontSize: '13px' }}>
-              {new Date(wo.created_at || wo.createdAt).toLocaleString()}
+              {new Date(wo.created_at || Date.now()).toLocaleString()}
             </span>
           </div>
         </div>
@@ -361,7 +361,7 @@ export default function WorkOrderDetails({ complaint, onBack }) {
             </h3>
             <p style={{ fontSize: '14px', color: 'var(--text-soft)', marginBottom: '16px' }}>
               {modalAction === 'FORWARD_TO_COO'
-                ? `Forward estimate for work order ${wo.work_order_code || wo.workOrderId || wo.id} to the Township COO for executive joint authorization.`
+                ? `Forward estimate for work order ${wo.work_order_number || wo.id} to the Township COO for executive joint authorization.`
                 : `Provide a reason for ${modalAction === 'REJECT' ? 'rejecting' : 'sending this estimate back to the contractor.'}`}
             </p>
             <form onSubmit={handleModalSubmit}>

@@ -26,7 +26,13 @@ import './styles/WorkOrderCreate.css'
  *   - calls onWorkOrderCreated with enriched complaint object (for toast)
  */
 export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkOrderCreated }) {
-  const { complaints, contractors, currentUser, refreshComplaints, updateComplaintStatus } = useTIMS()
+  const { complaints, contractors, currentUser, refreshComplaints, refreshMasterData, updateComplaintStatus } = useTIMS()
+
+  useEffect(() => {
+    if (typeof refreshMasterData === 'function') {
+      refreshMasterData()
+    }
+  }, [refreshMasterData])
 
   // Live-sync selected complaint
   const active = useMemo(() => {
@@ -39,12 +45,30 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
   const [specialInstructions,  setSpecialInstructions]  = useState('')
   const [isSubmitting,         setIsSubmitting]         = useState(false)
 
-  // Filter contractors by complaint category
+  // Filter contractors by complaint category with intelligent category matching & safe fallback
   const filteredContractors = useMemo(() => {
-    if (!active) return contractors
-    return contractors.filter(c =>
-      c.departments.some(d => d.toLowerCase() === (active.category || '').toLowerCase())
-    )
+    if (!contractors || contractors.length === 0) return []
+    if (!active || !active.category) return contractors
+
+    const cat = (active.category || '').toLowerCase()
+    const matches = contractors.filter(c => {
+      if (!c.departments || !Array.isArray(c.departments) || c.departments.length === 0) {
+        return true
+      }
+      return c.departments.some(deptName => {
+        const d = (deptName || '').toLowerCase()
+        if (d === cat || d.includes(cat) || cat.includes(d)) return true
+        // Category synonyms
+        if ((cat.includes('civil') || cat.includes('road') || cat.includes('pothole')) && (d.includes('civil') || d.includes('road'))) return true
+        if ((cat.includes('elect') || cat.includes('power') || cat.includes('light')) && (d.includes('elect') || d.includes('power'))) return true
+        if ((cat.includes('water') || cat.includes('drain') || cat.includes('sanitat') || cat.includes('plumb') || cat.includes('sewage')) && (d.includes('water') || d.includes('sanitat') || d.includes('drain'))) return true
+        if ((cat.includes('waste') || cat.includes('hortic') || cat.includes('garb') || cat.includes('clean')) && (d.includes('waste') || d.includes('hortic') || d.includes('clean'))) return true
+        return false
+      })
+    })
+
+    // If specific filter found matches, use them; otherwise fallback to all active contractors so workflow never dead-ends
+    return matches.length > 0 ? matches : contractors
   }, [contractors, active])
 
   // Auto-select contractor: prefer the one assigned during verification, or first match
@@ -54,7 +78,7 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
     } else if (filteredContractors.length > 0 && !selectedContractorId) {
       setSelectedContractorId(filteredContractors[0].id)
     }
-  }, [filteredContractors, active])
+  }, [filteredContractors, active, selectedContractorId])
 
   /**
    * handleDispatch - creates Work Order and assigns contractor in backend, transitions complaint status.
@@ -74,14 +98,17 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
     try {
       // 1. Create work order in backend
       const res = await clerkApi.createWorkOrder({
+        complaint_id: active.id,
         complaintId: active.id,
+        contractor_id: selectedContractorId,
         contractorId: selectedContractorId,
         priority: priority.toUpperCase(),
+        special_instructions: specialInstructions,
         specialInstructions,
       })
 
       const woData = res?.data
-      const woCode = woData?.workOrderCode || woData?.work_order_number || `WO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
+      const woCode = woData?.work_order_number || `WO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
       const assignedContractor = woData?.contractor || contractor
 
       // 2. Fetch updated complaints from database
@@ -89,15 +116,18 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
       const updatedComplaint = freshComplaints.find(c => c.id === active.id) || {
         ...active,
         status: newStatus,
+        work_order_number: woCode,
         workOrderId: woCode,
         work_order_code: woCode,
+        assigned_contractor: assignedContractor,
         assignedContractor,
         assigned_contractor_id: selectedContractorId,
+        contractor_id: selectedContractorId,
         assigned_contractor_name: assignedContractor?.name,
         priority,
+        special_instructions: specialInstructions,
         specialInstructions,
-        workOrderCreatedAt: new Date().toISOString(),
-        workOrderCreatedBy: `${currentUser?.name || 'Desk Clerk'} (Desk Clerk)`,
+        created_at: new Date().toISOString(),
       }
 
       // 3. Complete dispatch callback
@@ -109,12 +139,16 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
 
       const fallbackPayload = {
         status: newStatus,
+        work_order_number: fallbackWoCode,
         workOrderId: fallbackWoCode,
         work_order_code: fallbackWoCode,
+        assigned_contractor: contractor,
         assignedContractor: contractor,
         assigned_contractor_id: selectedContractorId,
+        contractor_id: selectedContractorId,
         assigned_contractor_name: contractor?.name,
         priority,
+        special_instructions: specialInstructions,
         specialInstructions,
       }
       updateComplaintStatus(active.id, newStatus, note, fallbackPayload)

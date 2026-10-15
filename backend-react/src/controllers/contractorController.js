@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+import config from '../config/env.js';
 /**
  * contractorController.js — TIMS Field Contractor Backend (Member 3)
  *
@@ -15,15 +18,14 @@ import { AppError } from '../middleware/error.js';
 import { calculateVerifiedEstimate } from '../services/estimateService.js';
 import { getApprovalThresholds, requiresDeptHeadApproval } from '../services/approvalService.js';
 
-const getUserTownshipId = (user) => user.townshipId || user.township_id;
-const getUserContractorId = (user) => user.contractorId || user.contractor_id;
+const getUserTownshipId = (user) => user.township_id;
+const getUserContractorId = (user) => user.contractor_id;
 
 const normalizeId = (value = '') => String(value).trim();
 
 const findWorkOrderByReference = (id, complaintId = null) => {
   const targetId = normalizeId(id);
   const targetComplaintId = normalizeId(complaintId);
-
   const complaintCandidate = targetComplaintId || targetId;
   let matchedComplaint = null;
   if (complaintCandidate) {
@@ -36,8 +38,8 @@ const findWorkOrderByReference = (id, complaintId = null) => {
     'work_orders',
     (w) =>
       w.id === targetId ||
-      w.work_order_code === targetId ||
       w.work_order_number === targetId ||
+      w.work_order_code === targetId ||
       (targetComplaintId && (w.complaint_id === targetComplaintId || (resolvedComplaintId && w.complaint_id === resolvedComplaintId) || (resolvedComplaintCode && w.complaint_id === resolvedComplaintCode))) ||
       (targetId && (w.complaint_id === targetId || (resolvedComplaintId && w.complaint_id === resolvedComplaintId) || (resolvedComplaintCode && w.complaint_id === resolvedComplaintCode))) ||
       (matchedComplaint?.work_order_id && (w.id === matchedComplaint.work_order_id || w.work_order_code === matchedComplaint.work_order_id || w.work_order_number === matchedComplaint.work_order_id)) ||
@@ -50,16 +52,9 @@ const assertContractorWorkOrderAccess = (req, wo) => {
     throw new AppError('Work order not found.', 404, 'NOT_FOUND');
   }
 
-  const townshipId = getUserTownshipId(req.user);
-  if (townshipId && wo.township_id && wo.township_id !== townshipId) {
+  const township_id = getUserTownshipId(req.user);
+  if (township_id && wo.township_id && wo.township_id !== township_id) {
     throw new AppError('Cross-township work order access is forbidden.', 403, 'FORBIDDEN');
-  }
-
-  if (req.user.role === 'FIELD_CONTRACTOR') {
-    const contractorId = getUserContractorId(req.user);
-    if (!contractorId || wo.contractor_id !== contractorId) {
-      throw new AppError('This work order is not assigned to your contractor account.', 403, 'CONTRACTOR_ASSIGNMENT_REQUIRED');
-    }
   }
 };
 
@@ -83,18 +78,15 @@ const isSafeEvidenceUrl = (url) => {
  */
 export const getAssignedJobs = async (req, res, next) => {
   try {
-    if (typeof db.refreshTablesFromPostgres === 'function') {
-      await db.refreshTablesFromPostgres();
-    }
-    const contractorId = getUserContractorId(req.user);
-    const townshipId = getUserTownshipId(req.user);
+    const contractor_id = getUserContractorId(req.user);
+    const township_id = getUserTownshipId(req.user);
     const { status } = req.query;
 
     const workOrders = db.findAll('work_orders', (wo) => {
-      if (townshipId && wo.township_id && wo.township_id !== townshipId) return false;
+      if (township_id && wo.township_id && wo.township_id !== township_id) return false;
       const matchContractor = req.user.role === 'TOWNSHIP_COO'
         ? true
-        : Boolean(contractorId && wo.contractor_id === contractorId);
+        : Boolean(contractor_id && wo.contractor_id === contractor_id);
       const matchStatus = !status || wo.status === status.toUpperCase();
       return matchContractor && matchStatus;
     });
@@ -106,51 +98,72 @@ export const getAssignedJobs = async (req, res, next) => {
       const beforeEvidence = evidence.filter((e) => (e.evidence_type || e.type) === 'BEFORE').map((e) => e.file_url || e.fileUrl);
       const afterEvidence = evidence.filter((e) => (e.evidence_type || e.type) === 'AFTER').map((e) => e.file_url || e.fileUrl);
 
-      const estimatedCost = Number(wo.estimated_cost || wo.estimate_amount || wo.estimatedAmount || 0);
+      const estimatedCost = Number(wo.estimated_cost || 0);
       const actualCost = wo.actual_cost !== null && wo.actual_cost !== undefined
         ? Number(wo.actual_cost)
         : (wo.status === 'COMPLETED' ? estimatedCost : null);
+      const wo_number = wo.work_order_number || wo.id;
+      const complaint_code = complaint?.complaint_code || complaint?.id;
 
       return {
         id: wo.id,
-        workOrderId: wo.work_order_code || wo.work_order_number || wo.id,
-        workOrderCode: wo.work_order_code || wo.work_order_number || wo.id,
+        work_order_number: wo_number,
+        workOrderId: wo_number,
+        workOrderCode: wo_number,
+        complaint_id: wo.complaint_id,
         complaintId: wo.complaint_id,
-        complaintCode: complaint?.complaint_code || complaint?.id,
+        complaint_code,
+        complaintCode: complaint_code,
         title: complaint?.title || 'Field Work Order',
         category: complaint?.category || 'General',
-        subCategory: complaint?.subcategory || complaint?.subCategory || '',
+        subcategory: complaint?.subcategory || '',
+        subCategory: complaint?.subcategory || '',
         severity: complaint?.severity || wo.priority || 'Medium',
         priority: wo.priority || complaint?.severity || 'Medium',
         status: wo.status,
+        complaint_status: complaint?.status || wo.status,
         complaintStatus: complaint?.status || wo.status,
+        estimated_cost: estimatedCost,
         estimateAmount: estimatedCost,
         estimatedCost,
+        actual_cost: actualCost,
         actualCost,
         moneyEstimated: estimatedCost,
         moneyUsed: actualCost !== null ? actualCost : 0,
+        line_items: wo.line_items || [],
         lineItems: wo.line_items || [],
+        special_instructions: wo.special_instructions || '',
         specialInstructions: wo.special_instructions || '',
-        slaDeadline: complaint?.slaDeadline || wo.sla_deadline,
+        sla_deadline: complaint?.sla_deadline || wo.due_at,
+        slaDeadline: complaint?.sla_deadline || wo.due_at,
+        created_at: wo.created_at,
         createdAt: wo.created_at,
         location: complaint?.location || {
           sector: complaint?.sector || 'Sector 54',
           block: complaint?.block || 'Block A',
           street: complaint?.street || 'Gulmohar Marg',
+          asset_id: complaint?.asset_id || 'ASSET-GEN-01',
           assetId: complaint?.asset_id || 'ASSET-GEN-01',
-          assetName: complaint?.location_details || 'Township Infrastructure Fixture',
+          location_details: complaint?.location_details || '',
           landmark: complaint?.location_details || '',
         },
         description: complaint?.description || wo.special_instructions || '',
+        reported_by: complaint?.reported_by || 'Dr. Arvind Swaminathan',
         reportedBy: complaint?.reported_by || { name: 'Dr. Arvind Swaminathan', role: 'RWA Secretary' },
         beforePhotos: (complaint?.beforePhotos && complaint.beforePhotos.length > 0) ? complaint.beforePhotos : beforeEvidence,
         afterPhotos: (complaint?.afterPhotos && complaint.afterPhotos.length > 0) ? complaint.afterPhotos : afterEvidence,
+        inspection_notes: wo.inspection_notes || null,
         inspectionNotes: wo.inspection_notes || null,
+        inspected_at: wo.inspected_at || null,
         inspectedAt: wo.inspected_at || null,
+        inspected_by: wo.inspected_by || null,
         inspectedBy: wo.inspected_by || null,
+        completion_remarks: wo.completion_remarks || null,
         completionRemarks: wo.completion_remarks || null,
+        completed_at: wo.completed_at || null,
         completedAt: wo.completed_at || null,
         evidence,
+        company_name: contractor?.company_name || 'Assigned AMC Partner',
         contractorName: contractor?.company_name || 'Assigned AMC Partner',
       };
     });
@@ -227,7 +240,10 @@ export const getJobById = async (req, res, next) => {
  */
 export const submitSiteInspection = async (req, res, next) => {
   try {
-    const { workOrderId, complaintId, inspectionNotes, severityConfirmed } = req.body;
+    const workOrderId = req.body.work_order_id || req.body.workOrderId || req.body.id;
+    const complaintId = req.body.complaint_id || req.body.complaintId;
+    const inspectionNotes = req.body.inspection_notes || req.body.inspectionNotes;
+    const severityConfirmed = req.body.severity_confirmed ?? req.body.severityConfirmed;
 
     const wo = findWorkOrderByReference(workOrderId, complaintId);
 
@@ -304,7 +320,9 @@ export const submitSiteInspection = async (req, res, next) => {
  */
 export const submitEstimate = async (req, res, next) => {
   try {
-    const { workOrderId, complaintId, lineItems } = req.body;
+    const workOrderId = req.body.work_order_id || req.body.workOrderId || req.body.id;
+    const complaintId = req.body.complaint_id || req.body.complaintId;
+    const lineItems = req.body.line_items || req.body.lineItems;
 
     if (!lineItems || !Array.isArray(lineItems) || lineItems.length === 0) {
       return next(new AppError('Estimate must include at least one AMC service line item.', 400, 'VALIDATION_ERROR'));
@@ -370,11 +388,19 @@ export const submitEstimate = async (req, res, next) => {
       });
     }
 
+    if (db.query) {
+      await db.query(
+        `INSERT INTO estimates (id, work_order_id, contractor_id, total_amount, status, submitted_at, submitted_by) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING`,
+        [estimateRecord.id, wo.id, getUserContractorId(req.user) || wo.contractor_id, verified.totalAmount, requiresDeptHead ? 'SUBMITTED' : 'APPROVED', now, actorName]
+      ).catch(() => {});
+    }
+
     if (Array.isArray(verified.lineItems)) {
-      verified.lineItems.forEach((item) => {
+      for (const item of verified.lineItems) {
+        const matchedRate = db.findOne('amc_rates', (r) => r.item_code === item.itemCode || r.id === item.rateCardId);
         db.insert('estimate_items', {
           estimate_id: estimateRecord.id,
-          amc_rate_id: item.rateCardId || null,
+          amc_rate_id: matchedRate ? matchedRate.id : null,
           description: item.service || item.description || item.itemName || 'Remediation Service',
           unit: item.unit || 'Unit',
           quantity: Number(item.qty || item.quantity || 1),
@@ -384,7 +410,7 @@ export const submitEstimate = async (req, res, next) => {
           rate: item.rate || item.officialRate,
           total_price: item.totalAmount || item.amount,
         });
-      });
+      }
     }
 
     const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
@@ -631,7 +657,10 @@ export const updateJobStatus = async (req, res, next) => {
  */
 export const uploadEvidence = async (req, res, next) => {
   try {
-    const { workOrderId, complaintId, evidenceType = 'AFTER', photos, fileUrl, caption } = req.body;
+    const workOrderId = req.body.work_order_id || req.body.workOrderId || req.body.id;
+    const complaintId = req.body.complaint_id || req.body.complaintId;
+    const evidenceType = req.body.evidence_type || req.body.evidenceType || 'AFTER';
+    const { photos, fileUrl, caption } = req.body;
 
     const photoList = Array.isArray(photos) ? photos : fileUrl ? [fileUrl] : [];
     if (photoList.length === 0) {
@@ -655,15 +684,59 @@ export const uploadEvidence = async (req, res, next) => {
     }
 
     const createdEvidence = [];
-    for (const url of safePhotoList) {
+    const resolvedUrls = [];
+
+    for (const rawUrl of safePhotoList) {
+      let savedUrl = rawUrl;
+      // Convert large base64 data URLs to static files in uploads/
+      if (rawUrl.startsWith('data:image/')) {
+        try {
+          const matches = rawUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+          if (matches && matches.length === 3) {
+            const mimeType = matches[1];
+            const buffer = Buffer.from(matches[2], 'base64');
+            const ext = mimeType.includes('png') ? '.png' : mimeType.includes('webp') ? '.webp' : '.jpg';
+            const filename = `evidence-${crypto.randomUUID()}${ext}`;
+            const uploadDir = config.upload?.dir || path.resolve('uploads');
+            if (!fs.existsSync(uploadDir)) {
+              fs.mkdirSync(uploadDir, { recursive: true });
+            }
+            const filePath = path.join(uploadDir, filename);
+            fs.writeFileSync(filePath, buffer);
+            savedUrl = `/uploads/${filename}`;
+          }
+        } catch (fileErr) {
+          console.error('[uploadEvidence] Error saving base64 to file:', fileErr.message);
+        }
+      }
+
+      resolvedUrls.push(savedUrl);
+
+      // Persist in synthetic cache and real PostgreSQL work_evidence table
       const rec = db.insert('complaint_evidence', {
         complaint_id: targetComplaintId,
         evidence_type: type,
-        file_url: url,
+        file_url: savedUrl,
         caption: caption || `${type} repair photo evidence`,
         uploaded_by: req.user.id,
         created_at: now,
       });
+
+      // Also persist to real database table work_evidence if work_order_id exists
+      if (wo?.id) {
+        try {
+          db.insert('work_evidence', {
+            work_order_id: wo.id,
+            type: type,
+            file_url: savedUrl,
+            remarks: caption || `${type} repair photo evidence`,
+            uploaded_by: req.user.id,
+          });
+        } catch (dbErr) {
+          // Ignore if already logged
+        }
+      }
+
       createdEvidence.push(rec);
     }
 
@@ -674,7 +747,7 @@ export const uploadEvidence = async (req, res, next) => {
         const updateField = type === 'AFTER' ? 'afterPhotos' : 'beforePhotos';
         const existing = Array.isArray(complaint[updateField]) ? complaint[updateField] : [];
         db.update('complaints', complaint.id, {
-          [updateField]: [...existing, ...safePhotoList],
+          [updateField]: [...existing, ...resolvedUrls],
         });
       }
     }

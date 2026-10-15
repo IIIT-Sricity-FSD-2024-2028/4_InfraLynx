@@ -205,13 +205,6 @@ export default function Nav({ onOpenAuth, onOpenSignUp, currentUser, onLogout, o
           >
             Official Sign In
           </button>
-          <button
-            onClick={() => { setMobileMenuOpen(false); onOpenAuth('superadmin'); }}
-            className="button button-secondary"
-            style={{ width: '100%' }}
-          >
-            Super Admin Sign In
-          </button>
         </div>
       )}
 

@@ -65,13 +65,13 @@ export function canApproveWorkOrder(user, workOrder) {
   }
 
   // Multi-Township verification
-  const userTownship = user.townshipId || user.township_id;
+  const userTownship = user.township_id;
   if (userTownship && workOrder.township_id && userTownship !== workOrder.township_id) {
     return { allowed: false, reason: 'Cross-township authorization failed.' };
   }
 
   // Department ownership verification
-  const userDept = user.departmentId || user.department_id;
+  const userDept = user.department_id;
   if (userDept && workOrder.department_id && userDept !== workOrder.department_id) {
     return { allowed: false, reason: 'Cross-department authorization failed: You cannot approve another department estimate.' };
   }
@@ -86,14 +86,9 @@ export function processApprovalDecision(wo, complaint, action, notes, user) {
   const normalizedAction = (action || '').toUpperCase();
   const now = new Date().toISOString();
   const actorName = user.name || 'Civil Department Head';
-  const townshipId = user.townshipId || user.township_id || complaint?.township_id || wo?.township_id;
+  const townshipId = user.township_id || complaint?.township_id || wo?.township_id;
 
-  const estimateAmount = Number(
-    wo?.estimate_amount ||
-    wo?.estimated_cost ||
-    complaint?.estimateAmount ||
-    0
-  );
+  const estimateAmount = Number(wo?.estimated_cost || 0);
 
   const thresholds = getApprovalThresholds();
   const isMajorExpenditure = estimateAmount > thresholds.MAJOR_EXPENDITURE_THRESHOLD;

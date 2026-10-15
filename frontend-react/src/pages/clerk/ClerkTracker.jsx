@@ -42,14 +42,14 @@ export default function ClerkTracker({ complaints: propComplaints, selectedCompl
   const complaints = useMemo(() => {
     if (propComplaints) return propComplaints
     if (!currentUser || currentUser.role !== 'DESK_CLERK') return contextComplaints
-    const deptId = currentUser.departmentId || currentUser.department_id || currentUser.deptId
-    const deptName = (currentUser.departmentName || currentUser.department_name || currentUser.department || '').toLowerCase()
+    const deptId = currentUser.department_id
+    const deptName = (currentUser.department_name || '').toLowerCase()
     if (!deptId && !deptName) return contextComplaints
 
     return contextComplaints.filter(c => {
-      const cDeptId = c.departmentId || c.department_id
+      const cDeptId = c.department_id
       if (deptId && cDeptId && String(cDeptId) === String(deptId)) return true
-      const cCat = (c.category || c.departmentName || c.department || '').toLowerCase()
+      const cCat = (c.category || c.department_name || '').toLowerCase()
       if (deptName && cCat) {
         if (deptName.includes(cCat) || cCat.includes(deptName)) return true
         if (deptName.includes('electr') && cCat.includes('electr')) return true
@@ -123,12 +123,12 @@ export default function ClerkTracker({ complaints: propComplaints, selectedCompl
         ) : (
           <div className="ct-picker-list">
             {wos.map(c => {
-              const contractorName = c.assignedContractor?.name || c.assignedContractor?.company_name || c.assigned_contractor_name || 'Pending'
-              const estimateVal = c.estimateAmount ?? c.estimate_amount ?? 0
+              const contractorName = c.assigned_contractor?.name || c.assigned_contractor?.company_name || 'Pending'
+              const estimateVal = c.estimated_cost || 0
               return (
                 <div key={c.id} className="ct-picker-row" onClick={() => onSelectComplaint(c)}>
                   <div>
-                    <span className="ct-picker-id">{c.workOrderId || c.work_order_code || c.id}</span>
+                    <span className="ct-picker-id">{c.work_order_number || c.id}</span>
                     <span className="ct-picker-title">{c.title}</span>
                     <div className="ct-picker-meta">
                       {contractorName} &bull; Rs.{estimateVal.toLocaleString()} &bull; {c.status}
@@ -145,7 +145,7 @@ export default function ClerkTracker({ complaints: propComplaints, selectedCompl
   }
 
   const banner = getBanner(active.status)
-  const activeContractorName = active.assignedContractor?.name || active.assignedContractor?.company_name || active.assigned_contractor_name || null
+  const activeContractorName = active.assigned_contractor?.name || active.assigned_contractor?.company_name || null
 
   return (
     <div className="ct-root">
@@ -153,7 +153,7 @@ export default function ClerkTracker({ complaints: propComplaints, selectedCompl
       {/* Top bar: WO title + switcher */}
       <div className="ct-top-bar">
         <div>
-          <h1 className="ct-title">{active.workOrderId || active.work_order_code || active.id}</h1>
+          <h1 className="ct-title">{active.work_order_number || active.id}</h1>
           <p className="ct-subtitle">{active.title}</p>
         </div>
         {wos.length > 1 && (
@@ -165,7 +165,7 @@ export default function ClerkTracker({ complaints: propComplaints, selectedCompl
               onChange={e => { const c = complaints.find(x => x.id === e.target.value); if (c) onSelectComplaint(c) }}
             >
               {wos.map(c => (
-                <option key={c.id} value={c.id}>{(c.workOrderId || c.work_order_code || c.id)} — {c.title.slice(0, 24)}</option>
+                <option key={c.id} value={c.id}>{(c.work_order_number || c.id)} — {c.title.slice(0, 24)}</option>
               ))}
             </select>
           </div>
@@ -249,19 +249,19 @@ export default function ClerkTracker({ complaints: propComplaints, selectedCompl
             </p>
           )}
           <div className="ct-attrs">
-            <div><span className="ct-attr-label">Work Order ID</span><strong className="ct-val-mono">{active.workOrderId || active.work_order_code || 'WO-PENDING'}</strong></div>
-            <div><span className="ct-attr-label">AMC Contract</span><strong className="ct-val-mono-sm">{active.assignedContractor?.amcContractId || active.assignedContractor?.contract_number || active.amcContractId || (activeContractorName ? 'AMC-CIV-2026' : '—')}</strong></div>
-            <div><span className="ct-attr-label">Total Estimate</span><strong>Rs.{(active.estimateAmount ?? active.estimate_amount ?? 0).toLocaleString()}</strong></div>
-            <div><span className="ct-attr-label">Dept Head Req.</span><strong className={active.requiresDeptHead ? 'ct-req-depthead-yes' : 'ct-req-depthead-no'}>{active.requiresDeptHead ? 'Yes' : 'No'}</strong></div>
+            <div><span className="ct-attr-label">Work Order ID</span><strong className="ct-val-mono">{active.work_order_number || 'WO-PENDING'}</strong></div>
+            <div><span className="ct-attr-label">AMC Contract</span><strong className="ct-val-mono-sm">{active.assigned_contractor?.amc_contract_id || active.amc_contract_id || (activeContractorName ? 'AMC-CIV-2026' : '—')}</strong></div>
+            <div><span className="ct-attr-label">Total Estimate</span><strong>Rs.{(active.estimated_cost || 0).toLocaleString()}</strong></div>
+            <div><span className="ct-attr-label">Dept Head Req.</span><strong className={active.requires_dept_head ? 'ct-req-depthead-yes' : 'ct-req-depthead-no'}>{active.requires_dept_head ? 'Yes' : 'No'}</strong></div>
             <div><span className="ct-attr-label">Priority</span><strong>{active.priority || '—'}</strong></div>
-            <div><span className="ct-attr-label">Inspection</span><strong>{active.inspectionRemarks ? 'Inspected' : 'Pending'}</strong></div>
+            <div><span className="ct-attr-label">Inspection</span><strong>{active.inspection_notes || active.inspectionRemarks ? 'Inspected' : 'Pending'}</strong></div>
           </div>
 
           {/* AMC line items summary */}
-          {active.lineItems && active.lineItems.length > 0 && (
+          {active.line_items && active.line_items.length > 0 && (
             <div className="ct-wo-box">
               <div className="ct-wo-box-title">AMC Line Items</div>
-              {active.lineItems.map((item, i) => (
+              {active.line_items.map((item, i) => (
                 <div key={i} className="ct-line-row">
                   <span>{item.description || item.service || 'Service Item'} ({item.qty} {item.unit || 'Unit'})</span>
                   <span>Rs.{(item.total || ((item.unitCost || 0) * (item.qty || 1)) || 0).toLocaleString()}</span>
@@ -269,7 +269,7 @@ export default function ClerkTracker({ complaints: propComplaints, selectedCompl
               ))}
               <div className="ct-line-row total-row">
                 <span>Total</span>
-                <span>Rs.{(active.estimateAmount ?? active.estimate_amount ?? 0).toLocaleString()}</span>
+                <span>Rs.{(active.estimated_cost || 0).toLocaleString()}</span>
               </div>
             </div>
           )}

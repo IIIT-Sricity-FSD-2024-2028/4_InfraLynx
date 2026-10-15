@@ -10,13 +10,13 @@ const CIVIL_DEPT_ID = 'd0000000-0000-0000-0000-000000000001';
  */
 export const getWorkOrders = async (req, res, next) => {
   try {
-    const townshipId = req.user.townshipId || req.user.township_id;
-    const userDeptId = req.user.departmentId || req.user.department_id || CIVIL_DEPT_ID;
+    const township_id = req.user.township_id;
+    const department_id = req.user.department_id || CIVIL_DEPT_ID;
 
     // Filter work orders strictly belonging to user's department (unless COO)
     let workOrders = db.findAll('work_orders', (w) => {
-      const matchTownship = !townshipId || w.township_id === townshipId;
-      const matchDept = req.user.role === 'TOWNSHIP_COO' || w.department_id === userDeptId;
+      const matchTownship = !township_id || w.township_id === township_id;
+      const matchDept = req.user.role === 'TOWNSHIP_COO' || w.department_id === department_id;
       return matchTownship && matchDept;
     });
 
@@ -49,7 +49,7 @@ export const getWorkOrders = async (req, res, next) => {
       const contractor = w.contractor_id ? db.findById('contractors', w.contractor_id) : null;
       const department = w.department_id ? db.findById('departments', w.department_id) : null;
 
-      const slaDeadline = w.sla_deadline || complaint?.sla_deadline || complaint?.slaDeadline || w.due_at;
+      const slaDeadline = w.sla_deadline || complaint?.sla_deadline || w.due_at;
       let slaStatus = 'ON_TRACK';
       if (['COMPLETED', 'CLOSED'].includes(w.status)) {
         slaStatus = 'RESOLVED';
@@ -63,26 +63,34 @@ export const getWorkOrders = async (req, res, next) => {
         }
       }
 
-      const woCode = w.work_order_code || w.work_order_number || w.id;
-      const estimateAmount = Number(w.estimate_amount || w.estimated_cost || 0);
+      const wo_number = w.work_order_number || w.id;
+      const estimated_cost = Number(w.estimated_cost || 0);
 
       return {
         id: w.id,
-        workOrderId: woCode,
-        workOrderCode: woCode,
-        workOrderNumber: woCode,
+        work_order_number: wo_number,
+        workOrderId: wo_number,
+        workOrderCode: wo_number,
+        workOrderNumber: wo_number,
+        complaint_id: w.complaint_id,
         complaintId: w.complaint_id,
+        complaint_description: complaint?.description || w.special_instructions || 'Civil infrastructure repair',
         complaintDescription: complaint?.description || w.special_instructions || 'Civil infrastructure repair',
         category: complaint?.category || 'Civil',
         subcategory: complaint?.subcategory || 'Roads & Drainage',
-        location: complaint?.location_details || complaint?.sector || (complaint?.location?.sector) || 'Sector 54',
+        location: complaint?.location_details || complaint?.sector || 'Sector 54',
+        location_details: complaint?.location_details || complaint?.sector || 'Sector 54',
         sector: complaint?.sector || 'Sector 54',
+        assigned_contractor: contractor?.company_name || 'Unassigned',
         assignedContractor: contractor?.company_name || 'Unassigned',
+        contractor_id: w.contractor_id,
         contractorId: w.contractor_id,
         contractor: contractor
           ? {
               id: contractor.id,
               name: contractor.company_name,
+              company_name: contractor.company_name,
+              contact_person: contractor.contact_person,
               contactPerson: contractor.contact_person,
               phone: contractor.phone,
               email: contractor.email,
@@ -91,20 +99,28 @@ export const getWorkOrders = async (req, res, next) => {
         currentStatus: w.status,
         status: w.status,
         priority: w.priority || complaint?.severity || 'Medium',
+        sla_status: slaStatus,
         slaStatus,
+        sla_deadline: slaDeadline,
         slaDeadline,
-        estimatedAmount: estimateAmount,
-        estimateAmount: estimateAmount,
+        estimated_cost,
+        estimatedAmount: estimated_cost,
+        estimateAmount: estimated_cost,
+        actual_cost: w.actual_cost != null ? Number(w.actual_cost) : null,
         actualCost: w.actual_cost != null ? Number(w.actual_cost) : null,
         creationDate: w.created_at,
         createdAt: w.created_at,
         created_at: w.created_at,
         department_id: w.department_id,
         departmentId: w.department_id,
+        department_name: department?.name || 'Civil Infrastructure & Roads',
         departmentName: department?.name || 'Civil Infrastructure & Roads',
+        special_instructions: w.special_instructions || '',
         specialInstructions: w.special_instructions || '',
+        line_items: w.line_items || [],
         lineItems: w.line_items || [],
         escalated: w.escalated || false,
+        escalation_reason: w.escalation_reason || null,
         escalationReason: w.escalation_reason || null,
       };
     });
@@ -129,8 +145,8 @@ export const getWorkOrders = async (req, res, next) => {
 export const getWorkOrderDetails = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const townshipId = req.user.townshipId || req.user.township_id;
-    const userDeptId = req.user.departmentId || req.user.department_id || CIVIL_DEPT_ID;
+    const township_id = req.user.township_id;
+    const department_id = req.user.department_id || CIVIL_DEPT_ID;
 
     let wo = db.findOne(
       'work_orders',
@@ -141,12 +157,12 @@ export const getWorkOrderDetails = async (req, res, next) => {
       return next(new AppError(`Work order '${id}' not found.`, 404, 'NOT_FOUND'));
     }
 
-    if (townshipId && wo.township_id && wo.township_id !== townshipId) {
+    if (township_id && wo.township_id && wo.township_id !== township_id) {
       return next(new AppError('Forbidden: Access to another township data is prohibited.', 403, 'FORBIDDEN'));
     }
 
     // Backend security check: Enforce department authorization
-    if (req.user.role === 'DEPARTMENT_HEAD' && wo.department_id && wo.department_id !== userDeptId) {
+    if (req.user.role === 'DEPARTMENT_HEAD' && wo.department_id && wo.department_id !== department_id) {
       return next(
         new AppError('Forbidden: Access to other department work orders is strictly prohibited.', 403, 'FORBIDDEN')
       );
@@ -182,8 +198,8 @@ export const escalateWorkOrder = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
-    const townshipId = req.user.townshipId || req.user.township_id;
-    const userDeptId = req.user.departmentId || req.user.department_id || CIVIL_DEPT_ID;
+    const township_id = req.user.township_id;
+    const department_id = req.user.department_id || CIVIL_DEPT_ID;
 
     if (!reason || !reason.trim()) {
       return next(new AppError('Escalation reason is required.', 400, 'VALIDATION_ERROR'));
@@ -198,12 +214,12 @@ export const escalateWorkOrder = async (req, res, next) => {
       return next(new AppError(`Work order '${id}' not found.`, 404, 'NOT_FOUND'));
     }
 
-    if (townshipId && wo.township_id && wo.township_id !== townshipId) {
+    if (township_id && wo.township_id && wo.township_id !== township_id) {
       return next(new AppError('Forbidden: Access to another township data is prohibited.', 403, 'FORBIDDEN'));
     }
 
     // Backend security check: Enforce department authorization
-    if (req.user.role === 'DEPARTMENT_HEAD' && wo.department_id && wo.department_id !== userDeptId) {
+    if (req.user.role === 'DEPARTMENT_HEAD' && wo.department_id && wo.department_id !== department_id) {
       return next(
         new AppError('Forbidden: Cannot escalate a work order belonging to another department.', 403, 'FORBIDDEN')
       );

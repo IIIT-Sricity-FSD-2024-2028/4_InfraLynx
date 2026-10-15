@@ -27,12 +27,12 @@ import { hashPassword } from '../utils/auth.js';
  */
 export const getDashboard = async (req, res, next) => {
   try {
-    const townshipId = req.user.township_id || req.user.townshipId;
+    const township_id = req.user.township_id;
 
-    const departments = db.findAll('departments', (d) => !townshipId || d.township_id === townshipId);
-    const complaints = db.findAll('complaints', (c) => !townshipId || c.township_id === townshipId);
-    const workOrders = db.findAll('work_orders', (wo) => !townshipId || wo.township_id === townshipId);
-    const invoices = db.findAll('invoices', (inv) => !townshipId || inv.township_id === townshipId);
+    const departments = db.findAll('departments', (d) => !township_id || d.township_id === township_id);
+    const complaints = db.findAll('complaints', (c) => !township_id || c.township_id === township_id);
+    const workOrders = db.findAll('work_orders', (wo) => !township_id || wo.township_id === township_id);
+    const invoices = db.findAll('invoices', (inv) => !township_id || inv.township_id === township_id);
 
     // Metric Calculations
     const totalDepartments = departments.length;
@@ -123,9 +123,9 @@ export const getDashboard = async (req, res, next) => {
  */
 export const getDepartments = async (req, res, next) => {
   try {
-    const townshipId = req.user.township_id || req.user.townshipId;
+    const township_id = req.user.township_id;
 
-    const departments = db.findAll('departments', (d) => !townshipId || d.township_id === townshipId);
+    const departments = db.findAll('departments', (d) => !township_id || d.township_id === township_id);
 
     const enriched = departments.map((dept) => {
       const head = dept.department_head_id ? db.findById('users', dept.department_head_id) : null;
@@ -313,8 +313,9 @@ export const assignDepartmentHead = async (req, res, next) => {
  */
 export const createDepartmentHead = async (req, res, next) => {
   try {
-    const townshipId = req.user.township_id || req.user.townshipId || 'b0000000-0000-0000-0000-000000000001';
-    const { name, email, password, phone, departmentId } = req.body;
+    const township_id = req.user.township_id || 'b0000000-0000-0000-0000-000000000001';
+    const department_id = req.body.department_id || req.body.departmentId;
+    const { name, email, password, phone } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({
@@ -349,19 +350,19 @@ export const createDepartmentHead = async (req, res, next) => {
     }
 
     let dept = null;
-    if (departmentId) {
-      dept = db.findById('departments', departmentId);
+    if (department_id) {
+      dept = db.findById('departments', department_id);
       if (!dept) {
         return res.status(404).json({
           success: false,
-          error: { message: `Department '${departmentId}' not found.` },
+          error: { message: `Department '${department_id}' not found.` },
         });
       }
 
       // Check if department already has a head
       if (dept.department_head_id) {
         const currentHead = db.findById('users', dept.department_head_id);
-        return res.status(400).json({
+        return res.status(409).json({
           success: false,
           error: {
             code: 'DEPARTMENT_ALREADY_OCCUPIED',
@@ -375,29 +376,46 @@ export const createDepartmentHead = async (req, res, next) => {
     const hashedPassword = await hashPassword(password);
     const userId = crypto.randomUUID();
 
-    const newHead = db.insert('users', {
+    const userPayload = {
       id: userId,
-      township_id: townshipId,
+      township_id,
       name: name.trim(),
       email: cleanEmail,
       username: cleanEmail.split('@')[0],
       password_hash: hashedPassword,
       role: 'DEPARTMENT_HEAD',
-      department_id: departmentId || null,
+      department_id: department_id || null,
       phone: phone?.trim() || '+91 99100 00000',
       status: 'ACTIVE',
       created_at: new Date().toISOString(),
-    });
+    };
 
-    if (departmentId) {
-      db.update('departments', departmentId, {
+    if (db.pool) {
+      await db.pool.query(
+        `INSERT INTO users (id, township_id, name, email, username, password_hash, role, department_id, phone, status, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email, password_hash = EXCLUDED.password_hash`,
+        [userId, township_id, userPayload.name, userPayload.email, userPayload.username, userPayload.password_hash, userPayload.role, userPayload.department_id, userPayload.phone, userPayload.status, userPayload.created_at]
+      ).catch((err) => console.error('[PostgreSQL User Insert Error]:', err.message));
+    }
+
+    const newHead = db.insert('users', userPayload);
+
+    if (department_id) {
+      if (db.pool) {
+        await db.pool.query(
+          `UPDATE departments SET department_head_id = $1, updated_at = NOW() WHERE id = $2`,
+          [userId, department_id]
+        ).catch((err) => console.error('[PostgreSQL Dept Head Update Error]:', err.message));
+      }
+      db.update('departments', department_id, {
         department_head_id: userId,
         updated_at: new Date().toISOString(),
       });
     }
 
     db.logAudit({
-      township_id: townshipId,
+      township_id,
       entity_type: 'USER',
       entity_id: userId,
       actor_id: req.user.id,
@@ -505,11 +523,11 @@ export const unassignDepartmentHead = async (req, res, next) => {
  */
 export const getDepartmentHeads = async (req, res, next) => {
   try {
-    const townshipId = req.user.township_id || req.user.townshipId;
+    const township_id = req.user.township_id;
 
     // Fetch users with DEPARTMENT_HEAD role or potential head candidates
     const heads = db.findAll('users', (u) => {
-      const matchTownship = !townshipId || u.township_id === townshipId;
+      const matchTownship = !township_id || u.township_id === township_id;
       return matchTownship && u.role === 'DEPARTMENT_HEAD';
     });
 
@@ -600,11 +618,11 @@ export const getDepartmentStaff = async (req, res, next) => {
  */
 export const getTownshipWorkOrders = async (req, res, next) => {
   try {
-    const townshipId = req.user.township_id || req.user.townshipId;
+    const township_id = req.user.township_id;
     const { departmentId, contractorId, status, priority, slaStatus, search } = req.query;
 
     let workOrders = db.findAll('work_orders', (wo) => {
-      if (townshipId && wo.township_id !== townshipId) return false;
+      if (township_id && wo.township_id !== township_id) return false;
       if (departmentId && departmentId !== 'ALL' && wo.department_id !== departmentId) return false;
       if (contractorId && contractorId !== 'ALL' && wo.contractor_id !== contractorId) return false;
       if (status && status !== 'ALL' && wo.status !== status) return false;
@@ -630,18 +648,26 @@ export const getTownshipWorkOrders = async (req, res, next) => {
 
       return {
         id: wo.id,
+        work_order_number: wo.work_order_number || `WO-2026-${wo.id.slice(-4)}`,
         workOrderNumber: wo.work_order_number || `WO-2026-${wo.id.slice(-4)}`,
         status: wo.status,
         priority: wo.priority || 'MEDIUM',
+        estimated_cost: Number(wo.estimated_cost) || 0,
         estimatedCost: Number(wo.estimated_cost) || 0,
+        actual_cost: wo.actual_cost ? Number(wo.actual_cost) : null,
         actualCost: wo.actual_cost ? Number(wo.actual_cost) : null,
+        created_at: wo.created_at,
         createdAt: wo.created_at,
+        due_at: wo.due_at || null,
         dueAt: wo.due_at || null,
+        is_overdue: isOverdue,
         isOverdue,
+        sla_deadline: complaint?.sla_deadline || wo.due_at,
         slaDeadline: complaint?.sla_deadline || wo.due_at,
         complaint: complaint
           ? {
               id: complaint.id,
+              complaint_code: complaint.complaint_code,
               code: complaint.complaint_code,
               title: complaint.title,
               category: complaint.category,
@@ -737,19 +763,27 @@ export const getWorkOrderDetails = async (req, res, next) => {
       success: true,
       data: {
         id: wo.id,
+        work_order_number: wo.work_order_number || `WO-2026-${wo.id.slice(-4)}`,
         workOrderNumber: wo.work_order_number || `WO-2026-${wo.id.slice(-4)}`,
         status: wo.status,
         priority: wo.priority,
+        estimated_cost: Number(wo.estimated_cost) || 0,
         estimatedCost: Number(wo.estimated_cost) || 0,
+        actual_cost: wo.actual_cost ? Number(wo.actual_cost) : null,
         actualCost: wo.actual_cost ? Number(wo.actual_cost) : null,
+        line_items: wo.line_items || [],
         lineItems: wo.line_items || [],
+        assigned_at: wo.assigned_at || wo.created_at,
         assignedAt: wo.assigned_at || wo.created_at,
+        due_at: wo.due_at,
         dueAt: wo.due_at,
+        completed_at: wo.completed_at,
         completedAt: wo.completed_at,
         department: department ? { id: department.id, name: department.name } : null,
         complaint: complaint
           ? {
               id: complaint.id,
+              complaint_code: complaint.complaint_code,
               code: complaint.complaint_code,
               title: complaint.title,
               description: complaint.description,
@@ -759,6 +793,7 @@ export const getWorkOrderDetails = async (req, res, next) => {
               sector: complaint.sector,
               block: complaint.block,
               street: complaint.street,
+              location_details: complaint.location_details,
               locationDetails: complaint.location_details,
               photos: complaint.photos || [],
               history: complaint.history || [],
@@ -878,11 +913,11 @@ export const escalateWorkOrder = async (req, res, next) => {
  */
 export const getPendingApprovals = async (req, res, next) => {
   try {
-    const townshipId = req.user.township_id || req.user.townshipId;
+    const township_id = req.user.township_id;
     const thresholds = getApprovalThresholds();
 
     const workOrders = db.findAll('work_orders', (wo) => {
-      if (townshipId && wo.township_id !== townshipId) return false;
+      if (township_id && wo.township_id !== township_id) return false;
       const isPending =
         wo.status === 'AWAITING_COO' ||
         wo.status === 'ESCALATED_TO_COO' ||
@@ -936,16 +971,26 @@ export const processApprovalDecision = async (req, res, next) => {
     const action = (req.body.action || 'APPROVE').toUpperCase();
     const { remarks = '' } = req.body;
 
-    const wo = db.findById('work_orders', id);
+    let wo = db.findById('work_orders', id);
     if (!wo) {
+      wo = db.findOne('work_orders', (w) => w.complaint_id === id);
+    }
+    if (!wo) {
+      const complaint = db.findById('complaints', id) || db.findOne('complaints', (c) => c.id.slice(-4) === id.slice(-4));
+      if (complaint) {
+        return res.status(409).json({
+          success: false,
+          error: { message: 'This ticket requires Department Head approval before COO review.' },
+        });
+      }
       return res.status(404).json({
         success: false,
         error: { message: `Work Order '${id}' not found.` },
       });
     }
 
-    const townshipId = req.user.township_id || req.user.townshipId;
-    if (townshipId && wo.township_id !== townshipId) {
+    const township_id = req.user.township_id;
+    if (township_id && wo.township_id !== township_id) {
       return res.status(403).json({ success: false, error: { message: 'Cross-township approval is forbidden.' } });
     }
     const isAwaitingCoo = wo.status === 'AWAITING_COO' || wo.status === 'ESCALATED_TO_COO' || (wo.requires_coo === true && wo.dept_head_approved === true);

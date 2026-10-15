@@ -43,27 +43,47 @@ export function formatWorkOrderResponse(wo) {
   const dueAt = wo.due_at || (complaint ? complaint.sla_deadline : null);
   const slaStatus = evaluateSlaStatus(dueAt, wo.status);
 
+  const wo_number = wo.work_order_number || wo.id;
+  const estimated_cost = Number(wo.estimated_cost || 0);
+  const actual_cost = wo.actual_cost !== null && wo.actual_cost !== undefined
+    ? Number(wo.actual_cost)
+    : (wo.status === 'COMPLETED' ? estimated_cost : null);
+
   return {
     id:                   wo.id,
-    workOrderNumber:      wo.work_order_number || wo.work_order_code || wo.id,
-    workOrderCode:        wo.work_order_code || wo.work_order_number || wo.id,
+    work_order_number:    wo_number,
+    workOrderNumber:      wo_number,
+    workOrderCode:        wo_number,
+    complaint_id:         wo.complaint_id,
     complaintId:          wo.complaint_id,
+    township_id:          wo.township_id,
     townshipId:           wo.township_id,
+    department_id:        wo.department_id,
     departmentId:         wo.department_id,
     status:               wo.status,
     priority:             wo.priority,
-    estimateAmount:       Number(wo.estimate_amount || wo.estimated_cost || 0),
-    estimatedCost:        Number(wo.estimated_cost || wo.estimate_amount || 0),
-    actualCost:           wo.actual_cost !== null && wo.actual_cost !== undefined ? Number(wo.actual_cost) : (wo.status === 'COMPLETED' ? Number(wo.estimated_cost || wo.estimate_amount || 0) : null),
-    moneyEstimated:       Number(wo.estimated_cost || wo.estimate_amount || 0),
-    moneyUsed:            wo.actual_cost !== null && wo.actual_cost !== undefined ? Number(wo.actual_cost) : (wo.status === 'COMPLETED' ? Number(wo.estimated_cost || wo.estimate_amount || 0) : 0),
+    estimated_cost:       estimated_cost,
+    estimateAmount:       estimated_cost,
+    estimatedCost:        estimated_cost,
+    actual_cost:          actual_cost,
+    actualCost:           actual_cost,
+    moneyEstimated:       estimated_cost,
+    moneyUsed:            actual_cost !== null ? actual_cost : 0,
+    requires_dept_head:   Boolean(wo.requires_dept_head),
     requiresDeptHead:     Boolean(wo.requires_dept_head),
+    special_instructions: wo.special_instructions || '',
     specialInstructions:  wo.special_instructions || '',
+    assignment_notes:     wo.assignment_notes || '',
     assignmentNotes:      wo.assignment_notes || '',
+    assigned_at:          wo.assigned_at || null,
     assignedAt:           wo.assigned_at || null,
+    assigned_by:          wo.assigned_by || null,
     assignedBy:           wo.assigned_by || null,
+    due_at:               wo.due_at || dueAt,
     dueAt:                wo.due_at || dueAt,
+    completed_at:         wo.completed_at || null,
     completedAt:          wo.completed_at || null,
+    line_items:           wo.line_items || [],
     lineItems:            wo.line_items || [],
     isUnassigned:         !wo.contractor_id,
     isDelayed:            slaStatus.isBreached || slaStatus.state === 'AT_RISK',
@@ -72,10 +92,13 @@ export function formatWorkOrderResponse(wo) {
       ? {
           id:            contractor.id,
           name:          contractor.company_name,
+          company_name:  contractor.company_name,
           companyName:   contractor.company_name,
+          contact_person: contractor.contact_person,
           contactPerson: contractor.contact_person,
           phone:         contractor.phone,
           email:         contractor.email,
+          amc_contract_id: contractorAmc ? contractorAmc.contract_number : null,
           amcContractId: contractorAmc ? contractorAmc.contract_number : null,
           rating:        contractor.rating || 4.7,
         }
@@ -83,6 +106,7 @@ export function formatWorkOrderResponse(wo) {
     complaint: complaint
       ? {
           id:             complaint.id,
+          complaint_code: complaint.complaint_code || complaint.id,
           complaintCode:  complaint.complaint_code || complaint.id,
           title:          complaint.title,
           category:       complaint.category,
@@ -92,10 +116,15 @@ export function formatWorkOrderResponse(wo) {
           sector:         complaint.sector || complaint.location?.sector,
           block:          complaint.block || complaint.location?.block,
           street:         complaint.street || complaint.location?.street,
+          location_details: complaint.location_details || complaint.location?.landmark,
           locationDetails: complaint.location_details || complaint.location?.landmark,
+          sla_deadline:   complaint.sla_deadline,
+          slaDeadline:    complaint.sla_deadline,
         }
       : null,
+    created_at: wo.created_at,
     createdAt: wo.created_at,
+    updated_at: wo.updated_at || null,
     updatedAt: wo.updated_at || null,
   };
 }
@@ -500,13 +529,13 @@ export const getWorkOrders = async (req, res, next) => {
     }
 
     // Desk clerk department filter: clerk only sees work orders under their department
-    const clerkDeptId = req.user.departmentId || req.user.department_id || req.user.deptId;
-    if (req.user.role === 'DESK_CLERK' && clerkDeptId) {
+    const clerk_department_id = req.user.department_id;
+    if (req.user.role === 'DESK_CLERK' && clerk_department_id) {
       workOrders = workOrders.filter((w) => {
         if (w.created_by_id === req.user.id || w.assigned_by === req.user.id) return true;
-        if (w.department_id && String(w.department_id) === String(clerkDeptId)) return true;
+        if (w.department_id && String(w.department_id) === String(clerk_department_id)) return true;
         const comp = db.findOne('complaints', (c) => c.id === w.complaint_id || c.complaint_code === w.complaint_id);
-        if (comp && comp.department_id && String(comp.department_id) === String(clerkDeptId)) return true;
+        if (comp && comp.department_id && String(comp.department_id) === String(clerk_department_id)) return true;
         return false;
       });
     }

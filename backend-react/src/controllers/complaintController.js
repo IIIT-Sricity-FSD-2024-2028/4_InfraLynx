@@ -95,19 +95,30 @@ const formatComplaintResponse = (complaint) => {
     ...complaint,
     id: complaint.complaint_code || complaint.id,
     complaint_code: complaint.complaint_code || complaint.id,
+    complaintCode: complaint.complaint_code || complaint.id,
     location,
     department_name: dept ? dept.name : null,
     work_order: wo || null,
+    work_order_id: workOrderId,
     workOrderId,
+    assigned_contractor: assignedContractor,
     assignedContractor,
-    assigned_contractor_name: assignedContractor ? assignedContractor.name : (complaint.assigned_contractor_name || null),
+    assigned_contractor_name: assignedContractor ? (assignedContractor.name || assignedContractor.company_name) : (complaint.assigned_contractor_name || null),
+    estimated_cost: estimateAmount,
     estimateAmount,
+    line_items: lineItems,
     lineItems,
+    requires_dept_head: requiresDeptHead,
     requiresDeptHead,
     priority,
+    before_photos: beforePhotos.length > 0 ? beforePhotos : (complaint.beforePhotos || []),
     beforePhotos: beforePhotos.length > 0 ? beforePhotos : (complaint.beforePhotos || []),
+    after_photos: afterPhotos.length > 0 ? afterPhotos : (complaint.afterPhotos || []),
     afterPhotos: afterPhotos.length > 0 ? afterPhotos : (complaint.afterPhotos || []),
+    dispute_photos: disputePhotos,
     disputePhotos,
+    sla_deadline: complaint.sla_deadline,
+    slaDeadline: complaint.sla_deadline,
     sla_health: slaHealth,
   };
 };
@@ -174,7 +185,7 @@ export const createComplaint = async (req, res, next) => {
 
     const newComplaint = db.insert('complaints', {
       complaint_code: complaintCode,
-      township_id: req.user.townshipId || 'b0000000-0000-0000-0000-000000000001',
+      township_id: req.user.township_id || 'b0000000-0000-0000-0000-000000000001',
       reported_by: req.user.id,
       department_id: dept ? dept.id : null,
       category: chosenCategory,
@@ -249,10 +260,7 @@ export const getComplaints = async (req, res, next) => {
   try {
     const { status, severity, category, sector, myOnly } = req.query;
 
-    const userTownshipId = req.user.townshipId || req.user.township_id;
-
-    // Refresh live cache directly from Neon PostgreSQL to guarantee 100% current data
-    await db.refreshTablesFromPostgres();
+    const userTownshipId = req.user.township_id;
 
     let complaints = db.find('complaints', (c) => {
       // 1. Township isolation
@@ -296,7 +304,6 @@ export const getComplaints = async (req, res, next) => {
 export const getComplaintById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await db.refreshTablesFromPostgres();
     const complaint = db.findOne('complaints', (c) => c.id === id || c.complaint_code === id);
 
     if (!complaint) {
@@ -304,7 +311,7 @@ export const getComplaintById = async (req, res, next) => {
     }
 
     // Multi-township isolation
-    if (req.user.townshipId && complaint.township_id !== req.user.townshipId) {
+    if (req.user.township_id && complaint.township_id !== req.user.township_id) {
       return next(new AppError('Cross-township access forbidden.', 403, 'FORBIDDEN'));
     }
 

@@ -55,13 +55,23 @@ export function calculateVerifiedEstimate(lineItems = [], contractorId = null) {
       item.service,
     ].map(normalizeRateKey).filter(Boolean);
 
-    // Match only official AMC rate cards. Client-supplied prices are ignored.
-    const officialRate = allRates.find(
+    // Match official AMC rate cards with fallback to township active rate cards
+    let officialRate = allRates.find(
       (r) =>
         rateKeys.includes(normalizeRateKey(r.id)) ||
         rateKeys.includes(normalizeRateKey(r.item_code)) ||
         rateKeys.includes(normalizeRateKey(r.item_name))
     );
+
+    if (!officialRate) {
+      const globalRates = db.findAll('amc_rates', (rate) => (rate.status || 'ACTIVE') === 'ACTIVE');
+      officialRate = globalRates.find(
+        (r) =>
+          rateKeys.includes(normalizeRateKey(r.id)) ||
+          rateKeys.includes(normalizeRateKey(r.item_code)) ||
+          rateKeys.includes(normalizeRateKey(r.item_name))
+      );
+    }
 
     if (!officialRate) {
       throw new AppError(
