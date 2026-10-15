@@ -74,14 +74,17 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
     try {
       // 1. Create work order in backend
       const res = await clerkApi.createWorkOrder({
+        complaint_id: active.id,
         complaintId: active.id,
+        contractor_id: selectedContractorId,
         contractorId: selectedContractorId,
         priority: priority.toUpperCase(),
+        special_instructions: specialInstructions,
         specialInstructions,
       })
 
       const woData = res?.data
-      const woCode = woData?.workOrderCode || woData?.work_order_number || `WO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
+      const woCode = woData?.work_order_number || `WO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
       const assignedContractor = woData?.contractor || contractor
 
       // 2. Fetch updated complaints from database
@@ -89,15 +92,18 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
       const updatedComplaint = freshComplaints.find(c => c.id === active.id) || {
         ...active,
         status: newStatus,
+        work_order_number: woCode,
         workOrderId: woCode,
         work_order_code: woCode,
+        assigned_contractor: assignedContractor,
         assignedContractor,
         assigned_contractor_id: selectedContractorId,
+        contractor_id: selectedContractorId,
         assigned_contractor_name: assignedContractor?.name,
         priority,
+        special_instructions: specialInstructions,
         specialInstructions,
-        workOrderCreatedAt: new Date().toISOString(),
-        workOrderCreatedBy: `${currentUser?.name || 'Desk Clerk'} (Desk Clerk)`,
+        created_at: new Date().toISOString(),
       }
 
       // 3. Complete dispatch callback
@@ -109,12 +115,16 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
 
       const fallbackPayload = {
         status: newStatus,
+        work_order_number: fallbackWoCode,
         workOrderId: fallbackWoCode,
         work_order_code: fallbackWoCode,
+        assigned_contractor: contractor,
         assignedContractor: contractor,
         assigned_contractor_id: selectedContractorId,
+        contractor_id: selectedContractorId,
         assigned_contractor_name: contractor?.name,
         priority,
+        special_instructions: specialInstructions,
         specialInstructions,
       }
       updateComplaintStatus(active.id, newStatus, note, fallbackPayload)

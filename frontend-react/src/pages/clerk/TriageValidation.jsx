@@ -33,14 +33,14 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
   const complaints = useMemo(() => {
     if (propComplaints) return propComplaints
     if (!currentUser || currentUser.role !== 'DESK_CLERK') return contextComplaints
-    const deptId = currentUser.departmentId || currentUser.department_id || currentUser.deptId
-    const deptName = (currentUser.departmentName || currentUser.department_name || currentUser.department || '').toLowerCase()
+    const deptId = currentUser.department_id
+    const deptName = (currentUser.department_name || '').toLowerCase()
     if (!deptId && !deptName) return contextComplaints
 
     return contextComplaints.filter(c => {
-      const cDeptId = c.departmentId || c.department_id
+      const cDeptId = c.department_id
       if (deptId && cDeptId && String(cDeptId) === String(deptId)) return true
-      const cCat = (c.category || c.departmentName || c.department || '').toLowerCase()
+      const cCat = (c.category || c.department_name || '').toLowerCase()
       if (deptName && cCat) {
         if (deptName.includes(cCat) || cCat.includes(deptName)) return true
         if (deptName.includes('electr') && cCat.includes('electr')) return true

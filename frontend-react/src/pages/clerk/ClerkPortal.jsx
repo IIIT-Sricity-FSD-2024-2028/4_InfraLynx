@@ -11,14 +11,14 @@ import './styles/ClerkPortal.css'
  */
 function isComplaintInClerkDepartment(complaint, user) {
   if (!user || user.role !== 'DESK_CLERK') return true
-  const deptId = user.departmentId || user.department_id || user.deptId
-  const deptName = (user.departmentName || user.department_name || user.department || '').toLowerCase()
+  const deptId = user.department_id
+  const deptName = (user.department_name || '').toLowerCase()
   if (!deptId && !deptName) return true
 
-  const cDeptId = complaint.departmentId || complaint.department_id
+  const cDeptId = complaint.department_id
   if (deptId && cDeptId && String(cDeptId) === String(deptId)) return true
 
-  const cCat = (complaint.category || complaint.departmentName || complaint.department || '').toLowerCase()
+  const cCat = (complaint.category || complaint.department_name || '').toLowerCase()
   if (deptName && cCat) {
     if (deptName.includes(cCat) || cCat.includes(deptName)) return true
     if (deptName.includes('electr') && cCat.includes('electr')) return true
@@ -59,8 +59,8 @@ export default function ClerkPortal({ onExitToLanding }) {
   // Called by WorkOrderCreate once WO is dispatched
   function handleWorkOrderCreated(complaint) {
     setSelectedComplaint(complaint)
-    const woId       = complaint.workOrderId || ''
-    const contractor = complaint.assignedContractor ? complaint.assignedContractor.name : 'contractor'
+    const woId       = complaint.work_order_number || complaint.id
+    const contractor = complaint.assigned_contractor ? complaint.assigned_contractor.name : 'contractor'
     setSuccessNotice({
       id: complaint.id,
       message: `Work Order ${woId} assigned & dispatched to ${contractor} for "${complaint.title}" (${complaint.id}).`,
@@ -68,7 +68,7 @@ export default function ClerkPortal({ onExitToLanding }) {
     handleNavigate('dashboard')
   }
 
-  const deptDisplay = currentUser?.departmentName || currentUser?.department_name || currentUser?.department || 'Operations'
+  const deptDisplay = currentUser?.department_name || 'Operations'
 
   return (
     <div className="clerk-shell">

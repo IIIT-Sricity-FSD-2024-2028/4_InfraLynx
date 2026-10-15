@@ -36,9 +36,9 @@ export const generateToken = (user) => {
     email: user.email,
     username: user.username,
     role: user.role,
-    townshipId: user.township_id || user.townshipId,
-    deptId: user.department_id || user.deptId || null,
-    contractorId: user.contractor_id || user.contractorId || null,
+    township_id: user.township_id,
+    department_id: user.department_id || null,
+    contractor_id: user.contractor_id || null,
   };
 
   return jwt.sign(payload, config.jwt.secret, {

@@ -157,17 +157,16 @@ export default function WorkOrders({ onSelectComplaint }) {
             <tbody>
               {workOrders.map((wo) => {
                 const isOverdue =
-                  wo.slaStatus === 'OVERDUE' ||
-                  (wo.slaDeadline && new Date(wo.slaDeadline) < new Date() && wo.status !== 'COMPLETED' && wo.status !== 'CLOSED') ||
+                  wo.sla_status === 'OVERDUE' ||
                   (wo.sla_deadline && new Date(wo.sla_deadline) < new Date() && wo.status !== 'COMPLETED' && wo.status !== 'CLOSED');
                 
-                const woId = wo.workOrderId || wo.workOrderCode || wo.work_order_code || wo.id.substring(0, 8);
-                const desc = wo.complaintDescription || wo.description || 'Civil infrastructure repair';
+                const woId = wo.work_order_number || wo.id;
+                const desc = wo.description || wo.title || 'Civil infrastructure repair';
                 const cat = wo.category || 'Civil';
-                const loc = wo.location || wo.sector || 'Sector 54';
-                const contractorName = wo.assignedContractor || wo.contractor?.name || (wo.contractor_id ? `Contractor (${wo.contractor_id.substring(0,6)})` : 'Unassigned');
-                const estAmt = Number(wo.estimatedAmount || wo.estimate_amount || wo.estimated_cost || 0);
-                const createdDate = wo.creationDate || wo.createdAt || wo.created_at;
+                const loc = wo.location_details || wo.sector || 'Sector 54';
+                const contractorName = wo.contractor?.name || (wo.contractor_id ? `Contractor (${wo.contractor_id.substring(0,6)})` : 'Unassigned');
+                const estAmt = Number(wo.estimated_cost || 0);
+                const createdDate = wo.created_at;
 
                 return (
                   <tr key={wo.id} style={{ background: isOverdue ? '#fff1f2' : 'transparent' }}>

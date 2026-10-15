@@ -35,45 +35,71 @@ function sanitizeComplaintHistory(c) {
 
   const loc = c.location || {}
   const location = {
-    sector: loc.sector || c.sector || 'Sector 54',
-    block: loc.block || c.block || 'Block B',
-    street: loc.street || c.street || 'Gulmohar Marg',
-    assetId: loc.assetId || c.asset_id || 'ASSET-GEN-01',
-    assetName: loc.assetName || c.asset_name || c.location_details || 'Township Infrastructure Fixture',
-    landmark: loc.landmark || c.location_details || '',
+    sector: c.sector || loc.sector || 'Sector 54',
+    block: c.block || loc.block || 'Block B',
+    street: c.street || loc.street || 'Gulmohar Marg',
+    asset_id: c.asset_id || loc.asset_id || loc.assetId || 'ASSET-GEN-01',
+    asset_name: c.asset_name || loc.asset_name || loc.assetName || c.location_details || 'Township Infrastructure Fixture',
+    landmark: c.location_details || loc.landmark || '',
   }
 
   // Resolve contractor entity from database record
-  const assignedContractor = c.assignedContractor || (c.assigned_contractor_name ? {
+  const assigned_contractor = c.assigned_contractor || (c.assigned_contractor_name ? {
     id: c.assigned_contractor_id || null,
     name: c.assigned_contractor_name,
     company_name: c.assigned_contractor_name,
     lead: c.assigned_contractor_lead || c.contact_person || null,
     phone: c.assigned_contractor_phone || null,
     email: c.assigned_contractor_email || null,
-    amcContractId: c.amc_contract_id || null,
-  } : null)
+    amc_contract_id: c.amc_contract_id || null,
+  } : (c.assignedContractor || null))
 
-  const workOrderId = c.workOrderId || c.work_order_code || c.work_order?.work_order_code || c.work_order?.id || null
-  const estimateAmount = c.estimateAmount ?? c.estimate_amount ?? c.work_order?.estimate_amount ?? 0
-  const lineItems = c.lineItems || c.line_items || c.work_order?.line_items || []
-  const requiresDeptHead = c.requiresDeptHead ?? c.requires_dept_head ?? c.work_order?.requires_dept_head ?? false
+  const complaint_code = c.complaint_code || c.id
+  const work_order_number = c.work_order_number || c.work_order_code || c.work_order?.work_order_number || c.work_order?.work_order_code || c.workOrderId || null
+  const work_order_id = c.work_order_id || c.work_order?.id || null
+  const department_id = c.department_id || c.departmentId || null
+  const township_id = c.township_id || c.townshipId || null
+  const contractor_id = c.contractor_id || c.assigned_contractor_id || (assigned_contractor ? assigned_contractor.id : null)
+  const estimated_cost = Number(c.estimated_cost ?? c.estimate_amount ?? c.estimateAmount ?? c.work_order?.estimated_cost ?? c.work_order?.estimate_amount ?? 0)
+  const actual_cost = Number(c.actual_cost ?? c.work_order?.actual_cost ?? (c.status === 'COMPLETED' ? estimated_cost : 0))
+  const line_items = Array.isArray(c.line_items) ? c.line_items : (Array.isArray(c.lineItems) ? c.lineItems : (c.work_order?.line_items || []))
+  const requires_dept_head = Boolean(c.requires_dept_head ?? c.requiresDeptHead ?? c.work_order?.requires_dept_head)
   const priority = c.priority || c.work_order?.priority || 'Medium'
-  const createdAt = c.createdAt || c.created_at || new Date().toISOString()
+  const created_at = c.created_at || c.createdAt || new Date().toISOString()
 
   return {
     ...c,
-    id: c.complaint_code || c.id,
-    complaint_code: c.complaint_code || c.id,
+    id: complaint_code,
+    complaint_code,
+    work_order_number,
+    work_order_id,
+    department_id,
+    township_id,
+    contractor_id,
+    estimated_cost,
+    actual_cost,
+    line_items,
+    requires_dept_head,
+    priority,
+    created_at,
     location,
     history: cleanHistory,
-    assignedContractor,
-    workOrderId,
-    estimateAmount,
-    lineItems,
-    requiresDeptHead,
-    priority,
-    createdAt,
+    assigned_contractor,
+    // Aliases for seamless compatibility across UI views
+    assignedContractor: assigned_contractor,
+    workOrderId: work_order_number,
+    workOrderCode: work_order_number,
+    estimateAmount: estimated_cost,
+    estimatedCost: estimated_cost,
+    moneyEstimated: estimated_cost,
+    actualCost: actual_cost,
+    moneyUsed: actual_cost,
+    lineItems: line_items,
+    requiresDeptHead: requires_dept_head,
+    createdAt: created_at,
+    departmentId: department_id,
+    townshipId: township_id,
+    contractorId: contractor_id,
     beforePhotos: Array.isArray(c.beforePhotos) ? c.beforePhotos : [],
     afterPhotos: Array.isArray(c.afterPhotos) ? c.afterPhotos : [],
   }

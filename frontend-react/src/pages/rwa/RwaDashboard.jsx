@@ -343,7 +343,7 @@ export default function RwaDashboard({
         ) : (
           filteredComplaints.map((c) => {
             const statusBadge = getStatusBadge(c.status)
-            const sla = getSlaStatus(c.slaDeadline)
+            const sla = getSlaStatus(c.sla_deadline || c.slaDeadline)
 
             const catClass = c.category === 'Electrical' ? 'electrical' : c.category === 'Water' ? 'water' : c.category === 'Horticulture' ? 'horticulture' : 'civil'
             const sevClass = c.severity === 'Emergency' ? 'emergency' : c.severity === 'High' ? 'high' : 'normal'
@@ -357,10 +357,10 @@ export default function RwaDashboard({
                 <div className="card-top-row">
                   <div className="badge-cluster">
                     <span className="badge-id">
-                      {c.id}
+                      {c.complaint_code || c.id}
                     </span>
                     <span className={`badge-category ${catClass}`}>
-                      {c.category} • {c.subCategory}
+                      {c.category} • {c.subcategory || c.subCategory || ''}
                     </span>
                     <span className={`badge-severity ${sevClass}`}>
                       {c.severity} Severity
@@ -413,14 +413,14 @@ export default function RwaDashboard({
                 <div className="card-footer">
                   <div className="card-info-cluster">
                     <div>
-                      📍 <strong>{c.location?.block || c.block || 'Block'}, {c.location?.street || c.street || 'Main St'}</strong> ({c.location?.assetName || c.asset_name || 'Asset'})
+                      📍 <strong>{c.block || 'Block'}, {c.street || 'Main St'}</strong> ({c.asset_id || c.location_details || 'Asset'})
                     </div>
                     <div>
                       ⏱️ SLA: <strong style={{ color: sla.isBreached ? 'var(--accent-red)' : sla.isUrgent ? 'var(--accent-amber)' : 'inherit' }}>{sla.text}</strong>
                     </div>
-                    {c.assignedContractor && (
+                    {(c.assigned_contractor || c.assignedContractor) && (
                       <div>
-                        🛠️ Contractor: <strong>{c.assignedContractor.name}</strong>
+                        🛠️ Contractor: <strong>{(c.assigned_contractor || c.assignedContractor).name}</strong>
                       </div>
                     )}
                   </div>
