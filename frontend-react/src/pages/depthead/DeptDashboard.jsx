@@ -208,8 +208,6 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
     <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .glass-btn { transition: all 0.2s; }
-        .glass-btn:hover { background: rgba(255,255,255,0.2) !important; transform: translateX(4px); }
         .complaint-row:hover { background: #f8fafc !important; }
       `}</style>
       
@@ -711,97 +709,141 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
           </div>
         </div>
         
-        {/* Right Panel: Quick Actions (Glassmorphism / Indigo Theme) */}
+        {/* Right Panel: Civil Governance Actions */}
         <div style={{ 
-          background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', 
-          padding: '32px', 
+          background: 'white', 
+          padding: '30px', 
           borderRadius: '20px', 
-          boxShadow: '0 20px 25px -5px rgba(49, 46, 129, 0.4)', 
-          color: 'white',
-          position: 'relative',
-          overflow: 'hidden',
+          border: '1px solid #f1f5f9', 
+          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between'
         }}>
-          {/* Decorative glows */}
-          <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '150px', height: '150px', background: '#6366f1', borderRadius: '50%', filter: 'blur(50px)', opacity: '0.4' }}></div>
-          <div style={{ position: 'absolute', bottom: '-50px', left: '-50px', width: '200px', height: '200px', background: '#8b5cf6', borderRadius: '50%', filter: 'blur(60px)', opacity: '0.3' }}></div>
-          
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '10px' }}>Civil Governance Actions</h4>
-            <p style={{ color: '#e0e7ff', fontSize: '14px', marginBottom: '28px', lineHeight: '1.5', opacity: '0.9' }}>
+          <div>
+            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ width: '8px', height: '8px', background: '#6366f1', borderRadius: '50%' }}></span>
+              Civil Governance Actions
+            </h4>
+            <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '22px', lineHeight: '1.5' }}>
               Direct access to Civil employee management, contractor AMC estimate authorizations, and work orders.
             </p>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <button 
-                className="glass-btn"
+                type="button"
                 onClick={() => onNavigate('employees')}
                 style={{ 
                   width: '100%', textAlign: 'left', 
-                  background: 'rgba(255,255,255,0.08)', 
-                  border: '1px solid rgba(255,255,255,0.15)', 
+                  background: '#f8fafc', 
+                  border: '1px solid #e2e8f0', 
                   padding: '16px 20px', 
                   borderRadius: '14px', 
-                  color: 'white', 
+                  color: '#0f172a', 
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                  cursor: 'pointer', fontWeight: '600', fontSize: '15px',
-                  backdropFilter: 'blur(10px)',
-                  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+                  cursor: 'pointer', transition: 'all 0.2s',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                }}
+                onMouseOver={(e) => { 
+                  e.currentTarget.style.background = '#f5f3ff'; 
+                  e.currentTarget.style.borderColor = '#c7d2fe';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 12px -2px rgba(99, 102, 241, 0.12)';
+                }}
+                onMouseOut={(e) => { 
+                  e.currentTarget.style.background = '#f8fafc'; 
+                  e.currentTarget.style.borderColor = '#e2e8f0';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.03)';
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <span style={{ background: 'rgba(255,255,255,0.15)', padding: '6px', borderRadius: '8px' }}>👥</span>
-                  <span>View Civil Employees ({data.departmentName})</span>
+                  <span style={{ background: '#ede9fe', color: '#6d28d9', padding: '10px', borderRadius: '10px', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👥</span>
+                  <div>
+                    <div style={{ fontWeight: '700', fontSize: '15px', color: '#1e293b' }}>View Civil Employees</div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Staff directory & clerk accounts for {data.departmentName}</div>
+                  </div>
                 </div>
-                <span style={{ color: '#a5b4fc', fontSize: '18px' }}>&rarr;</span>
+                <span style={{ color: '#6366f1', fontSize: '20px', fontWeight: '700' }}>&rarr;</span>
               </button>
   
               <button 
-                className="glass-btn"
+                type="button"
                 onClick={() => onNavigate('approvals')}
                 style={{ 
                   width: '100%', textAlign: 'left', 
-                  background: 'rgba(255,255,255,0.08)', 
-                  border: '1px solid rgba(255,255,255,0.15)', 
+                  background: '#f8fafc', 
+                  border: '1px solid #e2e8f0', 
                   padding: '16px 20px', 
                   borderRadius: '14px', 
-                  color: 'white', 
+                  color: '#0f172a', 
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                  cursor: 'pointer', fontWeight: '600', fontSize: '15px',
-                  backdropFilter: 'blur(10px)',
-                  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+                  cursor: 'pointer', transition: 'all 0.2s',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                }}
+                onMouseOver={(e) => { 
+                  e.currentTarget.style.background = '#fdf2f8'; 
+                  e.currentTarget.style.borderColor = '#fbcfe8';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 12px -2px rgba(219, 39, 119, 0.12)';
+                }}
+                onMouseOut={(e) => { 
+                  e.currentTarget.style.background = '#f8fafc'; 
+                  e.currentTarget.style.borderColor = '#e2e8f0';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.03)';
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <span style={{ background: 'rgba(255,255,255,0.15)', padding: '6px', borderRadius: '8px' }}>📑</span>
-                  <span>Pending Approvals Queue ({data.pendingApprovals})</span>
+                  <span style={{ background: '#fce7f3', color: '#db2777', padding: '10px', borderRadius: '10px', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📑</span>
+                  <div>
+                    <div style={{ fontWeight: '700', fontSize: '15px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      Pending Approvals Queue
+                      <span style={{ background: '#fce7f3', color: '#be185d', fontSize: '11px', fontWeight: '800', padding: '2px 8px', borderRadius: '12px' }}>
+                        {data.pendingApprovals}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Review & authorize contractor estimates &gt; ₹10k</div>
+                  </div>
                 </div>
-                <span style={{ color: '#f9a8d4', fontSize: '18px' }}>&rarr;</span>
+                <span style={{ color: '#db2777', fontSize: '20px', fontWeight: '700' }}>&rarr;</span>
               </button>
 
               <button 
-                className="glass-btn"
+                type="button"
                 onClick={() => onNavigate('work-orders')}
                 style={{ 
                   width: '100%', textAlign: 'left', 
-                  background: 'rgba(255,255,255,0.08)', 
-                  border: '1px solid rgba(255,255,255,0.15)', 
+                  background: '#f8fafc', 
+                  border: '1px solid #e2e8f0', 
                   padding: '16px 20px', 
                   borderRadius: '14px', 
-                  color: 'white', 
+                  color: '#0f172a', 
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                  cursor: 'pointer', fontWeight: '600', fontSize: '15px',
-                  backdropFilter: 'blur(10px)',
-                  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+                  cursor: 'pointer', transition: 'all 0.2s',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                }}
+                onMouseOver={(e) => { 
+                  e.currentTarget.style.background = '#eff6ff'; 
+                  e.currentTarget.style.borderColor = '#bfdbfe';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 12px -2px rgba(37, 99, 235, 0.12)';
+                }}
+                onMouseOut={(e) => { 
+                  e.currentTarget.style.background = '#f8fafc'; 
+                  e.currentTarget.style.borderColor = '#e2e8f0';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.03)';
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <span style={{ background: 'rgba(255,255,255,0.15)', padding: '6px', borderRadius: '8px' }}>🛠️</span>
-                  <span>Browse Civil Work Orders</span>
+                  <span style={{ background: '#e0e7ff', color: '#4338ca', padding: '10px', borderRadius: '10px', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🛠️</span>
+                  <div>
+                    <div style={{ fontWeight: '700', fontSize: '15px', color: '#1e293b' }}>Browse Civil Work Orders</div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Monitor live repair jobs, SLAs, and contractor execution</div>
+                  </div>
                 </div>
-                <span style={{ color: '#93c5fd', fontSize: '18px' }}>&rarr;</span>
+                <span style={{ color: '#4338ca', fontSize: '20px', fontWeight: '700' }}>&rarr;</span>
               </button>
             </div>
           </div>
