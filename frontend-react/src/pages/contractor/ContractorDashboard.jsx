@@ -114,7 +114,7 @@ export default function ContractorDashboard({
           </button>
           <button
             onClick={() => {
-              const pendingInspection = jobs.find((j) => j.status === 'ASSIGNED' || !j.inspection)
+              const pendingInspection = jobs.find((j) => (j.status === 'ASSIGNED' || j.status === 'WORK_ORDER_CREATED') && !j.estimate)
               if (pendingInspection) onSelectJob(pendingInspection)
               onNavigate('inspection')
             }}
