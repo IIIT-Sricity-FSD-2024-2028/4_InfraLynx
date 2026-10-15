@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+import config from '../config/env.js';
 /**
  * contractorController.js — TIMS Field Contractor Backend (Member 3)
  *
@@ -638,15 +641,59 @@ export const uploadEvidence = async (req, res, next) => {
     }
 
     const createdEvidence = [];
-    for (const url of safePhotoList) {
+    const resolvedUrls = [];
+
+    for (const rawUrl of safePhotoList) {
+      let savedUrl = rawUrl;
+      // Convert large base64 data URLs to static files in uploads/
+      if (rawUrl.startsWith('data:image/')) {
+        try {
+          const matches = rawUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+          if (matches && matches.length === 3) {
+            const mimeType = matches[1];
+            const buffer = Buffer.from(matches[2], 'base64');
+            const ext = mimeType.includes('png') ? '.png' : mimeType.includes('webp') ? '.webp' : '.jpg';
+            const filename = `evidence-${crypto.randomUUID()}${ext}`;
+            const uploadDir = config.upload?.dir || path.resolve('uploads');
+            if (!fs.existsSync(uploadDir)) {
+              fs.mkdirSync(uploadDir, { recursive: true });
+            }
+            const filePath = path.join(uploadDir, filename);
+            fs.writeFileSync(filePath, buffer);
+            savedUrl = `/uploads/${filename}`;
+          }
+        } catch (fileErr) {
+          console.error('[uploadEvidence] Error saving base64 to file:', fileErr.message);
+        }
+      }
+
+      resolvedUrls.push(savedUrl);
+
+      // Persist in synthetic cache and real PostgreSQL work_evidence table
       const rec = db.insert('complaint_evidence', {
         complaint_id: targetComplaintId,
         evidence_type: type,
-        file_url: url,
+        file_url: savedUrl,
         caption: caption || `${type} repair photo evidence`,
         uploaded_by: req.user.id,
         created_at: now,
       });
+
+      // Also persist to real database table work_evidence if work_order_id exists
+      if (wo?.id) {
+        try {
+          db.insert('work_evidence', {
+            work_order_id: wo.id,
+            type: type,
+            file_url: savedUrl,
+            remarks: caption || `${type} repair photo evidence`,
+            uploaded_by: req.user.id,
+          });
+        } catch (dbErr) {
+          // Ignore if already logged
+        }
+      }
+
       createdEvidence.push(rec);
     }
 
@@ -657,7 +704,7 @@ export const uploadEvidence = async (req, res, next) => {
         const updateField = type === 'AFTER' ? 'afterPhotos' : 'beforePhotos';
         const existing = Array.isArray(complaint[updateField]) ? complaint[updateField] : [];
         db.update('complaints', complaint.id, {
-          [updateField]: [...existing, ...safePhotoList],
+          [updateField]: [...existing, ...resolvedUrls],
         });
       }
     }

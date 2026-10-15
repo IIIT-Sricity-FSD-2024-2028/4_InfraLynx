@@ -142,9 +142,18 @@ export default function ContractorPortal({ onExitToLanding }) {
     loadBackendJobs()
   }, [loadBackendJobs, currentScreen])
 
-  // Persist contractor local jobs in tab-isolated sessionStorage
+  // Persist contractor local jobs in tab-isolated sessionStorage safely
   useEffect(() => {
-    sessionStorage.setItem('tims_contractor_jobs_v1', JSON.stringify(jobs))
+    try {
+      const sanitized = jobs.map((j) => ({
+        ...j,
+        beforePhotos: (j.beforePhotos || []).map((p) => (typeof p === 'string' && p.startsWith('data:image/') && p.length > 500 ? '[image_data]' : p)),
+        afterPhotos: (j.afterPhotos || []).map((p) => (typeof p === 'string' && p.startsWith('data:image/') && p.length > 500 ? '[image_data]' : p)),
+      }))
+      sessionStorage.setItem('tims_contractor_jobs_v1', JSON.stringify(sanitized))
+    } catch (storageErr) {
+      console.warn('[ContractorPortal] Could not persist jobs to sessionStorage:', storageErr.message)
+    }
   }, [jobs])
 
   // Real-time synchronization: If a complaint in shared context was updated or assigned, reflect here
