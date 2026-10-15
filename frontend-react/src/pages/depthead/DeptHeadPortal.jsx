@@ -17,8 +17,8 @@ export default function DeptHeadPortal({ onExitToLanding }) {
   const [currentScreen, setCurrentScreen] = useState('dashboard')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
   
-  const deptName = currentUser?.departmentName || currentUser?.department || 'Municipal Department';
-  const userDeptId = currentUser?.departmentId || currentUser?.department_id;
+  const deptName = currentUser?.department_name || 'Municipal Department';
+  const userDeptId = currentUser?.department_id;
 
   // Pending approvals (status AWAITING_DEPT_HEAD for assigned department)
   const pendingApprovalsCount = complaints.filter(

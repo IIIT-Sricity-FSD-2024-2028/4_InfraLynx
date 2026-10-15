@@ -23,7 +23,7 @@ export const verifyComplaint = async (complaintId, user, { rating = 5, remarks =
   }
 
   // Multi-Township isolation check
-  if (complaint.township_id !== user.townshipId) {
+  if (complaint.township_id !== user.township_id) {
     throw new AppError('Cross-township operation forbidden.', 403, 'FORBIDDEN');
   }
 
@@ -31,8 +31,8 @@ export const verifyComplaint = async (complaintId, user, { rating = 5, remarks =
     throw new AppError('Only the reporting RWA user can verify this complaint.', 403, 'COMPLAINT_OWNER_REQUIRED');
   }
 
-  // Only complaints awaiting verification can be confirmed
-  const validStatuses = ['PENDING_VERIFICATION', 'COMPLETED', 'WORK_COMPLETED'];
+  // Complaints awaiting verification or already closed can be confirmed/updated
+  const validStatuses = ['PENDING_VERIFICATION', 'COMPLETED', 'WORK_COMPLETED', 'CLOSED'];
   if (!validStatuses.includes((complaint.status || '').toUpperCase())) {
     throw new AppError(
       `Complaint '${complaintId}' cannot be verified. Current status is '${complaint.status}'. Only complaints awaiting verification can be verified.`,
@@ -110,7 +110,7 @@ export const disputeComplaint = async (complaintId, user, { reason = '', remarks
   }
 
   // Multi-Township isolation check
-  if (complaint.township_id !== user.townshipId) {
+  if (complaint.township_id !== user.township_id) {
     throw new AppError('Cross-township operation forbidden.', 403, 'FORBIDDEN');
   }
 

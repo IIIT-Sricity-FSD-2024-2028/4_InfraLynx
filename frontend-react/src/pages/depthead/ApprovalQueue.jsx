@@ -107,7 +107,7 @@ export default function ApprovalQueue({ onSelectComplaint }) {
           </thead>
           <tbody>
             {approvals.map((item) => {
-              const slaDeadline = new Date(item.slaDeadline).getTime();
+              const slaDeadline = new Date(item.sla_deadline || item.slaDeadline || Date.now()).getTime();
               const now = new Date().getTime();
               const hoursRemaining = Math.max(0, Math.floor((slaDeadline - now) / (1000 * 60 * 60)));
               const slaText = hoursRemaining > 0 ? `${hoursRemaining}h remaining` : 'Breached';
@@ -116,8 +116,8 @@ export default function ApprovalQueue({ onSelectComplaint }) {
               return (
                 <tr key={item.id}>
                   <td>
-                    <strong>{item.workOrderCode || item.id}</strong>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''}</div>
+                    <strong>{item.work_order_number || item.id}</strong>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{item.created_at ? new Date(item.created_at).toLocaleDateString() : ''}</div>
                   </td>
                   <td>
                     <div style={{ fontWeight: '500' }}>{item.title}</div>
@@ -125,7 +125,7 @@ export default function ApprovalQueue({ onSelectComplaint }) {
                   </td>
                   <td>{item.contractor?.name || 'Unassigned'}</td>
                   <td>
-                    <strong>₹{Number(item.estimateAmount || 0).toLocaleString()}</strong>
+                    <strong>₹{Number(item.estimated_cost || 0).toLocaleString()}</strong>
                   </td>
                   <td style={{ color: slaColor, fontWeight: 'bold' }}>{slaText}</td>
                   <td>
@@ -200,8 +200,8 @@ export default function ApprovalQueue({ onSelectComplaint }) {
             </h3>
             <p style={{ fontSize: '14px', color: 'var(--text-soft)', marginBottom: '16px' }}>
               {modalAction === 'FORWARD_TO_COO'
-                ? `Forward estimate for work order ${selectedItem.workOrderCode || selectedItem.id} (₹${Number(selectedItem.estimateAmount || 0).toLocaleString()}) to the Township COO for executive joint sign-off.`
-                : `Provide a reason for ${modalAction === 'REJECT' ? 'rejecting' : 'sending this estimate back to the contractor for'} work order ${selectedItem.workOrderCode || selectedItem.id}.`}
+                ? `Forward estimate for work order ${selectedItem.work_order_number || selectedItem.id} (₹${Number(selectedItem.estimated_cost || 0).toLocaleString()}) to the Township COO for executive joint sign-off.`
+                : `Provide a reason for ${modalAction === 'REJECT' ? 'rejecting' : 'sending this estimate back to the contractor for'} work order ${selectedItem.work_order_number || selectedItem.id}.`}
             </p>
             <form onSubmit={handleModalSubmit}>
               <textarea 

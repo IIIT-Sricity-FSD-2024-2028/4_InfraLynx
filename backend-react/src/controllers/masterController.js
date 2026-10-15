@@ -5,7 +5,7 @@
 
 import db from '../config/db.js';
 
-const getUserTownshipId = (user) => user.townshipId || user.township_id;
+const getUserTownshipId = (user) => user.township_id;
 
 export const getContractors = async (req, res, next) => {
   try {

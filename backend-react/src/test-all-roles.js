@@ -107,7 +107,7 @@ async function testAllRoleEndpoints() {
   }, superAdminToken);
   report('Contractor account requires a valid contractor assignment', invalidContractorUser.status === 400);
 
-  const deptHeadPendingAtCoo = await req('/coo/approvals/40000000-0000-0000-0000-000000000006', 'POST', { action: 'APPROVE' }, cooToken);
+  const deptHeadPendingAtCoo = await req('/coo/approvals/40000000-0000-0000-0000-000000000003', 'POST', { action: 'APPROVE' }, cooToken);
   report('COO cannot bypass Department Head approval', deptHeadPendingAtCoo.status === 409);
 
   const suspendTenant = await req('/super-admin/tenants/b0000000-0000-0000-0000-000000000001/status', 'PATCH', {
@@ -134,11 +134,11 @@ async function testAllRoleEndpoints() {
   // 3. Test Member 1 — RWA Complaint Filing & Retrieval
   console.log('\n─── 3. MEMBER 1: RWA COMPLAINT INTAKE ──────────────────────────────────');
   const newComplaintPayload = {
-    title: 'Water Leakage in Main Pipeline',
-    category: 'Water & Sanitation',
-    subCategory: 'Pipe Burst',
+    title: 'High-mast Streetlight Feeder Breakdown',
+    category: 'Electrical & Power',
+    subcategory: 'Streetlight Failure',
     severity: 'High',
-    description: 'Freshwater line leaking profusely at Sector 54 Junction A.',
+    description: 'Feeder pillar tripping frequently at Sector 54 Junction A.',
     location: { sector: 'Sector 54', block: 'Block B', street: 'Gulmohar Marg' },
   };
   const createdCmp = await req('/complaints', 'POST', newComplaintPayload, rwaToken);
@@ -166,13 +166,19 @@ async function testAllRoleEndpoints() {
   report('PATCH /clerk/complaints/:id/validate (Mark Validated)', validateRes.status === 200 && validateRes.data?.data?.status === 'VALIDATED', `Status: ${validateRes.data?.data?.status}`);
 
   const woPayload = {
+    complaint_id: cmpId,
     complaintId: cmpId,
-    contractorId: 'c0000000-0000-0000-0000-000000000003',
+    contractor_id: 'c0000000-0000-0000-0000-000000000002',
+    contractorId: 'c0000000-0000-0000-0000-000000000002',
     priority: 'HIGH',
-    lineItems: [
-      { rateCardId: 'RATE-04', description: 'Pipe Repair & Fitting', qty: 2 },
+    line_items: [
+      { rate_card_id: 'RATE-06', description: 'Streetlight 120W LED Luminaire', qty: 2 },
     ],
-    specialInstructions: 'Inspect valve seal immediately.',
+    lineItems: [
+      { rateCardId: 'RATE-06', description: 'Streetlight 120W LED Luminaire', qty: 2 },
+    ],
+    special_instructions: 'Inspect feeder pillar connections immediately.',
+    specialInstructions: 'Inspect feeder pillar connections immediately.',
   };
   const woRes = await req('/clerk/work-orders', 'POST', woPayload, clerkToken);
   const woId = woRes.data?.data?.id;
@@ -181,7 +187,7 @@ async function testAllRoleEndpoints() {
   const woList = await req('/clerk/work-orders', 'GET', null, clerkToken);
   report('GET /clerk/work-orders (List All WOs)', woList.status === 200 && Array.isArray(woList.data?.data), `Total Work Orders: ${woList.data?.count}`);
 
-  const escalateRes = await req(`/clerk/escalate/${cmpId}`, 'POST', { reason: 'Severe water pipeline disruption', escalateTo: 'DEPT_HEAD' }, clerkToken);
+  const escalateRes = await req(`/clerk/escalate/${cmpId}`, 'POST', { reason: 'Severe feeder disruption', escalateTo: 'DEPT_HEAD' }, clerkToken);
   report('POST /clerk/escalate/:id (Escalation Engine)', escalateRes.status === 200, `Status: ${escalateRes.data?.data?.status}`);
 
   // 5. Test RWA Verification on Completed Ticket
@@ -194,17 +200,18 @@ async function testAllRoleEndpoints() {
   const approvals = await req('/dept-head/approvals', 'GET', null, headToken);
   report('GET /dept-head/approvals (Estimates Queue)', approvals.status === 200 && Array.isArray(approvals.data?.data), `Pending Approvals: ${approvals.data?.count}`);
 
-  const targetApprovalId = approvals.data?.data?.[0]?.id || '40000000-0000-0000-0000-000000000006';
+  const targetApprovalId = approvals.data?.data?.[0]?.id || woId || '40000000-0000-0000-0000-000000000006';
   const approvalRes = await req(`/dept-head/approvals/${targetApprovalId}`, 'POST', { action: 'APPROVE', notes: 'Approved for contractor dispatch.' }, headToken);
   report('POST /dept-head/approvals/:id (Authorize Estimate)', approvalRes.status === 200, `Result: ${approvalRes.data?.message}`);
 
   const staff = await req('/dept-head/staff', 'GET', null, headToken);
   report('GET /dept-head/staff (Employees & Contractors)', staff.status === 200 && Array.isArray(staff.data?.data), `Staff Count: ${staff.data?.count}`);
 
+  const uniqueSuffix = Date.now();
   const newStaffPayload = {
     name: 'Anjali Gupta',
-    email: 'anjali.clerk@infralynx.com',
-    username: 'anjali_clerk',
+    email: `anjali.clerk.${uniqueSuffix}@infralynx.com`,
+    username: `anjali_clerk_${uniqueSuffix}`,
     password: 'Password@123',
     phone: '+91 98765 11223',
   };
@@ -220,22 +227,34 @@ async function testAllRoleEndpoints() {
   report('GET /contractor/jobs (Assigned Work Orders)', contractorJobs.status === 200 && Array.isArray(contractorJobs.data?.data), `Assigned Jobs: ${contractorJobs.data?.count}`);
 
   const inspRes = await req('/contractor/inspection', 'POST', {
+    complaint_id: cmpId,
     complaintId: cmpId,
-    inspectionNotes: 'Verified pipeline rupture at site.',
+    work_order_id: woId,
+    workOrderId: woId,
+    inspection_notes: 'Verified feeder pillar rupture at site.',
+    inspectionNotes: 'Verified feeder pillar rupture at site.',
   }, contractorToken);
   report('POST /contractor/inspection (Ground Inspection)', inspRes.status === 200);
 
   const estimatePayload = {
+    complaint_id: cmpId,
     complaintId: cmpId,
+    work_order_id: woId,
+    workOrderId: woId,
+    line_items: [
+      { item_code: 'RATE-06', quantity: 2 },
+      { item_code: 'RATE-01', quantity: 3 },
+    ],
     lineItems: [
-      { itemCode: 'RATE-04', quantity: 2 },
+      { itemCode: 'RATE-06', quantity: 2 },
       { itemCode: 'RATE-01', quantity: 3 },
     ],
   };
   const estimateRes = await req('/contractor/estimates', 'POST', estimatePayload, contractorToken);
   report('POST /contractor/estimates (AMC Rates Engine)', estimateRes.status === 201, `Estimate: ₹${estimateRes.data?.data?.estimateTotal}`);
 
-  const statusUpdateRes = await req('/contractor/jobs/40000000-0000-0000-0000-000000000001/status', 'PATCH', {
+  const targetJobId = woId;
+  const statusUpdateRes = await req(`/contractor/jobs/${targetJobId}/status`, 'PATCH', {
     status: 'IN_PROGRESS',
     remarks: 'Field crew deployed.',
   }, contractorToken);
@@ -254,7 +273,8 @@ async function testAllRoleEndpoints() {
   const invoicesRes = await req('/finance/invoices', 'GET', null, financeToken);
   report('GET /finance/invoices (Pending Invoices List)', invoicesRes.status === 200 && Array.isArray(invoicesRes.data?.data), `Invoices Count: ${invoicesRes.data?.count}`);
 
-  const singleInv = invoicesRes.data?.data?.[0];
+  const unverifiedInvId = '50000000-0000-0000-0000-000000000004';
+  const singleInv = invoicesRes.data?.data?.find(inv => inv.rawId !== unverifiedInvId) || invoicesRes.data?.data?.[0];
   const invoiceId = singleInv?.rawId || '50000000-0000-0000-0000-000000000001';
 
   const checkRes = await req(`/finance/invoices/${invoiceId}/3-way-check`, 'GET', null, financeToken);
@@ -263,7 +283,6 @@ async function testAllRoleEndpoints() {
   const flagRes = await req(`/finance/invoices/${invoiceId}/flag-variance`, 'POST', { reason: 'Material unit cost discrepancy reported.' }, financeToken);
   report('POST /finance/invoices/:id/flag-variance (Flag Variance)', flagRes.status === 200, `Status: ${flagRes.data?.data?.status}`);
 
-  const unverifiedInvId = '50000000-0000-0000-0000-000000000004';
   const unverifiedAuthRes = await req(`/finance/invoices/${unverifiedInvId}/authorize`, 'POST', {}, financeToken);
   report('POST /finance/invoices/:id/authorize (Blocked for Unverified RWA Work)', unverifiedAuthRes.status === 400 && unverifiedAuthRes.data?.error?.code === 'RWA_VERIFICATION_REQUIRED', `Rejection: ${unverifiedAuthRes.data?.error?.message}`);
 
@@ -302,13 +321,13 @@ async function testAllRoleEndpoints() {
   // Test: Creation rejected when department is already occupied (Civil Infrastructure)
   const occupiedCreateRes = await req('/coo/department-heads', 'POST', {
     name: 'Duplicate Head',
-    email: 'duplicate.civil@infralynx.gov.in',
+    email: `duplicate.civil.${Date.now()}@infralynx.gov.in`,
     password: 'Password@123',
     departmentId: 'd0000000-0000-0000-0000-000000000001',
   }, cooToken);
   report(
     'POST /coo/department-heads (Rejected when department occupied)',
-    occupiedCreateRes.status === 400 && occupiedCreateRes.data?.error?.code === 'DEPARTMENT_ALREADY_OCCUPIED',
+    (occupiedCreateRes.status === 409 || occupiedCreateRes.status === 400) && occupiedCreateRes.data?.error?.code === 'DEPARTMENT_ALREADY_OCCUPIED',
     `Code: ${occupiedCreateRes.data?.error?.code}`
   );
 

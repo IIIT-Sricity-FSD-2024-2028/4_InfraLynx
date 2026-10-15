@@ -24,14 +24,14 @@ export default function ClerkDashboard({
   const complaints = useMemo(() => {
     if (propComplaints) return propComplaints
     if (!currentUser || currentUser.role !== 'DESK_CLERK') return contextComplaints
-    const deptId = currentUser.departmentId || currentUser.department_id || currentUser.deptId
-    const deptName = (currentUser.departmentName || currentUser.department_name || currentUser.department || '').toLowerCase()
+    const deptId = currentUser.department_id
+    const deptName = (currentUser.department_name || '').toLowerCase()
     if (!deptId && !deptName) return contextComplaints
 
     return contextComplaints.filter(c => {
-      const cDeptId = c.departmentId || c.department_id
+      const cDeptId = c.department_id
       if (deptId && cDeptId && String(cDeptId) === String(deptId)) return true
-      const cCat = (c.category || c.departmentName || c.department || '').toLowerCase()
+      const cCat = (c.category || c.department_name || '').toLowerCase()
       if (deptName && cCat) {
         if (deptName.includes(cCat) || cCat.includes(deptName)) return true
         if (deptName.includes('electr') && cCat.includes('electr')) return true
@@ -48,11 +48,11 @@ export default function ClerkDashboard({
   const [selectedStatus,    setSelectedStatus]    = useState('ALL')
   const [selectedCategory,  setSelectedCategory]  = useState('ALL')
 
-  const deptDisplay = currentUser?.departmentName || currentUser?.department_name || currentUser?.department || 'Operations'
+  const deptDisplay = currentUser?.department_name || 'Operations'
 
   // Detect clerk's department domain
   const clerkDeptCategory = useMemo(() => {
-    const name = (currentUser?.departmentName || currentUser?.department_name || currentUser?.department || '').toLowerCase()
+    const name = (currentUser?.department_name || '').toLowerCase()
     if (name.includes('electr')) return 'Electrical'
     if (name.includes('civil') || name.includes('road')) return 'Civil'
     if (name.includes('water') || name.includes('drain') || name.includes('plumb')) return 'Water'
@@ -67,7 +67,7 @@ export default function ClerkDashboard({
 
     // 1. Gather all actual subcategories from complaints in this department
     complaints.forEach(c => {
-      const sub = c.subCategory || c.subcategory
+      const sub = c.subcategory
       if (sub && typeof sub === 'string' && sub.trim() && !seen.has(sub.trim())) {
         seen.add(sub.trim())
         list.push(sub.trim())

@@ -50,23 +50,28 @@ function mapBackendJobToUi(wo) {
     afterPhoto: afterPhotos[0] || '',
   } : null
 
-  const estimatedVal = Number(wo.estimatedCost ?? wo.estimated_cost ?? wo.estimateAmount ?? wo.estimate_amount ?? 0)
-  const actualVal = (wo.actualCost !== null && wo.actualCost !== undefined)
-    ? Number(wo.actualCost)
-    : ((wo.actual_cost !== null && wo.actual_cost !== undefined)
-        ? Number(wo.actual_cost)
-        : (wo.status === 'COMPLETED' ? estimatedVal : null))
+  const estimated_cost = Number(wo.estimated_cost ?? wo.estimate_amount ?? 0)
+  const actual_cost = (wo.actual_cost !== null && wo.actual_cost !== undefined)
+    ? Number(wo.actual_cost)
+    : (wo.status === 'COMPLETED' ? estimated_cost : null)
+
+  const work_order_number = wo.work_order_number || wo.work_order_code || `WO-${wo.id?.slice(0, 8)}`
+  const complaint_code = wo.complaint_code || wo.complaint_id || wo.id
+  const sla_deadline = wo.sla_deadline || wo.due_at || new Date(Date.now() + 24 * 3600 * 1000).toISOString()
+  const created_at = wo.created_at || new Date().toISOString()
+  const special_instructions = wo.special_instructions || wo.description || ''
 
   return {
-    id: wo.complaintId || wo.complaint_id || wo.complaintCode || wo.complaint_code || wo.id,
+    id: complaint_code,
     backendWoId: wo.id,
-    workOrderId: wo.workOrderId || wo.workOrderCode || wo.work_order_code || wo.work_order_number || `WO-${wo.id?.slice(0, 8)}`,
-    workOrderCode: wo.workOrderCode || wo.workOrderId || wo.work_order_code || wo.work_order_number || wo.id,
-    complaintId: wo.complaintId || wo.complaint_id || wo.id,
-    complaintCode: wo.complaintCode || wo.complaint_code || wo.complaintId || wo.complaint_id || wo.id,
+    work_order_id: wo.id,
+    work_order_number,
+    complaint_id: wo.complaint_id || wo.id,
+    complaint_code,
     title: wo.title || 'Field Work Order',
     category: wo.category || 'General',
-    subCategory: wo.subCategory || wo.subcategory || wo.sub_category || '',
+    subcategory: wo.subcategory || '',
+    subCategory: wo.subcategory || '',
     location: typeof wo.location === 'object' && wo.location !== null ? wo.location : {
       sector: wo.sector || 'Sector 54',
       block: wo.block || 'Block A',
@@ -75,16 +80,26 @@ function mapBackendJobToUi(wo) {
     },
     severity: wo.severity || wo.priority || 'Medium',
     priority: wo.priority || wo.severity || 'Medium',
-    slaDeadline: wo.slaDeadline || wo.sla_deadline || wo.dueAt || wo.due_at || new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+    sla_deadline,
     status: wo.status,
-    estimateAmount: estimatedVal,
-    estimatedCost: estimatedVal,
-    actualCost: actualVal,
-    moneyEstimated: estimatedVal,
-    moneyUsed: actualVal !== null ? actualVal : 0,
-    description: wo.description || wo.specialInstructions || wo.special_instructions || '',
-    reportedBy: wo.reportedBy || wo.reported_by || { name: 'Dr. Arvind Swaminathan', role: 'RWA Secretary' },
-    createdAt: wo.createdAt || wo.created_at || new Date().toISOString(),
+    estimated_cost,
+    actual_cost,
+    special_instructions,
+    created_at,
+    // Backwards-compatible aliases
+    workOrderId: work_order_number,
+    workOrderCode: work_order_number,
+    complaintId: wo.complaint_id || wo.id,
+    complaintCode: complaint_code,
+    slaDeadline: sla_deadline,
+    estimateAmount: estimated_cost,
+    estimatedCost: estimated_cost,
+    actualCost: actual_cost,
+    moneyEstimated: estimated_cost,
+    moneyUsed: actual_cost !== null ? actual_cost : 0,
+    description: special_instructions,
+    reportedBy: wo.reported_by || { name: 'Dr. Arvind Swaminathan', role: 'RWA Secretary' },
+    createdAt: created_at,
     beforePhotos,
     afterPhotos,
     inspection,

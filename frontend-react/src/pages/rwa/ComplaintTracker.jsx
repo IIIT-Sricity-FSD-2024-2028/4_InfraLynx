@@ -239,7 +239,7 @@ export default function ComplaintTracker({
           <div className="attributes-table">
             <div>
               <span className="attr-label">Category</span>
-              <strong>{activeComplaint.category} ({activeComplaint.subCategory})</strong>
+              <strong>{activeComplaint.category} ({activeComplaint.subcategory || activeComplaint.subCategory || ''})</strong>
             </div>
 
             <div>
@@ -251,24 +251,24 @@ export default function ComplaintTracker({
 
             <div>
               <span className="attr-label">Sector / Block</span>
-              <strong>{activeComplaint.location?.sector || activeComplaint.sector || 'Sector 54'} • {activeComplaint.location?.block || activeComplaint.block || 'Block B'}</strong>
+              <strong>{activeComplaint.sector || 'Sector 54'} • {activeComplaint.block || 'Block B'}</strong>
             </div>
 
             <div>
               <span className="attr-label">Street</span>
-              <strong>{activeComplaint.location?.street || activeComplaint.street || 'Gulmohar Marg'}</strong>
+              <strong>{activeComplaint.street || 'Gulmohar Marg'}</strong>
             </div>
 
             <div>
               <span className="attr-label">Asset ID</span>
-              <strong style={{ fontFamily: 'var(--font-mono)' }}>{activeComplaint.location?.assetId || activeComplaint.asset_id || 'ASSET-01'}</strong>
+              <strong style={{ fontFamily: 'var(--font-mono)' }}>{activeComplaint.asset_id || 'ASSET-01'}</strong>
             </div>
 
-            {activeComplaint.assignedContractor && (
+            {(activeComplaint.assigned_contractor || activeComplaint.assignedContractor) && (
               <div>
                 <span className="attr-label">Assigned Agency</span>
                 <strong>
-                  {activeComplaint.assignedContractor.name} {activeComplaint.assignedContractor.phone ? `(${activeComplaint.assignedContractor.phone})` : ''}
+                  {(activeComplaint.assigned_contractor || activeComplaint.assignedContractor).name} {(activeComplaint.assigned_contractor || activeComplaint.assignedContractor).phone ? `(${(activeComplaint.assigned_contractor || activeComplaint.assignedContractor).phone})` : ''}
                 </strong>
               </div>
             )}

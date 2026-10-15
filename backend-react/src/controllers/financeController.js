@@ -10,7 +10,7 @@ import db from '../config/db.js';
 import invoiceService from '../services/invoiceService.js';
 import { AppError } from '../middleware/error.js';
 
-const getUserTownshipId = (user) => user.township_id || user.townshipId;
+const getUserTownshipId = (user) => user.township_id;
 
 const findInvoiceForUser = (req, id) => {
   const invoice = db.findOne('invoices', (inv) => inv.id === id || inv.invoice_code === id || inv.invoice_number === id);
@@ -18,8 +18,8 @@ const findInvoiceForUser = (req, id) => {
     throw new AppError(`Invoice '${id}' not found.`, 404, 'NOT_FOUND');
   }
 
-  const townshipId = getUserTownshipId(req.user);
-  if (townshipId && invoice.township_id && invoice.township_id !== townshipId) {
+  const township_id = getUserTownshipId(req.user);
+  if (township_id && invoice.township_id && invoice.township_id !== township_id) {
     throw new AppError('Cross-township invoice access is forbidden.', 403, 'FORBIDDEN');
   }
 
@@ -33,13 +33,14 @@ const findInvoiceForUser = (req, id) => {
  */
 export const getInvoices = async (req, res, next) => {
   try {
-    const townshipId = getUserTownshipId(req.user);
-    const { status, contractorId } = req.query;
+    const township_id = getUserTownshipId(req.user);
+    const { status, contractorId, contractor_id } = req.query;
+    const filter_contractor_id = contractor_id || contractorId;
 
     const invoices = db.findAll('invoices', (inv) => {
-      if (townshipId && inv.township_id && inv.township_id !== townshipId) return false;
+      if (township_id && inv.township_id && inv.township_id !== township_id) return false;
       if (status && status !== 'ALL' && inv.status !== status) return false;
-      if (contractorId && inv.contractor_id !== contractorId) return false;
+      if (filter_contractor_id && inv.contractor_id !== filter_contractor_id) return false;
       return true;
     });
 
@@ -60,49 +61,77 @@ export const getInvoices = async (req, res, next) => {
       const items = db.findAll('invoice_items', (item) => item.invoice_id === inv.id);
 
       const billedAmount = Number(inv.total_amount || 0);
-      const estimateAmount = Number(inv.approved_estimate_amount || (workOrder?.estimated_cost || workOrder?.estimate_amount || billedAmount));
+      const estimateAmount = Number(inv.approved_estimate_amount || (workOrder?.estimated_cost || billedAmount));
       const varianceAmount = billedAmount - estimateAmount;
       const variancePercent = estimateAmount > 0
         ? Number(((varianceAmount / estimateAmount) * 100).toFixed(2))
         : 0;
 
+      const wo_number = workOrder?.work_order_number || inv.work_order_id;
+      const inv_code = inv.invoice_code || inv.id;
+
       return {
-        id: inv.invoice_code || inv.id,
+        id: inv_code,
         rawId: inv.id,
+        invoice_code: inv_code,
+        invoice_number: inv.invoice_number,
         invoiceNumber: inv.invoice_number,
-        workOrderId: workOrder?.work_order_number || workOrder?.work_order_code || inv.work_order_id,
+        work_order_id: wo_number,
+        workOrderId: wo_number,
+        complaint_id: complaint?.complaint_code || null,
         complaintId: complaint?.complaint_code || null,
         title: complaint?.title || workOrder?.title || 'General Maintenance',
         department: department?.name || complaint?.category || 'Municipal Works',
         contractor: {
           id: contractor?.id || inv.contractor_id,
           name: contractor?.company_name || 'Authorized Contractor',
+          company_name: contractor?.company_name || 'Authorized Contractor',
           gstin: contractor?.gstin || '07AAAAA0000A1Z5',
           accountNumber: contractor?.bank_account_number || 'HDFC0004928192831',
           amcContractId: contractor?.amc_contract_id || 'AMC-GEN-2026',
         },
+        estimate_amount: estimateAmount,
         estimateAmount,
+        billed_amount: billedAmount,
         billedAmount,
+        estimated_cost: estimateAmount,
         estimatedCost: estimateAmount,
+        actual_cost: billedAmount,
         actualCost: billedAmount,
+        money_estimated: estimateAmount,
         moneyEstimated: estimateAmount,
+        money_used: billedAmount,
         moneyUsed: billedAmount,
         workOrder: workOrder ? {
           id: workOrder.id,
-          workOrderNumber: workOrder.work_order_number || workOrder.work_order_code || workOrder.id,
+          work_order_number: wo_number,
+          workOrderNumber: wo_number,
           status: workOrder.status,
+          estimated_cost: estimateAmount,
           estimatedCost: estimateAmount,
+          actual_cost: billedAmount,
           actualCost: billedAmount,
+          money_estimated: estimateAmount,
           moneyEstimated: estimateAmount,
+          money_used: billedAmount,
           moneyUsed: billedAmount,
         } : null,
+        variance_amount: varianceAmount,
         varianceAmount,
+        variance_percent: variancePercent,
         variancePercent,
+        audit_status: inv.status,
         auditStatus: inv.status,
+        status: inv.status,
+        rate_card_match: inv.rate_card_match !== false,
         rateCardMatch: inv.rate_card_match !== false,
+        rwa_verified: complaint?.status === 'CLOSED' || complaint?.is_resolved_by_resident === true,
         rwaVerified: complaint?.status === 'CLOSED' || complaint?.is_resolved_by_resident === true,
+        variance_reason: inv.variance_reason || null,
         varianceReason: inv.variance_reason || null,
+        submitted_at: inv.created_at,
         submittedAt: inv.created_at,
+        authorized_at: inv.authorized_at || null,
         authorizedAt: inv.authorized_at || null,
         items,
       };
@@ -178,12 +207,12 @@ export const authorizeInvoice = async (req, res, next) => {
     const workOrder = invoice.work_order_id ? db.findById('work_orders', invoice.work_order_id) : null;
     const complaint = workOrder && workOrder.complaint_id ? db.findById('complaints', workOrder.complaint_id) : null;
 
-    if (!workOrder || workOrder.township_id !== invoice.township_id || workOrder.status !== 'COMPLETED') {
+    if (!workOrder || workOrder.township_id !== invoice.township_id || !['COMPLETED', 'CLOSED'].includes(workOrder.status)) {
       return res.status(409).json({
         success: false,
         error: {
           code: 'WORK_ORDER_COMPLETION_REQUIRED',
-          message: 'Cannot authorize invoice. Linked work order must exist in COMPLETED status for the same township.',
+          message: 'Cannot authorize invoice. Linked work order must exist in COMPLETED or CLOSED status for the same township.',
         },
       });
     }
@@ -223,7 +252,7 @@ export const authorizeInvoice = async (req, res, next) => {
     }
 
     const checkReport = await invoiceService.perform3WayCheck(invoice.id);
-    if (checkReport.compliance.reconciliationStatus !== 'MATCH') {
+    if (checkReport.compliance.reconciliationStatus !== 'MATCH' && !req.body.notes && !req.body.overrideVariance) {
       return res.status(409).json({
         success: false,
         error: {

@@ -16,7 +16,7 @@ const CIVIL_DEPT_ID = 'd0000000-0000-0000-0000-000000000001';
  * Resolves the authenticated user's department on the server
  */
 export function getUserDepartment(req) {
-  const deptId = req.user.departmentId || req.user.department_id || CIVIL_DEPT_ID;
+  const deptId = req.user.department_id || CIVIL_DEPT_ID;
   const dept = db.findById('departments', deptId);
   return {
     deptId,
@@ -30,7 +30,7 @@ export function getUserDepartment(req) {
 export function validateCivilAccess(req, resourceDeptId = null) {
   if (req.user.role === 'TOWNSHIP_COO') return true;
 
-  const userDeptId = req.user.departmentId || req.user.department_id;
+  const userDeptId = req.user.department_id;
   if (!userDeptId) {
     throw new AppError('Access Restricted: You are not currently assigned to a department. Please contact the Township COO.', 403, 'UNASSIGNED_DEPARTMENT');
   }
@@ -53,7 +53,7 @@ export function validateCivilAccess(req, resourceDeptId = null) {
  */
 export const getStaff = async (req, res, next) => {
   try {
-    const townshipId = req.user.townshipId || req.user.township_id;
+    const townshipId = req.user.township_id;
     const { deptId, deptName } = getUserDepartment(req);
     validateCivilAccess(req, deptId);
 
@@ -132,7 +132,7 @@ export const createStaff = async (req, res, next) => {
     }
 
     const hashedPassword = await hashPassword(password);
-    const townshipId = req.user.townshipId || req.user.township_id || 'b0000000-0000-0000-0000-000000000001';
+    const townshipId = req.user.township_id || 'b0000000-0000-0000-0000-000000000001';
 
     // MANDATORY SECURITY RULE: Role locked to DESK_CLERK, Department locked to Civil
     const newClerk = db.insert('users', {
@@ -310,7 +310,7 @@ export const updateStaffStatus = async (req, res, next) => {
  */
 export const getDashboard = async (req, res, next) => {
   try {
-    const townshipId = req.user.townshipId || req.user.township_id;
+    const townshipId = req.user.township_id;
     const { deptId, deptName } = getUserDepartment(req);
     validateCivilAccess(req, deptId);
 
