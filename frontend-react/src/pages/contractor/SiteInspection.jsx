@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
 import './styles/SiteInspection.css'
 
 export default function SiteInspection({
@@ -268,9 +269,10 @@ export default function SiteInspection({
                 {currentJob.beforePhotos.map((photo, idx) => (
                   <div key={idx} className="inspection-evidence-thumb">
                     <img
-                      src={photo}
+                      src={getPhotoUrl(photo)}
                       alt={`Citizen Proof ${idx + 1}`}
                       className="inspection-evidence-img"
+                      onError={(e) => handlePhotoError(e, photo)}
                     />
                     <div className="inspection-evidence-caption">
                       Citizen Proof #{idx + 1}
@@ -451,9 +453,10 @@ export default function SiteInspection({
 
                   <div className="inspection-photo-preview-wrap">
                     <img
-                      src={beforePhoto}
+                      src={getPhotoUrl(beforePhoto)}
                       alt="Contractor Inspection Before Preview"
                       className="photo-preview-img"
+                      onError={(e) => handlePhotoError(e, beforePhoto)}
                     />
                   </div>
                 </div>

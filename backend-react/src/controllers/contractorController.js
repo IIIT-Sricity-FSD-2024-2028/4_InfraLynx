@@ -96,9 +96,14 @@ export const getAssignedJobs = async (req, res, next) => {
     const enriched = workOrders.map((wo) => {
       const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id || c.complaint_code === wo.complaint_id);
       const contractor = db.findOne('contractors', (cnt) => cnt.id === wo.contractor_id);
-      const evidence = db.findAll('complaint_evidence', (ev) => ev.complaint_id === wo.complaint_id);
-      const beforeEvidence = evidence.filter((e) => (e.evidence_type || e.type) === 'BEFORE').map((e) => e.file_url || e.fileUrl);
-      const afterEvidence = evidence.filter((e) => (e.evidence_type || e.type) === 'AFTER').map((e) => e.file_url || e.fileUrl);
+      const evidence = db.findAll(
+        'complaint_evidence',
+        (ev) => ev.complaint_id === wo.complaint_id || (complaint && (ev.complaint_id === complaint.id || ev.complaint_id === complaint.complaint_code))
+      );
+      const workEv = db.findAll('work_evidence', (we) => we.work_order_id === wo.id);
+      const allEv = [...evidence, ...workEv.map((w) => ({ ...w, evidence_type: w.type || w.evidence_type }))];
+      const beforeEvidence = allEv.filter((e) => (e.evidence_type || e.type) === 'BEFORE').map((e) => e.file_url || e.fileUrl);
+      const afterEvidence = allEv.filter((e) => (e.evidence_type || e.type) === 'AFTER').map((e) => e.file_url || e.fileUrl);
 
       const estimatedCost = Number(wo.estimated_cost || 0);
       const actualCost = wo.actual_cost !== null && wo.actual_cost !== undefined
@@ -198,6 +203,8 @@ export const getJobById = async (req, res, next) => {
 
     const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id || c.complaint_code === wo.complaint_id);
     const evidence = db.findAll('complaint_evidence', (ev) => ev.complaint_id === wo.complaint_id || ev.complaint_id === complaint?.id || ev.complaint_id === complaint?.complaint_code);
+    const workEv = db.findAll('work_evidence', (we) => we.work_order_id === wo.id);
+    const allEvidence = [...evidence, ...workEv.map((w) => ({ ...w, evidence_type: w.type || w.evidence_type }))];
     const amcRates = db.findAll('amc_rates');
 
     const estimatedCost = Number(wo.estimated_cost || wo.estimate_amount || 0);
@@ -223,7 +230,7 @@ export const getJobById = async (req, res, next) => {
         specialInstructions: wo.special_instructions || '',
         inspectionNotes: wo.inspection_notes || null,
         complaint: complaint || null,
-        evidence,
+        evidence: allEvidence,
         applicableAmcRates: amcRates,
         createdAt: wo.created_at,
         updatedAt: wo.updated_at || null,

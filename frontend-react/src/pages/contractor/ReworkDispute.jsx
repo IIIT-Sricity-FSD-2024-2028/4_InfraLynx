@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
 import './styles/ReworkDispute.css'
 
 export default function ReworkDispute({
@@ -127,8 +128,19 @@ export default function ReworkDispute({
     photos: currentJob.beforePhotos || [],
   }
 
-  const originalBefore = currentJob.beforePhotos?.[0] || ''
-  const rejectedAfter = currentJob.afterPhotos?.[0] || ''
+  const originalBeforeCandidate =
+    currentJob.beforePhotos?.[0] ||
+    currentJob.before_photos?.[0] ||
+    (currentJob.evidence || []).find((e) => (e.evidence_type || e.type) === 'BEFORE')?.file_url ||
+    ''
+  const originalBefore = getPhotoUrl(originalBeforeCandidate)
+
+  const rejectedAfterCandidate =
+    currentJob.afterPhotos?.[0] ||
+    currentJob.after_photos?.[0] ||
+    (currentJob.evidence || []).find((e) => (e.evidence_type || e.type) === 'AFTER')?.file_url ||
+    ''
+  const rejectedAfter = getPhotoUrl(rejectedAfterCandidate)
 
   return (
     <div className="rework-root">
@@ -229,7 +241,12 @@ export default function ReworkDispute({
               <span className="rework-photo-state-muted">Initial Report</span>
             </div>
             {originalBefore ? (
-              <img src={originalBefore} alt="Original defect" className="rework-photo-img" />
+              <img
+                src={originalBefore}
+                alt="Original defect"
+                className="rework-photo-img"
+                onError={(e) => handlePhotoError(e, originalBeforeCandidate)}
+              />
             ) : (
               <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', color: 'var(--text-muted)', fontSize: 13 }}>
                 No original photo available
@@ -247,7 +264,12 @@ export default function ReworkDispute({
               <span className="rework-photo-state-danger">FAILED INSPECTION ✕</span>
             </div>
             {rejectedAfter ? (
-              <img src={rejectedAfter} alt="Rejected after" className="rework-photo-img" />
+              <img
+                src={rejectedAfter}
+                alt="Rejected after"
+                className="rework-photo-img"
+                onError={(e) => handlePhotoError(e, rejectedAfterCandidate)}
+              />
             ) : (
               <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fef2f2', color: '#b91c1c', fontSize: 13 }}>
                 No rejected photo attached

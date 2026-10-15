@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
+import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
 import './styles/VerificationDispute.css'
 
 export default function VerificationDispute({
@@ -200,12 +201,19 @@ export default function VerificationDispute({
 
   const isClosed = ['CLOSED', 'VERIFIED'].includes((activeComplaint.status || '').toUpperCase())
 
-  const beforePhoto =
+  const beforeCandidate =
     activeComplaint.beforePhotos?.[0] ||
+    activeComplaint.before_photos?.[0] ||
+    (activeComplaint.evidence || []).find((e) => (e.evidence_type || e.type) === 'BEFORE')?.file_url ||
     'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&w=800&q=80'
-  const afterPhoto =
+  const beforePhoto = getPhotoUrl(beforeCandidate)
+
+  const afterCandidate =
     activeComplaint.afterPhotos?.[0] ||
+    activeComplaint.after_photos?.[0] ||
+    (activeComplaint.evidence || []).find((e) => (e.evidence_type || e.type) === 'AFTER')?.file_url ||
     'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=800&q=80'
+  const afterPhoto = getPhotoUrl(afterCandidate)
 
   return (
     <div className="verification-root">
@@ -314,6 +322,7 @@ export default function VerificationDispute({
               src={beforePhoto}
               alt="Before"
               className="side-img before"
+              onError={(e) => handlePhotoError(e, beforeCandidate)}
             />
           </div>
           <div className="side-img-box">
@@ -324,6 +333,7 @@ export default function VerificationDispute({
               src={afterPhoto}
               alt="After"
               className="side-img after"
+              onError={(e) => handlePhotoError(e, afterCandidate)}
             />
           </div>
         </div>
