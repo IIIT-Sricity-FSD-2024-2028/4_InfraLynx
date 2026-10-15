@@ -21,10 +21,42 @@ export default function WorkOrderDetails({ complaint, onBack }) {
     try {
       setLoading(true);
       setError(null);
-      const res = await deptHeadApi.getWorkOrderById(complaint.id);
-      setDetails(res.data);
+      // Attempt to load as work order first
+      try {
+        const res = await deptHeadApi.getWorkOrderById(complaint.id);
+        if (res?.data) {
+          setDetails(res.data);
+          return;
+        }
+      } catch (woErr) {
+        // Fall through to load complaint details
+      }
+
+      // If no direct work order, fetch full complaint record
+      try {
+        const compRes = await deptHeadApi.getComplaintById(complaint.id);
+        if (compRes?.data) {
+          setDetails({
+            complaint: compRes.data,
+            workOrder: compRes.data.work_order || null,
+            contractor: compRes.data.contractor || null,
+          });
+          return;
+        }
+      } catch (cErr) {
+        // Fall back to using the complaint prop directly
+      }
+
+      setDetails({
+        complaint: complaint,
+        workOrder: complaint.work_order || complaint,
+        contractor: complaint.contractor || null,
+      });
     } catch (err) {
-      setError(err.message || 'Failed to load details');
+      setDetails({
+        complaint: complaint,
+        workOrder: complaint,
+      });
     } finally {
       setLoading(false);
     }
@@ -152,13 +184,6 @@ export default function WorkOrderDetails({ complaint, onBack }) {
               Request Revision
             </button>
             <button 
-              className="button button-secondary" style={{ color: '#d97706', borderColor: '#d97706' }}
-              onClick={() => { setModalAction('FORWARD_TO_COO'); setShowModal(true); }}
-              disabled={processing}
-            >
-              Fwd COO
-            </button>
-            <button 
               className="button button-secondary" style={{ color: '#b91c1c', borderColor: '#b91c1c', background: '#fef2f2' }}
               onClick={() => { setModalAction('REJECT'); setShowModal(true); }}
               disabled={processing}
@@ -201,8 +226,14 @@ export default function WorkOrderDetails({ complaint, onBack }) {
               </span>
             </div>
             <div>
-              <span style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: 'var(--text-soft)', textTransform: 'uppercase' }}>Description</span>
-              <p style={{ color: 'var(--text-soft)', marginTop: '4px', padding: '12px', background: 'var(--surface-muted)', borderRadius: '8px', fontSize: '13px' }}>
+              <span style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: 'var(--text-soft)', textTransform: 'uppercase' }}>Location</span>
+              <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>
+                📍 {comp.location_details || comp.location?.landmark || [comp.sector || comp.location?.sector, comp.block || comp.location?.block, comp.street || comp.location?.street].filter(Boolean).join(', ') || wo.location || 'Civil Infrastructure Site'}
+              </span>
+            </div>
+            <div>
+              <span style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: 'var(--text-soft)', textTransform: 'uppercase' }}>Complete Description</span>
+              <p style={{ color: 'var(--text-main)', marginTop: '4px', padding: '14px', background: 'var(--surface-muted)', borderRadius: '8px', fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                 {comp.description || wo.description}
               </p>
             </div>

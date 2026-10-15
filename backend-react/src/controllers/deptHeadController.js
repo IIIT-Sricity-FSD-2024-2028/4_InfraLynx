@@ -381,6 +381,10 @@ export const getDashboard = async (req, res, next) => {
       )
       .slice(0, 10);
 
+    // Enrich all Civil complaints with work orders, evidence photos, contractors, and full details
+    const enrichedComplaints = complaints.map(enrichComplaint);
+    enrichedComplaints.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
     const summary = {
       departmentId: deptId,
       departmentName: deptName,
@@ -405,7 +409,179 @@ export const getDashboard = async (req, res, next) => {
         departmentName: deptName,
         summary,
         recentActivity,
+        complaints: enrichedComplaints,
       },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Helper to fully enrich a complaint record with associated relations and complete details
+ */
+export function enrichComplaint(c) {
+  const wo = db.findOne('work_orders', (w) => w.complaint_id === c.id || (c.complaint_code && w.complaint_id === c.complaint_code));
+  const contractor = wo && wo.contractor_id ? db.findById('contractors', wo.contractor_id) : null;
+  const reporter = c.reported_by ? db.findById('users', c.reported_by) : null;
+  const department = c.department_id ? db.findById('departments', c.department_id) : db.findById('departments', CIVIL_DEPT_ID);
+  const evidence = db.findAll('complaint_evidence', (e) => e.complaint_id === c.id || (c.complaint_code && e.complaint_id === c.complaint_code)) || [];
+
+  const beforePhotos = evidence.filter((e) => e.evidence_type === 'BEFORE').map((e) => e.file_url);
+  const afterPhotos = evidence.filter((e) => e.evidence_type === 'AFTER').map((e) => e.file_url);
+  const allPhotos = Array.from(new Set([...beforePhotos, ...(c.beforePhotos || []), ...(c.photos || [])]));
+
+  const locDetails = c.location_details || [c.block, c.street].filter(Boolean).join(', ') || c.sector || 'Sector 54';
+
+  return {
+    ...c,
+    id: c.complaint_code || c.id,
+    raw_id: c.id,
+    complaint_code: c.complaint_code || c.id,
+    complaintCode: c.complaint_code || c.id,
+    title: c.title || `${c.category || 'Civil'}: ${c.subcategory || 'General'}`,
+    description: c.description || 'No detailed description provided.',
+    category: c.category || 'Civil',
+    subcategory: c.subcategory || 'General Infrastructure',
+    severity: c.severity || 'MEDIUM',
+    priority: c.severity || 'MEDIUM',
+    status: c.status || 'REPORTED',
+    sector: c.sector || 'Sector 54',
+    block: c.block || '',
+    street: c.street || '',
+    landmark: c.landmark || '',
+    location_details: locDetails,
+    location: {
+      sector: c.sector || 'Sector 54',
+      block: c.block || '',
+      street: c.street || '',
+      landmark: locDetails,
+      asset_id: c.asset_id || null,
+      asset_name: c.asset_name || null,
+    },
+    asset_id: c.asset_id || null,
+    asset_name: c.asset_name || null,
+    department_id: c.department_id || CIVIL_DEPT_ID,
+    department_name: department?.name || 'Civil Infrastructure & Roads',
+    departmentName: department?.name || 'Civil Infrastructure & Roads',
+    reported_by_name: reporter?.name || c.reported_by_name || 'Citizen Resident',
+    reported_by_email: reporter?.email || c.reported_by_email || null,
+    reported_by_phone: reporter?.phone || c.reported_by_phone || null,
+    reported_by_role: reporter?.role || c.reported_by_role || 'RWA',
+    created_at: c.reported_at || c.created_at || new Date().toISOString(),
+    reported_at: c.reported_at || c.created_at || new Date().toISOString(),
+    updated_at: c.updated_at || null,
+    sla_deadline: c.sla_deadline,
+    slaDeadline: c.sla_deadline,
+    rejection_reason: c.rejection_reason || null,
+    work_order: wo || null,
+    work_order_id: wo?.id || null,
+    work_order_number: wo?.work_order_number || null,
+    workOrderId: wo?.work_order_number || wo?.id || null,
+    workOrderStatus: wo?.status || null,
+    estimated_cost: Number(wo?.estimated_cost || 0),
+    contractor: contractor ? {
+      id: contractor.id,
+      name: contractor.company_name,
+      company_name: contractor.company_name,
+      contact_person: contractor.contact_person,
+      phone: contractor.phone,
+      email: contractor.email,
+    } : null,
+    beforePhotos: allPhotos,
+    afterPhotos: afterPhotos.length > 0 ? afterPhotos : (c.afterPhotos || []),
+    history: c.history || [],
+  };
+}
+
+/**
+ * @desc   Fetch all complaints belonging to Civil department across all statuses (pending, in-progress, rejected, resolved)
+ * @route  GET /api/v1/dept-head/complaints
+ * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
+ */
+export const getDepartmentComplaints = async (req, res, next) => {
+  try {
+    const townshipId = req.user.township_id;
+    const { deptId, deptName } = getUserDepartment(req);
+    validateCivilAccess(req, deptId);
+
+    const { status, priority, severity, search } = req.query;
+
+    // Filter complaints strictly belonging to user's Civil department
+    let complaints = db.findAll('complaints', (c) => {
+      const matchTownship = !townshipId || c.township_id === townshipId;
+      const matchDept = c.department_id === deptId || (c.category && c.category.toLowerCase() === 'civil');
+      return matchTownship && matchDept;
+    });
+
+    // Optional query filtering if explicitly supplied (defaults to all statuses)
+    if (status && status !== 'ALL') {
+      complaints = complaints.filter((c) => (c.status || '').toUpperCase() === status.toUpperCase());
+    }
+    if (priority || severity) {
+      const targetP = (priority || severity).toUpperCase();
+      complaints = complaints.filter((c) => (c.severity || c.priority || '').toUpperCase() === targetP);
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      complaints = complaints.filter((c) =>
+        (c.complaint_code || '').toLowerCase().includes(q) ||
+        (c.id || '').toLowerCase().includes(q) ||
+        (c.title || '').toLowerCase().includes(q) ||
+        (c.description || '').toLowerCase().includes(q) ||
+        (c.location_details || '').toLowerCase().includes(q) ||
+        (c.sector || '').toLowerCase().includes(q) ||
+        (c.subcategory || '').toLowerCase().includes(q)
+      );
+    }
+
+    const enriched = complaints.map(enrichComplaint);
+    enriched.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    res.status(200).json({
+      success: true,
+      count: enriched.length,
+      departmentId: deptId,
+      departmentName: deptName,
+      data: enriched,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc   Fetch complete single complaint details by ID for Civil department
+ * @route  GET /api/v1/dept-head/complaints/:id
+ * @access Private (DEPARTMENT_HEAD, TOWNSHIP_COO)
+ */
+export const getDepartmentComplaintById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const townshipId = req.user.township_id;
+    const { deptId, deptName } = getUserDepartment(req);
+    validateCivilAccess(req, deptId);
+
+    const c = db.findOne('complaints', (comp) => comp.id === id || comp.complaint_code === id);
+    if (!c) {
+      return next(new AppError(`Complaint '${id}' not found.`, 404, 'NOT_FOUND'));
+    }
+
+    if (townshipId && c.township_id && c.township_id !== townshipId) {
+      return next(new AppError('Forbidden: Access to another township data is prohibited.', 403, 'FORBIDDEN'));
+    }
+
+    // Civil department access validation
+    const isCivil = c.department_id === deptId || (c.category && c.category.toLowerCase() === 'civil');
+    if (!isCivil && req.user.role === 'DEPARTMENT_HEAD') {
+      return next(new AppError('Forbidden: Access to other department complaints is strictly prohibited.', 403, 'FORBIDDEN'));
+    }
+
+    const fullComplaint = enrichComplaint(c);
+
+    res.status(200).json({
+      success: true,
+      data: fullComplaint,
     });
   } catch (err) {
     next(err);
@@ -418,6 +594,9 @@ export default {
   updateStaff,
   updateStaffStatus,
   getDashboard,
+  getDepartmentComplaints,
+  getDepartmentComplaintById,
+  enrichComplaint,
   getUserDepartment,
   validateCivilAccess,
 };

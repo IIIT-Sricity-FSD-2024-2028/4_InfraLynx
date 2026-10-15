@@ -16,6 +16,7 @@ export default function DeptHeadPortal({ onExitToLanding }) {
 
   const [currentScreen, setCurrentScreen] = useState('dashboard')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
+  const [returnScreen, setReturnScreen] = useState('dashboard')
   
   const deptName = currentUser?.department_name || 'Municipal Department';
   const userDeptId = currentUser?.department_id;
@@ -34,6 +35,7 @@ export default function DeptHeadPortal({ onExitToLanding }) {
 
   function handleSelectComplaint(complaint) {
     setSelectedComplaint(complaint);
+    setReturnScreen(currentScreen === 'workorder' ? 'dashboard' : currentScreen);
     handleNavigate('workorder');
   }
 
@@ -105,7 +107,7 @@ export default function DeptHeadPortal({ onExitToLanding }) {
         {currentScreen === 'workorder' && (
           <WorkOrderDetails 
             complaint={selectedComplaint} 
-            onBack={() => handleNavigate('approvals')}
+            onBack={() => handleNavigate(returnScreen || 'dashboard')}
           />
         )}
         {currentScreen === 'work-orders' && (

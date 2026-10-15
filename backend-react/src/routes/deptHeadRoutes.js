@@ -15,6 +15,8 @@ import {
   updateStaff,
   updateStaffStatus,
   getDashboard,
+  getDepartmentComplaints,
+  getDepartmentComplaintById,
 } from '../controllers/deptHeadController.js';
 import {
   getPendingApprovals,
@@ -121,6 +123,22 @@ router.get('/work-orders/:id', getWorkOrderDetails);
  * @desc   Escalate delayed Civil work order to Township COO
  */
 router.post('/work-orders/:id/escalate', escalateWorkOrder);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. Civil Department Complaints Management (All Statuses)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * @route  GET /api/v1/dept-head/complaints
+ * @desc   Fetch all complaints belonging to Civil department across all statuses (pending, in-progress, rejected, resolved)
+ */
+router.get('/complaints', getDepartmentComplaints);
+
+/**
+ * @route  GET /api/v1/dept-head/complaints/:id
+ * @desc   Fetch detailed Civil complaint record with complete description, location, history
+ */
+router.get('/complaints/:id', getDepartmentComplaintById);
 
 export default router;
 
