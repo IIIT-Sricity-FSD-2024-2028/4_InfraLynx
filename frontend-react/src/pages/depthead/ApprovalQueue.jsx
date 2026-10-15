@@ -148,15 +148,6 @@ export default function ApprovalQueue({ onSelectComplaint }) {
                       </button>
                       <button 
                         className="button button-secondary" 
-                        style={{ padding: '6px 12px', fontSize: '12px', color: '#d97706', borderColor: '#d97706' }}
-                        onClick={() => { setSelectedItem(item); setModalAction('FORWARD_TO_COO'); setShowModal(true); }}
-                        disabled={processing}
-                        title="Forward to COO for executive joint authorization"
-                      >
-                        Fwd COO
-                      </button>
-                      <button 
-                        className="button button-secondary" 
                         style={{ padding: '6px 12px', fontSize: '12px', color: '#ef4444', borderColor: '#ef4444' }}
                         onClick={() => { setSelectedItem(item); setModalAction('REQUEST_REVISION'); setShowModal(true); }}
                         disabled={processing}

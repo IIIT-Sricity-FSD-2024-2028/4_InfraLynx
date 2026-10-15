@@ -467,6 +467,18 @@ export const deptHeadApi = {
     return res.data;
   },
 
+  async getComplaints(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = `/dept-head/complaints${query ? `?${query}` : ''}`;
+    const res = await apiRequest(endpoint);
+    return res.data || [];
+  },
+
+  async getComplaintById(id) {
+    const res = await apiRequest(`/dept-head/complaints/${id}`);
+    return res.data;
+  },
+
   async getStaff() {
     const res = await apiRequest('/dept-head/staff');
     return res.data || [];

@@ -182,7 +182,7 @@ export default function WorkOrders({ onSelectComplaint }) {
                       )}
                     </td>
                     <td>
-                      <div style={{ fontWeight: '500', color: '#0f172a', maxWidth: '240px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={desc}>
+                      <div style={{ fontWeight: '500', color: '#0f172a', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.4 }} title={desc}>
                         {desc}
                       </div>
                       <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
