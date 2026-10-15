@@ -1,0 +1,142 @@
+TIMS
+Township Infrastructure Management System
+Actors, Responsibilities, and End-to-End Workflow
+Purpose: Describe each TIMS actor, their responsibilities, and the complete flow from complaint submission through repair, verification, invoice audit, and payment.
+1. System Overview
+TIMS is a township-focused infrastructure maintenance platform. Residents report infrastructure problems; the Desk Clerk validates and assigns work; contractors inspect and estimate the required work; authorized staff approve estimates; contractors complete repairs; the RWA Representative verifies the result; and Finance audits the invoice and handles payment. The Township COO oversees departments, township-wide work orders, and estimates that require executive approval.
+TIMS is intended to support multiple townships, with access restricted to the user's township.
+Department-specific users should be restricted to their department unless their role explicitly permits broader visibility.
+Contractor estimates use official AMC (Annual Maintenance Contract) rate-card rates; the backend calculates totals and stores rate snapshots.
+Inventory/stock management is out of scope for the current version. GPS features are deferred.
+Work-order status and invoice/payment status must be tracked separately.
+2. Actors and Responsibilities
+1. RWA Representative
+Submit infrastructure complaints with description, category, severity/priority, location details, and photos where available.
+View permitted complaints and track status updates.
+Verify completed work and confirm whether the repair is satisfactory.
+Dispute incomplete or unsatisfactory work with a reason; disputed work can be reopened for rework.
+Verification is a required gate before Finance can authorize payment.
+2. Desk Clerk
+Review new complaints in the department's triage queue.
+Check complaint details, category, severity, photos, and possible duplicates.
+Link confirmed duplicates to a master complaint; reject invalid complaints or reroute misclassified complaints where appropriate.
+Validate complaints, create Work Orders, and assign eligible contractors.
+Check contractor eligibility based on active status, township authorization, work category, and valid AMC coverage.
+Monitor assignment and SLA deadlines; escalate delayed cases.
+Does not perform the contractor's technical site inspection or normally approve contractor estimates.
+3. Field Contractor
+View assigned Work Orders in the Inspection List.
+Inspect the site and submit findings, required work/quantities, and before-work evidence/photos.
+Prepare an estimate using the official applicable AMC rate card; the backend calculates totals.
+Respond to revision requests and resubmit estimates when needed.
+Start work only after all required estimate approvals are complete.
+Carry out repairs, record actual work/quantities, upload after-work photos, and submit completion details.
+Perform rework if an RWA dispute reopens the Work Order.
+4. Department Head
+Manage employees in their department, including creating Desk Clerk accounts and updating, activating, or deactivating them.
+Review estimates that require Department Head approval.
+Approve, reject, or request revisions with reasons; forward estimates to the COO when required by configured rules.
+Monitor departmental Work Orders, progress, SLA breaches, completion evidence, and RWA verification/disputes.
+Escalate delayed or problematic Work Orders and review departmental dashboard metrics.
+New Desk Clerk accounts inherit the Department Head's department and township; the assigned role is DESK_CLERK.
+5. Finance Clerk / Finance Team
+Register/manage contractors and their status, according to project permissions.
+Create, maintain, renew, and track AMC contracts, validity dates, authorized work categories, and rate cards.
+Audit invoices against the approved estimate, actual completed work, official AMC rates, and invoice line items.
+Flag cost variances and place invoices on hold when required.
+Authorize payment only after RWA verification is confirmed and the financial audit passes.
+Record disbursement details, payment references/UTR, vouchers, and payment history.
+May audit an invoice while RWA verification is pending, but cannot authorize payment until verification is complete.
+6. Township COO
+Oversee township-wide operations and department-level performance.
+Create/update/activate/deactivate departments and assign or change Department Heads.
+View Work Orders across departments, including status, contractor, estimate, progress, SLA, verification, and payment status as permitted.
+Review and decide on estimates escalated for COO approval under configurable rules.
+Review or escalate delayed work and inspect audit/activity records.
+Does not replace contractor technical inspection, RWA quality verification, or Finance payment authorization.
+7. TIMS Platform Owner / SaaS Administrator (outside township workflow)
+Operates the TIMS software as a multi-tenant SaaS platform, including platform maintenance and subscription administration if implemented.
+Is not a normal township operational actor and should not be confused with the township COO.
+Platform-level subscription capabilities are outside the core complaint-to-payment workflow.
+3. End-to-End Workflow
+Step 1 — Complaint submission (RWA Representative)
+The RWA Representative submits a complaint with description, category, priority/severity, location details, and photos where available. The system records it and applies the relevant SLA.
+Step 2 — Triage and duplicate review (Desk Clerk)
+The complaint enters the appropriate department's triage queue. The Desk Clerk reviews details and checks for duplicates. A confirmed duplicate is linked to the master complaint. Invalid complaints can be rejected and misclassified complaints can be rerouted.
+Step 3 — Validate and create Work Order (Desk Clerk)
+Once validated, the Desk Clerk creates a Work Order and assigns an eligible contractor. Eligibility should check active status, township authorization, applicable work category, and valid AMC coverage.
+Step 4 — Site inspection (Field Contractor)
+The assigned Work Order appears in the contractor's Inspection List. The contractor inspects the site, records findings and required quantities, and uploads before-work photos/evidence.
+Step 5 — Estimate preparation (Field Contractor)
+The contractor prepares an estimate using official AMC rate-card items. The backend retrieves the rates, calculates quantity × rate, and stores a rate snapshot so future rate-card changes do not rewrite estimate history.
+Step 6 — Estimate approval (Department Head and possibly COO)
+Every contractor-submitted estimate is sent to the Department Head for approval, regardless of amount. The Department Head can approve, reject, or request revisions. There is no amount-based threshold or automatic approval in this workflow.
+Step 7 — Start and execute work (Field Contractor)
+After every required approval is complete, the Work Order becomes eligible to start. The contractor starts work, records progress, and carries out the repair.
+Step 8 — Completion submission (Field Contractor)
+The contractor submits completion details, actual quantities/work performed, remarks, and after-work photos. The Work Order moves to pending RWA verification.
+Step 9 — Quality verification (RWA Representative)
+The RWA Representative reviews completed work. If satisfactory, they verify it. If incomplete or unsatisfactory, they submit a dispute reason; the Work Order is reopened for contractor rework and later re-verification.
+Step 10 — Invoice audit (Finance)
+Finance checks the invoice against the approved estimate, actual work evidence/quantities, applicable AMC rates, and invoice line items. Variances may be flagged and the invoice placed on hold. Audit can occur while RWA verification is pending, but payment authorization cannot.
+Step 11 — Payment authorization and disbursement (Finance)
+Finance authorizes payment only when RWA verification is confirmed and all financial checks pass. The disbursement is then recorded with its payment reference and supporting voucher/details. Authorization and actual payment are separate events.
+Step 12 — Closure and recordkeeping
+Once required verification and closure conditions are met, the Work Order is closed. The system preserves complaint, work-order, estimate, approval, verification, invoice, payment, and audit histories.
+4. Workflow at a Glance
+RWA Representative submits complaint
+↓
+Desk Clerk triages, checks duplicates, and validates
+↓
+Desk Clerk creates Work Order and assigns contractor
+↓
+Contractor inspects site and submits AMC-based estimate
+↓
+Every estimate goes to Department Head approval (no threshold)
+↓
+Contractor starts work and completes repair
+↓
+Contractor submits completion evidence
+↓
+RWA verifies work — if disputed, contractor reworks and RWA verifies again
+↓
+Finance audits invoice
+↓
+RWA verification confirmed + financial audit passed?
+↓
+Finance authorizes payment and records disbursement
+↓
+Work Order closes when closure conditions are met
+5. Suggested Statuses
+These are suggested states. The implementation should agree on one set of names and validate every transition in the backend.
+Record type
+Suggested statuses
+Complaint
+REPORTED → UNDER_REVIEW → VALIDATED (or REJECTED / REROUTED / LINKED_AS_DUPLICATE)
+Work Order before execution
+WORK_ORDER_CREATED → ASSIGNED → INSPECTION → ESTIMATE_SUBMITTED → PENDING_DEPT_HEAD_APPROVAL → APPROVED
+Execution and verification
+IN_PROGRESS → COMPLETED → PENDING_VERIFICATION → VERIFIED → CLOSED
+Dispute/rework
+PENDING_VERIFICATION → DISPUTED → REOPENED → IN_PROGRESS → COMPLETED → PENDING_VERIFICATION
+Invoice
+PENDING_AUDIT → ON_HOLD_DISPUTE / ON_HOLD_VARIANCE / APPROVED_FOR_PAYMENT
+Payment
+AUTHORIZED → PAID (record actual disbursement separately)
+6. Key Business Rules
+Tenant isolation: operational queries must be scoped to the user's township; department users must also be scoped to their department where applicable.
+Contractor eligibility: assign only active contractors authorized for the township and work category, with valid applicable AMC coverage.
+AMC rate integrity: backend fetches official rates, calculates totals, and stores rate snapshots; do not trust client-submitted rate values.
+Approval gates: contractors cannot start work until all approvals required by configured rules are complete.
+Role separation: Desk Clerks handle triage/assignment; contractors inspect and estimate; Department Heads/COO approve according to rules; RWA verifies quality; Finance audits and authorizes payment.
+Payment gate: Finance cannot authorize payment while RWA verification is pending/disputed or required financial checks have failed.
+Separate statuses: Work Order progress, invoice audit, payment authorization, and actual disbursement must not be collapsed into one status.
+Auditability: preserve who performed each significant action, when it occurred, and any reason/remarks.
+No inventory/stock management is included in the current scope; GPS features are deferred.
+7. Decisions to Confirm Before Implementation
+Confirm whether any separate COO approval is required in addition to mandatory Department Head approval; no amount-based threshold is used.
+Exact SLA rules and deadlines for each complaint category and priority.
+Duplicate-detection distance and duplicate-linking policy.
+Final conditions for closing a Work Order and whether closure happens immediately after RWA verification or after Finance processing.
+Exact invoice and payment statuses and who can transition each status.
+This document is a functional overview for planning and implementation. It does not prescribe a final database schema or replace the team's approval of business rules.

@@ -3,6 +3,9 @@
  * Native PostgreSQL Architecture
  */
 
+import fs from 'fs';
+import path from 'path';
+import config from '../config/env.js';
 import db from '../config/db.js';
 import { generateComplaintCode } from '../utils/generateId.js';
 import { calculateSlaDeadline, evaluateSlaStatus } from '../services/slaService.js';
@@ -42,19 +45,26 @@ const findDepartmentByCategory = (category = '') => {
  * Format complaint with full evidence and SLA status for response
  */
 const formatComplaintResponse = (complaint) => {
-  const allEvidence = db.find('complaint_evidence', (e) => e.complaint_id === complaint.id);
-  const beforePhotos = allEvidence
-    .filter((e) => e.evidence_type === 'BEFORE')
-    .map((e) => e.file_url);
-  const afterPhotos = allEvidence
-    .filter((e) => e.evidence_type === 'AFTER')
-    .map((e) => e.file_url);
-  const disputePhotos = allEvidence
-    .filter((e) => e.evidence_type === 'DISPUTE')
-    .map((e) => e.file_url);
+  const allEvidence = db.findAll('complaint_evidence', (e) => e.complaint_id === complaint.id || e.complaint_id === complaint.complaint_code);
+  const wo = db.findOne('work_orders', (w) => w.complaint_id === complaint.id || w.complaint_id === complaint.complaint_code);
+  const woEvidence = wo ? db.findAll('work_evidence', (we) => we.work_order_id === wo.id) : [];
+
+  const combinedEvidence = [
+    ...allEvidence,
+    ...woEvidence.map((w) => ({ ...w, evidence_type: w.type || w.evidence_type })),
+  ];
+
+  const beforePhotos = combinedEvidence
+    .filter((e) => (e.evidence_type || e.type) === 'BEFORE')
+    .map((e) => e.file_url || e.fileUrl);
+  const afterPhotos = combinedEvidence
+    .filter((e) => (e.evidence_type || e.type) === 'AFTER')
+    .map((e) => e.file_url || e.fileUrl);
+  const disputePhotos = combinedEvidence
+    .filter((e) => (e.evidence_type || e.type) === 'DISPUTE')
+    .map((e) => e.file_url || e.fileUrl);
 
   const dept = complaint.department_id ? db.findById('departments', complaint.department_id) : null;
-  const wo = db.findOne('work_orders', (w) => w.complaint_id === complaint.id || w.complaint_id === complaint.complaint_code);
   const slaHealth = evaluateSlaStatus(complaint.sla_deadline, complaint.status);
 
   const loc = complaint.location || {};
@@ -181,7 +191,33 @@ export const createComplaint = async (req, res, next) => {
     if (safeBodyPhotos.length !== bodyPhotos.length) {
       return next(new AppError('Photo evidence must use safe http(s) URLs or server upload paths.', 400, 'INVALID_PHOTO_URL'));
     }
-    const photoUrls = [...uploadedFileUrls, ...safeBodyPhotos];
+
+    const resolvedBodyPhotos = [];
+    for (const rawUrl of safeBodyPhotos) {
+      let finalUrl = rawUrl;
+      if (rawUrl.startsWith('data:image/')) {
+        try {
+          const matches = rawUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+          if (matches && matches.length === 3) {
+            const mimeType = matches[1];
+            const buffer = Buffer.from(matches[2], 'base64');
+            const ext = mimeType.includes('png') ? '.png' : mimeType.includes('webp') ? '.webp' : '.jpg';
+            const filename = `evidence-${crypto.randomUUID()}${ext}`;
+            const uploadDir = config.upload?.dir || path.resolve('uploads');
+            if (!fs.existsSync(uploadDir)) {
+              fs.mkdirSync(uploadDir, { recursive: true });
+            }
+            const filePath = path.join(uploadDir, filename);
+            fs.writeFileSync(filePath, buffer);
+            finalUrl = `/uploads/${filename}`;
+          }
+        } catch (fErr) {
+          console.warn('[createComplaint] Error saving base64 to file:', fErr.message);
+        }
+      }
+      resolvedBodyPhotos.push(finalUrl);
+    }
+    const photoUrls = [...uploadedFileUrls, ...resolvedBodyPhotos];
 
     const newComplaint = db.insert('complaints', {
       complaint_code: complaintCode,
@@ -203,6 +239,7 @@ export const createComplaint = async (req, res, next) => {
       location_details: `${locBlock}, ${locStreet} (${locLandmark})`,
       reported_by_name: req.user.name,
       reported_by_role: req.user.role,
+      beforePhotos: photoUrls,
       created_at: now,
       history: [
         {

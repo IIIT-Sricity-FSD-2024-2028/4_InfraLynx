@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
 import './styles/WorkExecution.css'
 
 export default function WorkExecution({
@@ -127,7 +128,15 @@ export default function WorkExecution({
     )
   }
 
-  const beforeImage = currentJob.inspection?.inspectionPhoto || currentJob.beforePhotos?.[0] || ''
+  const beforeCandidate =
+    currentJob.inspection?.inspectionPhoto ||
+    currentJob.beforePhotos?.[0] ||
+    currentJob.before_photos?.[0] ||
+    currentJob.complaint?.beforePhotos?.[0] ||
+    currentJob.complaint?.before_photos?.[0] ||
+    (currentJob.evidence || []).find((e) => (e.evidence_type || e.type) === 'BEFORE')?.file_url ||
+    ''
+  const beforeImage = getPhotoUrl(beforeCandidate)
 
   return (
     <div className="execution-root">
@@ -269,7 +278,12 @@ export default function WorkExecution({
               <span className="execution-photo-state">Initial Site State</span>
             </div>
             {beforeImage ? (
-              <img src={beforeImage} alt="Before repair" className="execution-photo-img" />
+              <img
+                src={beforeImage}
+                alt="Before repair"
+                className="execution-photo-img"
+                onError={(e) => handlePhotoError(e, beforeCandidate)}
+              />
             ) : (
               <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', color: 'var(--text-muted)', fontSize: 13, borderBottom: '1px solid var(--line)' }}>
                 No before-repair photo uploaded
@@ -287,7 +301,12 @@ export default function WorkExecution({
               <span className="execution-photo-badge-after">{afterPhoto ? 'Ready for Verification' : 'Pending Upload'}</span>
             </div>
             {afterPhoto ? (
-              <img src={afterPhoto} alt="After repair" className="execution-photo-img" />
+              <img
+                src={getPhotoUrl(afterPhoto)}
+                alt="After repair"
+                className="execution-photo-img"
+                onError={(e) => handlePhotoError(e, afterPhoto)}
+              />
             ) : (
               <div style={{ height: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', color: 'var(--text-muted)', fontSize: 13, borderBottom: '1px solid var(--line)' }}>
                 <span style={{ fontSize: 24, marginBottom: 4 }}>📷</span>
