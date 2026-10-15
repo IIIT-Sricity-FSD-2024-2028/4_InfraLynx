@@ -1,25 +1,16 @@
 import { useState, useMemo } from 'react'
-import { useTIMS } from '../../context/TIMSContext.jsx'
 import './styles/RwaDashboard.css'
 
 export default function RwaDashboard({
-  complaints: propComplaints,
+  complaints = [],
   loading = false,
-  currentUser: propUser,
+  currentUser,
   onNavigate,
   onSelectComplaint,
   successNotice,
   onDismissNotice,
   onRefresh,
 }) {
-  const { complaints: contextComplaints, currentUser: contextUser } = useTIMS()
-  const complaints = propComplaints ?? contextComplaints ?? []
-  const currentUser = propUser || contextUser || {
-    name: 'Dr. Arvind Swaminathan',
-    role: 'RWA',
-    title: 'RWA Secretary',
-    sector: 'Sector 54',
-  }
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('ALL')

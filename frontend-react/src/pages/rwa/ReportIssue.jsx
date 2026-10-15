@@ -1,5 +1,4 @@
 import { useState, useRef } from 'react'
-import { useTIMS } from '../../context/TIMSContext.jsx'
 import './styles/ReportIssue.css'
 
 const CATEGORY_DATA = {
@@ -51,19 +50,10 @@ const CATEGORY_DATA = {
 
 export default function ReportIssue({
   onNavigate,
-  onSelectComplaint,
   onComplaintSubmitted,
   onAddComplaint,
-  currentUser: propUser,
+  currentUser,
 }) {
-  const { addComplaint: contextAddComplaint, currentUser: contextUser } = useTIMS()
-  const currentUser = propUser || contextUser || {
-    name: 'Dr. Arvind Swaminathan',
-    role: 'RWA',
-    title: 'RWA Secretary',
-    sector: 'Sector 54',
-  }
-  const addFn = onAddComplaint || contextAddComplaint
   const [submitting, setSubmitting] = useState(false)
 
   // Form State
@@ -118,7 +108,7 @@ export default function ReportIssue({
 
     try {
       setSubmitting(true)
-      const created = await addFn({
+      const created = await onAddComplaint({
         title: `${category}: ${subCategory}`,
         category,
         subCategory,
@@ -141,7 +131,6 @@ export default function ReportIssue({
       if (onComplaintSubmitted) {
         onComplaintSubmitted(created)
       } else {
-        onSelectComplaint(created)
         onNavigate('dashboard')
       }
     } catch (err) {

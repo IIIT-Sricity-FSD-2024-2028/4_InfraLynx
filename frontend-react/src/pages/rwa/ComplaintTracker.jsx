@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { useTIMS } from '../../context/TIMSContext.jsx'
 import './styles/ComplaintTracker.css'
 
 const getStatusConfig = (userName = 'Dr. Arvind Swaminathan') => ({
@@ -56,20 +55,12 @@ const getStatusConfig = (userName = 'Dr. Arvind Swaminathan') => ({
 })
 
 export default function ComplaintTracker({
-  complaints: propComplaints,
+  complaints = [],
   selectedComplaint,
-  currentUser: propUser,
+  currentUser,
   onNavigate,
   onSelectComplaint,
 }) {
-  const { complaints: contextComplaints, currentUser: contextUser } = useTIMS()
-  const complaints = propComplaints ?? contextComplaints ?? []
-  const currentUser = propUser || contextUser || {
-    name: 'Dr. Arvind Swaminathan',
-    role: 'RWA',
-    title: 'RWA Secretary',
-    sector: 'Sector 54',
-  }
 
   // Fallback to first complaint if none selected
   const activeComplaint = useMemo(() => {

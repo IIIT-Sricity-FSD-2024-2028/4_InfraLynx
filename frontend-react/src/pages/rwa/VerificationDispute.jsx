@@ -1,33 +1,16 @@
 import { useState, useRef } from 'react'
-import { useTIMS } from '../../context/TIMSContext.jsx'
 import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
 import './styles/VerificationDispute.css'
 
 export default function VerificationDispute({
-  complaints: propComplaints,
+  complaints = [],
   selectedComplaint,
-  currentUser: propUser,
+  currentUser,
   onNavigate,
   onSelectComplaint,
   onConfirmFix,
   onDisputeComplaint,
 }) {
-  const {
-    complaints: contextComplaints,
-    confirmFix: contextConfirmFix,
-    disputeComplaint: contextDisputeComplaint,
-    currentUser: contextUser,
-  } = useTIMS()
-
-  const complaints = propComplaints ?? contextComplaints ?? []
-  const confirmFix = onConfirmFix ?? contextConfirmFix
-  const disputeComplaint = onDisputeComplaint ?? contextDisputeComplaint
-  const currentUser = propUser || contextUser || {
-    name: 'Dr. Arvind Swaminathan',
-    role: 'RWA',
-    title: 'RWA Secretary',
-    sector: 'Sector 54',
-  }
 
   const normStatus = (s) => (s || '').toUpperCase().replace(/[\s_-]+/g, '_')
 
@@ -84,8 +67,8 @@ export default function VerificationDispute({
     if (!activeComplaint) return
     const ticketId = activeComplaint.complaint_code || activeComplaint.id
     try {
-      if (confirmFix) {
-        await confirmFix(ticketId, {
+      if (onConfirmFix) {
+        await onConfirmFix(ticketId, {
           rating,
           remarks: confirmRemarks.trim() || `Verified satisfactory resolution by ${currentUser?.name || 'Dr. Arvind Swaminathan'} (${currentUser?.title || 'RWA Secretary'}).`,
         })
@@ -118,8 +101,8 @@ export default function VerificationDispute({
     }
 
     try {
-      if (disputeComplaint) {
-        await disputeComplaint(ticketId, {
+      if (onDisputeComplaint) {
+        await onDisputeComplaint(ticketId, {
           reason: disputeReason,
           remarks: disputeRemarks,
           photos: disputePhotos,
@@ -201,18 +184,10 @@ export default function VerificationDispute({
 
   const isClosed = ['CLOSED', 'VERIFIED'].includes((activeComplaint.status || '').toUpperCase())
 
-  const beforeCandidate =
-    activeComplaint.beforePhotos?.[0] ||
-    activeComplaint.before_photos?.[0] ||
-    (activeComplaint.evidence || []).find((e) => (e.evidence_type || e.type) === 'BEFORE')?.file_url ||
-    'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&w=800&q=80'
+  const beforeCandidate = activeComplaint.beforePhotos?.[0] || activeComplaint.before_photos?.[0] || (activeComplaint.evidence || []).find((e) => (e.evidence_type || e.type) === 'BEFORE')?.file_url
   const beforePhoto = getPhotoUrl(beforeCandidate)
 
-  const afterCandidate =
-    activeComplaint.afterPhotos?.[0] ||
-    activeComplaint.after_photos?.[0] ||
-    (activeComplaint.evidence || []).find((e) => (e.evidence_type || e.type) === 'AFTER')?.file_url ||
-    'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=800&q=80'
+  const afterCandidate = activeComplaint.afterPhotos?.[0] || activeComplaint.after_photos?.[0] || (activeComplaint.evidence || []).find((e) => (e.evidence_type || e.type) === 'AFTER')?.file_url
   const afterPhoto = getPhotoUrl(afterCandidate)
 
   return (

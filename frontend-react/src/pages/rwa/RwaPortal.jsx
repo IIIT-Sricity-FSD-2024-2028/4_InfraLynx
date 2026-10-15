@@ -8,54 +8,33 @@ import VerificationDispute from './VerificationDispute.jsx'
 import './styles/RwaPortal.css'
 
 export default function RwaPortal({ onExitToLanding }) {
-  // Global auth context and shared complaints sync
-  const {
-    currentUser: contextUser,
-    complaints: contextComplaints = [],
-    updateComplaintStatus,
-    refreshComplaints,
-  } = useTIMS()
-  const currentUser = contextUser || {
-    id: '10000000-0000-0000-0000-000000000001',
-    name: 'Dr. Arvind Swaminathan',
-    role: 'RWA',
-    title: 'RWA Secretary',
-    sector: 'Sector 54',
-    email: 'rwa@infralynx.com',
-  }
-
-  // Local RWA Complaints State (matching FinancePortal pattern)
+  // Global auth context
+  const { currentUser } = useTIMS()
+  // Local RWA Complaints State
   const [complaints, setComplaints] = useState([])
   const [loading, setLoading] = useState(true)
   const [currentScreen, setCurrentScreen] = useState('dashboard')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
   const [successNotice, setSuccessNotice] = useState(null)
 
-  // 1. Fetch live complaints from backend on mount (with shared context fallback)
+  // 1. Fetch live complaints from backend on mount
   const loadComplaints = useCallback(async () => {
     try {
       setLoading(true)
       const data = await complaintApi.getComplaints()
-      if (Array.isArray(data) && data.length > 0) {
-        setComplaints(data)
-      } else if (contextComplaints && contextComplaints.length > 0) {
-        setComplaints(contextComplaints)
-      }
+      setComplaints(Array.isArray(data) ? data : [])
     } catch (err) {
       console.warn('[RwaPortal] Backend fetch notice:', err.message)
-      if (contextComplaints && contextComplaints.length > 0) {
-        setComplaints(contextComplaints)
-      }
     } finally {
       setLoading(false)
     }
-  }, [contextComplaints])
+  }, [])
 
   useEffect(() => {
     loadComplaints()
   }, [loadComplaints])
 
-  // 2. Direct local actions matching FinancePortal pattern
+  // 2. Direct local actions via Backend API
   async function handleAddComplaint(formData) {
     try {
       const created = await complaintApi.createComplaint(formData)
@@ -63,45 +42,8 @@ export default function RwaPortal({ onExitToLanding }) {
       await loadComplaints()
       return newRecord
     } catch (err) {
-      console.warn('[RwaPortal] Offline/Backend notice on create:', err.message)
-      const tempId = `CMP-2026-${Math.floor(1000 + Math.random() * 9000)}`
-      const fallbackRecord = {
-        id: tempId,
-        complaint_code: tempId,
-        title: formData.title || `${formData.category}: ${formData.subCategory}`,
-        category: formData.category,
-        subCategory: formData.subCategory,
-        location: formData.location || {
-          sector: currentUser?.sector || 'Sector 54',
-          block: 'Block A',
-          street: 'Gulmohar Marg',
-          assetId: 'ASSET-GEN-01',
-          assetName: 'General Infrastructure Fixture',
-          landmark: '',
-        },
-        severity: formData.severity || 'Medium',
-        status: 'REPORTED',
-        description: formData.description,
-        beforePhotos: formData.photos || [],
-        afterPhotos: [],
-        createdAt: new Date().toISOString(),
-        reportedBy: {
-          id: currentUser?.id,
-          name: currentUser?.name || 'Dr. Arvind Swaminathan',
-          role: currentUser?.title || 'RWA Secretary',
-          sector: currentUser?.sector || 'Sector 54',
-        },
-        history: [
-          {
-            stage: 'REPORTED',
-            timestamp: new Date().toISOString(),
-            actor: `${currentUser?.name || 'Dr. Arvind Swaminathan'} (${currentUser?.title || 'RWA Secretary'})`,
-            note: `Issue logged under ${formData.category} (${formData.subCategory}). Queued for Desk Clerk triage and SLA prioritization.`,
-          },
-        ],
-      }
-      setComplaints((prev) => [fallbackRecord, ...prev])
-      return fallbackRecord
+      console.error('[RwaPortal] Error creating complaint:', err.message)
+      throw err
     }
   }
 
@@ -123,60 +65,8 @@ export default function RwaPortal({ onExitToLanding }) {
       })
       return resolved
     } catch (err) {
-      console.warn('[RwaPortal] Offline/Backend notice on verify:', err.message)
-      const now = new Date().toISOString()
-      const rating = payload.rating || 5
-      const remarks = payload.remarks || 'Work completed satisfactorily and verified on ground.'
-
-      setComplaints((prev) =>
-        prev.map((c) => {
-          if (c.id !== id && c.complaint_code !== id) return c
-          return {
-            ...c,
-            status: 'CLOSED',
-            verification: {
-              status: 'CONFIRMED',
-              rating,
-              remarks,
-              verifiedAt: now,
-              verifiedBy: currentUser?.name || 'Dr. Arvind Swaminathan',
-            },
-            history: [
-              ...(c.history || []),
-              {
-                stage: 'VERIFIED',
-                timestamp: now,
-                actor: `${currentUser?.name || 'Dr. Arvind Swaminathan'} (${currentUser?.title || 'RWA Secretary'})`,
-                note: `Work verified and confirmed with a ${rating}-star rating. Issue closed.`,
-              },
-              {
-                stage: 'CLOSED',
-                timestamp: now,
-                actor: 'System Automation',
-                note: 'Workflow resolved. Work Order closed.',
-              },
-            ],
-          }
-        })
-      )
-    }
-
-    if (updateComplaintStatus) {
-      updateComplaintStatus(id, 'CLOSED', `Work verified on ground by RWA (${payload.rating || 5} stars): ${payload.remarks || 'Satisfactory'}`, {
-        verification: {
-          status: 'CONFIRMED',
-          rating: payload.rating || 5,
-          remarks: payload.remarks || 'Work completed satisfactorily and verified on ground.',
-          verifiedAt: new Date().toISOString(),
-          verifiedBy: currentUser?.name || 'Dr. Arvind Swaminathan',
-        },
-      })
-    }
-
-    if (refreshComplaints) {
-      try {
-        await refreshComplaints()
-      } catch (_) {}
+      console.error('[RwaPortal] Error confirming fix:', err.message)
+      throw err
     }
   }
 
@@ -196,63 +86,8 @@ export default function RwaPortal({ onExitToLanding }) {
       })
       return resolved
     } catch (err) {
-      console.warn('[RwaPortal] Offline/Backend notice on dispute:', err.message)
-      const now = new Date().toISOString()
-      const reason = payload.reason || 'Incomplete resolution / poor quality'
-      const remarks = payload.remarks || 'The repaired fixture is still malfunctioning.'
-
-      setComplaints((prev) =>
-        prev.map((c) => {
-          if (c.id !== id && c.complaint_code !== id) return c
-          return {
-            ...c,
-            status: 'DISPUTED',
-            dispute: {
-              reason,
-              notes: remarks,
-              remarks,
-              disputedAt: now,
-              disputedBy: currentUser?.name || 'Dr. Arvind Swaminathan',
-              requestedAction: 'REWORK',
-            },
-            history: [
-              ...(c.history || []),
-              {
-                stage: 'DISPUTED',
-                timestamp: now,
-                actor: `${currentUser?.name || 'Dr. Arvind Swaminathan'} (${currentUser?.title || 'RWA Secretary'})`,
-                note: `Work disputed: ${reason}. Requesting field rework.`,
-              },
-            ],
-          }
-        })
-      )
-      setSelectedComplaint((prev) => {
-        if (!prev) return null
-        if (prev.id === id || prev.complaint_code === id) {
-          return { ...prev, status: 'DISPUTED' }
-        }
-        return prev
-      })
-    }
-
-    if (updateComplaintStatus) {
-      updateComplaintStatus(id, 'DISPUTED', `Work disputed by RWA: ${payload.reason || 'Rework requested'}. ${payload.remarks || ''}`, {
-        dispute: {
-          reason: payload.reason || 'Incomplete resolution / poor quality',
-          remarks: payload.remarks || 'The repaired fixture is still malfunctioning.',
-          notes: payload.remarks || '',
-          disputedAt: new Date().toISOString(),
-          disputedBy: currentUser?.name || 'Dr. Arvind Swaminathan',
-          requestedAction: 'REWORK',
-        },
-      })
-    }
-
-    if (refreshComplaints) {
-      try {
-        await refreshComplaints()
-      } catch (_) {}
+      console.error('[RwaPortal] Error disputing fix:', err.message)
+      throw err
     }
   }
 
