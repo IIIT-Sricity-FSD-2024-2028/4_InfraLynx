@@ -228,7 +228,16 @@ export function TIMSProvider({ children }) {
       if (Array.isArray(data)) {
         const sanitized = data.map(sanitizeComplaintHistory)
         setComplaints(sanitized)
-        sessionStorage.setItem('tims_complaints_v3', JSON.stringify(sanitized))
+        try {
+          const storageCopy = sanitized.map((c) => ({
+            ...c,
+            beforePhotos: (c.beforePhotos || []).map((p) => (typeof p === 'string' && p.startsWith('data:image/') && p.length > 500 ? '[image]' : p)),
+            afterPhotos: (c.afterPhotos || []).map((p) => (typeof p === 'string' && p.startsWith('data:image/') && p.length > 500 ? '[image]' : p)),
+          }))
+          sessionStorage.setItem('tims_complaints_v3', JSON.stringify(storageCopy))
+        } catch (storageErr) {
+          console.warn('[TIMSContext] Could not cache complaints in sessionStorage:', storageErr.message)
+        }
         return sanitized
       }
     } catch (err) {
@@ -294,7 +303,7 @@ export function TIMSProvider({ children }) {
             {
               stage: newStatus,
               timestamp: now,
-              actor: currentUser.name,
+              actor: currentUser?.name || 'Authorized Staff',
               note: note || `Status updated to ${newStatus.replace(/_/g, ' ')}`,
             },
           ],
