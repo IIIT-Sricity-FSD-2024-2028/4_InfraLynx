@@ -37,10 +37,10 @@ export default function RwaDashboard({
     const validated = complaints.filter((c) => normStatus(c.status) === 'VALIDATED').length
     const inProgress = complaints.filter((c) => {
       const st = normStatus(c.status)
-      return ['WORK_ORDER_CREATED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'AWAITING_DEPT_HEAD'].includes(st)
+      return ['WORK_ORDER_CREATED', 'ASSIGNED', 'IN_PROGRESS', 'AWAITING_DEPT_HEAD'].includes(st)
     }).length
     const pendingVerification = complaints.filter(
-      (c) => normStatus(c.status) === 'PENDING_VERIFICATION'
+      (c) => ['PENDING_VERIFICATION', 'COMPLETED', 'WORK_COMPLETED'].includes(normStatus(c.status))
     ).length
     const closed = complaints.filter((c) => {
       const st = normStatus(c.status)
@@ -217,7 +217,7 @@ export default function RwaDashboard({
           </div>
           <button
             onClick={() => {
-              const pendingOne = complaints.find((c) => normStatus(c.status) === 'PENDING_VERIFICATION')
+              const pendingOne = complaints.find((c) => ['PENDING_VERIFICATION', 'COMPLETED', 'WORK_COMPLETED'].includes(normStatus(c.status)))
               if (pendingOne) {
                 onSelectComplaint(pendingOne)
                 onNavigate('verify')

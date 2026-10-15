@@ -156,8 +156,9 @@ export function processApprovalDecision(wo, complaint, action, notes, user) {
     }
 
     // Standard approval (<= ₹100k or approved by COO)
-    const targetStatus = 'ASSIGNED';
-    const historyNote = `Estimate of ₹${estimateAmount.toLocaleString()} approved by Civil Department Head ${actorName}. All required approvals complete. Work order assigned for contractor execution. ${notes ? `Notes: "${notes}"` : ''}`;
+    const targetStatus = 'APPROVED';
+    const complaintStatus = 'WORK_ORDER_CREATED';
+    const historyNote = `Estimate of ₹${estimateAmount.toLocaleString()} approved by Department Head ${actorName}. All required approvals complete. Work order approved for contractor execution. ${notes ? `Notes: "${notes}"` : ''}`;
 
     if (wo) {
       wo = db.update('work_orders', wo.id, {
@@ -172,12 +173,23 @@ export function processApprovalDecision(wo, complaint, action, notes, user) {
 
     if (complaint) {
       complaint = db.update('complaints', complaint.id, {
-        status: targetStatus,
+        status: complaintStatus,
         history: [
           ...(complaint.history || []),
           { stage: targetStatus, timestamp: now, actor: actorName, note: historyNote },
         ],
       });
+    }
+
+    // Update linked estimates record to APPROVED
+    if (wo) {
+      const est = db.findOne('estimates', (e) => e.work_order_id === wo.id);
+      if (est) {
+        db.update('estimates', est.id, {
+          status: 'APPROVED',
+          approved_at: now,
+        });
+      }
     }
 
     // Record approval in approvals table

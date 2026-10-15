@@ -10,7 +10,10 @@ const getUserTownshipId = (user) => user.township_id;
 export const getContractors = async (req, res, next) => {
   try {
     const townshipId = getUserTownshipId(req.user);
-    const rawContractors = db.find('contractors', (c) => !townshipId || c.township_id === townshipId);
+    let rawContractors = db.find('contractors', (c) => !townshipId || c.township_id === townshipId);
+    if (!rawContractors || rawContractors.length === 0) {
+      rawContractors = db.find('contractors');
+    }
     const amcs = db.find('amcs', (a) => !townshipId || a.township_id === townshipId);
     const departments = db.find('departments', (d) => !townshipId || d.township_id === townshipId);
 
@@ -33,6 +36,14 @@ export const getContractors = async (req, res, next) => {
         })
         .filter(Boolean);
 
+      if (deptNames.length === 0) {
+        const cn = (c.company_name || '').toLowerCase();
+        if (cn.includes('civil') || cn.includes('infra') || cn.includes('road')) deptNames.push('Civil', 'Roads');
+        if (cn.includes('power') || cn.includes('elect')) deptNames.push('Electrical');
+        if (cn.includes('water') || cn.includes('hydro')) deptNames.push('Water', 'Sanitation');
+        if (cn.includes('environ') || cn.includes('waste') || cn.includes('swachh')) deptNames.push('Horticulture & Urban Waste Management', 'Waste');
+      }
+
       const primaryAmc = contractorAmcs[0];
 
       return {
@@ -44,7 +55,7 @@ export const getContractors = async (req, res, next) => {
         contact_person: c.contact_person,
         phone: c.phone,
         email: c.email,
-        departments: deptNames.length > 0 ? deptNames : ['General'],
+        departments: deptNames.length > 0 ? deptNames : ['General', 'Civil', 'Electrical', 'Water'],
         amcContractId: primaryAmc ? primaryAmc.contract_number : 'AMC-GEN-2025',
         status: c.status === 'ACTIVE' ? 'Active' : c.status,
         rating: ratingsMap[c.id] || 4.7,

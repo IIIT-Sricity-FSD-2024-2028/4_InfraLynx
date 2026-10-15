@@ -23,12 +23,8 @@ export const verifyComplaint = async (complaintId, user, { rating = 5, remarks =
   }
 
   // Multi-Township isolation check
-  if (complaint.township_id !== user.township_id) {
+  if (user.township_id && complaint.township_id && complaint.township_id !== user.township_id) {
     throw new AppError('Cross-township operation forbidden.', 403, 'FORBIDDEN');
-  }
-
-  if (user.role === 'RWA' && complaint.reported_by !== user.id) {
-    throw new AppError('Only the reporting RWA user can verify this complaint.', 403, 'COMPLAINT_OWNER_REQUIRED');
   }
 
   // Complaints awaiting verification or already closed can be confirmed/updated
@@ -78,6 +74,24 @@ export const verifyComplaint = async (complaintId, user, { rating = 5, remarks =
     closed_at: now,
   });
 
+  // Also update linked work order and invoice to enable Finance payment authorization
+  const linkedWo = db.findOne('work_orders', (w) => w.complaint_id === complaint.id || w.complaint_id === complaint.complaint_code);
+  if (linkedWo) {
+    db.update('work_orders', linkedWo.id, {
+      rwa_verified: true,
+      verified_at: now,
+      rating: numericRating,
+      verification_remarks: verificationRecord.remarks,
+    });
+    const linkedInvoice = db.findOne('invoices', (inv) => inv.work_order_id === linkedWo.id || inv.work_order_id === linkedWo.work_order_number || inv.work_order_id === linkedWo.work_order_code);
+    if (linkedInvoice) {
+      db.update('invoices', linkedInvoice.id, {
+        rwa_verified: true,
+        rwa_verified_at: now,
+      });
+    }
+  }
+
   // Log in Audit Trail
   db.logAudit({
     township_id: complaint.township_id,
@@ -110,12 +124,8 @@ export const disputeComplaint = async (complaintId, user, { reason = '', remarks
   }
 
   // Multi-Township isolation check
-  if (complaint.township_id !== user.township_id) {
+  if (user.township_id && complaint.township_id && complaint.township_id !== user.township_id) {
     throw new AppError('Cross-township operation forbidden.', 403, 'FORBIDDEN');
-  }
-
-  if (user.role === 'RWA' && complaint.reported_by !== user.id) {
-    throw new AppError('Only the reporting RWA user can dispute this complaint.', 403, 'COMPLAINT_OWNER_REQUIRED');
   }
 
   // Only complaints awaiting verification can be disputed
@@ -171,6 +181,24 @@ export const disputeComplaint = async (complaintId, user, { reason = '', remarks
     dispute: disputeRecord,
     history: updatedHistory,
   });
+
+  // Reopen linked work order for contractor rework and flag invoice
+  const linkedWo = db.findOne('work_orders', (w) => w.complaint_id === complaint.id || w.complaint_id === complaint.complaint_code);
+  if (linkedWo) {
+    db.update('work_orders', linkedWo.id, {
+      status: 'DISPUTED',
+      dispute: disputeRecord,
+      rwa_verified: false,
+    });
+    const linkedInvoice = db.findOne('invoices', (inv) => inv.work_order_id === linkedWo.id || inv.work_order_id === linkedWo.work_order_number || inv.work_order_id === linkedWo.work_order_code);
+    if (linkedInvoice) {
+      db.update('invoices', linkedInvoice.id, {
+        status: 'VARIANCE_FLAGGED',
+        variance_reason: `RWA Disputed Repair: ${disputeReason}. Rework mandatory before payment release.`,
+        rwa_verified: false,
+      });
+    }
+  }
 
   // Log in Audit Trail
   db.logAudit({

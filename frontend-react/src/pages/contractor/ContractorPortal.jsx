@@ -7,7 +7,7 @@ import SiteInspection from './SiteInspection.jsx'
 import AmcEstimateBuilder from './AmcEstimateBuilder.jsx'
 import ApprovalStatus from './ApprovalStatus.jsx'
 import WorkExecution from './WorkExecution.jsx'
-import ReworkDispute from './ReworkDispute.jsx'
+import ErrorBoundary from '../../components/common/ErrorBoundary.jsx'
 import { CONTRACTOR_PROFILE, INITIAL_CONTRACTOR_JOBS } from './mockContractorData.js'
 import './styles/ContractorPortal.css'
 
@@ -115,6 +115,7 @@ export default function ContractorPortal({ onExitToLanding }) {
   const {
     complaints = [],
     updateComplaintStatus,
+    refreshComplaints,
   } = useTIMS()
 
   // Local state for contractor jobs (loaded from backend API)
@@ -169,9 +170,12 @@ export default function ContractorPortal({ onExitToLanding }) {
               workOrderId: cmp.workOrderId || `WO-2026-${Math.floor(100 + Math.random() * 900)}`,
               title: cmp.title,
               category: cmp.category,
-              subCategory: cmp.subCategory,
-              location: cmp.location,
-              severity: cmp.severity,
+              location: typeof cmp.location === 'object' && cmp.location !== null ? cmp.location : {
+                sector: cmp.sector || (typeof cmp.location === 'string' ? cmp.location : 'Sector 54'),
+                block: 'Block A',
+                street: 'Gulmohar Marg',
+                landmark: typeof cmp.location === 'string' ? cmp.location : '',
+              },
               slaDeadline: cmp.slaDeadline,
               status: cmp.status === 'REPORTED' || cmp.status === 'UNDER_REVIEW' ? 'ASSIGNED' : cmp.status,
               description: cmp.description,
@@ -357,7 +361,7 @@ export default function ContractorPortal({ onExitToLanding }) {
   async function handleSubmitCompletion(jobId, completionData) {
     const targetJob = jobs.find((j) => j.id === jobId)
     const targetId = targetJob?.backendWoId || targetJob?.workOrderId || targetJob?.workOrderCode || jobId
-    const complaintId = targetJob?.complaintId || targetJob?.id || jobId
+    const complaintId = targetJob?.complaintId || targetJob?.complaintCode || targetJob?.id || jobId
 
     // Bridge to backend contractor API
     try {
@@ -404,14 +408,25 @@ export default function ContractorPortal({ onExitToLanding }) {
 
     if (updateComplaintStatus) {
       updateComplaintStatus(
-        jobId,
+        complaintId,
         'PENDING_VERIFICATION',
-        `Repair completed by contractor. Proof uploaded: ${completionData.actualWorkSummary}`
+        `Repair completed by contractor. Proof uploaded: ${completionData.actualWorkSummary || 'Resolution evidence attached'}`,
+        {
+          completedAt: completionData.completedAt,
+          afterPhotos: [completionData.afterPhoto],
+          completionRemarks: completionData.completionRemarks,
+        }
       )
     }
 
+    if (refreshComplaints) {
+      try {
+        await refreshComplaints()
+      } catch (_) {}
+    }
+
     setSuccessNotice({
-      message: `Work Order ${jobId} marked as COMPLETED! Forwarded to RWA for verification.`,
+      message: `Work Order ${jobId} marked as COMPLETED! Forwarded to RWA for verification and Finance for payment authorization.`,
     })
   }
 
@@ -582,73 +597,75 @@ export default function ContractorPortal({ onExitToLanding }) {
 
       {/* ── Main Screen Body ────────────────────────────────────── */}
       <main className="contractor-main-container">
-        {currentScreen === 'dashboard' && (
-          <ContractorDashboard
-            jobs={jobs}
-            onNavigate={handleNavigate}
-            onSelectJob={handleSelectJob}
-            successNotice={successNotice}
-            onDismissNotice={() => setSuccessNotice(null)}
-          />
-        )}
+        <ErrorBoundary>
+          {currentScreen === 'dashboard' && (
+            <ContractorDashboard
+              jobs={jobs}
+              onNavigate={handleNavigate}
+              onSelectJob={handleSelectJob}
+              successNotice={successNotice}
+              onDismissNotice={() => setSuccessNotice(null)}
+            />
+          )}
 
-        {currentScreen === 'workorders' && (
-          <AssignedWorkOrders
-            jobs={jobs}
-            onNavigate={handleNavigate}
-            onSelectJob={handleSelectJob}
-          />
-        )}
+          {currentScreen === 'workorders' && (
+            <AssignedWorkOrders
+              jobs={jobs}
+              onNavigate={handleNavigate}
+              onSelectJob={handleSelectJob}
+            />
+          )}
 
-        {currentScreen === 'inspection' && (
-          <SiteInspection
-            jobs={jobs}
-            selectedJob={selectedJob}
-            onSelectJob={handleSelectJob}
-            onSaveInspection={handleSaveInspection}
-            onNavigate={handleNavigate}
-          />
-        )}
+          {currentScreen === 'inspection' && (
+            <SiteInspection
+              jobs={jobs}
+              selectedJob={selectedJob}
+              onSelectJob={handleSelectJob}
+              onSaveInspection={handleSaveInspection}
+              onNavigate={handleNavigate}
+            />
+          )}
 
-        {currentScreen === 'estimate' && (
-          <AmcEstimateBuilder
-            jobs={jobs}
-            selectedJob={selectedJob}
-            onSelectJob={handleSelectJob}
-            onSubmitEstimate={handleSubmitEstimate}
-            onNavigate={handleNavigate}
-          />
-        )}
+          {currentScreen === 'estimate' && (
+            <AmcEstimateBuilder
+              jobs={jobs}
+              selectedJob={selectedJob}
+              onSelectJob={handleSelectJob}
+              onSubmitEstimate={handleSubmitEstimate}
+              onNavigate={handleNavigate}
+            />
+          )}
 
-        {currentScreen === 'approvals' && (
-          <ApprovalStatus
-            jobs={jobs}
-            selectedJob={selectedJob}
-            onSelectJob={handleSelectJob}
-            onNavigate={handleNavigate}
-          />
-        )}
+          {currentScreen === 'approvals' && (
+            <ApprovalStatus
+              jobs={jobs}
+              selectedJob={selectedJob}
+              onSelectJob={handleSelectJob}
+              onNavigate={handleNavigate}
+            />
+          )}
 
-        {currentScreen === 'execution' && (
-          <WorkExecution
-            jobs={jobs}
-            selectedJob={selectedJob}
-            onSelectJob={handleSelectJob}
-            onStartWork={handleStartWork}
-            onSubmitCompletion={handleSubmitCompletion}
-            onNavigate={handleNavigate}
-          />
-        )}
+          {currentScreen === 'execution' && (
+            <WorkExecution
+              jobs={jobs}
+              selectedJob={selectedJob}
+              onSelectJob={handleSelectJob}
+              onStartWork={handleStartWork}
+              onSubmitCompletion={handleSubmitCompletion}
+              onNavigate={handleNavigate}
+            />
+          )}
 
-        {currentScreen === 'rework' && (
-          <ReworkDispute
-            jobs={jobs}
-            selectedJob={selectedJob}
-            onSelectJob={handleSelectJob}
-            onSubmitRework={onSubmitRework}
-            onNavigate={handleNavigate}
-          />
-        )}
+          {currentScreen === 'rework' && (
+            <ReworkDispute
+              jobs={jobs}
+              selectedJob={selectedJob}
+              onSelectJob={handleSelectJob}
+              onSubmitRework={onSubmitRework}
+              onNavigate={handleNavigate}
+            />
+          )}
+        </ErrorBoundary>
       </main>
 
       {/* ── Civic Footer ────────────────────────────────────────── */}

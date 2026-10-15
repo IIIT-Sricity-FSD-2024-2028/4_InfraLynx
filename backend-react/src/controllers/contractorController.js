@@ -26,12 +26,13 @@ const normalizeId = (value = '') => String(value).trim();
 const findWorkOrderByReference = (id, complaintId = null) => {
   const targetId = normalizeId(id);
   const targetComplaintId = normalizeId(complaintId);
-  const lookupRef = targetComplaintId || targetId;
-  const comp = lookupRef
-    ? db.findOne('complaints', (c) => c.id === lookupRef || c.complaint_code === lookupRef)
-    : null;
-  const compId = comp ? comp.id : null;
-  const compCode = comp ? comp.complaint_code : null;
+  const complaintCandidate = targetComplaintId || targetId;
+  let matchedComplaint = null;
+  if (complaintCandidate) {
+    matchedComplaint = db.findOne('complaints', (c) => c.id === complaintCandidate || c.complaint_code === complaintCandidate);
+  }
+  const resolvedComplaintId = matchedComplaint ? matchedComplaint.id : null;
+  const resolvedComplaintCode = matchedComplaint ? matchedComplaint.complaint_code : null;
 
   return db.findOne(
     'work_orders',
@@ -39,8 +40,10 @@ const findWorkOrderByReference = (id, complaintId = null) => {
       w.id === targetId ||
       w.work_order_number === targetId ||
       w.work_order_code === targetId ||
-      (targetComplaintId && (w.complaint_id === targetComplaintId || (compId && w.complaint_id === compId) || (compCode && w.complaint_code === compCode))) ||
-      (targetId && (w.complaint_id === targetId || (compId && w.complaint_id === compId) || (compCode && w.complaint_code === compCode)))
+      (targetComplaintId && (w.complaint_id === targetComplaintId || (resolvedComplaintId && w.complaint_id === resolvedComplaintId) || (resolvedComplaintCode && w.complaint_id === resolvedComplaintCode))) ||
+      (targetId && (w.complaint_id === targetId || (resolvedComplaintId && w.complaint_id === resolvedComplaintId) || (resolvedComplaintCode && w.complaint_id === resolvedComplaintCode))) ||
+      (matchedComplaint?.work_order_id && (w.id === matchedComplaint.work_order_id || w.work_order_code === matchedComplaint.work_order_id || w.work_order_number === matchedComplaint.work_order_id)) ||
+      (matchedComplaint?.work_order_code && (w.id === matchedComplaint.work_order_code || w.work_order_code === matchedComplaint.work_order_code || w.work_order_number === matchedComplaint.work_order_code))
   );
 };
 
@@ -75,9 +78,6 @@ const isSafeEvidenceUrl = (url) => {
  */
 export const getAssignedJobs = async (req, res, next) => {
   try {
-    if (typeof db.refreshTablesFromPostgres === 'function') {
-      await db.refreshTablesFromPostgres();
-    }
     const contractor_id = getUserContractorId(req.user);
     const township_id = getUserTownshipId(req.user);
     const { status } = req.query;
@@ -194,8 +194,8 @@ export const getJobById = async (req, res, next) => {
     }
     assertContractorWorkOrderAccess(req, wo);
 
-    const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
-    const evidence = db.findAll('complaint_evidence', (ev) => ev.complaint_id === wo.complaint_id);
+    const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id || c.complaint_code === wo.complaint_id);
+    const evidence = db.findAll('complaint_evidence', (ev) => ev.complaint_id === wo.complaint_id || ev.complaint_id === complaint?.id || ev.complaint_id === complaint?.complaint_code);
     const amcRates = db.findAll('amc_rates');
 
     const estimatedCost = Number(wo.estimated_cost || wo.estimate_amount || 0);
@@ -262,7 +262,25 @@ export const submitSiteInspection = async (req, res, next) => {
       inspected_by: actorName,
     });
 
-    const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
+    // Also persist site inspection into estimates table so it survives database reloads
+    const existingEst = db.findOne('estimates', (e) => e.work_order_id === wo.id);
+    if (existingEst) {
+      db.update('estimates', existingEst.id, {
+        inspection_notes: inspectionNotes,
+        submitted_at: now,
+      });
+    } else {
+      db.insert('estimates', {
+        work_order_id: wo.id,
+        contractor_id: wo.contractor_id || getUserContractorId(req.user),
+        inspection_notes: inspectionNotes,
+        total_amount: 0,
+        status: 'DRAFT',
+        submitted_at: now,
+      });
+    }
+
+    const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id || c.complaint_code === wo.complaint_id);
     if (complaint) {
       db.update('complaints', complaint.id, {
         history: [
@@ -316,21 +334,23 @@ export const submitEstimate = async (req, res, next) => {
       return next(new AppError('Work order not found for estimate submission.', 404, 'NOT_FOUND'));
     }
     assertContractorWorkOrderAccess(req, wo);
-    if (!wo.inspection_notes || !wo.inspected_at) {
-      return next(new AppError('Site inspection must be submitted before creating an AMC estimate.', 409, 'INSPECTION_REQUIRED'));
+    if (!wo.inspection_notes && !wo.inspected_at) {
+      const est = db.findOne('estimates', (e) => e.work_order_id === wo.id);
+      const comp = db.findOne('complaints', (c) => c.id === wo.complaint_id || c.complaint_code === wo.complaint_id);
+      const hasInsp = est?.inspection_notes || comp?.history?.some((h) => h.stage === 'SITE_INSPECTED');
+      if (!hasInsp) {
+        return next(new AppError('Site inspection must be submitted before creating an AMC estimate.', 409, 'INSPECTION_REQUIRED'));
+      }
     }
 
     // Backend calculates official rate card totals (strict compliance rule)
     const verified = calculateVerifiedEstimate(lineItems, getUserContractorId(req.user) || wo.contractor_id);
-    const requiresDeptHead = requiresDeptHeadApproval(verified.totalAmount);
-    const deptHeadThreshold = getApprovalThresholds().CLERK_LIMIT;
-    const nextStatus = requiresDeptHead ? 'AWAITING_DEPT_HEAD' : 'WORK_ORDER_CREATED';
+    const requiresDeptHead = true;
+    const nextStatus = 'AWAITING_DEPT_HEAD';
 
     const now = new Date().toISOString();
     const actorName = req.user.name || 'Contractor Lead';
-    const note = `Estimate of ₹${verified.totalAmount.toLocaleString()} submitted by ${actorName}. ${
-      requiresDeptHead ? `Threshold exceeded (> ₹${deptHeadThreshold.toLocaleString()}) → Forwarded to Dept Head for approval.` : 'Ready for execution.'
-    }`;
+    const note = `Estimate of ₹${verified.totalAmount.toLocaleString()} submitted by ${actorName}. Forwarded to Department Head for approval.`;
 
     const updatedWo = db.update('work_orders', wo.id, {
       status: nextStatus,
@@ -348,15 +368,25 @@ export const submitEstimate = async (req, res, next) => {
       revision_requested_by: null,
     });
 
-    // Persist into relational estimates table if present
-    const estimateRecord = db.insert('estimates', {
-      work_order_id: wo.id,
-      contractor_id: getUserContractorId(req.user) || wo.contractor_id,
-      total_amount: verified.totalAmount,
-      status: requiresDeptHead ? 'SUBMITTED' : 'APPROVED',
-      submitted_at: now,
-      submitted_by: actorName,
-    });
+    // Persist into relational estimates table
+    let estimateRecord = db.findOne('estimates', (e) => e.work_order_id === wo.id);
+    if (estimateRecord) {
+      estimateRecord = db.update('estimates', estimateRecord.id, {
+        total_amount: verified.totalAmount,
+        status: 'SUBMITTED',
+        submitted_at: now,
+        submitted_by: actorName,
+      });
+    } else {
+      estimateRecord = db.insert('estimates', {
+        work_order_id: wo.id,
+        contractor_id: getUserContractorId(req.user) || wo.contractor_id,
+        total_amount: verified.totalAmount,
+        status: 'SUBMITTED',
+        submitted_at: now,
+        submitted_by: actorName,
+      });
+    }
 
     if (db.query) {
       await db.query(
@@ -455,8 +485,13 @@ export const updateJobStatus = async (req, res, next) => {
       if (!startableStatuses.includes(currentStatus)) {
         return next(new AppError(`Cannot start work from status '${wo.status}'.`, 409, 'INVALID_STATUS_TRANSITION'));
       }
-      if (!wo.inspection_notes || !wo.inspected_at) {
-        return next(new AppError('Site inspection is required before work can start.', 409, 'INSPECTION_REQUIRED'));
+      if (!wo.inspection_notes && !wo.inspected_at) {
+        const est = db.findOne('estimates', (e) => e.work_order_id === wo.id);
+        const comp = db.findOne('complaints', (c) => c.id === wo.complaint_id || c.complaint_code === wo.complaint_id);
+        const hasInsp = est?.inspection_notes || comp?.history?.some((h) => h.stage === 'SITE_INSPECTED');
+        if (!hasInsp) {
+          return next(new AppError('Site inspection is required before work can start.', 409, 'INSPECTION_REQUIRED'));
+        }
       }
     }
 
@@ -465,11 +500,14 @@ export const updateJobStatus = async (req, res, next) => {
       if (!completableStatuses.includes(currentStatus)) {
         return next(new AppError(`Cannot complete work from status '${wo.status}'.`, 409, 'INVALID_STATUS_TRANSITION'));
       }
+      const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id || c.complaint_code === wo.complaint_id);
       const afterEvidence = db.findAll(
         'complaint_evidence',
-        (ev) => ev.complaint_id === wo.complaint_id && (ev.evidence_type || ev.type) === 'AFTER'
+        (ev) =>
+          (ev.complaint_id === wo.complaint_id || (complaint && (ev.complaint_id === complaint.id || ev.complaint_id === complaint.complaint_code))) &&
+          (ev.evidence_type || ev.type) === 'AFTER'
       );
-      if (afterEvidence.length === 0) {
+      if (afterEvidence.length === 0 && (!complaint?.afterPhotos || complaint.afterPhotos.length === 0)) {
         return next(new AppError('After-repair evidence must be uploaded before marking work completed.', 409, 'AFTER_EVIDENCE_REQUIRED'));
       }
     }
@@ -489,7 +527,7 @@ export const updateJobStatus = async (req, res, next) => {
       completed_at: normalizedStatus === 'COMPLETED' ? now : wo.completed_at,
     });
 
-    const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
+    const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id || c.complaint_code === wo.complaint_id);
 
     let createdInvoice = null;
     if (normalizedStatus === 'COMPLETED') {
@@ -510,7 +548,7 @@ export const updateJobStatus = async (req, res, next) => {
       });
 
       // Find or create invoice for Finance Audit Check
-      let existingInvoice = db.findOne('invoices', (inv) => inv.work_order_id === wo.id);
+      let existingInvoice = db.findOne('invoices', (inv) => inv.work_order_id === wo.id || inv.work_order_id === wo.work_order_number || inv.work_order_id === wo.work_order_code);
       const invoiceCount = db.findAll('invoices').length + 1;
       const invoiceCode = `INV-2026-${String(invoiceCount).padStart(3, '0')}`;
       const invoiceNum = `VT-INV/2026/${String(invoiceCount).padStart(3, '0')}`;
@@ -547,13 +585,17 @@ export const updateJobStatus = async (req, res, next) => {
 
         if (Array.isArray(wo.line_items) && wo.line_items.length > 0) {
           wo.line_items.forEach((item) => {
+            const itemQty = Number(item.quantity || item.qty || 1);
+            const itemRate = Number(item.officialRate || item.rate || item.unitCost || (item.totalAmount ? item.totalAmount / itemQty : actualCost));
+            const itemAmount = Number(item.totalAmount || item.amount || (itemQty * itemRate));
             db.insert('invoice_items', {
               invoice_id: createdInvoice.id,
+              rate_card_id: item.rateCardId || item.itemCode || null,
               description: item.description || item.service || 'AMC Maintenance Service',
               unit: item.unit || 'job',
-              quantity: item.quantity || item.qty || 1,
-              rate: item.rate || item.unitCost || actualCost,
-              amount: item.amount || item.totalAmount || actualCost,
+              quantity: itemQty,
+              rate: itemRate,
+              amount: itemAmount,
             });
           });
         } else {
@@ -600,6 +642,7 @@ export const updateJobStatus = async (req, res, next) => {
         workOrder: db.findById('work_orders', wo.id),
         invoice: createdInvoice,
         complaintStatus: complaintNextStatus,
+        complaint: complaint ? db.findById('complaints', complaint.id) : null,
       },
     });
   } catch (err) {
@@ -634,7 +677,8 @@ export const uploadEvidence = async (req, res, next) => {
     }
     assertContractorWorkOrderAccess(req, wo);
 
-    let targetComplaintId = complaintId || wo.complaint_id;
+    const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id || c.complaint_code === wo.complaint_id || c.id === complaintId || c.complaint_code === complaintId);
+    let targetComplaintId = complaint ? complaint.id : (wo.complaint_id || complaintId);
     const safePhotoList = photoList.map((url) => String(url).trim()).filter(isSafeEvidenceUrl);
     if (safePhotoList.length !== photoList.length) {
       return next(new AppError('Evidence photos must be safe http(s) URLs or server upload paths.', 400, 'INVALID_EVIDENCE_URL'));

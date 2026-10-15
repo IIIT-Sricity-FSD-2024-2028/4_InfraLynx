@@ -109,8 +109,8 @@ const TIMS_MODULES = [
     id: 8,
     title: 'Approval Management & Threshold Engine',
     category: 'finance',
-    desc: 'Tiered authorization: system auto-approval for minor fixes (< ₹25k) and Department Head verification for larger repairs.',
-    tags: ['Auto-Approval', 'Dept Head', 'Policy Rules'],
+    desc: 'Authoritative oversight: Department Head verification for all contractor estimates against contracted AMC rate schedules.',
+    tags: ['Dept Head Approval', 'AMC Rates', 'Policy Rules'],
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M9 11l3 3L22 4" />

@@ -253,7 +253,6 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
                       { label: 'Contractor', email: 'contractor@infralynx.com' },
                       { label: 'Finance', email: 'finance@infralynx.com' },
                       { label: 'Township COO', email: 'coo@infralynx.com' },
-                      { label: '🔮 Super Admin', email: 'superadmin@infralynx.com' },
                     ].map((acc) => (
                       <button
                         key={acc.label}

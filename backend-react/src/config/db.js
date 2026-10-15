@@ -223,6 +223,19 @@ export async function refreshTablesFromPostgres() {
       subscription_plan_id: s.plan_id || s.subscription_plan_id,
     }));
   }
+
+  // Populate work_orders extra fields from estimates if present
+  if (tables.work_orders && tables.estimates) {
+    for (const wo of tables.work_orders) {
+      const est = tables.estimates.find((e) => e.work_order_id === wo.id);
+      if (est) {
+        if (!wo.inspection_notes && est.inspection_notes) wo.inspection_notes = est.inspection_notes;
+        if (!wo.inspected_at && est.submitted_at) wo.inspected_at = est.submitted_at;
+        if (!wo.estimate_amount && est.total_amount) wo.estimate_amount = Number(est.total_amount);
+        if (!wo.estimated_cost && est.total_amount) wo.estimated_cost = Number(est.total_amount);
+      }
+    }
+  }
 }
 
 /**

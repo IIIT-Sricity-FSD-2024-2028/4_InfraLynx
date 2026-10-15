@@ -121,17 +121,68 @@ export function TIMSProvider({ children }) {
     return []
   })
 
+const CANONICAL_FALLBACK_CONTRACTORS = [
+  {
+    id: 'c0000000-0000-0000-0000-000000000001',
+    name: 'Larsen & Toubro Urban Infra Works Ltd.',
+    company_name: 'Larsen & Toubro Urban Infra Works Ltd.',
+    lead: 'Rameshwar Nath Sharma',
+    phone: '+91 98110 45231',
+    email: 'rn.sharma@lt-urbaninfra.co.in',
+    departments: ['Civil', 'Roads'],
+    amcContractId: 'AMC-CIV-2025-08',
+    status: 'Active',
+    rating: 4.8,
+  },
+  {
+    id: 'c0000000-0000-0000-0000-000000000002',
+    name: 'Voltech Power & Electrical Systems Ltd.',
+    company_name: 'Voltech Power & Electrical Systems Ltd.',
+    lead: 'Vikram Singh Rathore',
+    phone: '+91 97230 11984',
+    email: 'vikram.singh@voltechpower.in',
+    departments: ['Electrical', 'Power'],
+    amcContractId: 'AMC-ELE-2025-03',
+    status: 'Active',
+    rating: 4.6,
+  },
+  {
+    id: 'c0000000-0000-0000-0000-000000000003',
+    name: 'Kirloskar HydroTech & Water Systems Pvt. Ltd.',
+    company_name: 'Kirloskar HydroTech & Water Systems Pvt. Ltd.',
+    lead: 'Suresh Narayan Kulkarni',
+    phone: '+91 94220 33819',
+    email: 'suresh.kulkarni@kirloskarhydro.in',
+    departments: ['Water', 'Sanitation'],
+    amcContractId: 'AMC-WTR-2025-11',
+    status: 'Active',
+    rating: 4.9,
+  },
+  {
+    id: 'c0000000-0000-0000-0000-000000000004',
+    name: 'Swachh Urban Environmental Solutions LLP',
+    company_name: 'Swachh Urban Environmental Solutions LLP',
+    lead: 'Gurpreet Singh Sandhu',
+    phone: '+91 98722 55431',
+    email: 'gurpreet@swachhurban.in',
+    departments: ['Horticulture & Urban Waste Management', 'Waste'],
+    amcContractId: 'AMC-SAN-2025-18',
+    status: 'Active',
+    rating: 4.7,
+  },
+]
+
   const [contractors, setContractors] = useState(() => {
     try {
       const saved = sessionStorage.getItem('tims_contractors')
       if (saved) {
         const parsed = JSON.parse(saved)
-        return Array.isArray(parsed) ? parsed : []
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
       }
     } catch {
-      return []
+      return CANONICAL_FALLBACK_CONTRACTORS
     }
-    return []
+    return CANONICAL_FALLBACK_CONTRACTORS
   })
 
   const [amcRateCards, setAmcRateCards] = useState(() => {
@@ -192,34 +243,35 @@ export function TIMSProvider({ children }) {
     }
   }, [])
 
+  // Function to explicitly sync live contractors & rate cards
+  const refreshMasterData = useCallback(async () => {
+    try {
+      const data = await masterApi.getContractors()
+      if (Array.isArray(data) && data.length > 0) {
+        setContractors(data)
+        sessionStorage.setItem('tims_contractors', JSON.stringify(data))
+      }
+    } catch (err) {
+      console.warn('[TIMSContext] Master contractors error:', err.message)
+    }
+
+    try {
+      const rates = await masterApi.getAmcRates()
+      if (Array.isArray(rates) && rates.length > 0) {
+        setAmcRateCards(rates)
+        sessionStorage.setItem('tims_rate_cards', JSON.stringify(rates))
+      }
+    } catch (err) {
+      console.warn('[TIMSContext] Master AMC rates error:', err.message)
+    }
+  }, [])
+
   // Sync live contractors & rate cards from backend PostgreSQL API
   useEffect(() => {
-    let isMounted = true
     if (backendStatus.connected) {
-      masterApi
-        .getContractors()
-        .then((data) => {
-          if (isMounted && Array.isArray(data) && data.length > 0) {
-            setContractors(data)
-            sessionStorage.setItem('tims_contractors', JSON.stringify(data))
-          }
-        })
-        .catch((err) => console.warn('[TIMSContext] Master contractors error:', err.message))
-
-      masterApi
-        .getAmcRates()
-        .then((data) => {
-          if (isMounted && Array.isArray(data) && data.length > 0) {
-            setAmcRateCards(data)
-            sessionStorage.setItem('tims_rate_cards', JSON.stringify(data))
-          }
-        })
-        .catch((err) => console.warn('[TIMSContext] Master AMC rates error:', err.message))
+      refreshMasterData()
     }
-    return () => {
-      isMounted = false
-    }
-  }, [backendStatus.connected])
+  }, [backendStatus.connected, currentUser?.id, refreshMasterData])
 
   // Refresh complaints from backend database
   const refreshComplaints = useCallback(async () => {
@@ -287,9 +339,22 @@ export function TIMSProvider({ children }) {
    */
   function updateComplaintStatus(complaintId, newStatus, note = '', extraFields = {}) {
     const now = new Date().toISOString()
-    setComplaints((prev) =>
-      prev.map((c) => {
-        if (c.id !== complaintId && c.complaint_code !== complaintId) return c
+    setComplaints((prev) => {
+      const updated = prev.map((c) => {
+        const isMatch =
+          c.id === complaintId ||
+          c.complaint_code === complaintId ||
+          c.complaintCode === complaintId ||
+          c.workOrderId === complaintId ||
+          c.work_order_id === complaintId ||
+          c.work_order_code === complaintId ||
+          c.work_order_number === complaintId ||
+          c.work_order?.id === complaintId ||
+          c.work_order?.work_order_number === complaintId ||
+          c.work_order?.work_order_code === complaintId
+
+        if (!isMatch) return c
+
         const newRank = STAGE_RANK_MAP[normStage(newStatus)] ?? 0
         const cleanHistory = (c.history || []).filter(
           (evt) => (STAGE_RANK_MAP[normStage(evt.stage)] ?? 0) < newRank
@@ -309,7 +374,18 @@ export function TIMSProvider({ children }) {
           ],
         })
       })
-    )
+
+      try {
+        const storageCopy = updated.map((c) => ({
+          ...c,
+          beforePhotos: (c.beforePhotos || []).map((p) => (typeof p === 'string' && p.startsWith('data:image/') && p.length > 500 ? '[image]' : p)),
+          afterPhotos: (c.afterPhotos || []).map((p) => (typeof p === 'string' && p.startsWith('data:image/') && p.length > 500 ? '[image]' : p)),
+        }))
+        sessionStorage.setItem('tims_complaints_v3', JSON.stringify(storageCopy))
+      } catch (_) {}
+
+      return updated
+    })
   }
 
   const value = {
@@ -322,6 +398,7 @@ export function TIMSProvider({ children }) {
     logout,
     backendStatus,
     refreshComplaints,
+    refreshMasterData,
     updateComplaintStatus,
   }
 

@@ -262,9 +262,6 @@ export const getComplaints = async (req, res, next) => {
 
     const userTownshipId = req.user.township_id;
 
-    // Refresh live cache directly from Neon PostgreSQL to guarantee 100% current data
-    await db.refreshTablesFromPostgres();
-
     let complaints = db.find('complaints', (c) => {
       // 1. Township isolation
       if (userTownshipId && c.township_id && c.township_id !== userTownshipId) return false;
@@ -307,7 +304,6 @@ export const getComplaints = async (req, res, next) => {
 export const getComplaintById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await db.refreshTablesFromPostgres();
     const complaint = db.findOne('complaints', (c) => c.id === id || c.complaint_code === id);
 
     if (!complaint) {

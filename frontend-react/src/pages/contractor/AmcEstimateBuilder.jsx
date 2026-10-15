@@ -11,8 +11,30 @@ export default function AmcEstimateBuilder({
 }) {
   const { amcRateCards = [] } = useTIMS()
 
-  const [activeJobId, setActiveJobId] = useState(selectedJob ? selectedJob.id : (jobs[0]?.id || ''))
-  const currentJob = jobs.find((j) => j.id === activeJobId) || selectedJob || jobs[0]
+  // Only work orders that require estimate drafting/revision
+  const estimatableJobs = useMemo(() => {
+    return jobs.filter((j) => {
+      if (selectedJob && j.id === selectedJob.id) return true
+      return j.status === 'ASSIGNED' || j.status === 'WORK_ORDER_CREATED' || j.status === 'REVISION_REQUESTED'
+    })
+  }, [jobs, selectedJob])
+
+  const [activeJobId, setActiveJobId] = useState(() => {
+    if (selectedJob && estimatableJobs.some((j) => j.id === selectedJob.id)) {
+      return selectedJob.id
+    }
+    return estimatableJobs[0]?.id || ''
+  })
+
+  useEffect(() => {
+    if (selectedJob && estimatableJobs.some((j) => j.id === selectedJob.id)) {
+      setActiveJobId(selectedJob.id)
+    } else if (!estimatableJobs.some((j) => j.id === activeJobId)) {
+      setActiveJobId(estimatableJobs[0]?.id || '')
+    }
+  }, [estimatableJobs, selectedJob, activeJobId])
+
+  const currentJob = estimatableJobs.find((j) => j.id === activeJobId) || selectedJob || estimatableJobs[0] || null
 
   // Filter rate cards matching the job category (or all if general)
   const availableRateCards = useMemo(() => {
@@ -186,17 +208,14 @@ export default function AmcEstimateBuilder({
       total: totalEstimate,
       justification: justification.trim(),
       submittedAt: new Date().toISOString(),
-      status: exceedsThreshold ? 'PENDING_APPROVAL' : 'APPROVED',
+      status: 'PENDING_APPROVAL',
     }
 
-    const nextStatus = exceedsThreshold ? 'AWAITING_DEPT_HEAD' : 'IN_PROGRESS'
+    const nextStatus = 'AWAITING_DEPT_HEAD'
     onSubmitEstimate(currentJob.id, estimateData, nextStatus)
 
     setSubmittedMessage(
-      `Estimate of ₹${totalEstimate.toLocaleString('en-IN')} submitted for ${currentJob.workOrderId || currentJob.id}. ${exceedsThreshold
-        ? 'Forwarded to Department Head (exceeds ₹10,000 threshold).'
-        : 'Ready for work execution.'
-      }`
+      `Estimate of ₹${totalEstimate.toLocaleString('en-IN')} submitted for ${currentJob.workOrderId || currentJob.id}. Forwarded to Department Head for approval.`
     )
 
     setTimeout(() => {
@@ -244,13 +263,13 @@ export default function AmcEstimateBuilder({
             value={currentJob.id}
             onChange={(e) => {
               setActiveJobId(e.target.value)
-              const sel = jobs.find((j) => j.id === e.target.value)
+              const sel = estimatableJobs.find((j) => j.id === e.target.value)
               if (sel) onSelectJob(sel)
             }}
             className="estimate-rate-select"
             style={{ width: 'auto', minWidth: 200 }}
           >
-            {jobs.map((j) => (
+            {estimatableJobs.map((j) => (
               <option key={j.id} value={j.id}>
                 {j.workOrderId || j.id} — {j.title.slice(0, 32)}...
               </option>

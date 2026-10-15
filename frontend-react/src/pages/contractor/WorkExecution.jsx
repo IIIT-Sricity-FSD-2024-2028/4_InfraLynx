@@ -83,7 +83,8 @@ export default function WorkExecution({
 
   const isInProgress = currentJob?.status === 'IN_PROGRESS'
   const isCompleted = currentJob?.status === 'COMPLETED' || currentJob?.status === 'PENDING_VERIFICATION' || currentJob?.status === 'CLOSED'
-  const isAssigned = currentJob?.status === 'ASSIGNED' || currentJob?.status === 'WORK_ORDER_CREATED'
+  const isAssigned = currentJob?.status === 'ASSIGNED' || currentJob?.status === 'WORK_ORDER_CREATED' || currentJob?.status === 'APPROVED'
+  const isAwaitingApproval = currentJob?.status === 'AWAITING_DEPT_HEAD' || currentJob?.status === 'PENDING_APPROVAL'
 
   function handleStart() {
     if (!currentJob) return
@@ -110,7 +111,7 @@ export default function WorkExecution({
 
     onSubmitCompletion(currentJob.id, completionData)
     setSubmittedMessage(
-      `Work Order ${currentJob.workOrderId || currentJob.id} marked as COMPLETED! Forwarded to RWA for verification.`
+      `Work Order ${currentJob.workOrderId || currentJob.id} marked as COMPLETED! Forwarded to RWA for verification and Finance for payment authorization.`
     )
   }
 
@@ -221,16 +222,16 @@ export default function WorkExecution({
               <strong className="execution-step-title">COMPLETED</strong>
             </div>
             <div className="execution-step-desc">
-              Photo proof submitted; pending RWA check.
+              Photo proof submitted; forwarded to RWA for verification &amp; Finance for authorization.
             </div>
           </div>
         </div>
 
-        {/* Start Work Action if Assigned */}
+        {/* Start Work Action if Assigned / Approved */}
         {isAssigned && (
           <div className="execution-start-banner">
             <span className="execution-start-banner-text">
-              Ready to deploy crew on ground? Click to initiate active status.
+              {currentJob?.status === 'APPROVED' ? 'Estimate approved by Department Head! Ready to deploy crew on ground.' : 'Ready to deploy crew on ground? Click to initiate active status.'}
             </span>
             <button
               onClick={handleStart}
@@ -238,6 +239,15 @@ export default function WorkExecution({
             >
               🚀 Start Work (Mark IN_PROGRESS)
             </button>
+          </div>
+        )}
+
+        {/* Awaiting Dept Head Notice */}
+        {isAwaitingApproval && (
+          <div className="execution-start-banner" style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
+            <span className="execution-start-banner-text" style={{ color: '#92400e', fontWeight: 600 }}>
+              ⏳ AMC Estimate submitted and awaiting Department Head authorization. Work execution unlocks automatically once approved.
+            </span>
           </div>
         )}
       </div>
@@ -348,6 +358,7 @@ export default function WorkExecution({
               {/* Hidden File Input */}
               <input
                 type="file"
+                id="contractor-resolution-file-input"
                 ref={fileInputRef}
                 accept="image/*"
                 onChange={(e) => {
@@ -383,16 +394,37 @@ export default function WorkExecution({
                   <div className="execution-dropzone-sub">
                     Click to browse or drag &amp; drop image (PNG, JPG, JPEG, WEBP)
                   </div>
-                  <button
-                    type="button"
-                    className="execution-dropzone-btn"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleTriggerFileInput()
-                    }}
-                  >
-                    📁 Choose Image to Upload
-                  </button>
+                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '8px' }}>
+                    <button
+                      type="button"
+                      id="btn-choose-resolution-photo"
+                      className="execution-dropzone-btn"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleTriggerFileInput()
+                      }}
+                    >
+                      📁 Choose Image to Upload
+                    </button>
+                    <button
+                      type="button"
+                      id="btn-use-sample-photo"
+                      className="execution-dropzone-btn"
+                      style={{ background: '#2563eb', color: '#ffffff' }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        const sampleSvg = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="#0f172a"/><circle cx="200" cy="140" r="70" fill="#22c55e"/><text x="200" y="145" fill="white" font-size="18" font-family="sans-serif" text-anchor="middle" font-weight="bold">REPAIR VERIFIED</text><text x="200" y="175" fill="#f8fafc" font-size="13" font-family="sans-serif" text-anchor="middle">Voltech Power &amp; Electrical</text></svg>')
+                        setAfterPhoto(sampleSvg)
+                        setUploadedFileInfo({
+                          name: 'resolution_verified_proof.svg',
+                          size: '8.5 KB',
+                          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        })
+                      }}
+                    >
+                      🧪 Use Verified Sample Photo
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="execution-photo-card">
@@ -449,7 +481,7 @@ export default function WorkExecution({
           <div className="execution-form-actions">
             {isCompleted ? (
               <div className="execution-completed-badge">
-                <span>✓ Completed &amp; Transferred to RWA for verification</span>
+                <span>✓ Completed &amp; Forwarded to RWA for Verification &amp; Finance for Payment Authorization</span>
               </div>
             ) : (
               <button

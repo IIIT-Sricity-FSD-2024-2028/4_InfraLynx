@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import './styles/SiteInspection.css'
 
 export default function SiteInspection({
@@ -8,9 +8,40 @@ export default function SiteInspection({
   onSaveInspection,
   onNavigate,
 }) {
-  const [activeJobId, setActiveJobId] = useState(selectedJob ? selectedJob.id : (jobs[0]?.id || ''))
+  // Only work orders that require site inspection and have NOT yet had an estimate created
+  const inspectionJobs = useMemo(() => {
+    return jobs.filter((j) => {
+      const isPastEstimate =
+        Boolean(j.estimate) ||
+        j.status === 'AWAITING_DEPT_HEAD' ||
+        j.status === 'ESTIMATE_SUBMITTED' ||
+        j.status === 'APPROVED' ||
+        j.status === 'IN_PROGRESS' ||
+        j.status === 'COMPLETED' ||
+        j.status === 'PENDING_VERIFICATION' ||
+        j.status === 'CLOSED'
+      const isAssigned = j.status === 'ASSIGNED' || j.status === 'WORK_ORDER_CREATED'
+      return isAssigned && !isPastEstimate
+    })
+  }, [jobs])
 
-  const currentJob = jobs.find((j) => j.id === activeJobId) || selectedJob || jobs[0]
+  const [activeJobId, setActiveJobId] = useState(() => {
+    if (selectedJob && inspectionJobs.some((j) => j.id === selectedJob.id)) {
+      return selectedJob.id
+    }
+    return inspectionJobs[0]?.id || ''
+  })
+
+  // Keep activeJobId in sync with available inspectionJobs
+  useEffect(() => {
+    if (selectedJob && inspectionJobs.some((j) => j.id === selectedJob.id)) {
+      setActiveJobId(selectedJob.id)
+    } else if (!inspectionJobs.some((j) => j.id === activeJobId)) {
+      setActiveJobId(inspectionJobs[0]?.id || '')
+    }
+  }, [inspectionJobs, selectedJob, activeJobId])
+
+  const currentJob = inspectionJobs.find((j) => j.id === activeJobId) || inspectionJobs[0] || null
 
   // Form State - Starts completely empty (no prefilled dummy values)
   const [problemObserved, setProblemObserved] = useState('')
@@ -112,14 +143,24 @@ export default function SiteInspection({
     }
   }
 
-  if (!currentJob) {
+  if (!currentJob || inspectionJobs.length === 0) {
     return (
-      <div className="contractor-card inspection-empty-card">
-        <h3>No Work Order Selected for Inspection</h3>
-        <p className="inspection-sub">Please select a job from the Work Orders tab.</p>
-        <button onClick={() => onNavigate('workorders')} className="btn-contractor-primary" style={{ marginTop: 16 }}>
-          View Work Orders &rarr;
-        </button>
+      <div className="contractor-card inspection-empty-card" style={{ textAlign: 'center', padding: '3.5rem 2rem' }}>
+        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
+        <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text, #0f172a)', marginBottom: '0.5rem' }}>
+          No Work Orders Pending Site Inspection
+        </h3>
+        <p className="inspection-sub" style={{ color: 'var(--text-muted, #64748b)', maxWidth: '480px', margin: '0 auto 1.5rem' }}>
+          All work orders have completed inspection and estimate submission. Check the Approval Status tab to track Department Head authorization.
+        </p>
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+          <button onClick={() => onNavigate('approvals')} className="btn-contractor-primary">
+            Track Approval Status →
+          </button>
+          <button onClick={() => onNavigate('workorders')} className="btn-contractor-secondary">
+            View All Work Orders
+          </button>
+        </div>
       </div>
     )
   }
@@ -144,21 +185,21 @@ export default function SiteInspection({
           </p>
         </div>
 
-        {/* Job Selector Dropdown */}
+        {/* Job Selector Dropdown - ONLY work orders needing inspection */}
         <div className="inspection-switcher">
           <label className="inspection-switcher-label">
-            Switch Work Order:
+            Switch Work Order ({inspectionJobs.length} Pending):
           </label>
           <select
             value={currentJob.id}
             onChange={(e) => {
               setActiveJobId(e.target.value)
-              const selected = jobs.find((j) => j.id === e.target.value)
+              const selected = inspectionJobs.find((j) => j.id === e.target.value)
               if (selected) onSelectJob(selected)
             }}
             className="inspection-select"
           >
-            {jobs.map((j) => (
+            {inspectionJobs.map((j) => (
               <option key={j.id} value={j.id}>
                 {j.workOrderId || j.id} — {j.title.slice(0, 32)}... ({j.status})
               </option>

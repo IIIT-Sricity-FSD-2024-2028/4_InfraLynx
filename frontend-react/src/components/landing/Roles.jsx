@@ -110,24 +110,6 @@ const ACTORS = [
       quarterlySpend: '₹42.8L',
     },
   },
-  {
-    id: 'superadmin',
-    title: 'Super Admin',
-    type: 'Platform Governance',
-    summary: 'Platform-level administrator responsible for tenant onboarding, global access, subscriptions, and operational policy.',
-    responsibilities: [
-      'Onboard townships and manage subscription plans, limits, and renewal status.',
-      'Create platform accounts and review user access across all tenants.',
-      'Configure approval thresholds and SLA defaults used by live workflows.',
-      'Review system health and the platform administrative audit trail.',
-    ],
-    consoleAction: 'Manage Platform',
-    mockData: {
-      tenantControls: 'Global',
-      accessScope: 'All tenants',
-      policyAreas: 3,
-    },
-  },
 ]
 
 export default function Roles({ onOpenAuth }) {
