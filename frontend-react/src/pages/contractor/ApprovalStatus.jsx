@@ -12,12 +12,15 @@ export default function ApprovalStatus({
   // Jobs that have had estimates submitted or are in approval lifecycle
   const approvalJobs = useMemo(() => {
     return jobs.filter((j) => {
-      const hasEstimate = !!j.estimate || j.status === 'AWAITING_DEPT_HEAD' || j.status === 'REVISION_REQUESTED' || j.status === 'IN_PROGRESS' || j.status === 'COMPLETED'
+      const isPending = ['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO'].includes(j.status)
+      const isApproved = j.status === 'APPROVED' || j.status === 'IN_PROGRESS' || j.status === 'COMPLETED' || j.estimate?.status === 'APPROVED'
+      const isRevision = j.status === 'REVISION_REQUESTED'
+      const hasEstimate = !!j.estimate || isPending || isApproved || isRevision
       if (!hasEstimate) return false
 
-      if (filter === 'PENDING') return j.status === 'AWAITING_DEPT_HEAD'
-      if (filter === 'APPROVED') return j.status === 'IN_PROGRESS' || j.status === 'COMPLETED' || j.estimate?.status === 'APPROVED'
-      if (filter === 'REVISION') return j.status === 'REVISION_REQUESTED'
+      if (filter === 'PENDING') return isPending
+      if (filter === 'APPROVED') return isApproved
+      if (filter === 'REVISION') return isRevision
 
       return true
     })
@@ -62,12 +65,12 @@ export default function ApprovalStatus({
           {
             id: 'PENDING',
             label: 'Pending Department Approval',
-            count: jobs.filter((j) => j.status === 'AWAITING_DEPT_HEAD').length,
+            count: jobs.filter((j) => ['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO'].includes(j.status)).length,
           },
           {
             id: 'APPROVED',
             label: 'Approved & Ready for Execution',
-            count: jobs.filter((j) => j.status === 'IN_PROGRESS' || j.estimate?.status === 'APPROVED').length,
+            count: jobs.filter((j) => j.status === 'APPROVED' || j.status === 'IN_PROGRESS' || j.status === 'COMPLETED' || j.estimate?.status === 'APPROVED').length,
           },
           {
             id: 'REVISION',
@@ -122,9 +125,9 @@ export default function ApprovalStatus({
       <div className="approval-list-container">
         {approvalJobs.map((job) => {
           const est = job.estimate
-          const isAwaiting = job.status === 'AWAITING_DEPT_HEAD'
+          const isAwaiting = ['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO'].includes(job.status)
           const isRevision = job.status === 'REVISION_REQUESTED'
-          const isApproved = job.status === 'IN_PROGRESS' || job.status === 'COMPLETED' || est?.status === 'APPROVED'
+          const isApproved = job.status === 'APPROVED' || job.status === 'IN_PROGRESS' || job.status === 'COMPLETED' || est?.status === 'APPROVED'
 
           const total = job.estimated_cost || 0
           const cardVariant = isRevision ? 'revision' : isAwaiting ? 'pending' : 'approved'

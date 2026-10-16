@@ -11,13 +11,38 @@ export default function AmcEstimateBuilder({
 }) {
   const { amcRateCards = [] } = useTIMS()
 
-  // Only work orders that require estimate drafting/revision
+  // Only work orders that require estimate drafting/revision.
+  // Exclude any work orders that ALREADY have an estimate submitted, are pending approval, approved, in progress, or completed.
   const estimatableJobs = useMemo(() => {
     return jobs.filter((j) => {
-      if (selectedJob && j.id === selectedJob.id) return true
-      return j.status === 'ASSIGNED' || j.status === 'WORK_ORDER_CREATED' || j.status === 'REVISION_REQUESTED'
+      // If Department Head requested revision, it can and must be re-estimated
+      if (j.status === 'REVISION_REQUESTED') return true
+
+      // If an estimate is already submitted, awaiting approval, approved, or in progress: DO NOT show in create estimate list!
+      const hasEstimateSubmitted =
+        Boolean(j.estimate) ||
+        (Number(j.estimateAmount || j.estimated_cost || 0) > 0) ||
+        (Array.isArray(j.lineItems) && j.lineItems.length > 0) ||
+        [
+          'AWAITING_DEPT_HEAD',
+          'ESTIMATE_SUBMITTED',
+          'PENDING_APPROVAL',
+          'AWAITING_COO',
+          'ESCALATED_TO_COO',
+          'APPROVED',
+          'IN_PROGRESS',
+          'COMPLETED',
+          'PENDING_VERIFICATION',
+          'CLOSED',
+          'REJECTED',
+        ].includes(j.status)
+
+      if (hasEstimateSubmitted) return false
+
+      // Only clean ASSIGNED or WORK_ORDER_CREATED jobs
+      return j.status === 'ASSIGNED' || j.status === 'WORK_ORDER_CREATED'
     })
-  }, [jobs, selectedJob])
+  }, [jobs])
 
   const [activeJobId, setActiveJobId] = useState(() => {
     if (selectedJob && estimatableJobs.some((j) => j.id === selectedJob.id)) {
@@ -34,7 +59,7 @@ export default function AmcEstimateBuilder({
     }
   }, [estimatableJobs, selectedJob, activeJobId])
 
-  const currentJob = estimatableJobs.find((j) => j.id === activeJobId) || selectedJob || estimatableJobs[0] || null
+  const currentJob = estimatableJobs.find((j) => j.id === activeJobId) || estimatableJobs[0] || null
 
   // Filter rate cards matching the job category (or all if general)
   const availableRateCards = useMemo(() => {
@@ -226,12 +251,22 @@ export default function AmcEstimateBuilder({
 
   if (!currentJob) {
     return (
-      <div className="contractor-card estimate-empty-card">
-        <h3>No Work Order Selected</h3>
-        <p className="estimate-sub">Please select a job from the Work Orders tab.</p>
-        <button onClick={() => onNavigate('workorders')} className="btn-contractor-primary" style={{ marginTop: 16 }}>
-          View Work Orders &rarr;
-        </button>
+      <div className="contractor-card estimate-empty-card" style={{ textAlign: 'center', padding: '48px 24px' }}>
+        <div style={{ fontSize: 42, marginBottom: 16 }}>📋</div>
+        <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-main, #0f172a)', marginBottom: 8 }}>
+          No Work Orders Pending Estimate Creation
+        </h3>
+        <p className="estimate-sub" style={{ maxWidth: 540, margin: '0 auto 24px', color: 'var(--text-soft, #64748b)' }}>
+          All your assigned work orders have already had estimates submitted and are currently awaiting Department Head approval, or are already approved for execution.
+        </p>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+          <button onClick={() => onNavigate('approvals')} className="btn-contractor-primary">
+            Track Estimate Approvals &rarr;
+          </button>
+          <button onClick={() => onNavigate('workorders')} className="btn-contractor-secondary">
+            View All Work Orders &rarr;
+          </button>
+        </div>
       </div>
     )
   }

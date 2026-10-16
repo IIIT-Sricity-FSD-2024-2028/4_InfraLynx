@@ -68,6 +68,17 @@ VALUES
     ('c0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', 'Kirloskar HydroTech & Water Systems Pvt. Ltd.', 'Suresh Narayan Kulkarni', 'suresh.kulkarni@kirloskarhydro.in', '+91 94220 33819', '06AACKK9012H1Z1', 'Plot 45, Udyog Vihar Phase 4, Gurugram, Haryana'),
     ('c0000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000001', 'Swachh Urban Environmental Solutions LLP', 'Gurpreet Singh Sandhu', 'gurpreet@swachhurban.in', '+91 98722 55431', '06AADCS3456J1Z9', 'Environmental Hub, Sector 34, Gurugram, Haryana');
 
+INSERT INTO contractor_services (contractor_id, service_type)
+VALUES
+    ('c0000000-0000-0000-0000-000000000001', 'Civil'),
+    ('c0000000-0000-0000-0000-000000000001', 'Roads'),
+    ('c0000000-0000-0000-0000-000000000002', 'Electrical'),
+    ('c0000000-0000-0000-0000-000000000002', 'Power Distribution'),
+    ('c0000000-0000-0000-0000-000000000003', 'Water'),
+    ('c0000000-0000-0000-0000-000000000003', 'Drainage Sanitation'),
+    ('c0000000-0000-0000-0000-000000000004', 'Horticulture'),
+    ('c0000000-0000-0000-0000-000000000004', 'Urban Waste Management');
+
 -- ------------------------------------------------------------------------------
 -- 4. USERS (Core Roles & Officials with Password@123 Hash)
 -- ------------------------------------------------------------------------------
@@ -75,12 +86,17 @@ INSERT INTO users (id, township_id, name, email, username, password_hash, role, 
 VALUES
     ('10000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'Dr. Arvind Swaminathan', 'rwa@infralynx.com', 'rwa_rep', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'RWA', NULL, NULL, 'Sector 54', '+91 98101 22345'),
     ('10000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000001', 'Pooja Verma', 'clerk@infralynx.com', 'desk_clerk', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'DESK_CLERK', 'd0000000-0000-0000-0000-000000000002', NULL, 'Central Admin Block', '+91 98712 34567'),
-    ('10000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', 'Vikram Singh Rathore', 'contractor@infralynx.com', 'contractor_lead', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'FIELD_CONTRACTOR', NULL, 'c0000000-0000-0000-0000-000000000002', NULL, '+91 97230 11984'),
+    ('10000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', 'Vikram Singh Rathore', 'contractor@infralynx.com', 'contractor_lead', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'FIELD_CONTRACTOR', 'd0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000002', NULL, '+91 97230 11984'),
     ('10000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000001', 'Er. Rajesh K. Sharma', 'head@infralynx.com', 'dept_head', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'DEPARTMENT_HEAD', 'd0000000-0000-0000-0000-000000000001', NULL, NULL, '+91 99100 87654'),
     ('10000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000001', 'Sunil Agrawal, CA', 'finance@infralynx.com', 'finance_clerk', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'FINANCE_CLERK', NULL, NULL, 'Finance Block A', '+91 98188 76543'),
     ('10000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000001', 'Col. (Retd.) Sanjeev Dewan', 'coo@infralynx.com', 'township_coo', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'TOWNSHIP_COO', NULL, NULL, 'Executive Tower', '+91 98111 99887'),
     ('10000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000001', 'Anjali Gupta', 'anjali.gupta@infralynx.com', 'clerk_anjali', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'DESK_CLERK', 'd0000000-0000-0000-0000-000000000001', NULL, 'Sector 54', '+91 98733 44556'),
-    ('10000000-0000-0000-0000-000000000008', 'b0000000-0000-0000-0000-000000000001', 'Platform Super Admin', 'superadmin@infralynx.com', 'superadmin', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'SUPER_ADMIN', NULL, NULL, 'Headquarters', '+91 99999 00001');
+    ('10000000-0000-0000-0000-000000000008', 'b0000000-0000-0000-0000-000000000001', 'Platform Super Admin', 'superadmin@infralynx.com', 'superadmin', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'SUPER_ADMIN', NULL, NULL, 'Headquarters', '+91 99999 00001'),
+    -- Category-specific Contractor Accounts (firstname.lastname@infralynx.com)
+    ('10000000-0000-0000-0000-000000000009', 'b0000000-0000-0000-0000-000000000001', 'Rameshwar Nath Sharma', 'rameshwar.sharma@infralynx.com', 'rameshwar.sharma', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'FIELD_CONTRACTOR', 'd0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', NULL, '+91 98110 45231'),
+    ('10000000-0000-0000-0000-00000000000c', 'b0000000-0000-0000-0000-000000000001', 'Vikram Singh Rathore', 'vikram.rathore@infralynx.com', 'vikram.rathore', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'FIELD_CONTRACTOR', 'd0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000002', NULL, '+91 97230 11984'),
+    ('10000000-0000-0000-0000-00000000000a', 'b0000000-0000-0000-0000-000000000001', 'Suresh Narayan Kulkarni', 'suresh.kulkarni@infralynx.com', 'suresh.kulkarni', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'FIELD_CONTRACTOR', 'd0000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000003', NULL, '+91 94220 33819'),
+    ('10000000-0000-0000-0000-00000000000b', 'b0000000-0000-0000-0000-000000000001', 'Gurpreet Singh Sandhu', 'gurpreet.sandhu@infralynx.com', 'gurpreet.sandhu', '$2a$10$q9uqgeFG6erhtap7OzAWR.renKUfkcpefyEpSY4tHkbyae.QLJIW.', 'FIELD_CONTRACTOR', 'd0000000-0000-0000-0000-000000000004', 'c0000000-0000-0000-0000-000000000004', NULL, '+91 98722 55431');
 
 -- Bind Department Head
 UPDATE departments SET department_head_id = '10000000-0000-0000-0000-000000000004' WHERE id = 'd0000000-0000-0000-0000-000000000001';
@@ -130,304 +146,6 @@ VALUES
     ('b0000000-0000-0000-0000-000000000001', 100000.01, NULL, 'TOWNSHIP_COO', 2);
 
 -- ------------------------------------------------------------------------------
--- 8. COMPLAINTS (Realistic Indian Scenarios across Lifecycle)
--- ------------------------------------------------------------------------------
-INSERT INTO complaints (
-    id, complaint_code, township_id, reported_by, department_id,
-    category, subcategory, title, description, severity, sector, block, street,
-    location_details, latitude, longitude, status
-) VALUES 
-    -- 1. High-mast Streetlight: Fixed, Verified, Paid
-    (
-        'e0000000-0000-0000-0000-000000000001',
-        'CMP-2026-0101',
-        'b0000000-0000-0000-0000-000000000001',
-        '10000000-0000-0000-0000-000000000001',
-        'd0000000-0000-0000-0000-000000000002',
-        'Electrical',
-        'Streetlight Failure',
-        'High-Mast Streetlight Failure at Main Sector 54 Junction',
-        'High-mast LED cluster completely unlit since evening peak hours, creating severe hazard for evening commuter traffic.',
-        'HIGH',
-        'Sector 54',
-        'Block B',
-        'Gulmohar Marg',
-        'Near Central Roundabout Fountain',
-        28.5355000,
-        77.3910000,
-        'PENDING_VERIFICATION'
-    ),
-    -- 2. Drinking Water Pipeline Burst: Repaired, Awaiting Citizen Signoff
-    (
-        'e0000000-0000-0000-0000-000000000002',
-        'CMP-2026-0102',
-        'b0000000-0000-0000-0000-000000000001',
-        '10000000-0000-0000-0000-000000000001',
-        'd0000000-0000-0000-0000-000000000003',
-        'Water',
-        'Pipeline Burst',
-        '150mm DI Drinking Water Main Line Burst outside Tower 7',
-        'Underground pressurized potable pipeline ruptured. Fresh water gushing out onto road with severe pressure loss in Towers 6 to 9.',
-        'EMERGENCY',
-        'Sector 54',
-        'Block C',
-        'Palm Avenue',
-        'Outside Aralias Tower 7 Gate',
-        28.5362000,
-        77.3925000,
-        'PENDING_VERIFICATION'
-    ),
-    -- 3. Asphalt Potholes: In Progress
-    (
-        'e0000000-0000-0000-0000-000000000003',
-        'CMP-2026-0103',
-        'b0000000-0000-0000-0000-000000000001',
-        '10000000-0000-0000-0000-000000000001',
-        'd0000000-0000-0000-0000-000000000001',
-        'Civil',
-        'Road Damage',
-        'Deep Asphalt Potholes on Main Sector Spine Road near Gate 2',
-        'Severe 4-inch deep potholes covering 15 sq.m asphalt surface following heavy monsoon showers; damaging resident vehicles.',
-        'HIGH',
-        'Sector 54',
-        'Block A',
-        'Arterial Spine Road',
-        'Between Gate 1 and Gate 2 Security Checkpost',
-        28.5348000,
-        77.3895000,
-        'IN_PROGRESS'
-    ),
-    -- 4. Transformer Cable Fault: Assigned to Contractor
-    (
-        'e0000000-0000-0000-0000-000000000004',
-        'CMP-2026-0104',
-        'b0000000-0000-0000-0000-000000000001',
-        '10000000-0000-0000-0000-000000000001',
-        'd0000000-0000-0000-0000-000000000002',
-        'Electrical',
-        'Distribution Failure',
-        '11kV Transformer Substation Feeder Cable Ground Fault & Sparking',
-        'Underground armoured XLPE cable sparking intermittently with smoke emission near the main transformer isolator switch.',
-        'EMERGENCY',
-        'Sector 54',
-        'Block C',
-        'Substation Road',
-        'Feeder Substation 12B Yard behind Community Hall',
-        28.5372000,
-        77.3945000,
-        'VALIDATED'
-    ),
-    -- 5. Stormwater Drain Overflow: Completed with Cost Variance
-    (
-        'e0000000-0000-0000-0000-000000000005',
-        'CMP-2026-0105',
-        'b0000000-0000-0000-0000-000000000001',
-        '10000000-0000-0000-0000-000000000001',
-        'd0000000-0000-0000-0000-000000000001',
-        'Civil',
-        'Drainage Overflow',
-        'Stormwater Drain Silt Blockage & Monsoon Overflow near Market Complex',
-        'Covered RCC stormwater drain choked with debris, causing foul water to back up into commercial plaza parking entrance.',
-        'MEDIUM',
-        'Sector 54',
-        'Block D',
-        'Commercial Galleria Lane',
-        'Opposite HDFC Bank ATM',
-        28.5380000,
-        77.3960000,
-        'PENDING_VERIFICATION'
-    ),
-    -- 6. Broken Manhole Lid: Validated (Desk Clerk queue)
-    (
-        'e0000000-0000-0000-0000-000000000006',
-        'CMP-2026-0106',
-        'b0000000-0000-0000-0000-000000000001',
-        '10000000-0000-0000-0000-000000000001',
-        'd0000000-0000-0000-0000-000000000001',
-        'Civil',
-        'Footpath Hazard',
-        'Broken Heavy-Duty RCC Manhole Cover on Primary Pedestrian Walkway',
-        '600mm circular manhole lid cracked in half and displaced into pit, presenting immediate fall hazard for morning walkers and children.',
-        'HIGH',
-        'Sector 54',
-        'Block B',
-        'Amaltas Enclave Walkway',
-        'Adjacent to Children Play Park',
-        28.5358000,
-        77.3915000,
-        'VALIDATED'
-    ),
-    -- 7. Tank Float Valve: Newly Reported (RWA Intake)
-    (
-        'e0000000-0000-0000-0000-000000000007',
-        'CMP-2026-0107',
-        'b0000000-0000-0000-0000-000000000001',
-        '10000000-0000-0000-0000-000000000001',
-        'd0000000-0000-0000-0000-000000000003',
-        'Water',
-        'Overhead Tank Leak',
-        'Overhead Potable Water Tank Float Valve Failure causing Continuous Overflow',
-        'Mechanical float switch broken; 50,000-litre overhead RCC tank overflowing onto roof slab and cascading into central atrium courtyard.',
-        'MEDIUM',
-        'Sector 54',
-        'Block A',
-        'Clubhouse Drive',
-        'Main Community Center Utility Roof',
-        28.5342000,
-        77.3888000,
-        'REPORTED'
-    ),
-    -- 8. Duplicate Candidate: Under Review (Proximity match to CMP-2026-0105 within 35m)
-    (
-        'e0000000-0000-0000-0000-000000000008',
-        'CMP-2026-0108',
-        'b0000000-0000-0000-0000-000000000001',
-        '10000000-0000-0000-0000-000000000001',
-        'd0000000-0000-0000-0000-000000000001',
-        'Civil',
-        'Waterlogging',
-        'Severe Waterlogging & Drain Choking near Market Complex Galleria Gate',
-        'Stagnant water accumulation near commercial gate due to drain overflow.',
-        'MEDIUM',
-        'Sector 54',
-        'Block D',
-        'Commercial Galleria Lane',
-        'Galleria North Gate (35m from CMP-2026-0105)',
-        28.5382000,
-        77.3963000,
-        'UNDER_REVIEW'
-    );
-
--- ------------------------------------------------------------------------------
--- 9. WORK ORDERS
--- ------------------------------------------------------------------------------
-INSERT INTO work_orders (
-    id, work_order_number, township_id, complaint_id, department_id,
-    contractor_id, assigned_by, priority, status
-) VALUES
-    ('40000000-0000-0000-0000-000000000001', 'WO-2026-088', 'b0000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 'HIGH', 'COMPLETED'),
-    ('40000000-0000-0000-0000-000000000002', 'WO-2026-089', 'b0000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', 'EMERGENCY', 'COMPLETED'),
-    ('40000000-0000-0000-0000-000000000003', 'WO-2026-087', 'b0000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', 'HIGH', 'IN_PROGRESS'),
-    ('40000000-0000-0000-0000-000000000004', 'WO-2026-090', 'b0000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 'EMERGENCY', 'ASSIGNED'),
-    ('40000000-0000-0000-0000-000000000005', 'WO-2026-091', 'b0000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', 'MEDIUM', 'COMPLETED');
-
--- ------------------------------------------------------------------------------
--- 10. INVOICES & 3-WAY RECONCILIATION AUDIT
--- ------------------------------------------------------------------------------
-INSERT INTO invoices (
-    id, invoice_code, township_id, contractor_id, work_order_id, invoice_number,
-    invoice_date, subtotal, tax, total_amount, approved_estimate_amount, variance_amount,
-    rate_card_match, variance_reason, status
-) VALUES 
-    -- 1. Matched & Pending Final Audit
-    (
-        '50000000-0000-0000-0000-000000000001',
-        'INV-2026-088',
-        'b0000000-0000-0000-0000-000000000001',
-        'c0000000-0000-0000-0000-000000000002',
-        '40000000-0000-0000-0000-000000000001',
-        'VT-INV/2026/041',
-        CURRENT_DATE - INTERVAL '3 days',
-        3400.00,
-        0.00,
-        3400.00,
-        3400.00,
-        0.00,
-        TRUE,
-        NULL,
-        'PENDING_AUDIT'
-    ),
-    -- 2. Authorized, Awaiting RTGS Release
-    (
-        '50000000-0000-0000-0000-000000000002',
-        'INV-2026-079',
-        'b0000000-0000-0000-0000-000000000001',
-        'c0000000-0000-0000-0000-000000000003',
-        '40000000-0000-0000-0000-000000000002',
-        'KIRL-INV/2026/019',
-        CURRENT_DATE - INTERVAL '1 day',
-        6600.00,
-        0.00,
-        6600.00,
-        6600.00,
-        0.00,
-        TRUE,
-        NULL,
-        'AUTHORIZED'
-    ),
-    -- 3. Flagged Variance (+26.6% cost overrun)
-    (
-        '50000000-0000-0000-0000-000000000003',
-        'INV-2026-084',
-        'b0000000-0000-0000-0000-000000000001',
-        'c0000000-0000-0000-0000-000000000001',
-        '40000000-0000-0000-0000-000000000005',
-        'LNT-INV/2026/102',
-        CURRENT_DATE - INTERVAL '2 days',
-        22800.00,
-        0.00,
-        22800.00,
-        18000.00,
-        4800.00,
-        FALSE,
-        'Billed 16 sq.m asphalt filling vs. approved 12 sq.m estimate (+33% quantity increase without prior Dept Head addendum approval).',
-        'VARIANCE_FLAGGED'
-    ),
-    -- 4. Fresh Invoice Pending Audit
-    (
-        '50000000-0000-0000-0000-000000000004',
-        'INV-2026-090',
-        'b0000000-0000-0000-0000-000000000001',
-        'c0000000-0000-0000-0000-000000000002',
-        '40000000-0000-0000-0000-000000000004',
-        'VT-INV/2026/055',
-        CURRENT_DATE,
-        14200.00,
-        0.00,
-        14200.00,
-        14200.00,
-        0.00,
-        TRUE,
-        NULL,
-        'PENDING_AUDIT'
-    );
-
--- ------------------------------------------------------------------------------
--- 11. INVOICE LINE ITEMS
--- ------------------------------------------------------------------------------
-INSERT INTO invoice_items (id, invoice_id, description, unit, quantity, rate, amount)
-VALUES
-    -- INV-2026-088 Items (Total: ₹3,400)
-    ('60000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000001', 'Senior Electrical Technician / Wireman', 'Hour', 2.00, 500.00, 1000.00),
-    ('60000000-0000-0000-0000-000000000002', '50000000-0000-0000-0000-000000000001', 'General Labour (Semi-Skilled / Safety Assist)', 'Hour', 3.00, 300.00, 900.00),
-    ('60000000-0000-0000-0000-000000000003', '50000000-0000-0000-0000-000000000001', 'Armoured 3-Core Copper Cable 16 sq.mm', 'Meter', 10.00, 150.00, 1500.00),
-
-    -- INV-2026-079 Items (Total: ₹6,600)
-    ('60000000-0000-0000-0000-000000000004', '50000000-0000-0000-0000-000000000002', 'Heavy-Duty Cast Iron Sluice Valve Overhaul (150mm)', 'Unit', 2.00, 2500.00, 5000.00),
-    ('60000000-0000-0000-0000-000000000005', '50000000-0000-0000-0000-000000000002', 'Pipe Repair & DI Pipeline Fitting (100mm/150mm)', 'Unit', 2.00, 800.00, 1600.00),
-
-    -- INV-2026-084 Items (Total: ₹22,800)
-    ('60000000-0000-0000-0000-000000000006', '50000000-0000-0000-0000-000000000003', 'Bitumen Cold-Mix Asphalt Pothole Repair', 'Sq.Meter', 16.00, 1200.00, 19200.00),
-    ('60000000-0000-0000-0000-000000000007', '50000000-0000-0000-0000-000000000003', 'General Labour (Semi-Skilled / Safety Assist)', 'Hour', 12.00, 300.00, 3600.00);
-
--- ------------------------------------------------------------------------------
--- 12. PAYMENTS
--- ------------------------------------------------------------------------------
-INSERT INTO payments (
-    id, township_id, invoice_id, contractor_id, amount, status,
-    payment_mode, payment_reference, paid_at
-) VALUES (
-    '70000000-0000-0000-0000-000000000001',
-    'b0000000-0000-0000-0000-000000000001',
-    '50000000-0000-0000-0000-000000000001',
-    'c0000000-0000-0000-0000-000000000002',
-    3400.00,
-    'DISBURSED',
-    'RTGS / Township Escrow',
-    'UTR-HDFC-9928192831',
-    CURRENT_TIMESTAMP - INTERVAL '2 days'
-);
-
 -- ==============================================================================
--- SEED DATA LOAD COMPLETED
+-- SEED DATA LOAD COMPLETED (Zero Complaints, Zero Work Orders)
 -- ==============================================================================

@@ -10,7 +10,18 @@ export default function WorkExecution({
   onSubmitCompletion,
   onNavigate,
 }) {
-  const [activeJobId, setActiveJobId] = useState(selectedJob ? selectedJob.id : (jobs[0]?.id || ''))
+  const [activeJobId, setActiveJobId] = useState(() => {
+    if (selectedJob?.id) return selectedJob.id
+    const readyJob = jobs.find((j) => j.status === 'IN_PROGRESS' || j.status === 'APPROVED' || j.status === 'COMPLETED')
+    return readyJob?.id || jobs[0]?.id || ''
+  })
+
+  useEffect(() => {
+    if (selectedJob?.id) {
+      setActiveJobId(selectedJob.id)
+    }
+  }, [selectedJob])
+
   const currentJob = jobs.find((j) => j.id === activeJobId) || selectedJob || jobs[0]
 
   // Form states - Starts completely empty (no prefilled dummy values)
@@ -84,11 +95,25 @@ export default function WorkExecution({
 
   const isInProgress = currentJob?.status === 'IN_PROGRESS'
   const isCompleted = currentJob?.status === 'COMPLETED' || currentJob?.status === 'PENDING_VERIFICATION' || currentJob?.status === 'CLOSED'
-  const isAssigned = currentJob?.status === 'ASSIGNED' || currentJob?.status === 'WORK_ORDER_CREATED' || currentJob?.status === 'APPROVED'
-  const isAwaitingApproval = currentJob?.status === 'AWAITING_DEPT_HEAD' || currentJob?.status === 'PENDING_APPROVAL'
+  const isApproved = currentJob?.status === 'APPROVED' || currentJob?.status === 'REWORK_REQUESTED'
+  const isAwaitingApproval =
+    ['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO', 'ESCALATED_TO_COO'].includes(currentJob?.status) ||
+    (Boolean(currentJob?.estimate || currentJob?.estimateAmount) && !isApproved && !isInProgress && !isCompleted)
+  const isUnestimated = (currentJob?.status === 'ASSIGNED' || currentJob?.status === 'WORK_ORDER_CREATED') && !isAwaitingApproval && !isApproved
+  const isAssigned = !isInProgress && !isCompleted
+  const canShowForm = (isInProgress || isCompleted) && !isAwaitingApproval && !isUnestimated
 
   function handleStart() {
     if (!currentJob) return
+    if (isAwaitingApproval) {
+      alert('Cannot start work: Department Head approval is required before commencing work.')
+      return
+    }
+    if (isUnestimated) {
+      alert('Cannot start work: You must first submit an AMC estimate and receive Department Head approval.')
+      onNavigate('estimate')
+      return
+    }
     onStartWork(currentJob.id)
     setSubmittedMessage(`Work Order ${currentJob.workOrderId || currentJob.id} is now IN PROGRESS. Field crew dispatched.`)
   }
@@ -169,11 +194,25 @@ export default function WorkExecution({
             }}
             className="execution-select"
           >
-            {jobs.map((j) => (
-              <option key={j.id} value={j.id}>
-                {j.workOrderId || j.id} — {j.title.slice(0, 30)}... ({j.status})
-              </option>
-            ))}
+            {jobs.map((j) => {
+              const isJobAwaiting =
+                ['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO'].includes(j.status) ||
+                (Boolean(j.estimate || j.estimateAmount) && j.status !== 'APPROVED' && j.status !== 'IN_PROGRESS' && j.status !== 'COMPLETED')
+              const statusLabel = isJobAwaiting
+                ? '⏳ Awaiting Dept Head'
+                : j.status === 'APPROVED'
+                ? '✅ Approved'
+                : j.status === 'IN_PROGRESS'
+                ? '🛠️ In Progress'
+                : j.status === 'COMPLETED'
+                ? '✓ Completed'
+                : j.status
+              return (
+                <option key={j.id} value={j.id}>
+                  {j.workOrderId || j.id} — {j.title.slice(0, 24)}... ({statusLabel})
+                </option>
+              )
+            })}
           </select>
         </div>
       </div>
@@ -236,33 +275,137 @@ export default function WorkExecution({
           </div>
         </div>
 
-        {/* Start Work Action if Assigned / Approved */}
-        {isAssigned && (
-          <div className="execution-start-banner">
-            <span className="execution-start-banner-text">
-              {currentJob?.status === 'APPROVED' ? 'Estimate approved by Department Head! Ready to deploy crew on ground.' : 'Ready to deploy crew on ground? Click to initiate active status.'}
+        {/* State A: Approved by Dept Head — Ready to Start */}
+        {isApproved && !isInProgress && !isCompleted && (
+          <div className="execution-start-banner" style={{ background: '#ecfdf5', border: '1px solid #a7f3d0' }}>
+            <span className="execution-start-banner-text" style={{ color: '#065f46', fontWeight: 600 }}>
+              ✅ Estimate approved by Department Head! All clearances complete. Ready to deploy crew on ground.
             </span>
             <button
               onClick={handleStart}
               className="btn-contractor-primary execution-start-btn"
+              style={{ background: '#059669', borderColor: '#059669' }}
             >
               🚀 Start Work (Mark IN_PROGRESS)
             </button>
           </div>
         )}
 
-        {/* Awaiting Dept Head Notice */}
-        {isAwaitingApproval && (
-          <div className="execution-start-banner" style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
-            <span className="execution-start-banner-text" style={{ color: '#92400e', fontWeight: 600 }}>
-              ⏳ AMC Estimate submitted and awaiting Department Head authorization. Work execution unlocks automatically once approved.
-            </span>
+        {/* State B: Awaiting Dept Head Approval — Work is LOCKED */}
+        {isAwaitingApproval && !isInProgress && !isCompleted && (
+          <div className="execution-start-banner" style={{ background: '#fffbeb', border: '1px solid #fde68a' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span className="execution-start-banner-text" style={{ color: '#92400e', fontWeight: 700 }}>
+                ⏳ AMC Estimate Submitted — Awaiting Department Head Approval
+              </span>
+              <span style={{ fontSize: 13, color: '#b45309' }}>
+                Work execution is locked. Under municipal compliance rules, you cannot start work until the Department Head reviews and approves this estimate.
+              </span>
+            </div>
+            <button
+              onClick={() => onNavigate('approvals')}
+              className="btn-contractor-secondary"
+              style={{ whiteSpace: 'nowrap', borderColor: '#f59e0b', color: '#92400e' }}
+            >
+              View Approval Status ↗
+            </button>
+          </div>
+        )}
+
+        {/* State C: Unestimated — Must draft estimate first */}
+        {isUnestimated && !isInProgress && !isCompleted && (
+          <div className="execution-start-banner" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span className="execution-start-banner-text" style={{ color: '#334155', fontWeight: 600 }}>
+                📋 Estimate Required Prior to Execution
+              </span>
+              <span style={{ fontSize: 13, color: '#64748b' }}>
+                Please submit an AMC estimate for this work order to obtain Department Head budget authorization.
+              </span>
+            </div>
+            <button
+              onClick={() => onNavigate('estimate')}
+              className="btn-contractor-primary execution-start-btn"
+            >
+              Draft Estimate →
+            </button>
           </div>
         )}
       </div>
 
-      {/* Side-by-Side Photo Comparison Strip (Before vs After) */}
-      <div className="contractor-card execution-photo-card">
+      {/* State B Notice: Awaiting Approval - Execution & Completion Form Locked */}
+      {isAwaitingApproval && (
+        <div className="contractor-card execution-locked-notice-card" style={{ textAlign: 'center', padding: '48px 24px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px', marginTop: '16px' }}>
+          <div style={{ fontSize: 44, marginBottom: 12 }}>🔒</div>
+          <h3 style={{ fontSize: 20, fontWeight: 700, color: '#92400e', marginBottom: 8 }}>
+            Work Execution &amp; Completion Form Locked
+          </h3>
+          <p style={{ maxWidth: 540, margin: '0 auto 20px', color: '#b45309', fontSize: 14, lineHeight: 1.6 }}>
+            This work order has an estimate submitted and is currently <strong>Awaiting Department Head Approval</strong>.
+            Under municipal compliance rules, work execution cannot start and photographic completion proof forms remain locked until the Department Head authorizes the estimate.
+          </p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <button
+              onClick={() => onNavigate('approvals')}
+              className="btn-contractor-primary"
+              style={{ background: '#d97706', borderColor: '#d97706' }}
+            >
+              Track Estimate Approval &rarr;
+            </button>
+            <button
+              onClick={() => onNavigate('workorders')}
+              className="btn-contractor-secondary"
+            >
+              Back to Work Orders
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* State A Notice: Approved by Dept Head - Ready to Start */}
+      {isApproved && !isInProgress && !isCompleted && (
+        <div className="contractor-card execution-ready-notice-card" style={{ textAlign: 'center', padding: '40px 24px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', marginTop: '16px' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🚀</div>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: '#166534', marginBottom: 8 }}>
+            Estimate Approved — Ready to Deploy Ground Crew
+          </h3>
+          <p style={{ maxWidth: 520, margin: '0 auto 20px', color: '#15803d', fontSize: 14, lineHeight: 1.5 }}>
+            Department Head approval has been granted. Click <strong>Start Work (Mark IN_PROGRESS)</strong> to commence physical repair work on site. Completion proof and photo verification forms will activate once work is in progress.
+          </p>
+          <button
+            onClick={handleStart}
+            className="btn-contractor-primary"
+            style={{ background: '#16a34a', borderColor: '#16a34a' }}
+          >
+            🚀 Start Work (Mark IN_PROGRESS)
+          </button>
+        </div>
+      )}
+
+      {/* State C Notice: Unestimated - Must submit estimate first */}
+      {isUnestimated && (
+        <div className="contractor-card execution-locked-notice-card" style={{ textAlign: 'center', padding: '48px 24px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', marginTop: '16px' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: '#334155', marginBottom: 8 }}>
+            Estimate Required Prior to Execution
+          </h3>
+          <p style={{ maxWidth: 520, margin: '0 auto 20px', color: '#64748b', fontSize: 14, lineHeight: 1.5 }}>
+            Please submit an AMC rate card estimate to obtain Department Head budget authorization before proceeding to work execution.
+          </p>
+          <button
+            onClick={() => onNavigate('estimate')}
+            className="btn-contractor-primary"
+          >
+            Draft AMC Estimate &rarr;
+          </button>
+        </div>
+      )}
+
+      {/* Photo Comparison & Completion Form - Visible ONLY when work is IN_PROGRESS or COMPLETED */}
+      {canShowForm && (
+        <>
+          {/* Side-by-Side Photo Comparison Strip (Before vs After) */}
+          <div className="contractor-card execution-photo-card">
         <h3 className="execution-photo-title">
           Mandatory Photo Evidence Verification
         </h3>
@@ -513,6 +656,8 @@ export default function WorkExecution({
           </div>
         </form>
       </div>
-    </div>
-  )
+    </>
+  )}
+</div>
+)
 }

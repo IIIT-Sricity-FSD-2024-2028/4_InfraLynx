@@ -56,6 +56,11 @@ const assertContractorWorkOrderAccess = (req, wo) => {
   if (township_id && wo.township_id && wo.township_id !== township_id) {
     throw new AppError('Cross-township work order access is forbidden.', 403, 'FORBIDDEN');
   }
+
+  const contractor_id = getUserContractorId(req.user);
+  if (req.user.role === 'FIELD_CONTRACTOR' && contractor_id && wo.contractor_id && wo.contractor_id !== contractor_id) {
+    throw new AppError('Access forbidden: this work order is assigned to another contractor.', 403, 'FORBIDDEN');
+  }
 };
 
 const isSafeEvidenceUrl = (url) => {
@@ -85,10 +90,9 @@ export const getAssignedJobs = async (req, res, next) => {
     const workOrders = db.findAll('work_orders', (wo) => {
       if (township_id && wo.township_id && wo.township_id !== township_id) return false;
       const matchContractor =
-        req.user.role === 'TOWNSHIP_COO' ||
-        req.user.email === 'contractor@infralynx.com'
+        req.user.role === 'TOWNSHIP_COO'
           ? true
-          : Boolean(contractor_id && wo.contractor_id === contractor_id);
+          : Boolean(contractor_id ? wo.contractor_id === contractor_id : true);
       const matchStatus = !status || wo.status === status.toUpperCase();
       return matchContractor && matchStatus;
     });
@@ -172,6 +176,8 @@ export const getAssignedJobs = async (req, res, next) => {
         evidence,
         company_name: contractor?.company_name || 'Assigned AMC Partner',
         contractorName: contractor?.company_name || 'Assigned AMC Partner',
+        contractor_id: wo.contractor_id,
+        contractorId: wo.contractor_id,
       };
     });
 
@@ -353,7 +359,7 @@ export const submitEstimate = async (req, res, next) => {
     }
 
     // Backend calculates official rate card totals (strict compliance rule)
-    const verified = calculateVerifiedEstimate(lineItems, getUserContractorId(req.user) || wo.contractor_id);
+    const verified = calculateVerifiedEstimate(lineItems, wo.contractor_id || getUserContractorId(req.user));
     const requiresDeptHead = true;
     const nextStatus = 'AWAITING_DEPT_HEAD';
 
@@ -389,7 +395,7 @@ export const submitEstimate = async (req, res, next) => {
     } else {
       estimateRecord = db.insert('estimates', {
         work_order_id: wo.id,
-        contractor_id: getUserContractorId(req.user) || wo.contractor_id,
+        contractor_id: wo.contractor_id || getUserContractorId(req.user),
         total_amount: verified.totalAmount,
         status: 'SUBMITTED',
         submitted_at: now,
@@ -400,7 +406,7 @@ export const submitEstimate = async (req, res, next) => {
     if (db.query) {
       await db.query(
         `INSERT INTO estimates (id, work_order_id, contractor_id, total_amount, status, submitted_at, submitted_by) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING`,
-        [estimateRecord.id, wo.id, getUserContractorId(req.user) || wo.contractor_id, verified.totalAmount, requiresDeptHead ? 'SUBMITTED' : 'APPROVED', now, actorName]
+        [estimateRecord.id, wo.id, wo.contractor_id || getUserContractorId(req.user), verified.totalAmount, requiresDeptHead ? 'SUBMITTED' : 'APPROVED', now, actorName]
       ).catch(() => {});
     }
 
@@ -490,12 +496,42 @@ export const updateJobStatus = async (req, res, next) => {
 
     const currentStatus = (wo.status || '').toUpperCase();
     if (normalizedStatus === 'IN_PROGRESS') {
-      const startableStatuses = ['ASSIGNED', 'APPROVED', 'WORK_ORDER_CREATED', 'REWORK_REQUESTED'];
-      if (!startableStatuses.includes(currentStatus)) {
-        return next(new AppError(`Cannot start work from status '${wo.status}'.`, 409, 'INVALID_STATUS_TRANSITION'));
+      // 1. Explicitly block if estimate is pending Department Head or COO approval
+      if (['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO', 'ESCALATED_TO_COO'].includes(currentStatus)) {
+        return next(
+          new AppError(
+            `Cannot start work: Submitted estimate is pending Department Head approval. Work execution unlocks automatically once approved.`,
+            409,
+            'APPROVAL_REQUIRED'
+          )
+        );
       }
+
+      // 2. Check if an estimate has been submitted for this work order that is not yet approved
+      const est = db.findOne('estimates', (e) => e.work_order_id === wo.id);
+      if (est && est.status !== 'APPROVED' && currentStatus !== 'APPROVED') {
+        return next(
+          new AppError(
+            `Cannot start work: Submitted estimate of ₹${Number(est.total_amount).toLocaleString()} is pending Department Head approval.`,
+            409,
+            'APPROVAL_REQUIRED'
+          )
+        );
+      }
+
+      // 3. Work order must be APPROVED or REWORK_REQUESTED to start work
+      const startableStatuses = ['APPROVED', 'REWORK_REQUESTED'];
+      if (!startableStatuses.includes(currentStatus)) {
+        return next(
+          new AppError(
+            `Cannot start work: Department Head approval is required before commencing work. Current status is '${wo.status}'.`,
+            409,
+            'APPROVAL_REQUIRED'
+          )
+        );
+      }
+
       if (!wo.inspection_notes && !wo.inspected_at) {
-        const est = db.findOne('estimates', (e) => e.work_order_id === wo.id);
         const comp = db.findOne('complaints', (c) => c.id === wo.complaint_id || c.complaint_code === wo.complaint_id);
         const hasInsp = est?.inspection_notes || comp?.history?.some((h) => h.stage === 'SITE_INSPECTED');
         if (!hasInsp) {

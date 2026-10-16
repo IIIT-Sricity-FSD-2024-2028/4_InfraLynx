@@ -53,7 +53,7 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
     const cat = (active.category || '').toLowerCase()
     const matches = contractors.filter(c => {
       if (!c.departments || !Array.isArray(c.departments) || c.departments.length === 0) {
-        return true
+        return false
       }
       return c.departments.some(deptName => {
         const d = (deptName || '').toLowerCase()
@@ -67,18 +67,28 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
       })
     })
 
-    // If specific filter found matches, use them; otherwise fallback to all active contractors so workflow never dead-ends
     return matches.length > 0 ? matches : contractors
   }, [contractors, active])
 
-  // Auto-select contractor: prefer the one assigned during verification, or first match
+  // Auto-select contractor: prefer the one assigned during verification, or first match for the complaint's category
   useEffect(() => {
-    if (active?.assignedContractor?.id) {
-      setSelectedContractorId(active.assignedContractor.id)
-    } else if (filteredContractors.length > 0 && !selectedContractorId) {
-      setSelectedContractorId(filteredContractors[0].id)
+    if (!active) return
+
+    const activeContractorId = active.assignedContractor?.id || active.assigned_contractor_id || active.contractor_id
+    if (activeContractorId && filteredContractors.some(c => c.id === activeContractorId)) {
+      setSelectedContractorId(activeContractorId)
+      return
     }
-  }, [filteredContractors, active, selectedContractorId])
+
+    if (filteredContractors.length > 0) {
+      const isCurrentValid = filteredContractors.some(c => c.id === selectedContractorId)
+      if (!isCurrentValid) {
+        setSelectedContractorId(filteredContractors[0].id)
+      }
+    } else {
+      setSelectedContractorId('')
+    }
+  }, [filteredContractors, active?.id, active?.category])
 
   /**
    * handleDispatch - creates Work Order and assigns contractor in backend, transitions complaint status.

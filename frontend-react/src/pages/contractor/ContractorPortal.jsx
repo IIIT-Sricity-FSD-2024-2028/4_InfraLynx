@@ -8,7 +8,6 @@ import AmcEstimateBuilder from './AmcEstimateBuilder.jsx'
 import ApprovalStatus from './ApprovalStatus.jsx'
 import WorkExecution from './WorkExecution.jsx'
 import ErrorBoundary from '../../components/common/ErrorBoundary.jsx'
-import { CONTRACTOR_PROFILE, INITIAL_CONTRACTOR_JOBS } from './mockContractorData.js'
 import './styles/ContractorPortal.css'
 
 function mapBackendJobToUi(wo) {
@@ -113,6 +112,7 @@ function mapBackendJobToUi(wo) {
 
 export default function ContractorPortal({ onExitToLanding }) {
   const {
+    currentUser,
     complaints = [],
     updateComplaintStatus,
     refreshComplaints,
@@ -154,8 +154,17 @@ export default function ContractorPortal({ onExitToLanding }) {
 
   // Real-time synchronization: If a complaint in shared context was updated or assigned, reflect here
   useEffect(() => {
+    const currentContractorId = currentUser?.contractor_id || currentUser?.contractorId
+    const currentDeptId = currentUser?.department_id || currentUser?.departmentId
+
     complaints.forEach((cmp) => {
-      if (cmp.assignedContractor || cmp.workOrderId || cmp.status === 'ASSIGNED' || cmp.status === 'DISPUTED') {
+      const matchesContractor = !currentContractorId ||
+        cmp.assignedContractor?.id === currentContractorId ||
+        cmp.assigned_contractor_id === currentContractorId ||
+        cmp.contractor_id === currentContractorId ||
+        (currentDeptId && cmp.department_id === currentDeptId)
+
+      if (matchesContractor && (cmp.assignedContractor || cmp.workOrderId || cmp.status === 'ASSIGNED' || cmp.status === 'DISPUTED')) {
         setJobs((prev) => {
           const exists = prev.find((j) => j.id === cmp.id)
           if (!exists) {
@@ -297,21 +306,26 @@ export default function ContractorPortal({ onExitToLanding }) {
         return {
           ...j,
           estimate: estimateData,
-          status: finalStatus,
+          status: finalStatus || 'AWAITING_DEPT_HEAD',
+          estimateAmount: Number(estimateData.total || 0),
+          estimated_cost: Number(estimateData.total || 0),
         }
       })
     )
 
+    // Clear selectedJob so create estimate list doesn't retain the submitted job
+    setSelectedJob((prev) => (prev?.id === jobId ? null : prev))
+
     if (updateComplaintStatus) {
       updateComplaintStatus(
         jobId,
-        finalStatus,
+        finalStatus || 'AWAITING_DEPT_HEAD',
         `AMC Estimate submitted: ₹${estimateData.total?.toLocaleString('en-IN')}`
       )
     }
 
     setSuccessNotice({
-      message: `AMC Estimate of ₹${estimateData.total?.toLocaleString('en-IN')} submitted for ${jobId}.`,
+      message: `AMC Estimate of ₹${estimateData.total?.toLocaleString('en-IN')} submitted for ${jobId}. Awaiting Department Head approval.`,
     })
   }
 
@@ -319,6 +333,20 @@ export default function ContractorPortal({ onExitToLanding }) {
   async function handleStartWork(jobId) {
     const targetJob = jobs.find((j) => j.id === jobId)
     const targetId = targetJob?.backendWoId || targetJob?.workOrderId || targetJob?.workOrderCode || jobId
+
+    const hasUnapprovedEstimate =
+      (Boolean(targetJob?.estimate) || Number(targetJob?.estimateAmount || targetJob?.estimated_cost || 0) > 0) &&
+      targetJob?.status !== 'APPROVED' &&
+      targetJob?.status !== 'REWORK_REQUESTED'
+    const isAwaiting =
+      ['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO', 'ESCALATED_TO_COO'].includes(targetJob?.status) ||
+      hasUnapprovedEstimate
+    const isApproved = targetJob?.status === 'APPROVED' || targetJob?.status === 'REWORK_REQUESTED'
+
+    if (isAwaiting || !isApproved) {
+      alert('Cannot start work: Department Head approval is required before commencing work.')
+      return
+    }
 
     // Bridge to backend contractor API
     try {
@@ -328,6 +356,8 @@ export default function ContractorPortal({ onExitToLanding }) {
       })
     } catch (err) {
       console.warn('[ContractorPortal] Backend updateJobStatus note:', err.message)
+      alert(err.message || 'Cannot start work: Department Head approval is required.')
+      return
     }
 
     setJobs((prev) =>
@@ -510,10 +540,10 @@ export default function ContractorPortal({ onExitToLanding }) {
           <div className="contractor-user-actions">
             <div className="contractor-user-badge">
               <div className="contractor-user-name">
-                {CONTRACTOR_PROFILE.lead}
+                {currentUser?.name || 'Field Contractor'}
               </div>
               <div className="contractor-user-role">
-                Field Contractor • Sector 54
+                {currentUser?.contractor_name || currentUser?.contractorName || 'AMC Partner'} • {currentUser?.department_name || currentUser?.departmentName || 'Sector 54'}
               </div>
             </div>
 
