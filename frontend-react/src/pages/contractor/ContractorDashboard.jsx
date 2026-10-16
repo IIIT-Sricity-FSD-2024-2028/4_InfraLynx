@@ -21,10 +21,6 @@ export default function ContractorDashboard({
     () => jobs.filter((j) => j.status === 'COMPLETED' || j.status === 'PENDING_VERIFICATION' || j.status === 'CLOSED'),
     [jobs]
   )
-  const disputedJobs = useMemo(
-    () => jobs.filter((j) => j.status === 'DISPUTED'),
-    [jobs]
-  )
   const revisionJobs = useMemo(
     () => jobs.filter((j) => j.status === 'REVISION_REQUESTED'),
     [jobs]
@@ -61,34 +57,6 @@ export default function ContractorDashboard({
             className="contractor-toast-close"
           >
             ✕
-          </button>
-        </div>
-      )}
-
-      {/* Disputed / Rework Alert Banner */}
-      {disputedJobs.length > 0 && (
-        <div className="contractor-alert-banner">
-          <div className="contractor-alert-content">
-            <span className="contractor-alert-icon">⚠️</span>
-            <div>
-              <div className="contractor-alert-title">
-                Priority Action: {disputedJobs.length} RWA Disputed Job Requiring Corrective Rework
-              </div>
-              <div className="contractor-alert-sub">
-                Resident representative flagged defect or incomplete repair. Zero-cost rework mandate applies under AMC agreement.
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              if (disputedJobs[0]) {
-                onSelectJob(disputedJobs[0])
-                onNavigate('rework')
-              }
-            }}
-            className="btn-contractor-primary contractor-alert-btn"
-          >
-            Review Disputed Rework →
           </button>
         </div>
       )}
@@ -170,20 +138,7 @@ export default function ContractorDashboard({
           </div>
         </div>
 
-        <div
-          className="contractor-stat-tile red"
-          onClick={() => onNavigate('rework')}
-        >
-          <div>
-            <div className="contractor-stat-val">
-              {disputedJobs.length}
-            </div>
-            <div className="contractor-stat-lbl">Reopened / Disputed Jobs</div>
-          </div>
-          <div className="contractor-stat-link red">
-            Requires Corrective Rework →
-          </div>
-        </div>
+
 
         <div
           className="contractor-stat-tile purple"
@@ -282,8 +237,6 @@ export default function ContractorDashboard({
                             ? 'progress'
                             : job.status === 'COMPLETED' || job.status === 'PENDING_VERIFICATION'
                             ? 'completed'
-                            : job.status === 'DISPUTED'
-                            ? 'disputed'
                             : job.status === 'REVISION_REQUESTED'
                             ? 'revision'
                             : 'awaiting'
@@ -343,18 +296,6 @@ export default function ContractorDashboard({
                         </button>
                       )}
 
-                      {job.status === 'DISPUTED' && (
-                        <button
-                          onClick={() => {
-                            onSelectJob(job)
-                            onNavigate('rework')
-                          }}
-                          className="btn-contractor-primary btn-table-action red"
-                        >
-                          Rework Details →
-                        </button>
-                      )}
-
                       {(job.status === 'COMPLETED' || job.status === 'PENDING_VERIFICATION') && (
                         <button
                           onClick={() => {
@@ -397,7 +338,7 @@ export default function ContractorDashboard({
             <li>Every estimate must reference contractual AMC Rate Cards (no open pricing).</li>
             <li>Estimates exceeding ₹10,000 threshold require Department Head sign-off.</li>
             <li>Before and After photographs are required for municipal invoice clearance.</li>
-            <li>RWA holds dispute rights; rework must be addressed within 24 hours.</li>
+            <li>RWA verifies completed work before work orders transition to Finance for settlement.</li>
           </ul>
         </div>
 

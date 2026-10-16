@@ -145,7 +145,6 @@ export default function ClerkDashboard({
       COMPLETED:            { label: 'Completed',          bg: '#f0fdf4', color: '#166534', border: '#86efac', pulse: false },
       PENDING_VERIFICATION: { label: 'Pending Verify',     bg: '#fffbeb', color: '#92400e', border: '#fde68a', pulse: true  },
       CLOSED:               { label: 'Closed',             bg: '#f0fdf4', color: '#15803d', border: '#86efac', pulse: false },
-      DISPUTED:             { label: 'Disputed',           bg: '#fef2f2', color: '#991b1b', border: '#fca5a5', pulse: true  },
     }
     return m[status] || { label: status, bg: '#f1f5f9', color: '#475569', border: '#e2e8f0', pulse: false }
   }

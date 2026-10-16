@@ -106,8 +106,8 @@ export const getAssignedJobs = async (req, res, next) => {
       );
       const workEv = db.findAll('work_evidence', (we) => we.work_order_id === wo.id);
       const allEv = [...evidence, ...workEv.map((w) => ({ ...w, evidence_type: w.type || w.evidence_type }))];
-      const beforeEvidence = allEv.filter((e) => (e.evidence_type || e.type) === 'BEFORE').map((e) => e.file_url || e.fileUrl);
-      const afterEvidence = allEv.filter((e) => (e.evidence_type || e.type) === 'AFTER').map((e) => e.file_url || e.fileUrl);
+      const beforeEvidence = Array.from(new Set(allEv.filter((e) => (e.evidence_type || e.type) === 'BEFORE').map((e) => e.file_url || e.fileUrl).filter(Boolean)));
+      const afterEvidence = Array.from(new Set(allEv.filter((e) => (e.evidence_type || e.type) === 'AFTER').map((e) => e.file_url || e.fileUrl).filter(Boolean)));
 
       const estimatedCost = Number(wo.estimated_cost || 0);
       const actualCost = wo.actual_cost !== null && wo.actual_cost !== undefined
@@ -161,8 +161,8 @@ export const getAssignedJobs = async (req, res, next) => {
         description: complaint?.description || wo.special_instructions || '',
         reported_by: complaint?.reported_by || 'Dr. Arvind Swaminathan',
         reportedBy: complaint?.reported_by || { name: 'Dr. Arvind Swaminathan', role: 'RWA Secretary' },
-        beforePhotos: (complaint?.beforePhotos && complaint.beforePhotos.length > 0) ? complaint.beforePhotos : beforeEvidence,
-        afterPhotos: (complaint?.afterPhotos && complaint.afterPhotos.length > 0) ? complaint.afterPhotos : afterEvidence,
+        beforePhotos: Array.from(new Set([...(complaint?.beforePhotos || complaint?.before_photos || []), ...beforeEvidence].filter(Boolean))),
+        afterPhotos: Array.from(new Set([...(complaint?.afterPhotos || complaint?.after_photos || []), ...afterEvidence].filter(Boolean))),
         inspection_notes: wo.inspection_notes || null,
         inspectionNotes: wo.inspection_notes || null,
         inspected_at: wo.inspected_at || null,
@@ -210,7 +210,14 @@ export const getJobById = async (req, res, next) => {
     const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id || c.complaint_code === wo.complaint_id);
     const evidence = db.findAll('complaint_evidence', (ev) => ev.complaint_id === wo.complaint_id || ev.complaint_id === complaint?.id || ev.complaint_id === complaint?.complaint_code);
     const workEv = db.findAll('work_evidence', (we) => we.work_order_id === wo.id);
-    const allEvidence = [...evidence, ...workEv.map((w) => ({ ...w, evidence_type: w.type || w.evidence_type }))];
+    const rawAllEvidence = [...evidence, ...workEv.map((w) => ({ ...w, evidence_type: w.type || w.evidence_type }))];
+    const seenUrls = new Set();
+    const allEvidence = rawAllEvidence.filter((e) => {
+      const url = e.file_url || e.fileUrl;
+      if (!url || seenUrls.has(url)) return false;
+      seenUrls.add(url);
+      return true;
+    });
     const amcRates = db.findAll('amc_rates');
 
     const estimatedCost = Number(wo.estimated_cost || wo.estimate_amount || 0);

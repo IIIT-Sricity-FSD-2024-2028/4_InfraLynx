@@ -104,8 +104,6 @@ function mapBackendJobToUi(wo) {
     inspection,
     estimate,
     execution,
-    dispute: wo.dispute || (wo.status === 'DISPUTED' ? { reason: 'RWA requested rework' } : null),
-    rework: null,
     rawBackendData: wo,
   }
 }
@@ -164,7 +162,7 @@ export default function ContractorPortal({ onExitToLanding }) {
         cmp.contractor_id === currentContractorId ||
         (currentDeptId && cmp.department_id === currentDeptId)
 
-      if (matchesContractor && (cmp.assignedContractor || cmp.workOrderId || cmp.status === 'ASSIGNED' || cmp.status === 'DISPUTED')) {
+      if (matchesContractor && (cmp.assignedContractor || cmp.workOrderId || cmp.status === 'ASSIGNED')) {
         setJobs((prev) => {
           const exists = prev.find((j) => j.id === cmp.id)
           if (!exists) {
@@ -190,12 +188,8 @@ export default function ContractorPortal({ onExitToLanding }) {
               inspection: cmp.inspectionRemarks ? { remarks: cmp.inspectionRemarks } : null,
               estimate: cmp.estimateAmount ? { total: cmp.estimateAmount } : null,
               execution: cmp.completedAt ? { completedAt: cmp.completedAt } : null,
-              dispute: cmp.dispute || null,
             }
             return [newJob, ...prev]
-          } else if (cmp.status === 'DISPUTED' && exists.status !== 'DISPUTED') {
-            // Reflect dispute immediately
-            return prev.map((j) => (j.id === cmp.id ? { ...j, status: 'DISPUTED', dispute: cmp.dispute } : j))
           }
           return prev
         })
@@ -455,65 +449,11 @@ export default function ContractorPortal({ onExitToLanding }) {
     })
   }
 
-  // Action: Submit Rework
-  async function onSubmitRework(jobId, reworkData) {
-    const targetJob = jobs.find((j) => j.id === jobId)
-    const targetId = targetJob?.backendWoId || targetJob?.workOrderId || targetJob?.workOrderCode || jobId
-    const complaintId = targetJob?.complaintId || targetJob?.id || jobId
-
-    // Bridge to backend contractor API
-    try {
-      if (reworkData.newPhoto) {
-        await contractorApi.uploadEvidence({
-          workOrderId: targetId,
-          complaintId,
-          evidenceType: 'AFTER',
-          photos: [reworkData.newPhoto],
-          caption: reworkData.correctiveAction || 'Corrective rework completion proof',
-        })
-      }
-
-      await contractorApi.updateJobStatus(targetId, {
-        status: 'COMPLETED',
-        remarks: `Corrective rework completed under AMC warranty: ${reworkData.correctiveAction || ''}. Notes: ${reworkData.remarks || ''}`,
-      })
-    } catch (err) {
-      console.warn('[ContractorPortal] Backend submitRework note:', err.message)
-    }
-
-    setJobs((prev) =>
-      prev.map((j) => {
-        if (j.id !== jobId) return j
-        return {
-          ...j,
-          status: 'PENDING_VERIFICATION',
-          afterPhotos: [reworkData.newPhoto, ...(j.afterPhotos || [])],
-          rework: reworkData,
-        }
-      })
-    )
-
-    if (updateComplaintStatus) {
-      updateComplaintStatus(
-        jobId,
-        'PENDING_VERIFICATION',
-        `Corrective rework completed under AMC warranty. Re-submitted for RWA sign-off.`
-      )
-    }
-
-    setSuccessNotice({
-      message: `Corrective rework submitted for ${jobId}. Status updated to PENDING_VERIFICATION.`,
-    })
-  }
-
-
-
   // Tab Badge counts
   const assignedCount = jobs.filter((j) => j.status === 'ASSIGNED' || j.status === 'WORK_ORDER_CREATED').length
   const inspectionNeeded = jobs.filter((j) => j.status === 'ASSIGNED' && !j.inspection).length
   const inProgressCount = jobs.filter((j) => j.status === 'IN_PROGRESS').length
   const revisionCount = jobs.filter((j) => j.status === 'REVISION_REQUESTED').length
-  const disputedCount = jobs.filter((j) => j.status === 'DISPUTED').length
 
   return (
     <div className="contractor-shell">
@@ -584,12 +524,6 @@ export default function ContractorPortal({ onExitToLanding }) {
                 label: 'Work Execution',
                 badge: inProgressCount > 0 ? inProgressCount : null,
                 badgeType: 'blue',
-              },
-              {
-                id: 'rework',
-                label: 'Rework / Dispute',
-                badge: disputedCount > 0 ? `${disputedCount} Rework` : null,
-                badgeType: 'red',
               },
             ].map((tab) => {
               const isActive = currentScreen === tab.id
@@ -677,16 +611,6 @@ export default function ContractorPortal({ onExitToLanding }) {
               onSelectJob={handleSelectJob}
               onStartWork={handleStartWork}
               onSubmitCompletion={handleSubmitCompletion}
-              onNavigate={handleNavigate}
-            />
-          )}
-
-          {currentScreen === 'rework' && (
-            <ReworkDispute
-              jobs={jobs}
-              selectedJob={selectedJob}
-              onSelectJob={handleSelectJob}
-              onSubmitRework={onSubmitRework}
               onNavigate={handleNavigate}
             />
           )}

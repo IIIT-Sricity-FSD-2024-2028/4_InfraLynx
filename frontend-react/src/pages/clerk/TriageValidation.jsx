@@ -247,7 +247,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
           <div>
             <span className="tv-attr-label tv-attr-label-block">Site Evidence Photos</span>
             <div className="tv-photos">
-              {active.beforePhotos.map((src, i) => (
+              {Array.from(new Set(active.beforePhotos)).map((src, i) => (
                 <img key={i} src={src} alt={`Evidence ${i + 1}`} className="tv-photo" />
               ))}
             </div>

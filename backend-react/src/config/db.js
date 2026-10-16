@@ -81,9 +81,10 @@ const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}
 const ENUM_MAPPINGS = {
   complaints: {
     status: (val) => {
-      const valid = new Set(['REPORTED', 'UNDER_REVIEW', 'VALIDATED', 'WORK_ORDER_CREATED', 'AWAITING_DEPT_HEAD', 'AWAITING_COO', 'ESCALATED_TO_COO', 'IN_PROGRESS', 'PENDING_VERIFICATION', 'DISPUTED', 'VERIFIED', 'CLOSED', 'REJECTED']);
+      const valid = new Set(['REPORTED', 'UNDER_REVIEW', 'VALIDATED', 'WORK_ORDER_CREATED', 'AWAITING_DEPT_HEAD', 'AWAITING_COO', 'ESCALATED_TO_COO', 'IN_PROGRESS', 'PENDING_VERIFICATION', 'VERIFIED', 'CLOSED', 'REJECTED']);
       if (valid.has(val)) return val;
       if (val === 'ASSIGNED') return 'WORK_ORDER_CREATED';
+      if (val === 'DISPUTED') return 'PENDING_VERIFICATION';
       return 'REPORTED';
     },
   },

@@ -53,6 +53,7 @@ export default function SiteInspection({
   const [isDragOver, setIsDragOver] = useState(false)
   const [remarks, setRemarks] = useState('')
   const [isSaved, setIsSaved] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
   const fileInputRef = useRef(null)
 
@@ -118,8 +119,8 @@ export default function SiteInspection({
     }
   }
 
-  function handleSave(proceedToEstimate = false) {
-    if (!currentJob) return
+  async function handleSave(proceedToEstimate = false) {
+    if (!currentJob || isSaving) return
 
     if (!beforePhoto) {
       alert('Please upload photographic evidence before saving the inspection.')
@@ -135,12 +136,19 @@ export default function SiteInspection({
       inspectedAt: new Date().toISOString(),
     }
 
-    onSaveInspection(currentJob.id, inspectionData)
-    setIsSaved(true)
+    try {
+      setIsSaving(true)
+      await onSaveInspection(currentJob.id, inspectionData)
+      setIsSaved(true)
 
-    if (proceedToEstimate) {
-      onSelectJob({ ...currentJob, inspection: inspectionData })
-      onNavigate('estimate')
+      if (proceedToEstimate) {
+        onSelectJob({ ...currentJob, inspection: inspectionData })
+        onNavigate('estimate')
+      }
+    } catch (err) {
+      alert(`Save inspection failed: ${err.message}`)
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -482,18 +490,21 @@ export default function SiteInspection({
             <div className="inspection-actions-row">
               <button
                 type="button"
+                disabled={isSaving}
                 onClick={() => handleSave(false)}
                 className="btn-contractor-secondary"
+                style={{ opacity: isSaving ? 0.7 : 1 }}
               >
-                💾 Save Inspection Draft
+                {isSaving ? 'Saving...' : '💾 Save Inspection Draft'}
               </button>
 
               <button
                 type="submit"
+                disabled={isSaving}
                 className="btn-contractor-primary"
-                style={{ padding: '10px 22px' }}
+                style={{ padding: '10px 22px', opacity: isSaving ? 0.7 : 1, cursor: isSaving ? 'not-allowed' : 'pointer' }}
               >
-                Save &amp; Create AMC Estimate &rarr;
+                {isSaving ? 'Uploading Evidence...' : 'Save & Create AMC Estimate →'}
               </button>
             </div>
           </form>

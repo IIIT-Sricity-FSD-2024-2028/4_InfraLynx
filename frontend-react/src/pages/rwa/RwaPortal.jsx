@@ -12,7 +12,6 @@ export default function RwaPortal({ onExitToLanding }) {
   const { currentUser } = useTIMS()
   // Local RWA Complaints State
   const [complaints, setComplaints] = useState([])
-  const [loading, setLoading] = useState(true)
   const [currentScreen, setCurrentScreen] = useState('dashboard')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
   const [successNotice, setSuccessNotice] = useState(null)
@@ -20,13 +19,10 @@ export default function RwaPortal({ onExitToLanding }) {
   // 1. Fetch live complaints from backend on mount
   const loadComplaints = useCallback(async () => {
     try {
-      setLoading(true)
       const data = await complaintApi.getComplaints()
       setComplaints(Array.isArray(data) ? data : [])
     } catch (err) {
       console.warn('[RwaPortal] Backend fetch notice:', err.message)
-    } finally {
-      setLoading(false)
     }
   }, [])
 
@@ -66,27 +62,6 @@ export default function RwaPortal({ onExitToLanding }) {
       return resolved
     } catch (err) {
       console.error('[RwaPortal] Error confirming fix:', err.message)
-      throw err
-    }
-  }
-
-  async function handleDisputeComplaint(id, payload = {}) {
-    try {
-      const updated = await complaintApi.disputeComplaint(id, payload)
-      const resolved = updated?.data || updated
-      setComplaints((prev) =>
-        prev.map((c) => (c.id === id || c.complaint_code === id ? { ...c, ...resolved, status: 'DISPUTED' } : c))
-      )
-      setSelectedComplaint((prev) => {
-        if (!prev) return null
-        if (prev.id === id || prev.complaint_code === id) {
-          return { ...prev, ...resolved, status: 'DISPUTED' }
-        }
-        return prev
-      })
-      return resolved
-    } catch (err) {
-      console.error('[RwaPortal] Error disputing fix:', err.message)
       throw err
     }
   }
@@ -176,7 +151,7 @@ export default function RwaPortal({ onExitToLanding }) {
               { id: 'track', label: 'Live Tracker' },
               {
                 id: 'verify',
-                label: 'Verification & Dispute',
+                label: 'Verification',
                 badge: pendingVerificationCount > 0 ? pendingVerificationCount : null,
               },
             ].map((tab) => {
@@ -205,13 +180,11 @@ export default function RwaPortal({ onExitToLanding }) {
         {currentScreen === 'dashboard' && (
           <RwaDashboard
             complaints={complaints}
-            loading={loading}
             currentUser={currentUser}
             onNavigate={handleNavigate}
             onSelectComplaint={handleSelectComplaint}
             successNotice={successNotice}
             onDismissNotice={() => setSuccessNotice(null)}
-            onRefresh={loadComplaints}
           />
         )}
 
@@ -219,7 +192,6 @@ export default function RwaPortal({ onExitToLanding }) {
           <ReportIssue
             currentUser={currentUser}
             onNavigate={handleNavigate}
-            onSelectComplaint={handleSelectComplaint}
             onComplaintSubmitted={handleComplaintSubmitted}
             onAddComplaint={handleAddComplaint}
           />
@@ -243,7 +215,6 @@ export default function RwaPortal({ onExitToLanding }) {
             onNavigate={handleNavigate}
             onSelectComplaint={handleSelectComplaint}
             onConfirmFix={handleConfirmFix}
-            onDisputeComplaint={handleDisputeComplaint}
           />
         )}
       </main>

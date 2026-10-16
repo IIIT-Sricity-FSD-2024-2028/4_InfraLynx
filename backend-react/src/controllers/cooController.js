@@ -798,7 +798,6 @@ export const getWorkOrderDetails = async (req, res, next) => {
               photos: complaint.photos || [],
               history: complaint.history || [],
               verification: complaint.verification || null,
-              dispute: complaint.dispute || null,
               status: complaint.status,
             }
           : null,

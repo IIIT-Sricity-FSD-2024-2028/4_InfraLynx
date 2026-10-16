@@ -41,16 +41,10 @@ function formatComplaintDetail(complaint) {
 
   // Retrieve evidence photos
   const allEvidence = db.find('complaint_evidence', (e) => e.complaint_id === complaint.id);
-  const beforePhotos = allEvidence
-    .filter((e) => e.evidence_type === 'BEFORE')
-    .map((e) => e.file_url);
-  const afterPhotos = allEvidence
-    .filter((e) => e.evidence_type === 'AFTER')
-    .map((e) => e.file_url);
+  const beforePhotos = Array.from(new Set(allEvidence.filter((e) => (e.evidence_type || e.type) === 'BEFORE').map((e) => e.file_url).filter(Boolean)));
+  const afterPhotos = Array.from(new Set(allEvidence.filter((e) => (e.evidence_type || e.type) === 'AFTER').map((e) => e.file_url).filter(Boolean)));
 
-  const photos = complaint.beforePhotos && complaint.beforePhotos.length > 0
-    ? complaint.beforePhotos
-    : (beforePhotos.length > 0 ? beforePhotos : (complaint.photos || []));
+  const photos = Array.from(new Set([...beforePhotos, ...(complaint.beforePhotos || complaint.before_photos || complaint.photos || [])].filter(Boolean)));
 
   // Retrieve reporter
   const reporter = complaint.reported_by

@@ -9,7 +9,7 @@ import config from '../config/env.js';
 import db from '../config/db.js';
 import { generateComplaintCode } from '../utils/generateId.js';
 import { calculateSlaDeadline, evaluateSlaStatus } from '../services/slaService.js';
-import { verifyComplaint as verifyService, disputeComplaint as disputeService } from '../services/verificationService.js';
+import { verifyComplaint as verifyService } from '../services/verificationService.js';
 import { AppError } from '../middleware/error.js';
 
 const isSafePhotoUrl = (url) => {
@@ -54,15 +54,25 @@ const formatComplaintResponse = (complaint) => {
     ...woEvidence.map((w) => ({ ...w, evidence_type: w.type || w.evidence_type })),
   ];
 
-  const beforePhotos = combinedEvidence
-    .filter((e) => (e.evidence_type || e.type) === 'BEFORE')
-    .map((e) => e.file_url || e.fileUrl);
-  const afterPhotos = combinedEvidence
-    .filter((e) => (e.evidence_type || e.type) === 'AFTER')
-    .map((e) => e.file_url || e.fileUrl);
-  const disputePhotos = combinedEvidence
-    .filter((e) => (e.evidence_type || e.type) === 'DISPUTE')
-    .map((e) => e.file_url || e.fileUrl);
+  const beforePhotos = Array.from(
+    new Set(
+      combinedEvidence
+        .filter((e) => (e.evidence_type || e.type) === 'BEFORE')
+        .map((e) => e.file_url || e.fileUrl)
+        .filter(Boolean)
+    )
+  );
+  const afterPhotos = Array.from(
+    new Set(
+      combinedEvidence
+        .filter((e) => (e.evidence_type || e.type) === 'AFTER')
+        .map((e) => e.file_url || e.fileUrl)
+        .filter(Boolean)
+    )
+  );
+
+  const resolvedBefore = Array.from(new Set([...beforePhotos, ...(complaint.beforePhotos || complaint.before_photos || [])].filter(Boolean)));
+  const resolvedAfter = Array.from(new Set([...afterPhotos, ...(complaint.afterPhotos || complaint.after_photos || [])].filter(Boolean)));
 
   const dept = complaint.department_id ? db.findById('departments', complaint.department_id) : null;
   const slaHealth = evaluateSlaStatus(complaint.sla_deadline, complaint.status);
@@ -121,12 +131,10 @@ const formatComplaintResponse = (complaint) => {
     requires_dept_head: requiresDeptHead,
     requiresDeptHead,
     priority,
-    before_photos: beforePhotos.length > 0 ? beforePhotos : (complaint.beforePhotos || []),
-    beforePhotos: beforePhotos.length > 0 ? beforePhotos : (complaint.beforePhotos || []),
-    after_photos: afterPhotos.length > 0 ? afterPhotos : (complaint.afterPhotos || []),
-    afterPhotos: afterPhotos.length > 0 ? afterPhotos : (complaint.afterPhotos || []),
-    dispute_photos: disputePhotos,
-    disputePhotos,
+    before_photos: resolvedBefore,
+    beforePhotos: resolvedBefore,
+    after_photos: resolvedAfter,
+    afterPhotos: resolvedAfter,
     sla_deadline: complaint.sla_deadline,
     slaDeadline: complaint.sla_deadline,
     sla_health: slaHealth,
@@ -383,46 +391,9 @@ export const verifyComplaint = async (req, res, next) => {
   }
 };
 
-/**
- * @desc    Dispute repair work and request corrective field rework
- * @route   POST /api/v1/complaints/:id/dispute
- * @access  Private (RWA)
- */
-export const disputeComplaint = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { reason, remarks, notes, photos: bodyPhotos = [] } = req.body;
-
-    // Collect uploaded dispute evidence files if any
-    const uploadedFileUrls = (req.files || []).map((file) => `/uploads/${file.filename}`);
-    const incomingPhotos = Array.isArray(bodyPhotos) ? bodyPhotos : (bodyPhotos ? [bodyPhotos] : []);
-    const safeIncomingPhotos = incomingPhotos.map((url) => String(url).trim()).filter(isSafePhotoUrl);
-    if (safeIncomingPhotos.length !== incomingPhotos.length) {
-      return next(new AppError('Dispute photo evidence must use safe http(s) URLs or server upload paths.', 400, 'INVALID_PHOTO_URL'));
-    }
-    const photos = [...uploadedFileUrls, ...safeIncomingPhotos];
-
-    const updated = await disputeService(id, req.user, {
-      reason,
-      remarks,
-      notes,
-      photos,
-    });
-
-    res.status(200).json({
-      success: true,
-      message: `Complaint ${updated.complaint_code || id} marked as DISPUTED. Routed to contractor rework queue.`,
-      data: formatComplaintResponse(updated),
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
 export default {
   createComplaint,
   getComplaints,
   getComplaintById,
   verifyComplaint,
-  disputeComplaint,
 };

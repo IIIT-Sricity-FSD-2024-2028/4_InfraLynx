@@ -191,7 +191,7 @@ async function testAllRoleEndpoints() {
   report('POST /clerk/escalate/:id (Escalation Engine)', escalateRes.status === 200, `Status: ${escalateRes.data?.data?.status}`);
 
   // 5. Test RWA Verification on Completed Ticket
-  console.log('\n─── 5. RWA VERIFICATION & DISPUTE LIFECYCLE ────────────────────────────');
+  console.log('\n─── 5. RWA VERIFICATION LIFECYCLE ──────────────────────────────────────');
   const verifyRes = await req(`/complaints/CMP-2026-0101/verify`, 'POST', { rating: 5, remarks: 'Verified on ground.' }, rwaToken);
   report('POST /complaints/:id/verify (Citizen Confirm Fix)', verifyRes.status === 200 && verifyRes.data?.data?.status === 'CLOSED', `Status: ${verifyRes.data?.data?.status}, Rating: 5/5`);
 

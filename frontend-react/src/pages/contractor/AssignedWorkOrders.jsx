@@ -27,7 +27,7 @@ export default function AssignedWorkOrders({
       } else if (filter === 'COMPLETED') {
         matchesStatus = job.status === 'COMPLETED' || job.status === 'PENDING_VERIFICATION' || job.status === 'CLOSED'
       } else if (filter === 'REOPENED') {
-        matchesStatus = job.status === 'DISPUTED' || job.status === 'REVISION_REQUESTED'
+        matchesStatus = job.status === 'REVISION_REQUESTED'
       }
 
       if (!matchesStatus) return false
@@ -134,8 +134,8 @@ export default function AssignedWorkOrders({
           },
           {
             id: 'REOPENED',
-            label: 'Reopened / Disputed',
-            count: jobs.filter((j) => j.status === 'DISPUTED' || j.status === 'REVISION_REQUESTED').length,
+            label: 'Revision Requested',
+            count: jobs.filter((j) => j.status === 'REVISION_REQUESTED').length,
           },
         ].map((tab) => {
           const isActive = filter === tab.id
@@ -265,8 +265,6 @@ export default function AssignedWorkOrders({
                             ? 'progress'
                             : job.status === 'COMPLETED' || job.status === 'PENDING_VERIFICATION'
                             ? 'completed'
-                            : job.status === 'DISPUTED'
-                            ? 'disputed'
                             : job.status === 'REVISION_REQUESTED'
                             ? 'revision'
                             : 'awaiting'
@@ -341,17 +339,6 @@ export default function AssignedWorkOrders({
                           </button>
                         )}
 
-                        {job.status === 'DISPUTED' && (
-                          <button
-                            onClick={() => {
-                              onSelectJob(job)
-                              onNavigate('rework')
-                            }}
-                            className="btn-contractor-primary assigned-wo-action-btn red"
-                          >
-                            Address Rework ⚠️
-                          </button>
-                        )}
 
                         {(job.status === 'COMPLETED' || job.status === 'PENDING_VERIFICATION') && (
                           <button

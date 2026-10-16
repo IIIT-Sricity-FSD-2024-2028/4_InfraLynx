@@ -312,14 +312,6 @@ export const complaintApi = {
     });
     return res.data;
   },
-
-  async disputeComplaint(id, payload) {
-    const res = await apiRequest(`/complaints/${id}/dispute`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-    return res.data;
-  },
 };
 
 /**

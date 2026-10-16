@@ -188,7 +188,7 @@ export default function WorkOrderDossierModal({ workOrderId, onClose, onEscalate
                   </div>
                 </div>
 
-                {/* 5. RWA Verification & Dispute Status */}
+                {/* 5. RWA Verification Status */}
                 <div className="dossier-card">
                   <div className="dossier-card-title">5. Citizen & RWA Ground Sign-Off</div>
                   <div className="dossier-card-content">
@@ -199,11 +199,6 @@ export default function WorkOrderDossierModal({ workOrderId, onClose, onEscalate
                         </p>
                         <p style={{ margin: '0 0 6px' }}>Rating: {'⭐'.repeat(data.complaint.verification.rating || 5)} ({data.complaint.verification.rating || 5}/5)</p>
                         <p style={{ margin: '0 0 6px', fontSize: '12px', color: 'var(--text-soft)' }}>Remarks: {data.complaint.verification.remarks}</p>
-                      </div>
-                    ) : data.complaint?.dispute ? (
-                      <div>
-                        <p style={{ margin: '0 0 6px', color: '#dc2626', fontWeight: 700 }}>⚠️ Disputed by Citizen</p>
-                        <p style={{ margin: '0 0 6px', fontSize: '12px' }}>Reason: {data.complaint.dispute.reason}</p>
                       </div>
                     ) : (
                       <div style={{ fontSize: '12px', color: 'var(--text-soft)' }}>
