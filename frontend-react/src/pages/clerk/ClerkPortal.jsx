@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
+import { complaintApi } from '../../services/api.js'
 import ClerkDashboard from './ClerkDashboard.jsx'
 import TriageValidation from './TriageValidation.jsx'
 import WorkOrderCreate from './WorkOrderCreate.jsx'
@@ -32,11 +33,32 @@ function isComplaintInClerkDepartment(complaint, user) {
 }
 
 export default function ClerkPortal({ onExitToLanding }) {
-  const { complaints, currentUser } = useTIMS()
+  const { currentUser } = useTIMS()
 
+  const [complaints, setComplaints] = useState([])
+  const [loading, setLoading] = useState(true)
   const [currentScreen, setCurrentScreen]         = useState('dashboard')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
   const [successNotice, setSuccessNotice]         = useState(null)
+
+  // Fetch live complaints directly from PostgreSQL backend
+  const loadComplaints = useCallback(async () => {
+    try {
+      setLoading(true)
+      const data = await complaintApi.getComplaints()
+      if (Array.isArray(data)) {
+        setComplaints(data)
+      }
+    } catch (err) {
+      console.warn('[ClerkPortal] Error loading complaints:', err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadComplaints()
+  }, [loadComplaints, currentScreen])
 
   // Filter complaints strictly by the Clerk's department
   const departmentComplaints = useMemo(() => {
@@ -65,6 +87,7 @@ export default function ClerkPortal({ onExitToLanding }) {
       id: complaint.id,
       message: `Work Order ${woId} assigned & dispatched to ${contractor} for "${complaint.title}" (${complaint.id}).`,
     })
+    loadComplaints()
     handleNavigate('dashboard')
   }
 

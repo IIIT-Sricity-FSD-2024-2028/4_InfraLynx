@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
+import { complaintApi } from '../../services/api.js'
 import DeptDashboard from './DeptDashboard.jsx'
 import EmployeeManagement from './EmployeeManagement.jsx'
 import ApprovalQueue from './ApprovalQueue.jsx'
@@ -12,11 +13,17 @@ import './styles/DeptHeadPortal.css'
  * Mirrors ClerkPortal.jsx but with a purple/indigo theme and Department Head features.
  */
 export default function DeptHeadPortal({ onExitToLanding }) {
-  const { complaints, currentUser } = useTIMS()
-
+  const { currentUser } = useTIMS()
+  const [complaints, setComplaints] = useState([])
   const [currentScreen, setCurrentScreen] = useState('dashboard')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
   const [returnScreen, setReturnScreen] = useState('dashboard')
+
+  useEffect(() => {
+    complaintApi.getComplaints().then((data) => {
+      if (Array.isArray(data)) setComplaints(data)
+    }).catch(() => {})
+  }, [currentScreen])
   
   const deptName = currentUser?.department_name || 'Municipal Department';
   const userDeptId = currentUser?.department_id;
