@@ -25,17 +25,17 @@ export default function TownshipWorkOrders({
             Holistic tracking of all municipal repair contracts from citizen report through contractor execution, RWA inspection, and financial audit.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <span style={{ padding: '8px 14px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: '13px', fontWeight: 700 }}>
+        <div className="coo-banner-actions">
+          <span className="coo-badge-pill">
             Total Visible: {workOrders.length} Work Orders
           </span>
         </div>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="coo-panel" style={{ marginBottom: '20px' }}>
-        <div className="coo-panel-body" style={{ padding: '16px 20px' }}>
-          <form onSubmit={handleSearchSubmit} className="coo-filter-bar" style={{ margin: 0 }}>
+      <div className="coo-panel">
+        <div className="coo-panel-body">
+          <form onSubmit={handleSearchSubmit} className="coo-filter-bar">
             {/* Search */}
             <input
               type="text"
@@ -134,7 +134,7 @@ export default function TownshipWorkOrders({
 
       {/* Work Orders Master Table */}
       <div className="coo-panel">
-        <div className="coo-panel-body" style={{ padding: 0 }}>
+        <div className="coo-panel-body flush">
           <div className="coo-table-wrapper">
             <table className="coo-table">
               <thead>
@@ -146,37 +146,37 @@ export default function TownshipWorkOrders({
                   <th>Cost (Est / Actual)</th>
                   <th>SLA Deadline</th>
                   <th>Lifecycle Status</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                  <th className="align-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {workOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-soft)' }}>
+                    <td colSpan={8} className="coo-table-empty">
                       No township work orders match the selected filters.
                     </td>
                   </tr>
                 ) : (
                   workOrders.map((wo) => (
-                    <tr key={wo.id} onClick={() => onOpenDossier(wo.id)} style={{ cursor: 'pointer' }}>
+                    <tr key={wo.id} onClick={() => onOpenDossier(wo.id)} className="wo-table-row-clickable">
                       <td>
-                        <strong style={{ color: 'var(--primary-darker)' }}>{wo.workOrderNumber}</strong>
-                        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)', marginTop: '2px' }}>
+                        <strong className="coo-approval-wo-code">{wo.workOrderNumber}</strong>
+                        <div className="coo-cell-strong-text">
                           {wo.complaint?.title || 'Remediation Task'}
                         </div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-soft)' }}>
+                        <div className="coo-cell-subtext">
                           Ticket: {wo.complaint?.code || 'N/A'} · Sector: {wo.complaint?.sector || 'Sector 54'}
                         </div>
                       </td>
                       <td>
-                        <span style={{ fontSize: '12.5px', fontWeight: 600 }}>
+                        <span className="dept-scope-desc">
                           {wo.department?.name || 'General Municipal'}
                         </span>
                       </td>
                       <td>
                         <div>
                           <strong>{wo.contractor?.name || 'Unassigned'}</strong>
-                          <div style={{ fontSize: '11px', color: 'var(--text-soft)' }}>
+                          <div className="coo-cell-subtext">
                             {wo.contractor?.contactPerson}
                           </div>
                         </div>
@@ -189,18 +189,18 @@ export default function TownshipWorkOrders({
                       <td>
                         <strong>₹{wo.estimatedCost?.toLocaleString('en-IN')}</strong>
                         {wo.actualCost && (
-                          <div style={{ fontSize: '11px', color: 'var(--text-soft)' }}>
+                          <div className="coo-cell-subtext">
                             Act: ₹{wo.actualCost?.toLocaleString('en-IN')}
                           </div>
                         )}
                       </td>
                       <td>
                         {wo.isOverdue ? (
-                          <span style={{ color: '#b91c1c', fontWeight: 700, fontSize: '12px' }}>
+                          <span className="wo-sla-overdue">
                             🚨 Overdue
                           </span>
                         ) : (
-                          <span style={{ color: 'var(--primary-dark)', fontSize: '12px' }}>
+                          <span className="wo-sla-target">
                             {wo.slaDeadline ? new Date(wo.slaDeadline).toLocaleDateString() : 'Active Target'}
                           </span>
                         )}
@@ -210,11 +210,10 @@ export default function TownshipWorkOrders({
                           {wo.status}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                      <td className="align-right" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => onOpenDossier(wo.id)}
-                          className="btn-coo-primary"
-                          style={{ padding: '6px 12px', fontSize: '12px' }}
+                          className="btn-coo-primary btn-coo-sm"
                         >
                           🔍 Inspect Dossier
                         </button>

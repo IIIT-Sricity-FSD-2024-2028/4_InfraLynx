@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { cooApi } from '../../services/api.js';
 
 export default function DepartmentManagement({ departments, departmentHeads, onRefresh }) {
@@ -80,7 +80,7 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
           </div>
         </div>
 
-        <div className="coo-panel-body" style={{ padding: 0 }}>
+        <div className="coo-panel-body flush">
           <div className="coo-table-wrapper">
             <table className="coo-table">
               <thead>
@@ -92,20 +92,20 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
                   <th>Active WOs</th>
                   <th>Annual Budget</th>
                   <th>Status</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                  <th className="align-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {departments.map((dept) => (
                   <tr key={dept.id}>
                     <td>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '12px', background: 'var(--surface-muted)', padding: '3px 7px', borderRadius: '4px' }}>
+                      <span className="dept-code-pill">
                         {dept.code}
                       </span>
                     </td>
-                    <td style={{ maxWidth: '300px' }}>
+                    <td className="dept-scope-cell">
                       <strong>{dept.name}</strong>
-                      <div style={{ fontSize: '12px', color: 'var(--text-soft)', marginTop: '2px', lineHeight: '1.4' }}>
+                      <div className="dept-scope-desc">
                         {dept.description}
                       </div>
                     </td>
@@ -113,12 +113,12 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
                       {dept.departmentHead ? (
                         <div>
                           <strong>{dept.departmentHead.name}</strong>
-                          <div style={{ fontSize: '11.5px', color: 'var(--text-soft)' }}>
+                          <div className="coo-cell-subtext">
                             {dept.departmentHead.email}
                           </div>
                         </div>
                       ) : (
-                        <span style={{ color: 'var(--accent-amber)', fontSize: '12px', fontWeight: 700 }}>
+                        <span className="dept-head-vacant">
                           ⚠️ Head Vacant
                         </span>
                       )}
@@ -126,14 +126,14 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
                     <td>
                       <button
                         onClick={() => openStaffModal(dept)}
-                        style={{ background: 'none', border: 'none', color: 'var(--primary-dark)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                        className="dept-staff-btn"
                         title="Click to view staff directory"
                       >
                         {dept.employeeCount} Officers 👥
                       </button>
                     </td>
                     <td>
-                      <span style={{ fontWeight: 700, color: dept.activeWorkOrdersCount > 0 ? 'var(--accent-blue)' : 'var(--text-soft)' }}>
+                      <span className={`coo-cell-stat ${dept.activeWorkOrdersCount > 0 ? 'blue' : 'soft'}`}>
                         {dept.activeWorkOrdersCount}
                       </span>
                     </td>
@@ -145,8 +145,8 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
                         {dept.status || 'ACTIVE'}
                       </span>
                     </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '6px' }}>
+                    <td className="align-right">
+                      <div className="coo-banner-actions">
                         <button onClick={() => openEditModal(dept)} className="btn-coo-secondary" title="Edit Department Parameters">
                           ✏️ Edit
                         </button>
@@ -165,16 +165,16 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
         <div className="coo-modal-overlay" onClick={() => setModalMode(null)}>
           <div className="coo-modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="coo-modal-header">
-              <h3 style={{ margin: 0, fontSize: '16px' }}>
+              <h3 className="coo-modal-title">
                 Edit Department: {selectedDept.name}
               </h3>
-              <button onClick={() => setModalMode(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setModalMode(null)} className="coo-modal-close-btn">✕</button>
             </div>
 
             <form onSubmit={handleSubmitDepartment}>
-              <div className="coo-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+              <div className="coo-modal-body">
+                <div className="coo-form-group">
+                  <label className="coo-form-label">
                     Department Name *
                   </label>
                   <input
@@ -183,14 +183,13 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     placeholder="e.g. Civil Infrastructure & Roads"
-                    className="coo-input"
-                    style={{ width: '100%', boxSizing: 'border-box' }}
+                    className="coo-input coo-input-full"
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div className="coo-form-grid-2col coo-form-group">
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+                    <label className="coo-form-label">
                       Department Code (e.g. CIVL)
                     </label>
                     <input
@@ -198,26 +197,24 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
                       value={formCode}
                       onChange={(e) => setFormCode(e.target.value)}
                       placeholder="e.g. ELEC, CIVL, WTR"
-                      className="coo-input"
-                      style={{ width: '100%', boxSizing: 'border-box' }}
+                      className="coo-input coo-input-full"
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+                    <label className="coo-form-label">
                       Annual Budget Cap (INR)
                     </label>
                     <input
                       type="number"
                       value={formBudget}
                       onChange={(e) => setFormBudget(e.target.value)}
-                      className="coo-input"
-                      style={{ width: '100%', boxSizing: 'border-box' }}
+                      className="coo-input coo-input-full"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+                <div className="coo-form-group">
+                  <label className="coo-form-label">
                     Operational Scope & Description
                   </label>
                   <textarea
@@ -225,7 +222,7 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
                     placeholder="Detailed civic infrastructure responsibilities, asset categories, and emergency coverage..."
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--line-strong)', fontSize: '13px', boxSizing: 'border-box' }}
+                    className="coo-textarea"
                   />
                 </div>
               </div>
@@ -250,43 +247,32 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
           <div className="coo-modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="coo-modal-header">
               <div>
-                <span style={{ fontSize: '11px', color: 'var(--text-soft)', textTransform: 'uppercase', fontWeight: 800 }}>Department Roster</span>
-                <h3 style={{ margin: 0, fontSize: '16px' }}>{selectedDept.name} Staff ({staffList.length})</h3>
+                <span className="coo-modal-title-eyebrow">Department Roster</span>
+                <h3 className="coo-modal-title">{selectedDept.name} Staff ({staffList.length})</h3>
               </div>
-              <button onClick={() => setModalMode(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setModalMode(null)} className="coo-modal-close-btn">✕</button>
             </div>
 
             <div className="coo-modal-body">
               {loadingStaff ? (
-                <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-soft)' }}>
+                <div className="coo-empty-placeholder">
                   Loading staff directory...
                 </div>
               ) : staffList.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-soft)' }}>
+                <div className="coo-empty-placeholder">
                   No officers currently assigned to this department.
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div className="staff-roster-list">
                   {staffList.map((st) => (
-                    <div
-                      key={st.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '12px 14px',
-                        background: 'var(--surface)',
-                        border: '1px solid var(--line)',
-                        borderRadius: 'var(--radius-sm)',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary-subtle)', color: 'var(--primary-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
+                    <div key={st.id} className="staff-roster-item">
+                      <div className="staff-roster-info">
+                        <div className="staff-roster-avatar">
                           {st.name[0]}
                         </div>
                         <div>
                           <strong>{st.name}</strong>
-                          <div style={{ fontSize: '12px', color: 'var(--text-soft)' }}>
+                          <div className="coo-cell-subtext">
                             {st.email} · {st.phone || '+91 98000 00000'}
                           </div>
                         </div>

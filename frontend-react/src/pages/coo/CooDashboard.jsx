@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function CooDashboard({ dashboardData, onNavigateTab }) {
   const summary = dashboardData?.summary || {
     totalDepartments: 4,
@@ -18,7 +16,7 @@ export default function CooDashboard({ dashboardData, onNavigateTab }) {
       {/* Executive Welcome Banner */}
       <div className="coo-banner">
         <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', background: 'var(--primary-subtle)', borderRadius: 'var(--radius-full)', color: 'var(--primary-darker)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', marginBottom: '8px' }}>
+          <div className="coo-banner-eyebrow">
             🏢 Municipal Governance & Operations
           </div>
           <h2 className="coo-banner-title">Township Executive Command Center</h2>
@@ -26,7 +24,7 @@ export default function CooDashboard({ dashboardData, onNavigateTab }) {
             DLF CyberCity & Aralias Smart Township · Macro Cross-Departmental Operational Telemetry
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div className="coo-banner-actions">
           <button onClick={() => onNavigateTab('approvals')} className="btn-coo-primary">
             ⚖️ Review Pending Approvals ({summary.pendingApprovals})
           </button>
@@ -38,7 +36,7 @@ export default function CooDashboard({ dashboardData, onNavigateTab }) {
 
       {/* 5 KPI Metric Cards */}
       <div className="coo-kpi-grid">
-        <div className="coo-kpi-card" onClick={() => onNavigateTab('departments')} style={{ cursor: 'pointer' }}>
+        <div className="coo-kpi-card" onClick={() => onNavigateTab('departments')}>
           <div className="coo-kpi-top">
             <span className="coo-kpi-label">Total Departments</span>
             <span className="coo-kpi-icon">🏛️</span>
@@ -47,7 +45,7 @@ export default function CooDashboard({ dashboardData, onNavigateTab }) {
           <div className="coo-kpi-sub">Civic infrastructure verticals</div>
         </div>
 
-        <div className="coo-kpi-card amber" onClick={() => onNavigateTab('work_orders')} style={{ cursor: 'pointer' }}>
+        <div className="coo-kpi-card amber" onClick={() => onNavigateTab('work_orders')}>
           <div className="coo-kpi-top">
             <span className="coo-kpi-label">Open Complaints</span>
             <span className="coo-kpi-icon">⚠️</span>
@@ -56,7 +54,7 @@ export default function CooDashboard({ dashboardData, onNavigateTab }) {
           <div className="coo-kpi-sub">Active resident tickets across sectors</div>
         </div>
 
-        <div className="coo-kpi-card blue" onClick={() => onNavigateTab('work_orders')} style={{ cursor: 'pointer' }}>
+        <div className="coo-kpi-card blue" onClick={() => onNavigateTab('work_orders')}>
           <div className="coo-kpi-top">
             <span className="coo-kpi-label">Active Work Orders</span>
             <span className="coo-kpi-icon">🛠️</span>
@@ -65,7 +63,7 @@ export default function CooDashboard({ dashboardData, onNavigateTab }) {
           <div className="coo-kpi-sub">Field contractors deployed</div>
         </div>
 
-        <div className="coo-kpi-card amber" onClick={() => onNavigateTab('approvals')} style={{ cursor: 'pointer' }}>
+        <div className="coo-kpi-card amber" onClick={() => onNavigateTab('approvals')}>
           <div className="coo-kpi-top">
             <span className="coo-kpi-label">Pending Approvals</span>
             <span className="coo-kpi-icon">⚖️</span>
@@ -74,7 +72,7 @@ export default function CooDashboard({ dashboardData, onNavigateTab }) {
           <div className="coo-kpi-sub">Requires COO joint sign-off</div>
         </div>
 
-        <div className="coo-kpi-card red" onClick={() => onNavigateTab('work_orders')} style={{ cursor: 'pointer' }}>
+        <div className="coo-kpi-card red" onClick={() => onNavigateTab('work_orders')}>
           <div className="coo-kpi-top">
             <span className="coo-kpi-label">Overdue Work Orders</span>
             <span className="coo-kpi-icon">🚨</span>
@@ -96,7 +94,7 @@ export default function CooDashboard({ dashboardData, onNavigateTab }) {
           </button>
         </div>
 
-        <div className="coo-panel-body" style={{ padding: 0 }}>
+        <div className="coo-panel-body flush">
           <div className="coo-table-wrapper">
             <table className="coo-table">
               <thead>
@@ -114,7 +112,7 @@ export default function CooDashboard({ dashboardData, onNavigateTab }) {
               <tbody>
                 {departments.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-soft)' }}>
+                    <td colSpan={8} className="coo-table-empty">
                       Loading departmental analytics...
                     </td>
                   </tr>
@@ -123,57 +121,51 @@ export default function CooDashboard({ dashboardData, onNavigateTab }) {
                     <tr key={dept.id}>
                       <td>
                         <strong>{dept.name}</strong>
-                        <div style={{ fontSize: '11.5px', color: 'var(--text-soft)' }}>Code: {dept.code}</div>
+                        <div className="coo-cell-subtext">Code: {dept.code}</div>
                       </td>
                       <td>
                         {dept.headName !== 'Unassigned' ? (
                           <div>
                             <strong>{dept.headName}</strong>
-                            <div style={{ fontSize: '11.5px', color: 'var(--text-soft)' }}>{dept.headEmail}</div>
+                            <div className="coo-cell-subtext">{dept.headEmail}</div>
                           </div>
                         ) : (
-                          <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Vacant (Assign Head)</span>
+                          <span className="coo-cell-vacant">Vacant (Assign Head)</span>
                         )}
                       </td>
                       <td>{dept.staffCount} Officers</td>
                       <td>
-                        <span style={{ fontWeight: 700, color: dept.openComplaints > 0 ? 'var(--accent-amber)' : 'var(--text-soft)' }}>
+                        <span className={`coo-cell-stat ${dept.openComplaints > 0 ? 'amber' : 'soft'}`}>
                           {dept.openComplaints}
                         </span>
                       </td>
                       <td>
-                        <span style={{ fontWeight: 700, color: dept.activeWorkOrders > 0 ? 'var(--accent-blue)' : 'var(--text-soft)' }}>
+                        <span className={`coo-cell-stat ${dept.activeWorkOrders > 0 ? 'blue' : 'soft'}`}>
                           {dept.activeWorkOrders}
                         </span>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontWeight: 700, color: dept.slaComplianceRate >= 90 ? 'var(--primary-dark)' : 'var(--accent-amber)' }}>
+                        <div className="coo-sla-cell">
+                          <span className={`coo-sla-val ${dept.slaComplianceRate >= 90 ? 'good' : 'warn'}`}>
                             {dept.slaComplianceRate}%
                           </span>
-                          <div style={{ width: '60px', height: '6px', background: 'var(--surface-muted)', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div className="coo-sla-track">
                             <div
-                              style={{
-                                width: `${dept.slaComplianceRate}%`,
-                                height: '100%',
-                                background: dept.slaComplianceRate >= 90 ? 'var(--primary)' : 'var(--accent-amber)',
-                              }}
+                              className={`coo-sla-bar ${dept.slaComplianceRate >= 90 ? 'good' : 'warn'}`}
+                              style={{ width: `${dept.slaComplianceRate}%` }}
                             />
                           </div>
                         </div>
                       </td>
                       <td>
                         <div>
-                          <span style={{ fontSize: '12px', fontWeight: 600 }}>
+                          <span className="coo-budget-text">
                             ₹{(dept.spentBudget / 100000).toFixed(1)}L / ₹{(dept.allocatedBudget / 100000).toFixed(1)}L
                           </span>
-                          <div style={{ width: '80px', height: '6px', background: 'var(--surface-muted)', borderRadius: '3px', overflow: 'hidden', marginTop: '3px' }}>
+                          <div className="coo-budget-track">
                             <div
-                              style={{
-                                width: `${Math.min(100, dept.budgetUtilization)}%`,
-                                height: '100%',
-                                background: dept.budgetUtilization > 85 ? 'var(--accent-red)' : 'var(--primary)',
-                              }}
+                              className={`coo-budget-bar ${dept.budgetUtilization > 85 ? 'danger' : 'normal'}`}
+                              style={{ width: `${Math.min(100, dept.budgetUtilization)}%` }}
                             />
                           </div>
                         </div>

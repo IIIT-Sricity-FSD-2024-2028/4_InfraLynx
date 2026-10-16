@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { cooApi } from '../../services/api.js';
 
 export default function DepartmentHeadManagement({ departmentHeads, departments, onRefresh }) {
@@ -134,30 +134,17 @@ export default function DepartmentHeadManagement({ departmentHeads, departments,
       </div>
 
       {/* Department Heads Directory Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+      <div className="depthead-grid">
         {departmentHeads.map((head) => (
-          <div key={head.id} className="coo-panel" style={{ margin: 0, display: 'flex', flexDirection: 'column' }}>
-            <div className="coo-panel-header" style={{ padding: '16px 20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div
-                  style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '18px',
-                    fontWeight: 800,
-                  }}
-                >
+          <div key={head.id} className="coo-panel depthead-card">
+            <div className="coo-panel-header">
+              <div className="depthead-header-inner">
+                <div className="depthead-avatar">
                   {head.name[0]}
                 </div>
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '15px', color: 'var(--text)' }}>{head.name}</h4>
-                  <div style={{ fontSize: '12px', color: 'var(--text-soft)' }}>
+                  <h4 className="depthead-name">{head.name}</h4>
+                  <div className="depthead-role-label">
                     Executive Department Head
                   </div>
                 </div>
@@ -167,54 +154,53 @@ export default function DepartmentHeadManagement({ departmentHeads, departments,
               </span>
             </div>
 
-            <div className="coo-panel-body" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ background: 'var(--surface)', padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)' }}>
-                <span style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-soft)', display: 'block' }}>
+            <div className="coo-panel-body depthead-card-body">
+              <div className="depthead-info-box">
+                <span className="depthead-info-label">
                   Assigned Civic Division
                 </span>
                 {head.assignedDepartment ? (
-                  <strong style={{ fontSize: '14px', color: 'var(--primary-darker)', display: 'block', marginTop: '2px' }}>
+                  <strong className="depthead-division-name">
                     {head.assignedDepartment.name} ({head.assignedDepartment.code})
                   </strong>
                 ) : (
-                  <span style={{ color: 'var(--accent-amber)', fontSize: '13px', fontWeight: 700, display: 'block', marginTop: '2px' }}>
+                  <span className="depthead-standby-tag">
                     ⚠️ Standby / Unassigned
                   </span>
                 )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div style={{ padding: '10px', background: 'var(--surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--text-soft)', display: 'block' }}>Staff Managed</span>
-                  <strong style={{ fontSize: '16px' }}>{head.staffCount} Officers</strong>
+              <div className="depthead-stat-grid">
+                <div className="depthead-stat-cell">
+                  <span className="depthead-stat-label">Staff Managed</span>
+                  <strong className="depthead-stat-num">{head.staffCount} Officers</strong>
                 </div>
-                <div style={{ padding: '10px', background: 'var(--surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--text-soft)', display: 'block' }}>Active Tickets</span>
-                  <strong style={{ fontSize: '16px', color: 'var(--accent-blue)' }}>{head.activeTicketsCount} WOs</strong>
+                <div className="depthead-stat-cell">
+                  <span className="depthead-stat-label">Active Tickets</span>
+                  <strong className="depthead-stat-num blue">{head.activeTicketsCount} WOs</strong>
                 </div>
               </div>
 
-              <div style={{ fontSize: '12.5px', color: 'var(--text-soft)', lineHeight: '1.4' }}>
+              <div className="depthead-contact-block">
                 <div>📧 <strong>Email:</strong> {head.email}</div>
                 <div>📞 <strong>Phone:</strong> {head.phone}</div>
               </div>
 
-              <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid var(--line)', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <button onClick={() => openAssignModal(head)} className="btn-coo-primary" style={{ flex: 1, minWidth: '130px', justifyContent: 'center' }}>
+              <div className="depthead-card-actions">
+                <button onClick={() => openAssignModal(head)} className="btn-coo-primary depthead-action-btn">
                   🔄 Transfer Dept
                 </button>
                 {head.assignedDepartment && (
                   <button
                     onClick={() => handleUnassignHead(head)}
-                    className="btn-coo-danger"
-                    style={{ flex: 1, minWidth: '130px', justifyContent: 'center' }}
+                    className="btn-coo-danger depthead-action-btn"
                     title="Remove from department and make department vacant"
                   >
                     ⛔ Unassign Dept
                   </button>
                 )}
                 {head.assignedDepartment && (
-                  <button onClick={() => openStaffModalForHead(head)} className="btn-coo-secondary" style={{ minWidth: '100px', justifyContent: 'center' }}>
+                  <button onClick={() => openStaffModalForHead(head)} className="btn-coo-secondary depthead-staff-btn">
                     👥 Staff
                   </button>
                 )}
@@ -229,28 +215,27 @@ export default function DepartmentHeadManagement({ departmentHeads, departments,
         <div className="coo-modal-overlay" onClick={() => setAssignModalOpen(false)}>
           <div className="coo-modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="coo-modal-header">
-              <h3 style={{ margin: 0, fontSize: '16px' }}>
+              <h3 className="coo-modal-title">
                 Assign / Transfer Leadership: {selectedHead.name}
               </h3>
-              <button onClick={() => setAssignModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setAssignModalOpen(false)} className="coo-modal-close-btn">✕</button>
             </div>
 
             <form onSubmit={handleAssignSubmit}>
               <div className="coo-modal-body">
-                <p style={{ fontSize: '13.5px', color: 'var(--text-soft)', marginTop: 0 }}>
+                <p className="dossier-paragraph soft">
                   Transfer <strong>{selectedHead.name}</strong> to head a municipal department. This official will gain authority over all desk clerks, estimate approvals, and work orders in that department.
                 </p>
 
-                <div style={{ marginTop: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+                <div className="coo-form-group">
+                  <label className="coo-form-label">
                     Target Department:
                   </label>
                   <select
                     value={targetDeptId}
                     onChange={(e) => setTargetDeptId(e.target.value)}
                     required
-                    className="coo-select"
-                    style={{ width: '100%', boxSizing: 'border-box', padding: '10px' }}
+                    className="coo-select coo-input-full"
                   >
                     <option value="">-- Select Target Department --</option>
                     {departments.map((d) => {
@@ -282,22 +267,22 @@ export default function DepartmentHeadManagement({ departmentHeads, departments,
       {/* CREATE DEPARTMENT HEAD MODAL */}
       {createModalOpen && (
         <div className="coo-modal-overlay" onClick={() => setCreateModalOpen(false)}>
-          <div className="coo-modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+          <div className="coo-modal-box sm" onClick={(e) => e.stopPropagation()}>
             <div className="coo-modal-header">
-              <h3 style={{ margin: 0, fontSize: '16px' }}>
+              <h3 className="coo-modal-title">
                 ➕ Create Executive Department Head
               </h3>
-              <button onClick={() => setCreateModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setCreateModalOpen(false)} className="coo-modal-close-btn">✕</button>
             </div>
 
             <form onSubmit={handleCreateSubmit}>
-              <div className="coo-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <p style={{ fontSize: '13px', color: 'var(--text-soft)', margin: 0 }}>
+              <div className="coo-modal-body">
+                <p className="dossier-paragraph soft">
                   Create an accredited Department Head account. Login credentials will be generated immediately so the official can log into the InfraLynx portal.
                 </p>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+                <div className="coo-form-group">
+                  <label className="coo-form-label">
                     Official Full Name *
                   </label>
                   <input
@@ -306,14 +291,13 @@ export default function DepartmentHeadManagement({ departmentHeads, departments,
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     placeholder="e.g. Er. Rajesh K. Sharma"
-                    className="coo-input"
-                    style={{ width: '100%', boxSizing: 'border-box' }}
+                    className="coo-input coo-input-full"
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="coo-form-grid-2col coo-form-group">
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+                    <label className="coo-form-label">
                       Official Email *
                     </label>
                     <input
@@ -322,12 +306,11 @@ export default function DepartmentHeadManagement({ departmentHeads, departments,
                       value={formEmail}
                       onChange={(e) => setFormEmail(e.target.value)}
                       placeholder="e.g. head.elec@infralynx.com"
-                      className="coo-input"
-                      style={{ width: '100%', boxSizing: 'border-box' }}
+                      className="coo-input coo-input-full"
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+                    <label className="coo-form-label">
                       Contact Phone
                     </label>
                     <input
@@ -335,21 +318,20 @@ export default function DepartmentHeadManagement({ departmentHeads, departments,
                       value={formPhone}
                       onChange={(e) => setFormPhone(e.target.value)}
                       placeholder="+91 99100 87654"
-                      className="coo-input"
-                      style={{ width: '100%', boxSizing: 'border-box' }}
+                      className="coo-input coo-input-full"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: 700 }}>
+                <div className="coo-form-group">
+                  <div className="coo-form-label-row">
+                    <label className="coo-form-label">
                       Initial Login Password *
                     </label>
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      style={{ background: 'none', border: 'none', color: 'var(--primary-dark)', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}
+                      className="depthead-toggle-btn"
                     >
                       {showPassword ? 'Hide' : 'Show'}
                     </button>
@@ -361,23 +343,21 @@ export default function DepartmentHeadManagement({ departmentHeads, departments,
                     value={formPassword}
                     onChange={(e) => setFormPassword(e.target.value)}
                     placeholder="Minimum 6 characters (e.g. Head@2026)"
-                    className="coo-input"
-                    style={{ width: '100%', boxSizing: 'border-box' }}
+                    className="coo-input coo-input-full"
                   />
-                  <span style={{ fontSize: '11px', color: 'var(--text-soft)', marginTop: '4px', display: 'block' }}>
+                  <span className="coo-form-help">
                     Official can immediately sign in at portal login using this password.
                   </span>
                 </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+                <div className="coo-form-group">
+                  <label className="coo-form-label">
                     Assign Municipal Department (One Head per Dept)
                   </label>
                   <select
                     value={formDeptId}
                     onChange={(e) => setFormDeptId(e.target.value)}
-                    className="coo-select"
-                    style={{ width: '100%', boxSizing: 'border-box', padding: '10px' }}
+                    className="coo-select coo-input-full"
                   >
                     <option value="">-- Standby / Unassigned (Assign Later) --</option>
                     {departments.map((d) => {
@@ -389,7 +369,7 @@ export default function DepartmentHeadManagement({ departmentHeads, departments,
                       );
                     })}
                   </select>
-                  <span style={{ fontSize: '11.5px', color: 'var(--text-soft)', marginTop: '4px', display: 'block' }}>
+                  <span className="coo-form-help">
                     * If a department already has an assigned head, unassign that head first before assigning a new one.
                   </span>
                 </div>
@@ -414,39 +394,28 @@ export default function DepartmentHeadManagement({ departmentHeads, departments,
           <div className="coo-modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="coo-modal-header">
               <div>
-                <span style={{ fontSize: '11px', color: 'var(--text-soft)', textTransform: 'uppercase', fontWeight: 800 }}>Department Subordinate Staff</span>
-                <h3 style={{ margin: 0, fontSize: '16px' }}>{staffModalDept.name} Staff ({staffList.length})</h3>
+                <span className="coo-modal-title-eyebrow">Department Subordinate Staff</span>
+                <h3 className="coo-modal-title">{staffModalDept.name} Staff ({staffList.length})</h3>
               </div>
-              <button onClick={() => setStaffModalDept(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setStaffModalDept(null)} className="coo-modal-close-btn">✕</button>
             </div>
 
             <div className="coo-modal-body">
               {loadingStaff ? (
-                <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-soft)' }}>
+                <div className="coo-empty-placeholder">
                   Loading subordinate workforce...
                 </div>
               ) : staffList.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-soft)' }}>
+                <div className="coo-empty-placeholder">
                   No officers currently assigned to this department.
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div className="staff-roster-list">
                   {staffList.map((st) => (
-                    <div
-                      key={st.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '12px 14px',
-                        background: 'var(--surface)',
-                        border: '1px solid var(--line)',
-                        borderRadius: 'var(--radius-sm)',
-                      }}
-                    >
+                    <div key={st.id} className="staff-roster-item">
                       <div>
                         <strong>{st.name}</strong>
-                        <div style={{ fontSize: '12px', color: 'var(--text-soft)' }}>
+                        <div className="coo-cell-subtext">
                           {st.email} · {st.phone || '+91 98000 00000'}
                         </div>
                       </div>
