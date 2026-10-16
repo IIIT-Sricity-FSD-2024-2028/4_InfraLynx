@@ -318,6 +318,10 @@ export const insert = (table, record) => {
     created_at: record.created_at || new Date().toISOString(),
   };
 
+  if (table === 'audit_logs' && !item.entity_id) {
+    item.entity_id = '00000000-0000-0000-0000-000000000000';
+  }
+
   // Add to live cache immediately for sync operations
   if (!tables[table]) tables[table] = [];
   tables[table].unshift(item);
@@ -344,7 +348,14 @@ export const insert = (table, record) => {
  */
 export const update = (table, id, updates) => {
   const list = tables[table] || [];
-  const index = list.findIndex((row) => row.id === id || row.complaint_code === id);
+  const index = list.findIndex(
+    (row) =>
+      row.id === id ||
+      row.complaint_code === id ||
+      row.work_order_number === id ||
+      row.invoice_code === id ||
+      row.invoice_number === id
+  );
   if (index === -1) return null;
 
   list[index] = {

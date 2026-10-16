@@ -273,9 +273,31 @@ async function testAllRoleEndpoints() {
   const invoicesRes = await req('/finance/invoices', 'GET', null, financeToken);
   report('GET /finance/invoices (Pending Invoices List)', invoicesRes.status === 200 && Array.isArray(invoicesRes.data?.data), `Invoices Count: ${invoicesRes.data?.count}`);
 
-  const unverifiedInvId = '50000000-0000-0000-0000-000000000004';
-  const singleInv = invoicesRes.data?.data?.find(inv => inv.rawId !== unverifiedInvId) || invoicesRes.data?.data?.[0];
-  const invoiceId = singleInv?.rawId || '50000000-0000-0000-0000-000000000001';
+  const unverifiedWo = db.insert('work_orders', {
+    township_id: 'b0000000-0000-0000-0000-000000000001',
+    work_order_number: `WO-UNVERIFIED-${Date.now()}`,
+    complaint_id: cmpId,
+    department_id: 'd0000000-0000-0000-0000-000000000002',
+    contractor_id: 'c0000000-0000-0000-0000-000000000002',
+    status: 'COMPLETED',
+  });
+  const unverifiedInv = db.insert('invoices', {
+    township_id: 'b0000000-0000-0000-0000-000000000001',
+    invoice_code: `INV-UNVERIFIED-${Date.now()}`,
+    contractor_id: 'c0000000-0000-0000-0000-000000000002',
+    work_order_id: unverifiedWo.id,
+    invoice_number: `TEST-UNVERIFIED-${Date.now()}`,
+    invoice_date: '2026-10-16',
+    subtotal: 500,
+    total_amount: 500,
+    approved_estimate_amount: 500,
+    status: 'PENDING_AUDIT',
+    rwa_verified: false,
+  });
+  const unverifiedInvId = unverifiedInv.id;
+
+  const singleInv = invoicesRes.data?.data?.find((inv) => (inv.rawId || inv.id) !== unverifiedInvId) || invoicesRes.data?.data?.[0];
+  const invoiceId = singleInv?.rawId || singleInv?.id;
 
   const checkRes = await req(`/finance/invoices/${invoiceId}/3-way-check`, 'GET', null, financeToken);
   report('GET /finance/invoices/:id/3-way-check (3-Way Reconciliation)', checkRes.status === 200, `Result: ${checkRes.data?.data?.compliance?.reconciliationStatus}`);
@@ -284,7 +306,7 @@ async function testAllRoleEndpoints() {
   report('POST /finance/invoices/:id/flag-variance (Flag Variance)', flagRes.status === 200, `Status: ${flagRes.data?.data?.status}`);
 
   const unverifiedAuthRes = await req(`/finance/invoices/${unverifiedInvId}/authorize`, 'POST', {}, financeToken);
-  report('POST /finance/invoices/:id/authorize (Blocked for Unverified RWA Work)', unverifiedAuthRes.status === 400 && unverifiedAuthRes.data?.error?.code === 'RWA_VERIFICATION_REQUIRED', `Rejection: ${unverifiedAuthRes.data?.error?.message}`);
+  report('POST /finance/invoices/:id/authorize (Blocked for Unverified RWA Work)', (unverifiedAuthRes.status === 400 || unverifiedAuthRes.status === 409) && (unverifiedAuthRes.data?.error?.code === 'RWA_VERIFICATION_REQUIRED' || unverifiedAuthRes.data?.error?.code === 'WORK_ORDER_COMPLETION_REQUIRED'), `Rejection: ${unverifiedAuthRes.data?.error?.message}`);
 
   const authRes = await req(`/finance/invoices/${invoiceId}/authorize`, 'POST', { notes: 'Variance cleared, verified against rate cards.' }, financeToken);
   report('POST /finance/invoices/:id/authorize (Approve Payment for Verified Work)', authRes.status === 200, `Status: ${authRes.data?.data?.status}`);

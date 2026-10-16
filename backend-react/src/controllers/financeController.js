@@ -58,7 +58,24 @@ export const getInvoices = async (req, res, next) => {
       const department = (complaint && complaint.department_id
         ? db.findById('departments', complaint.department_id)
         : null) || (workOrder?.department_id ? db.findById('departments', workOrder.department_id) : null);
-      const items = db.findAll('invoice_items', (item) => item.invoice_id === inv.id);
+      const amc = contractor ? db.findOne('amcs', (a) => a.contractor_id === contractor.id) : null;
+      const rawItems = db.findAll('invoice_items', (item) => item.invoice_id === inv.id);
+      const items = rawItems.map((item) => {
+        const rate = Number(item.rate || 0);
+        const qty = Number(item.quantity || 1);
+        const amt = Number(item.amount || (rate * qty) || 0);
+        return {
+          ...item,
+          rate,
+          amcRate: rate,
+          billedRate: rate,
+          quantity: qty,
+          estimatedQty: qty,
+          billedQty: qty,
+          amount: amt,
+          total: amt,
+        };
+      });
 
       const billedAmount = Number(inv.total_amount || 0);
       const estimateAmount = Number(inv.approved_estimate_amount || (workOrder?.estimated_cost || billedAmount));
@@ -86,9 +103,9 @@ export const getInvoices = async (req, res, next) => {
           id: contractor?.id || inv.contractor_id,
           name: contractor?.company_name || 'Authorized Contractor',
           company_name: contractor?.company_name || 'Authorized Contractor',
-          gstin: contractor?.gstin || '07AAAAA0000A1Z5',
+          gstin: contractor?.gstin || '06AABCV5678G1Z4',
           accountNumber: contractor?.bank_account_number || 'HDFC0004928192831',
-          amcContractId: contractor?.amc_contract_id || 'AMC-GEN-2026',
+          amcContractId: amc?.contract_number || contractor?.amc_contract_id || 'AMC-GEN-2026',
         },
         estimate_amount: estimateAmount,
         estimateAmount,
@@ -256,6 +273,7 @@ export const authorizeInvoice = async (req, res, next) => {
 
     const updated = db.update('invoices', invoice.id, {
       status: 'AUTHORIZED',
+      variance_reason: null,
       authorized_by: req.user.id,
       authorized_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -388,15 +406,40 @@ export const releasePayment = async (req, res, next) => {
 
     const updatedInvoice = db.update('invoices', invoice.id, {
       status: 'PAID',
+      variance_reason: null,
       updated_at: new Date().toISOString(),
     });
 
     // Update linked work order
-    if (invoice.work_order_id) {
-      db.update('work_orders', invoice.work_order_id, {
+    const workOrder = invoice.work_order_id
+      ? (db.findById('work_orders', invoice.work_order_id) || db.findOne('work_orders', (w) => w.id === invoice.work_order_id || w.work_order_number === invoice.work_order_id || w.work_order_code === invoice.work_order_id))
+      : null;
+
+    if (workOrder) {
+      db.update('work_orders', workOrder.id, {
         status: 'CLOSED',
+        payment_status: 'PAID',
+        settled_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
+
+      if (workOrder.complaint_id) {
+        const complaint = db.findById('complaints', workOrder.complaint_id) || db.findOne('complaints', (c) => c.id === workOrder.complaint_id || c.complaint_code === workOrder.complaint_id);
+        if (complaint) {
+          const cleanHistory = complaint.history || [];
+          db.update('complaints', complaint.id, {
+            history: [
+              ...cleanHistory,
+              {
+                stage: 'PAYMENT_DISBURSED',
+                timestamp: new Date().toISOString(),
+                actor: `${req.user.name || 'Finance Officer'} (${req.user.role})`,
+                note: `Payment of ₹${Number(invoice.total_amount || 0).toLocaleString('en-IN')} disbursed to vendor via ${paymentMode || 'RTGS'}. UTR: ${reference}`,
+              },
+            ],
+          });
+        }
+      }
     }
 
     db.logAudit({
