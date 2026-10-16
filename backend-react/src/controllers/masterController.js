@@ -23,28 +23,42 @@ export const getContractors = async (req, res, next) => {
       'c0000000-0000-0000-0000-000000000003': 4.9,
     };
 
+    const allUsers = db.find('users');
+    const allServices = db.find('contractor_services');
+
     const contractors = rawContractors.map((c) => {
       const contractorAmcs = amcs.filter((a) => a.contractor_id === c.id);
-      const deptNames = contractorAmcs
-        .map((a) => {
-          const dept = departments.find((d) => d.id === a.department_id);
-          if (!dept) return null;
-          if (dept.name.toLowerCase().includes('civil')) return 'Civil';
-          if (dept.name.toLowerCase().includes('elect')) return 'Electrical';
-          if (dept.name.toLowerCase().includes('water')) return 'Water';
-          return dept.name;
-        })
-        .filter(Boolean);
+      const contractorServices = allServices
+        .filter((s) => s.contractor_id === c.id)
+        .map((s) => s.service_type);
+
+      const deptNames = [];
+      contractorAmcs.forEach((a) => {
+        const dept = departments.find((d) => d.id === a.department_id);
+        if (!dept) return;
+        const dLower = dept.name.toLowerCase();
+        deptNames.push(dept.name);
+        if (dLower.includes('civil')) deptNames.push('Civil', 'Roads');
+        if (dLower.includes('elect')) deptNames.push('Electrical', 'Power');
+        if (dLower.includes('water')) deptNames.push('Water', 'Sanitation');
+        if (dLower.includes('hort') || dLower.includes('waste')) deptNames.push('Horticulture', 'Waste');
+      });
 
       if (deptNames.length === 0) {
         const cn = (c.company_name || '').toLowerCase();
         if (cn.includes('civil') || cn.includes('infra') || cn.includes('road')) deptNames.push('Civil', 'Roads');
-        if (cn.includes('power') || cn.includes('elect')) deptNames.push('Electrical');
+        if (cn.includes('power') || cn.includes('elect')) deptNames.push('Electrical', 'Power');
         if (cn.includes('water') || cn.includes('hydro')) deptNames.push('Water', 'Sanitation');
-        if (cn.includes('environ') || cn.includes('waste') || cn.includes('swachh')) deptNames.push('Horticulture & Urban Waste Management', 'Waste');
+        if (cn.includes('environ') || cn.includes('waste') || cn.includes('swachh')) deptNames.push('Horticulture', 'Waste');
       }
 
+      const mergedDepartments = Array.from(new Set([...deptNames, ...contractorServices]));
       const primaryAmc = contractorAmcs[0];
+
+      // Find official contractor user account (firstname.lastname@infralynx.com)
+      const officialUser = allUsers.find(
+        (u) => u.contractor_id === c.id && u.role === 'FIELD_CONTRACTOR' && u.email?.includes('@infralynx.com') && !u.email.startsWith('contractor@')
+      ) || allUsers.find((u) => u.contractor_id === c.id && u.role === 'FIELD_CONTRACTOR');
 
       return {
         ...c,
@@ -54,8 +68,9 @@ export const getContractors = async (req, res, next) => {
         lead: c.contact_person,
         contact_person: c.contact_person,
         phone: c.phone,
-        email: c.email,
-        departments: deptNames.length > 0 ? deptNames : ['General', 'Civil', 'Electrical', 'Water'],
+        email: officialUser ? officialUser.email : c.email,
+        official_email: officialUser ? officialUser.email : c.email,
+        departments: mergedDepartments.length > 0 ? mergedDepartments : ['General'],
         amcContractId: primaryAmc ? primaryAmc.contract_number : 'AMC-GEN-2025',
         status: c.status === 'ACTIVE' ? 'Active' : c.status,
         rating: ratingsMap[c.id] || 4.7,

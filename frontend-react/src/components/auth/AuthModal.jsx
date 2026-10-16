@@ -17,7 +17,20 @@ function mapRoleToPortal(role, email = '') {
   if (em.includes('clerk') || em.includes('pooja')) return 'clerk'
   if (em.includes('coo') || em.includes('dewan')) return 'coo'
   if (em.includes('head') || em.includes('sandeep') || em.includes('dept')) return 'dept_head'
-  if (em.includes('contractor') || em.includes('vikram') || em.includes('voltech') || em.includes('apex')) return 'contractor'
+  if (
+    em.includes('contractor') ||
+    em.includes('vikram') ||
+    em.includes('rathore') ||
+    em.includes('rameshwar') ||
+    em.includes('sharma') ||
+    em.includes('suresh') ||
+    em.includes('kulkarni') ||
+    em.includes('gurpreet') ||
+    em.includes('sandhu') ||
+    em.includes('voltech')
+  ) {
+    return 'contractor'
+  }
   if (em.includes('finance') || em.includes('sunil')) return 'finance'
   return 'rwa'
 }
@@ -250,7 +263,10 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
                       { label: 'RWA', email: 'rwa@infralynx.com' },
                       { label: 'Clerk', email: 'clerk@infralynx.com' },
                       { label: 'Dept Head', email: 'head@infralynx.com' },
-                      { label: 'Contractor', email: 'contractor@infralynx.com' },
+                      { label: 'Civil Contractor', email: 'rameshwar.sharma@infralynx.com' },
+                      { label: 'Electrical Contractor', email: 'vikram.rathore@infralynx.com' },
+                      { label: 'Water Contractor', email: 'suresh.kulkarni@infralynx.com' },
+                      { label: 'Horticulture Contractor', email: 'gurpreet.sandhu@infralynx.com' },
                       { label: 'Finance', email: 'finance@infralynx.com' },
                       { label: 'Township COO', email: 'coo@infralynx.com' },
                     ].map((acc) => (

@@ -13,6 +13,7 @@
 
 import http from 'http';
 import app from './app.js';
+import db from './config/db.js';
 
 let BASE_URL = 'http://localhost:5000/api/v1';
 let selfServer = null;
@@ -66,6 +67,7 @@ function report(name, condition, extra = '') {
 }
 
 async function runTests() {
+  await db.reset();
   selfServer = http.createServer(app);
   await new Promise((resolve) => selfServer.listen(0, resolve));
   const port = selfServer.address().port;
@@ -102,7 +104,7 @@ async function runTests() {
   const clerkLogin = await req('/auth/login', 'POST', { email: 'clerk@infralynx.com', password: 'Password@123' });
   const clerkToken = clerkLogin.data?.data?.token;
 
-  const contractorLogin = await req('/auth/login', 'POST', { email: 'contractor@infralynx.com', password: 'Password@123' });
+  const contractorLogin = await req('/auth/login', 'POST', { email: 'rameshwar.sharma@infralynx.com', password: 'Password@123' });
   const contractorToken = contractorLogin.data?.data?.token;
 
   const cooLogin = await req('/auth/login', 'POST', { email: 'coo@infralynx.com', password: 'Password@123' });

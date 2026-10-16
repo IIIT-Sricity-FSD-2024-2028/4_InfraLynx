@@ -645,8 +645,7 @@ export const getEligibleContractors = async (req, res, next) => {
     const { department_id, department, category, township_id } = req.query;
 
     const targetTownshipId = township_id || req.user.township_id;
-    const clerk_department_id = req.user.department_id;
-    const matchDeptId = department_id || (req.user.role === 'DESK_CLERK' ? clerk_department_id : null);
+    const matchDeptId = department_id || null;
     const allContractors = db.find('contractors');
     const allAmcs = db.find('amcs');
     const allRates = db.find('amc_rates');

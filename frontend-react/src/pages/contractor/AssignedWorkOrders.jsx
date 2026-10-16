@@ -15,9 +15,15 @@ export default function AssignedWorkOrders({
       // Status filtering
       let matchesStatus = true
       if (filter === 'ASSIGNED') {
-        matchesStatus = job.status === 'ASSIGNED' || job.status === 'WORK_ORDER_CREATED'
+        const hasEst = Boolean(job.estimate) || Number(job.estimateAmount || job.estimated_cost || 0) > 0 || ['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO', 'ESCALATED_TO_COO'].includes(job.status)
+        matchesStatus = (job.status === 'ASSIGNED' || job.status === 'WORK_ORDER_CREATED') && !hasEst
+      } else if (filter === 'PENDING_APPROVAL') {
+        const hasEst = Boolean(job.estimate) || Number(job.estimateAmount || job.estimated_cost || 0) > 0
+        matchesStatus = ['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO', 'ESCALATED_TO_COO'].includes(job.status) || (hasEst && job.status !== 'APPROVED' && job.status !== 'IN_PROGRESS' && job.status !== 'COMPLETED')
+      } else if (filter === 'APPROVED') {
+        matchesStatus = job.status === 'APPROVED'
       } else if (filter === 'IN_PROGRESS') {
-        matchesStatus = job.status === 'IN_PROGRESS' || job.status === 'AWAITING_DEPT_HEAD'
+        matchesStatus = job.status === 'IN_PROGRESS'
       } else if (filter === 'COMPLETED') {
         matchesStatus = job.status === 'COMPLETED' || job.status === 'PENDING_VERIFICATION' || job.status === 'CLOSED'
       } else if (filter === 'REOPENED') {
@@ -91,24 +97,40 @@ export default function AssignedWorkOrders({
         </div>
       </div>
 
-      {/* Filter Tabs (Screen 2 core requirement: Assigned, In Progress, Completed, Reopened) */}
+      {/* Filter Tabs (Assigned, Awaiting Approval, Approved, In Progress, Completed, Reopened) */}
       <div className="assigned-wo-tabs">
         {[
           { id: 'ALL', label: 'All Jobs', count: jobs.length },
           {
             id: 'ASSIGNED',
             label: 'Assigned',
-            count: jobs.filter((j) => j.status === 'ASSIGNED' || j.status === 'WORK_ORDER_CREATED').length,
+            count: jobs.filter((j) => {
+              const hasEst = Boolean(j.estimate) || Number(j.estimateAmount || j.estimated_cost || 0) > 0 || ['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO', 'ESCALATED_TO_COO'].includes(j.status)
+              return (j.status === 'ASSIGNED' || j.status === 'WORK_ORDER_CREATED') && !hasEst
+            }).length,
+          },
+          {
+            id: 'PENDING_APPROVAL',
+            label: 'Awaiting Dept Head',
+            count: jobs.filter((j) => {
+              const hasEst = Boolean(j.estimate) || Number(j.estimateAmount || j.estimated_cost || 0) > 0
+              return ['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO', 'ESCALATED_TO_COO'].includes(j.status) || (hasEst && j.status !== 'APPROVED' && j.status !== 'IN_PROGRESS' && j.status !== 'COMPLETED')
+            }).length,
+          },
+          {
+            id: 'APPROVED',
+            label: 'Approved (Ready to Start)',
+            count: jobs.filter((j) => j.status === 'APPROVED').length,
           },
           {
             id: 'IN_PROGRESS',
             label: 'In Progress',
-            count: jobs.filter((j) => j.status === 'IN_PROGRESS' || j.status === 'AWAITING_DEPT_HEAD').length,
+            count: jobs.filter((j) => j.status === 'IN_PROGRESS').length,
           },
           {
             id: 'COMPLETED',
             label: 'Completed',
-            count: jobs.filter((j) => j.status === 'COMPLETED' || j.status === 'PENDING_VERIFICATION' || j.status === 'CLOSED').length,
+            count: jobs.filter((j) => ['COMPLETED', 'PENDING_VERIFICATION', 'CLOSED'].includes(j.status)).length,
           },
           {
             id: 'REOPENED',
@@ -256,7 +278,10 @@ export default function AssignedWorkOrders({
 
                     <td>
                       <div className="assigned-wo-actions-col">
-                        {job.status === 'ASSIGNED' && (
+                        {(job.status === 'ASSIGNED' || job.status === 'WORK_ORDER_CREATED') &&
+                          !job.estimate &&
+                          !(Number(job.estimateAmount || job.estimated_cost || 0) > 0) &&
+                          !['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO', 'ESCALATED_TO_COO'].includes(job.status) && (
                           <>
                             <button
                               onClick={() => {
@@ -277,6 +302,19 @@ export default function AssignedWorkOrders({
                               Draft Estimate
                             </button>
                           </>
+                        )}
+
+                        {job.status === 'APPROVED' && (
+                          <button
+                            onClick={() => {
+                              onSelectJob(job)
+                              onNavigate('execution')
+                            }}
+                            className="btn-contractor-primary assigned-wo-action-btn"
+                            style={{ background: '#059669', borderColor: '#059669' }}
+                          >
+                            Start Work 🚀
+                          </button>
                         )}
 
                         {job.status === 'IN_PROGRESS' && (
@@ -327,7 +365,11 @@ export default function AssignedWorkOrders({
                           </button>
                         )}
 
-                        {job.status === 'AWAITING_DEPT_HEAD' && (
+                        {(['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO', 'ESCALATED_TO_COO'].includes(job.status) ||
+                          ((Boolean(job.estimate) || Number(job.estimateAmount || job.estimated_cost || 0) > 0) &&
+                            job.status !== 'APPROVED' &&
+                            job.status !== 'IN_PROGRESS' &&
+                            job.status !== 'COMPLETED')) && (
                           <button
                             onClick={() => {
                               onSelectJob(job)
@@ -335,7 +377,7 @@ export default function AssignedWorkOrders({
                             }}
                             className="btn-contractor-secondary assigned-wo-action-btn"
                           >
-                            Pending Approval
+                            Pending Approval ⏳
                           </button>
                         )}
                       </div>

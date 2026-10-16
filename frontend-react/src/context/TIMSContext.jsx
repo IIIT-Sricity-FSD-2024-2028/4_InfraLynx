@@ -10,7 +10,7 @@ const CANONICAL_FALLBACK_CONTRACTORS = [
     company_name: 'Larsen & Toubro Urban Infra Works Ltd.',
     lead: 'Rameshwar Nath Sharma',
     phone: '+91 98110 45231',
-    email: 'rn.sharma@lt-urbaninfra.co.in',
+    email: 'rameshwar.sharma@infralynx.com',
     departments: ['Civil', 'Roads'],
     amcContractId: 'AMC-CIV-2025-08',
     status: 'Active',
@@ -22,7 +22,7 @@ const CANONICAL_FALLBACK_CONTRACTORS = [
     company_name: 'Voltech Power & Electrical Systems Ltd.',
     lead: 'Vikram Singh Rathore',
     phone: '+91 97230 11984',
-    email: 'vikram.singh@voltechpower.in',
+    email: 'vikram.rathore@infralynx.com',
     departments: ['Electrical', 'Power'],
     amcContractId: 'AMC-ELE-2025-03',
     status: 'Active',
@@ -34,7 +34,7 @@ const CANONICAL_FALLBACK_CONTRACTORS = [
     company_name: 'Kirloskar HydroTech & Water Systems Pvt. Ltd.',
     lead: 'Suresh Narayan Kulkarni',
     phone: '+91 94220 33819',
-    email: 'suresh.kulkarni@kirloskarhydro.in',
+    email: 'suresh.kulkarni@infralynx.com',
     departments: ['Water', 'Sanitation'],
     amcContractId: 'AMC-WTR-2025-11',
     status: 'Active',
@@ -46,8 +46,8 @@ const CANONICAL_FALLBACK_CONTRACTORS = [
     company_name: 'Swachh Urban Environmental Solutions LLP',
     lead: 'Gurpreet Singh Sandhu',
     phone: '+91 98722 55431',
-    email: 'gurpreet@swachhurban.in',
-    departments: ['Horticulture & Urban Waste Management', 'Waste'],
+    email: 'gurpreet.sandhu@infralynx.com',
+    departments: ['Horticulture', 'Horticulture & Urban Waste Management', 'Waste'],
     amcContractId: 'AMC-SAN-2025-18',
     status: 'Active',
     rating: 4.7,
@@ -125,9 +125,7 @@ export function TIMSProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    if (backendStatus.connected) {
-      refreshMasterData()
-    }
+    refreshMasterData()
   }, [backendStatus.connected, currentUser?.id, refreshMasterData])
 
   const login = useCallback(async (emailOrUsername, password) => {

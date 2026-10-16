@@ -60,6 +60,8 @@ export function formatWorkOrderResponse(wo) {
     townshipId:           wo.township_id,
     department_id:        wo.department_id,
     departmentId:         wo.department_id,
+    contractor_id:        wo.contractor_id || (contractor ? contractor.id : null),
+    contractorId:         wo.contractor_id || (contractor ? contractor.id : null),
     status:               wo.status,
     priority:             wo.priority,
     estimated_cost:       estimated_cost,
@@ -224,14 +226,34 @@ export const createWorkOrder = async (req, res, next) => {
     const now = new Date().toISOString();
     const slaDeadline = calculateSlaDeadline(chosenPriority, now);
 
-    // 5. Handle contractor assignment if provided
-    const chosenContractorId = contractorId || contractor_id || null;
+    // 5. Handle contractor assignment (auto-resolve department contractor if not provided)
+    let chosenContractorId = contractorId || contractor_id || null;
     let assignedContractor = null;
+    const allAmcs = db.find('amcs');
+    const allDepts = db.find('departments');
 
     if (chosenContractorId) {
       assignedContractor = db.findOne('contractors', (c) => c.id === chosenContractorId && c.status === 'ACTIVE');
       if (!assignedContractor) {
         return next(new AppError(`Selected contractor "${chosenContractorId}" not found or inactive.`, 404, 'NOT_FOUND'));
+      }
+    } else {
+      // Auto-assign contractor with active AMC for this complaint's department / category
+      const deptId = complaint.department_id;
+      const cat = (complaint.category || '').toLowerCase();
+
+      const matchingAmc = allAmcs.find((a) => {
+        if (a.status && a.status !== 'ACTIVE') return false;
+        if (deptId && a.department_id === deptId) return true;
+        if (cat) {
+          const dept = allDepts.find((d) => d.id === a.department_id);
+          if (dept && (dept.name.toLowerCase().includes(cat) || cat.includes(dept.name.toLowerCase()))) return true;
+        }
+        return false;
+      });
+
+      if (matchingAmc) {
+        assignedContractor = db.findOne('contractors', (c) => c.id === matchingAmc.contractor_id && c.status === 'ACTIVE');
       }
     }
 
@@ -241,6 +263,13 @@ export const createWorkOrder = async (req, res, next) => {
       woStatus = 'AWAITING_DEPT_HEAD';
     } else if (assignedContractor) {
       woStatus = 'ASSIGNED';
+    }
+
+    // Resolve department ID if missing on complaint
+    let resolvedDeptId = complaint.department_id;
+    if (!resolvedDeptId && assignedContractor) {
+      const amc = allAmcs.find((a) => a.contractor_id === assignedContractor.id);
+      if (amc?.department_id) resolvedDeptId = amc.department_id;
     }
 
     // 6. Create unique Work Order record
@@ -253,7 +282,7 @@ export const createWorkOrder = async (req, res, next) => {
       work_order_code:      woCode,
       township_id:          complaint.township_id || req.user.township_id,
       complaint_id:         complaint.id,
-      department_id:        complaint.department_id,
+      department_id:        resolvedDeptId || complaint.department_id,
       contractor_id:        assignedContractor ? assignedContractor.id : null,
       assigned_by:          assignedContractor ? req.user.id : null,
       assigned_at:          assignedContractor ? now : null,

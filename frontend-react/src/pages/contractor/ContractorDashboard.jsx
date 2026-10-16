@@ -306,6 +306,19 @@ export default function ContractorDashboard({
                         </button>
                       )}
 
+                      {job.status === 'APPROVED' && (
+                        <button
+                          onClick={() => {
+                            onSelectJob(job)
+                            onNavigate('execution')
+                          }}
+                          className="btn-contractor-primary btn-table-action"
+                          style={{ background: '#059669', borderColor: '#059669' }}
+                        >
+                          Start Work 🚀
+                        </button>
+                      )}
+
                       {job.status === 'REVISION_REQUESTED' && (
                         <button
                           onClick={() => {
@@ -354,7 +367,7 @@ export default function ContractorDashboard({
                         </button>
                       )}
 
-                      {job.status === 'AWAITING_DEPT_HEAD' && (
+                      {(['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO'].includes(job.status) || (Boolean(job.estimate) && job.status !== 'APPROVED' && job.status !== 'IN_PROGRESS' && job.status !== 'COMPLETED')) && (
                         <button
                           onClick={() => {
                             onSelectJob(job)
