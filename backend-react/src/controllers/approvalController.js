@@ -35,7 +35,9 @@ export const getPendingApprovals = async (req, res, next) => {
 
     // Enrich with complaint and contractor context
     const enriched = pendingWOs.map((wo) => {
-      const complaint = wo.complaint_id ? db.findOne('complaints', (c) => c.id === wo.complaint_id) : null;
+      const complaint = wo.complaint_id
+        ? db.findOne('complaints', (c) => c.id === wo.complaint_id || c.complaint_code === wo.complaint_id)
+        : null;
       const contractor = wo.contractor_id
         ? db.findOne('contractors', (cnt) => cnt.id === wo.contractor_id)
         : null;
@@ -44,6 +46,15 @@ export const getPendingApprovals = async (req, res, next) => {
       const wo_number = wo.work_order_number || wo.id;
       const estimated_cost = Number(wo.estimated_cost || 0);
 
+      const evidence = complaint
+        ? db.findAll('complaint_evidence', (e) => e.complaint_id === complaint.id || (complaint.complaint_code && e.complaint_id === complaint.complaint_code)) || []
+        : [];
+      const beforePhotos = evidence
+        .filter((e) => (e.evidence_type || e.type) === 'BEFORE')
+        .map((e) => e.file_url || e.fileUrl);
+
+      const resolvedDesc = complaint?.description || wo.description || wo.special_instructions || '';
+
       return {
         id: wo.id,
         work_order_number: wo_number,
@@ -51,7 +62,10 @@ export const getPendingApprovals = async (req, res, next) => {
         workOrderCode: wo_number,
         complaint_id: wo.complaint_id,
         complaintId: wo.complaint_id,
-        title: complaint?.title || 'Civil Infrastructure Remediation',
+        title: complaint?.title || wo.title || 'Civil Infrastructure Remediation',
+        description: resolvedDesc,
+        complaint_description: resolvedDesc,
+        complaintDescription: resolvedDesc,
         category: complaint?.category || 'Civil',
         severity: complaint?.severity || wo.priority || 'Medium',
         priority: wo.priority || complaint?.severity || 'Medium',
@@ -71,18 +85,23 @@ export const getPendingApprovals = async (req, res, next) => {
         departmentId: wo.department_id,
         department_name: department?.name || 'Civil Infrastructure & Roads',
         departmentName: department?.name || 'Civil Infrastructure & Roads',
+        beforePhotos: beforePhotos.length > 0 ? beforePhotos : (complaint?.beforePhotos || complaint?.photos || []),
         complaint: complaint
           ? {
+              ...complaint,
               id: complaint.id,
               complaint_code: complaint.complaint_code,
               complaintCode: complaint.complaint_code,
               title: complaint.title,
-              description: complaint.description,
+              description: resolvedDesc,
               location_details: complaint.location_details || complaint.sector || 'Sector 54',
               location: complaint.location_details || complaint.sector || 'Sector 54',
               sector: complaint.sector || 'Sector 54',
+              block: complaint.block,
+              street: complaint.street,
               reported_by: complaint.reported_by,
               reportedBy: complaint.reported_by || 'Citizen Representative',
+              beforePhotos: beforePhotos.length > 0 ? beforePhotos : (complaint.beforePhotos || complaint.photos || []),
             }
           : null,
         contractor: contractor
@@ -115,6 +134,11 @@ export const getPendingApprovals = async (req, res, next) => {
       const contractor = c.assignedContractor || null;
       const virtual_wo_number = `WO-PENDING-${c.id.slice(-4)}`;
       const estimated_cost = Number(c.estimated_cost || 14500);
+      const evidence = db.findAll('complaint_evidence', (e) => e.complaint_id === c.id || (c.complaint_code && e.complaint_id === c.complaint_code)) || [];
+      const beforePhotos = evidence
+        .filter((e) => (e.evidence_type || e.type) === 'BEFORE')
+        .map((e) => e.file_url || e.fileUrl);
+
       enriched.push({
         id: `virtual-wo-${c.id}`,
         work_order_number: virtual_wo_number,
@@ -123,6 +147,9 @@ export const getPendingApprovals = async (req, res, next) => {
         complaint_id: c.id,
         complaintId: c.id,
         title: c.title,
+        description: c.description || '',
+        complaint_description: c.description || '',
+        complaintDescription: c.description || '',
         category: c.category || 'Civil',
         severity: c.severity,
         priority: c.severity || 'Medium',
@@ -138,7 +165,11 @@ export const getPendingApprovals = async (req, res, next) => {
         createdAt: c.created_at,
         department_id: c.department_id || department_id,
         departmentId: c.department_id || department_id,
-        complaint: c,
+        beforePhotos: beforePhotos.length > 0 ? beforePhotos : (c.beforePhotos || c.photos || []),
+        complaint: {
+          ...c,
+          beforePhotos: beforePhotos.length > 0 ? beforePhotos : (c.beforePhotos || c.photos || []),
+        },
         contractor,
       });
     }
@@ -164,21 +195,23 @@ export const getApprovalDetails = async (req, res, next) => {
     const township_id = req.user.township_id;
     const department_id = req.user.department_id || CIVIL_DEPT_ID;
 
+    const cleanId = typeof id === 'string' && id.startsWith('virtual-wo-') ? id.replace('virtual-wo-', '') : id;
+
     let wo = db.findOne(
       'work_orders',
-      (w) => w.id === id || w.work_order_code === id || w.work_order_number === id || w.complaint_id === id
+      (w) => w.id === cleanId || w.work_order_code === cleanId || w.work_order_number === cleanId || w.complaint_id === cleanId
     );
 
     let complaint = null;
     if (wo) {
-      complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
+      complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id || c.complaint_code === wo.complaint_id);
     } else {
       complaint = db.findOne(
         'complaints',
-        (c) => c.id === id || c.complaint_code === id || c.workOrderId === id
+        (c) => c.id === cleanId || c.complaint_code === cleanId || c.workOrderId === cleanId || c.id === id
       );
       if (complaint) {
-        wo = db.findOne('work_orders', (w) => w.complaint_id === complaint.id);
+        wo = db.findOne('work_orders', (w) => w.complaint_id === complaint.id || w.complaint_id === complaint.complaint_code);
       }
     }
 
@@ -210,11 +243,26 @@ export const getApprovalDetails = async (req, res, next) => {
       ? db.findById('contractors', wo.contractor_id)
       : complaint?.assignedContractor || null;
 
+    const evidence = complaint
+      ? db.findAll('complaint_evidence', (e) => e.complaint_id === complaint.id || (complaint.complaint_code && e.complaint_id === complaint.complaint_code)) || []
+      : [];
+    const beforePhotos = evidence
+      .filter((e) => (e.evidence_type || e.type) === 'BEFORE')
+      .map((e) => e.file_url || e.fileUrl);
+
+    const enrichedComplaint = complaint
+      ? {
+          ...complaint,
+          description: complaint.description || wo?.description || wo?.special_instructions || '',
+          beforePhotos: beforePhotos.length > 0 ? beforePhotos : (complaint.beforePhotos || complaint.photos || []),
+        }
+      : null;
+
     res.status(200).json({
       success: true,
       data: {
         workOrder: wo || null,
-        complaint: complaint || null,
+        complaint: enrichedComplaint,
         contractor: contractor || null,
         lineItems: wo?.line_items || [],
         estimateAmount: wo?.estimate_amount || wo?.estimated_cost || complaint?.estimateAmount || 0,

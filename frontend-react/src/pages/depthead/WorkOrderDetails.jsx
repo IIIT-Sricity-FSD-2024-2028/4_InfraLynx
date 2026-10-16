@@ -12,7 +12,7 @@ export default function WorkOrderDetails({ complaint, onBack }) {
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    if (complaint?.id) {
+    if (complaint?.id || complaint?.complaintId || complaint?.workOrderId) {
       fetchDetails();
     }
   }, [complaint]);
@@ -21,40 +21,67 @@ export default function WorkOrderDetails({ complaint, onBack }) {
     try {
       setLoading(true);
       setError(null);
-      // Attempt to load as work order first
+      const targetId = complaint?.id || complaint?.workOrderId || complaint?.work_order_id || complaint?.complaint_id || complaint?.complaintId;
+
+      // 1. First attempt to load via approval details (ideal for approvals tab)
       try {
-        const res = await deptHeadApi.getWorkOrderById(complaint.id);
-        if (res?.data) {
-          setDetails(res.data);
+        const appRes = await deptHeadApi.getApprovalDetails(targetId);
+        const data = appRes?.data || appRes;
+        if (data && (data.workOrder || data.complaint)) {
+          setDetails({
+            workOrder: data.workOrder || complaint?.work_order || complaint,
+            complaint: data.complaint || complaint?.complaint || complaint,
+            contractor: data.contractor || complaint?.contractor || null,
+          });
+          return;
+        }
+      } catch (appErr) {
+        // Fall through to work order details
+      }
+
+      // 2. Attempt to load as work order
+      try {
+        const res = await deptHeadApi.getWorkOrderById(targetId);
+        const data = res?.data || res;
+        if (data && (data.workOrder || data.complaint || data.id)) {
+          setDetails({
+            workOrder: data.workOrder || data,
+            complaint: data.complaint || complaint?.complaint || complaint,
+            contractor: data.contractor || complaint?.contractor || null,
+          });
           return;
         }
       } catch (woErr) {
         // Fall through to load complaint details
       }
 
-      // If no direct work order, fetch full complaint record
-      try {
-        const compRes = await deptHeadApi.getComplaintById(complaint.id);
-        if (compRes?.data) {
-          setDetails({
-            complaint: compRes.data,
-            workOrder: compRes.data.work_order || null,
-            contractor: compRes.data.contractor || null,
-          });
-          return;
+      // 3. If complaint id available, fetch full complaint record
+      const compId = complaint?.complaint_id || complaint?.complaintId || complaint?.complaint?.id || (complaint?.id && !String(complaint?.id).startsWith('WO-') ? complaint?.id : null);
+      if (compId) {
+        try {
+          const compRes = await deptHeadApi.getComplaintById(compId);
+          const compData = compRes?.data || compRes;
+          if (compData && (compData.id || compData.description || compData.title)) {
+            setDetails({
+              complaint: compData,
+              workOrder: compData.work_order || compData.workOrder || complaint?.work_order || complaint,
+              contractor: compData.contractor || complaint?.contractor || null,
+            });
+            return;
+          }
+        } catch (cErr) {
+          // Fall back to using the complaint prop directly
         }
-      } catch (cErr) {
-        // Fall back to using the complaint prop directly
       }
 
       setDetails({
-        complaint: complaint,
-        workOrder: complaint.work_order || complaint,
-        contractor: complaint.contractor || null,
+        complaint: complaint?.complaint || complaint,
+        workOrder: complaint?.work_order || complaint?.workOrder || complaint,
+        contractor: complaint?.contractor || null,
       });
     } catch (err) {
       setDetails({
-        complaint: complaint,
+        complaint: complaint?.complaint || complaint,
         workOrder: complaint,
       });
     } finally {
@@ -134,9 +161,36 @@ export default function WorkOrderDetails({ complaint, onBack }) {
     );
   }
 
-  const wo = details?.workOrder || complaint;
-  const comp = details?.complaint || complaint;
-  const contractor = details?.contractor || complaint.contractor;
+  const wo = details?.workOrder || complaint?.work_order || complaint?.workOrder || complaint || {};
+  const comp = details?.complaint || complaint?.complaint || complaint || {};
+  const contractor = details?.contractor || complaint?.contractor || null;
+
+  const completeDescription =
+    comp.description ||
+    comp.complaint?.description ||
+    wo.description ||
+    wo.complaint?.description ||
+    wo.complaint_description ||
+    wo.complaintDescription ||
+    comp.complaint_description ||
+    comp.complaintDescription ||
+    complaint.description ||
+    complaint.complaint?.description ||
+    complaint.complaint_description ||
+    complaint.complaintDescription ||
+    comp.details ||
+    wo.special_instructions ||
+    wo.specialInstructions ||
+    '';
+
+  const issuePhotos = Array.from(new Set([
+    ...(comp.beforePhotos || []),
+    ...(wo.beforePhotos || []),
+    ...(comp.photos || []),
+    ...(complaint.beforePhotos || []),
+    ...(complaint.complaint?.beforePhotos || []),
+    ...(comp.evidence?.filter(e => (e.evidence_type || e.type) === 'BEFORE').map(e => e.file_url) || [])
+  ])).filter(Boolean);
 
   const amcItems = (wo.line_items && wo.line_items.length > 0)
     ? wo.line_items.map(it => ({
@@ -234,15 +288,15 @@ export default function WorkOrderDetails({ complaint, onBack }) {
             <div>
               <span style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: 'var(--text-soft)', textTransform: 'uppercase' }}>Complete Description</span>
               <p style={{ color: 'var(--text-main)', marginTop: '4px', padding: '14px', background: 'var(--surface-muted)', borderRadius: '8px', fontSize: '14px', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                {comp.description || wo.description}
+                {completeDescription || 'No detailed description provided.'}
               </p>
             </div>
             
-            {(comp.beforePhotos || wo.beforePhotos) && (comp.beforePhotos?.length > 0 || wo.beforePhotos?.length > 0) && (
+            {issuePhotos.length > 0 && (
               <div style={{ marginTop: '8px' }}>
                 <span style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: 'var(--text-soft)', textTransform: 'uppercase', marginBottom: '8px' }}>Reported Photo</span>
                 <img 
-                  src={(comp.beforePhotos || wo.beforePhotos)[0]} 
+                  src={issuePhotos[0]} 
                   alt="Issue" 
                   style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '12px', border: '1px solid var(--line)' }}
                 />

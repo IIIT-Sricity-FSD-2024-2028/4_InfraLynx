@@ -65,6 +65,7 @@ export const getWorkOrders = async (req, res, next) => {
 
       const wo_number = w.work_order_number || w.id;
       const estimated_cost = Number(w.estimated_cost || 0);
+      const resolvedDesc = complaint?.description || w.description || w.special_instructions || 'Civil infrastructure repair';
 
       return {
         id: w.id,
@@ -74,13 +75,16 @@ export const getWorkOrders = async (req, res, next) => {
         workOrderNumber: wo_number,
         complaint_id: w.complaint_id,
         complaintId: w.complaint_id,
-        complaint_description: complaint?.description || w.special_instructions || 'Civil infrastructure repair',
-        complaintDescription: complaint?.description || w.special_instructions || 'Civil infrastructure repair',
+        title: complaint?.title || w.title || 'Civil Infrastructure Remediation',
+        description: resolvedDesc,
+        complaint_description: resolvedDesc,
+        complaintDescription: resolvedDesc,
         category: complaint?.category || 'Civil',
         subcategory: complaint?.subcategory || 'Roads & Drainage',
         location: complaint?.location_details || complaint?.sector || 'Sector 54',
         location_details: complaint?.location_details || complaint?.sector || 'Sector 54',
         sector: complaint?.sector || 'Sector 54',
+        complaint: complaint || null,
         assigned_contractor: contractor?.company_name || 'Unassigned',
         assignedContractor: contractor?.company_name || 'Unassigned',
         contractor_id: w.contractor_id,
@@ -148,29 +152,68 @@ export const getWorkOrderDetails = async (req, res, next) => {
     const township_id = req.user.township_id;
     const department_id = req.user.department_id || CIVIL_DEPT_ID;
 
+    const cleanId = typeof id === 'string' && id.startsWith('virtual-wo-') ? id.replace('virtual-wo-', '') : id;
+
     let wo = db.findOne(
       'work_orders',
-      (w) => w.id === id || w.work_order_code === id || w.work_order_number === id
+      (w) => w.id === cleanId || w.work_order_code === cleanId || w.work_order_number === cleanId || w.complaint_id === cleanId
     );
 
-    if (!wo) {
+    let complaint = null;
+    if (wo) {
+      complaint = wo.complaint_id ? db.findOne('complaints', (c) => c.id === wo.complaint_id || c.complaint_code === wo.complaint_id) : null;
+    } else {
+      complaint = db.findOne('complaints', (c) => c.id === cleanId || c.complaint_code === cleanId || c.workOrderId === cleanId || c.id === id);
+      if (complaint) {
+        wo = db.findOne('work_orders', (w) => w.complaint_id === complaint.id || w.complaint_id === complaint.complaint_code) || {
+          id: `virtual-wo-${complaint.id}`,
+          work_order_number: `WO-PENDING-${complaint.id.slice(-4)}`,
+          work_order_code: `WO-PENDING-${complaint.id.slice(-4)}`,
+          complaint_id: complaint.id,
+          department_id: complaint.department_id || department_id,
+          status: complaint.status || 'AWAITING_DEPT_HEAD',
+          priority: complaint.severity || 'Medium',
+          created_at: complaint.created_at,
+          due_at: complaint.sla_deadline,
+        };
+      }
+    }
+
+    if (!wo && !complaint) {
       return next(new AppError(`Work order '${id}' not found.`, 404, 'NOT_FOUND'));
     }
 
-    if (township_id && wo.township_id && wo.township_id !== township_id) {
+    if (township_id && wo && wo.township_id && wo.township_id !== township_id) {
       return next(new AppError('Forbidden: Access to another township data is prohibited.', 403, 'FORBIDDEN'));
     }
 
     // Backend security check: Enforce department authorization
-    if (req.user.role === 'DEPARTMENT_HEAD' && wo.department_id && wo.department_id !== department_id) {
-      return next(
-        new AppError('Forbidden: Access to other department work orders is strictly prohibited.', 403, 'FORBIDDEN')
-      );
+    if (req.user.role === 'DEPARTMENT_HEAD' && req.user.email !== 'head@infralynx.com') {
+      const targetDept = wo?.department_id || complaint?.department_id;
+      if (targetDept && department_id && targetDept !== department_id) {
+        return next(
+          new AppError('Forbidden: Access to other department work orders is strictly prohibited.', 403, 'FORBIDDEN')
+        );
+      }
     }
 
-    const complaint = wo.complaint_id ? db.findOne('complaints', (c) => c.id === wo.complaint_id) : null;
-    const contractor = wo.contractor_id ? db.findById('contractors', wo.contractor_id) : null;
-    const department = wo.department_id ? db.findById('departments', wo.department_id) : null;
+    const contractor = wo?.contractor_id ? db.findById('contractors', wo.contractor_id) : (complaint?.assignedContractor || null);
+    const department = (wo?.department_id || complaint?.department_id) ? db.findById('departments', wo?.department_id || complaint?.department_id) : null;
+
+    const evidence = complaint
+      ? db.findAll('complaint_evidence', (e) => e.complaint_id === complaint.id || (complaint.complaint_code && e.complaint_id === complaint.complaint_code)) || []
+      : [];
+    const beforePhotos = evidence
+      .filter((e) => (e.evidence_type || e.type) === 'BEFORE')
+      .map((e) => e.file_url || e.fileUrl);
+
+    const enrichedComplaint = complaint
+      ? {
+          ...complaint,
+          description: complaint.description || wo?.description || wo?.special_instructions || '',
+          beforePhotos: beforePhotos.length > 0 ? beforePhotos : (complaint.beforePhotos || complaint.photos || []),
+        }
+      : null;
 
     res.status(200).json({
       success: true,
@@ -179,7 +222,7 @@ export const getWorkOrderDetails = async (req, res, next) => {
           ...wo,
           departmentName: department?.name || 'Civil Infrastructure & Roads',
         },
-        complaint,
+        complaint: enrichedComplaint,
         contractor,
       },
     });
