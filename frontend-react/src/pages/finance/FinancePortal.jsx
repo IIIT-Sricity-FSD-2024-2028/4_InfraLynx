@@ -2,235 +2,156 @@ import React, { useState, useEffect } from 'react'
 import FinanceDashboard from './FinanceDashboard.jsx'
 import InvoiceAudit from './InvoiceAudit.jsx'
 import RateCardViewer from './RateCardViewer.jsx'
-import PaymentReleases from './PaymentReleases.jsx'
 import { financeApi } from '../../services/api.js'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 import './styles/FinancePortal.css'
 
 export default function FinancePortal({ onExitToLanding }) {
-  const { refreshComplaints } = useTIMS()
-
-  // Navigation Tabs: 'dashboard' | 'audit' | 'rates' | 'releases'
+  const { currentUser, refreshComplaints } = useTIMS()
   const [currentScreen, setCurrentScreen] = useState('dashboard')
-
-  // Finance State (loaded from backend API)
   const [invoices, setInvoices] = useState([])
   const [activeInvoiceModal, setActiveInvoiceModal] = useState(null)
   const [notice, setNotice] = useState(null)
 
-  // Fetch live invoices from backend database
   const loadInvoices = async () => {
     try {
-      const liveInvoices = await financeApi.getInvoices();
-      if (Array.isArray(liveInvoices)) {
-        setInvoices(liveInvoices);
-      }
+      const data = await financeApi.getInvoices()
+      if (Array.isArray(data)) setInvoices(data)
     } catch (err) {
-      console.warn('[FinancePortal] Invoices fetch error:', err.message);
+      console.warn('[FinancePortal] Invoices fetch error:', err.message)
     }
-  };
+  }
 
-  useEffect(() => {
-    loadInvoices();
-  }, [currentScreen]);
+  useEffect(() => { loadInvoices() }, [currentScreen])
 
   const pendingAuditCount = invoices.filter((i) => i.auditStatus === 'PENDING_AUDIT').length
-  const varianceCount = invoices.filter((i) => i.auditStatus === 'VARIANCE_FLAGGED').length
 
   function handleNavigate(screen) {
     setCurrentScreen(screen)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function handleOpenInvoice(invoice) {
-    setActiveInvoiceModal(invoice)
+  const safeRefresh = async () => {
+    try { if (refreshComplaints) await refreshComplaints() } catch (_) {}
   }
 
-  function handleCloseInvoice() {
-    setActiveInvoiceModal(null)
-  }
-
-  async function handleAuthorizeInvoice(invoiceId) {
-    const targeted = invoices.find((i) => i.id === invoiceId || i.rawId === invoiceId)
-    if (targeted && targeted.rwaVerified === false) {
+  async function handleAuthorizeInvoice(invoiceId, keepOpen = false) {
+    const inv = invoices.find((i) => i.id === invoiceId || i.rawId === invoiceId)
+    if (inv?.rwaVerified === false) {
       alert('Cannot authorize invoice: RWA / Citizen on-ground verification is mandatory prior to financial payment authorization.')
-      return
+      return false
     }
-
     try {
-      await financeApi.authorizeInvoice(targeted?.rawId || invoiceId);
+      await financeApi.authorizeInvoice(inv?.rawId || invoiceId)
     } catch (err) {
-      console.warn('Backend authorization notice:', err.message);
-      if (err.message && (err.message.includes('RWA') || err.message.includes('verification'))) {
-        alert(err.message);
-        return;
-      }
+      alert(err.message || 'Authorization failed.')
+      return false
     }
+    await loadInvoices()
+    await safeRefresh()
+    setActiveInvoiceModal((prev) => prev ? { ...prev, auditStatus: 'AUTHORIZED', status: 'AUTHORIZED' } : null)
+    if (!keepOpen) setActiveInvoiceModal(null)
+    setNotice(`Invoice ${inv?.id || invoiceId} (₹${inv?.billedAmount?.toLocaleString('en-IN')}) successfully authorized! You can now disburse escrow payment.`)
+    return true
+  }
 
-    await loadInvoices();
-    if (refreshComplaints) {
-      try {
-        await refreshComplaints()
-      } catch (_) {}
+  async function handleReleasePayment(invoiceId, paymentConfig) {
+    const inv = invoices.find((i) => i.id === invoiceId || i.rawId === invoiceId)
+    try {
+      const result = await financeApi.releasePayment(inv?.rawId || invoiceId, paymentConfig)
+      await loadInvoices()
+      await safeRefresh()
+      setActiveInvoiceModal((prev) => prev
+        ? { ...prev, auditStatus: 'PAID', status: 'PAID', paymentMode: paymentConfig.paymentMode, paymentReference: paymentConfig.paymentReference, bankReference: paymentConfig.paymentReference, disbursedAt: new Date().toISOString() }
+        : null
+      )
+      setNotice(`✓ Payment of ₹${Number(inv?.billedAmount || 0).toLocaleString('en-IN')} disbursed for ${inv?.id || invoiceId}! Bank UTR: ${paymentConfig.paymentReference}`)
+      return result
+    } catch (err) {
+      alert(err.message || 'Payment release failed. Please try again.')
+      throw err
     }
-    setActiveInvoiceModal(null)
-    setNotice(`Invoice ${invoiceId} (₹${targeted?.billedAmount?.toLocaleString('en-IN')}) successfully verified and authorized for staged payment release!`)
   }
 
   async function handleFlagVariance(invoiceId, reason) {
+    const inv = invoices.find((i) => i.id === invoiceId || i.rawId === invoiceId)
     try {
-      await financeApi.flagVariance(invoiceId, reason);
+      await financeApi.flagVariance(inv?.rawId || invoiceId, reason)
     } catch (err) {
-      console.warn('Backend flag variance sync note:', err.message);
+      alert(err.message || 'Failed to flag variance.')
+      return
     }
-
-    await loadInvoices();
+    await loadInvoices()
     setActiveInvoiceModal(null)
-    setNotice(`Variance discrepancy flagged for ${invoiceId}. Clarification request sent to Contractor & Department Head.`)
+    setNotice(`Variance discrepancy flagged for ${inv?.id || invoiceId}. Clarification request sent to Contractor & Department Head.`)
   }
 
-
+  const TABS = [
+    { id: 'dashboard', label: 'Financial Overview' },
+    { id: 'audit', label: 'Invoice Audits & Settlements', badge: pendingAuditCount > 0 ? pendingAuditCount : null },
+    { id: 'rates', label: 'AMC Rate Cards & Contracts' },
+  ]
 
   return (
     <div className="finance-shell">
-      {/* Top Header */}
       <header className="finance-header">
         <div className="finance-header-top">
-          {/* Brand & Role Tag */}
           <div className="finance-brand-group">
-            <div
-              className="finance-brand-link"
-              onClick={() => handleNavigate('dashboard')}
-            >
-              <img
-                src="/assets/CRIMS_logo.png"
-                alt="TIMS Logo"
-                className="finance-brand-logo"
-              />
+            <div className="finance-brand-link" onClick={() => handleNavigate('dashboard')}>
+              <img src="/assets/CRIMS_logo.png" alt="TIMS Logo" className="finance-brand-logo" />
               <div>
                 <span className="finance-brand-title">TIMS</span>
                 <span className="finance-brand-sub">Township Infrastructure Management</span>
               </div>
             </div>
-
             <div className="finance-role-badge">
               <span className="finance-role-dot"></span>
-              Finance & Billing Clerk
+              Finance &amp; Billing Clerk
             </div>
           </div>
-
-          {/* User Details & Exit */}
           <div className="finance-user-actions">
             <div className="finance-user-badge">
-              <div className="finance-user-name">Sunil Agrawal</div>
-              <div className="finance-user-role">Senior Finance Officer • AMC Accounts</div>
+              <div className="finance-user-name">{currentUser?.name || 'Sunil Agrawal, CA'}</div>
+              <div className="finance-user-role">{currentUser?.title || 'Senior Finance Officer • AMC Accounts'}</div>
             </div>
-
-            {onExitToLanding && (
-              <button
-                onClick={onExitToLanding}
-                className="finance-btn-exit"
-              >
-                Exit Portal ↗
-              </button>
-            )}
+            {onExitToLanding && <button onClick={onExitToLanding} className="finance-btn-exit">Exit Portal ↗</button>}
           </div>
         </div>
 
-        {/* Navigation Tabs Bar */}
         <div className="finance-tabs-wrapper">
           <div className="finance-tabs-container">
-            {[
-              { id: 'dashboard', label: 'Financial Overview' },
-              {
-                id: 'audit',
-                label: 'Invoice Audits & 3-Way Check',
-                badge: pendingAuditCount > 0 ? pendingAuditCount : null,
-              },
-              { id: 'rates', label: 'AMC Rate Cards & Contracts' },
-              { id: 'releases', label: 'Staged Fund Releases & Payouts' },
-            ].map((tab) => {
-              const isActive = currentScreen === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleNavigate(tab.id)}
-                  className={`finance-tab-btn ${isActive ? 'active' : ''}`}
-                >
-                  {tab.label}
-                  {tab.badge && (
-                    <span className="finance-tab-badge">
-                      {tab.badge}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
+            {TABS.map((tab) => (
+              <button key={tab.id} onClick={() => handleNavigate(tab.id)} className={`finance-tab-btn ${currentScreen === tab.id ? 'active' : ''}`}>
+                {tab.label}
+                {tab.badge && <span className="finance-tab-badge">{tab.badge}</span>}
+              </button>
+            ))}
           </div>
         </div>
       </header>
 
-      {/* Main Container Body */}
       <main className="finance-main-container">
-        {/* Notice Alert Banner if any action occurred */}
         {notice && (
-          <div
-            style={{
-              padding: '14px 18px',
-              background: '#ecfdf5',
-              border: '1.5px solid #34d399',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--primary-darker)',
-              fontWeight: 600,
-              fontSize: '13.5px',
-              marginBottom: '20px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
+          <div className="finance-notice-banner">
             <span>✓ {notice}</span>
-            <button
-              onClick={() => setNotice(null)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--primary-darker)',
-                fontSize: '16px',
-                fontWeight: 800,
-                cursor: 'pointer',
-              }}
-            >
-              ✕
-            </button>
+            <button onClick={() => setNotice(null)} className="finance-notice-close">✕</button>
           </div>
         )}
-
         {currentScreen === 'dashboard' && (
-          <FinanceDashboard
-            invoices={invoices}
-            onNavigate={handleNavigate}
-            onOpenInvoice={handleOpenInvoice}
-            onAuthorizeInvoice={handleAuthorizeInvoice}
-          />
+          <FinanceDashboard invoices={invoices} onNavigate={handleNavigate} onOpenInvoice={setActiveInvoiceModal} onAuthorizeInvoice={handleAuthorizeInvoice} />
         )}
-
         {currentScreen === 'audit' && (
           <InvoiceAudit
             invoices={invoices}
             activeInvoiceModal={activeInvoiceModal}
-            onOpenInvoice={handleOpenInvoice}
-            onCloseInvoice={handleCloseInvoice}
+            onOpenInvoice={setActiveInvoiceModal}
+            onCloseInvoice={() => setActiveInvoiceModal(null)}
             onAuthorizeInvoice={handleAuthorizeInvoice}
             onFlagVariance={handleFlagVariance}
+            onReleasePayment={handleReleasePayment}
           />
         )}
-
         {currentScreen === 'rates' && <RateCardViewer />}
-
-        {currentScreen === 'releases' && (
-          <PaymentReleases invoices={invoices} />
-        )}
       </main>
     </div>
   )
