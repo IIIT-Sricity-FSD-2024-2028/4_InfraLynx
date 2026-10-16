@@ -48,12 +48,37 @@ function getPortalTitle(portalKey) {
   }
 }
 
+// Client-side field validation helper
+function validateField(name, value) {
+  if (name === 'email') {
+    const val = (value || '').trim()
+    if (!val) return 'Email or username is required.'
+    if (val.includes('@')) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(val)) return 'Please enter a valid email address (e.g. name@infralynx.com).'
+    } else {
+      if (val.length < 3) return 'Username must be at least 3 characters long.'
+      if (/\s/.test(val)) return 'Username cannot contain spaces.'
+    }
+    return ''
+  }
+  if (name === 'password') {
+    if (!value) return 'Password is required.'
+    if (value.length < 6) return 'Password must be at least 6 characters.'
+    return ''
+  }
+  return ''
+}
+
 export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess, onOpenSignUp }) {
-  const { login, setCurrentUser, backendStatus } = useTIMS()
+  const { login } = useTIMS()
   const [formData, setFormData] = useState({
-    email: 'rwa@infralynx.com',
-    password: 'Password@123',
+    email: '',
+    password: '',
   })
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState(null)
   const [submitted, setSubmitted] = useState(false)
@@ -62,8 +87,11 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
 
   useEffect(() => {
     setErrorMsg(null)
+    setErrors({})
+    setTouched({})
     setSubmitted(false)
     setLoading(false)
+    setShowPassword(false)
 
     if (initialRole) {
       const r = initialRole.toLowerCase()
@@ -75,6 +103,8 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
       else if (r === 'contractor') email = 'contractor@infralynx.com'
       else if (r === 'superadmin' || r === 'super_admin') email = 'superadmin@infralynx.com'
       setFormData({ email, password: 'Password@123' })
+    } else {
+      setFormData({ email: '', password: '' })
     }
   }, [isOpen, initialRole])
 
@@ -94,32 +124,45 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
 
   if (!isOpen) return null
 
-  function handleQuickFill(email) {
-    setFormData({
-      email,
-      password: 'Password@123',
-    })
-    setErrorMsg(null)
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+    if (touched[field]) {
+      setErrors((prev) => ({ ...prev, [field]: validateField(field, value) }))
+    }
+    if (errorMsg) setErrorMsg(null)
+  }
+
+  const handleBlur = (field) => {
+    setTouched((prev) => ({ ...prev, [field]: true }))
+    setErrors((prev) => ({ ...prev, [field]: validateField(field, formData[field]) }))
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setLoading(true)
-    setErrorMsg(null)
 
-    const trimmedEmail = (formData.email || '').trim()
-    const password = formData.password || ''
+    const emailErr = validateField('email', formData.email)
+    const passErr = validateField('password', formData.password)
 
-    if (!trimmedEmail || !password) {
-      setErrorMsg('Please enter both email and password.')
-      setLoading(false)
+    setTouched({ email: true, password: true })
+    setErrors({ email: emailErr, password: passErr })
+
+    if (emailErr || passErr) {
       return
     }
 
+    setLoading(true)
+    setErrorMsg(null)
+
+    // Normalize identifier: trimmed, and if email lowercase (RFC 5321 standard)
+    // Passwords remain strictly case-sensitive for maximum security
+    const rawIdentifier = (formData.email || '').trim()
+    const trimmedIdentifier = rawIdentifier.includes('@') ? rawIdentifier.toLowerCase() : rawIdentifier
+    const password = formData.password || ''
+
     try {
-      const result = await login(trimmedEmail, password)
+      const result = await login(trimmedIdentifier, password)
       const user = result?.user
-      const portal = mapRoleToPortal(user?.role, trimmedEmail)
+      const portal = mapRoleToPortal(user?.role, trimmedIdentifier)
       setDetectedPortal(portal)
       setDetectedUserName(user?.name || user?.email || 'Authorized User')
       setSubmitted(true)
@@ -134,7 +177,14 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
       }, 500)
     } catch (err) {
       console.warn('[AuthModal] Login attempt failed:', err.message)
-      setErrorMsg(err.message || 'Invalid email or password. Please verify your credentials.')
+      const rawMsg = err.message || ''
+      if (rawMsg.toLowerCase().includes('not found') || rawMsg.toLowerCase().includes('user not found')) {
+        setErrorMsg('Account with this email or username does not exist. Please check for typos.')
+      } else if (rawMsg.toLowerCase().includes('password') || rawMsg.toLowerCase().includes('incorrect')) {
+        setErrorMsg('Incorrect password. Please verify your password (passwords are case-sensitive).')
+      } else {
+        setErrorMsg(rawMsg || 'Invalid credentials. Please verify your details.')
+      }
       setLoading(false)
     }
   }
@@ -238,57 +288,25 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
               </p>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               {/* Error Notice */}
               {errorMsg && (
                 <div
                   style={{
                     padding: '12px 14px',
                     borderRadius: 8,
-                    background: '#fff7ed',
-                    border: '1px solid #ffedd5',
-                    color: '#9a3412',
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    color: '#991b1b',
                     fontSize: 13,
                     lineHeight: 1.4,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
                   }}
                 >
-                  <div style={{ fontWeight: 700, marginBottom: 4 }}>
-                    ⚠️ {errorMsg}
-                  </div>
-                  <div style={{ fontSize: 12, color: '#7c2d12', marginTop: 4 }}>
-                    Quick-select official account credentials:
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                    {[
-                      { label: 'RWA', email: 'rwa@infralynx.com' },
-                      { label: 'Clerk', email: 'clerk@infralynx.com' },
-                      { label: 'Dept Head', email: 'head@infralynx.com' },
-                      { label: 'Civil Contractor', email: 'rameshwar.sharma@infralynx.com' },
-                      { label: 'Electrical Contractor', email: 'vikram.rathore@infralynx.com' },
-                      { label: 'Water Contractor', email: 'suresh.kulkarni@infralynx.com' },
-                      { label: 'Horticulture Contractor', email: 'gurpreet.sandhu@infralynx.com' },
-                      { label: 'Finance', email: 'finance@infralynx.com' },
-                      { label: 'Township COO', email: 'coo@infralynx.com' },
-                    ].map((acc) => (
-                      <button
-                        key={acc.label}
-                        type="button"
-                        onClick={() => handleQuickFill(acc.email)}
-                        style={{
-                          padding: '4px 8px',
-                          background: '#fff',
-                          border: '1px solid #fdba74',
-                          borderRadius: 4,
-                          fontSize: 11.5,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          color: '#9a3412',
-                        }}
-                      >
-                        {acc.label}
-                      </button>
-                    ))}
-                  </div>
+                  <span style={{ fontSize: 16 }}>⚠️</span>
+                  <div style={{ fontWeight: 600 }}>{errorMsg}</div>
                 </div>
               )}
 
@@ -303,13 +321,23 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
                 <input
                   id="auth-email"
                   type="text"
-                  required
-                  placeholder="e.g. name@infralynx.com"
+                  disabled={loading}
+                  placeholder="e.g. name@infralynx.com or username"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  style={inputStyle}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  onBlur={() => handleBlur('email')}
+                  style={{
+                    ...inputStyle,
+                    borderColor: errors.email && touched.email ? '#ef4444' : 'var(--line-strong)',
+                    background: loading ? '#f8fafc' : '#ffffff',
+                  }}
                   autoComplete="username"
                 />
+                {errors.email && touched.email && (
+                  <span style={{ display: 'block', color: '#dc2626', fontSize: 12, marginTop: 4, fontWeight: 500 }}>
+                    {errors.email}
+                  </span>
+                )}
               </div>
 
               {/* Password */}
@@ -322,15 +350,50 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
                     Password
                   </label>
                 </div>
-                <input
-                  id="auth-password"
-                  type="password"
-                  required
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  style={inputStyle}
-                  autoComplete="current-password"
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    id="auth-password"
+                    type={showPassword ? 'text' : 'password'}
+                    disabled={loading}
+                    placeholder="Enter password"
+                    value={formData.password}
+                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    onBlur={() => handleBlur('password')}
+                    style={{
+                      ...inputStyle,
+                      paddingRight: 40,
+                      borderColor: errors.password && touched.password ? '#ef4444' : 'var(--line-strong)',
+                      background: loading ? '#f8fafc' : '#ffffff',
+                    }}
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={loading}
+                    tabIndex="-1"
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                    style={{
+                      position: 'absolute',
+                      right: 10,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: 15,
+                      color: 'var(--text-soft)',
+                      padding: 2,
+                    }}
+                  >
+                    {showPassword ? '🙈' : '👁️'}
+                  </button>
+                </div>
+                {errors.password && touched.password && (
+                  <span style={{ display: 'block', color: '#dc2626', fontSize: 12, marginTop: 4, fontWeight: 500 }}>
+                    {errors.password}
+                  </span>
+                )}
               </div>
 
               {/* Submit Button */}
@@ -401,5 +464,6 @@ const inputStyle = {
   fontSize: 14,
   fontFamily: 'inherit',
   outline: 'none',
+  boxSizing: 'border-box',
+  transition: 'border-color 0.2s ease',
 }
-

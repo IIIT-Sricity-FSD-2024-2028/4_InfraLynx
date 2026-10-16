@@ -133,8 +133,8 @@ function AppContent() {
     }
   }, [currentUser, viewMode])
 
-  function handleOpenAuth(role = 'rwa') {
-    setAuthRole(typeof role === 'string' ? role : 'rwa')
+  function handleOpenAuth(role = null) {
+    setAuthRole(typeof role === 'string' ? role : null)
     setAuthNotice(null)
     setAuthOpen(true)
   }
