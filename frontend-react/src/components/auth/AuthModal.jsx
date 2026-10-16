@@ -52,14 +52,9 @@ function getPortalTitle(portalKey) {
 function validateField(name, value) {
   if (name === 'email') {
     const val = (value || '').trim()
-    if (!val) return 'Email or username is required.'
-    if (val.includes('@')) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(val)) return 'Please enter a valid email address (e.g. name@infralynx.com).'
-    } else {
-      if (val.length < 3) return 'Username must be at least 3 characters long.'
-      if (/\s/.test(val)) return 'Username cannot contain spaces.'
-    }
+    if (!val) return 'Official registered email is required.'
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(val)) return 'Please enter a valid email address (e.g. name@infralynx.com).'
     return ''
   }
   if (name === 'password') {
@@ -179,7 +174,7 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
       console.warn('[AuthModal] Login attempt failed:', err.message)
       const rawMsg = err.message || ''
       if (rawMsg.toLowerCase().includes('not found') || rawMsg.toLowerCase().includes('user not found')) {
-        setErrorMsg('Account with this email or username does not exist. Please check for typos.')
+        setErrorMsg('Account with this email does not exist. Please check for typos.')
       } else if (rawMsg.toLowerCase().includes('password') || rawMsg.toLowerCase().includes('incorrect')) {
         setErrorMsg('Incorrect password. Please verify your password (passwords are case-sensitive).')
       } else {
@@ -316,13 +311,13 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
                   htmlFor="auth-email"
                   style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}
                 >
-                  Official Registered Email or Username
+                  Official Registered Email
                 </label>
                 <input
                   id="auth-email"
-                  type="text"
+                  type="email"
                   disabled={loading}
-                  placeholder="e.g. name@infralynx.com or username"
+                  placeholder="name@infralynx.com"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   onBlur={() => handleBlur('email')}
