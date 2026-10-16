@@ -8,6 +8,10 @@ const SERVER_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 export const TOKEN_KEY = 'tims_auth_token';
 export const USER_KEY = 'tims_auth_user';
+// Tab-specific session ID: generated fresh on every login.
+// Duplicated tabs inherit the same session ID via sessionStorage copy,
+// so cross-tab logout only fires for tabs sharing the original session.
+const SESSION_ID_KEY = 'tims_session_id';
 
 // Clean up any legacy localStorage entries from insecure previous sessions
 try {
@@ -140,6 +144,9 @@ export const authApi = {
     });
 
     if (res.data?.token) {
+      // Fresh login = new isolated session; generate a unique session ID
+      const freshSessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      sessionStorage.setItem(SESSION_ID_KEY, freshSessionId);
       sessionStorage.setItem(TOKEN_KEY, res.data.token);
       sessionStorage.setItem(USER_KEY, JSON.stringify(res.data.user));
     }
@@ -170,7 +177,11 @@ export const authApi = {
       sessionStorage.removeItem(TOKEN_KEY);
       sessionStorage.removeItem(USER_KEY);
       // Broadcast logout to other open tabs via localStorage storage event
-      try { localStorage.setItem('tims_logout_signal', '' + Date.now()); } catch (_) {}
+      // Include session ID so only tabs sharing the same session log out
+      try {
+        const sid = sessionStorage.getItem(SESSION_ID_KEY) || 'unknown';
+        localStorage.setItem('tims_logout_signal', sid + ':' + Date.now());
+      } catch (_) {}
       window.dispatchEvent(new Event('tims_auth_logout'));
     }
   },
