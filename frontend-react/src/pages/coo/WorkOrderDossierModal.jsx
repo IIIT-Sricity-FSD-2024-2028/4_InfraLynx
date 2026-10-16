@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { cooApi } from '../../services/api.js';
 
 export default function WorkOrderDossierModal({ workOrderId, onClose, onEscalateSuccess }) {
@@ -50,16 +50,16 @@ export default function WorkOrderDossierModal({ workOrderId, onClose, onEscalate
         {/* Header */}
         <div className="coo-modal-header">
           <div>
-            <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--primary-dark)', fontWeight: 800 }}>
+            <span className="coo-modal-title-eyebrow">
               Township Executive Oversight Dossier
             </span>
-            <h3 style={{ margin: '2px 0 0', fontSize: '17px', color: 'var(--text)' }}>
+            <h3 className="coo-modal-title">
               {data?.workOrderNumber || workOrderId} — {data?.complaint?.title || 'Civic Infrastructure Remediation'}
             </h3>
           </div>
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-soft)' }}
+            className="coo-modal-close-btn"
           >
             ✕
           </button>
@@ -68,13 +68,13 @@ export default function WorkOrderDossierModal({ workOrderId, onClose, onEscalate
         {/* Body */}
         <div className="coo-modal-body">
           {loading && (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-soft)' }}>
+            <div className="coo-table-empty">
               ⏳ Loading full inspection & governance dossier...
             </div>
           )}
 
           {error && (
-            <div style={{ padding: '16px', background: '#fee2e2', color: '#b91c1c', borderRadius: '8px' }}>
+            <div className="dossier-error-box">
               ⚠️ {error}
             </div>
           )}
@@ -82,26 +82,26 @@ export default function WorkOrderDossierModal({ workOrderId, onClose, onEscalate
           {data && (
             <>
               {/* Top Summary Bar */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '20px', padding: '12px 16px', background: 'var(--surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)' }}>
+              <div className="dossier-top-bar">
                 <div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-soft)', display: 'block' }}>Department</span>
+                  <span className="dossier-top-label">Department</span>
                   <strong>{data.department?.name || 'General Civic Works'}</strong>
                 </div>
-                <div style={{ borderLeft: '1px solid var(--line)', paddingLeft: '12px' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--text-soft)', display: 'block' }}>Status</span>
+                <div className="dossier-top-item">
+                  <span className="dossier-top-label">Status</span>
                   <span className={`status-pill ${data.status?.toLowerCase()}`}>{data.status}</span>
                 </div>
-                <div style={{ borderLeft: '1px solid var(--line)', paddingLeft: '12px' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--text-soft)', display: 'block' }}>Priority</span>
+                <div className="dossier-top-item">
+                  <span className="dossier-top-label">Priority</span>
                   <span className={`status-pill ${data.priority === 'EMERGENCY' ? 'escalated' : 'active'}`}>{data.priority}</span>
                 </div>
-                <div style={{ borderLeft: '1px solid var(--line)', paddingLeft: '12px' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--text-soft)', display: 'block' }}>Money Estimated</span>
-                  <strong style={{ color: '#0369a1' }}>₹{(data.estimated_cost || 0).toLocaleString('en-IN')}</strong>
+                <div className="dossier-top-item">
+                  <span className="dossier-top-label">Money Estimated</span>
+                  <strong className="dossier-money-est">₹{(data.estimated_cost || 0).toLocaleString('en-IN')}</strong>
                 </div>
-                <div style={{ borderLeft: '1px solid var(--line)', paddingLeft: '12px' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--text-soft)', display: 'block' }}>Money Used</span>
-                  <strong style={{ color: '#16a34a' }}>₹{(data.actual_cost || (data.status === 'COMPLETED' ? (data.estimated_cost || 0) : 0)).toLocaleString('en-IN')}</strong>
+                <div className="dossier-top-item">
+                  <span className="dossier-top-label">Money Used</span>
+                  <strong className="dossier-money-used">₹{(data.actual_cost || (data.status === 'COMPLETED' ? (data.estimated_cost || 0) : 0)).toLocaleString('en-IN')}</strong>
                 </div>
               </div>
 
@@ -111,15 +111,15 @@ export default function WorkOrderDossierModal({ workOrderId, onClose, onEscalate
                 <div className="dossier-card">
                   <div className="dossier-card-title">1. Citizen Complaint & Site Evidence</div>
                   <div className="dossier-card-content">
-                    <p style={{ margin: '0 0 6px' }}><strong>Code:</strong> {data.complaint?.code || 'N/A'}</p>
-                    <p style={{ margin: '0 0 6px' }}><strong>Location:</strong> {data.complaint?.sector}, {data.complaint?.block}, {data.complaint?.street}</p>
-                    <p style={{ margin: '0 0 6px', color: 'var(--text-soft)' }}>{data.complaint?.description}</p>
+                    <p className="dossier-paragraph"><strong>Code:</strong> {data.complaint?.code || 'N/A'}</p>
+                    <p className="dossier-paragraph"><strong>Location:</strong> {data.complaint?.sector}, {data.complaint?.block}, {data.complaint?.street}</p>
+                    <p className="dossier-paragraph soft">{data.complaint?.description}</p>
                     {data.complaint?.photos && data.complaint.photos.length > 0 && (
-                      <div style={{ marginTop: '10px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-soft)' }}>Pre-Repair Evidence:</span>
-                        <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                      <div className="coo-form-group">
+                        <span className="dossier-photo-label">Pre-Repair Evidence:</span>
+                        <div className="dossier-photo-grid">
                           {data.complaint.photos.slice(0, 3).map((p, idx) => (
-                            <img key={idx} src={p} alt="Pre-repair" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--line)' }} />
+                            <img key={idx} src={p} alt="Pre-repair" className="dossier-photo-thumb" />
                           ))}
                         </div>
                       </div>
@@ -131,13 +131,13 @@ export default function WorkOrderDossierModal({ workOrderId, onClose, onEscalate
                 <div className="dossier-card">
                   <div className="dossier-card-title">2. Assigned Contractor & Inspection</div>
                   <div className="dossier-card-content">
-                    <p style={{ margin: '0 0 6px' }}><strong>Company:</strong> {data.contractor?.name || 'Unassigned'}</p>
-                    <p style={{ margin: '0 0 6px' }}><strong>Lead Contact:</strong> {data.contractor?.contactPerson} ({data.contractor?.phone})</p>
-                    <p style={{ margin: '0 0 6px' }}><strong>GSTIN:</strong> {data.contractor?.gstin || '06AABCV5678G1Z4'}</p>
-                    <p style={{ margin: '0 0 6px' }}><strong>Performance Rating:</strong> ⭐ {data.contractor?.rating || '4.8'}/5</p>
-                    <div style={{ marginTop: '8px', padding: '8px', background: '#fff', borderRadius: '4px', border: '1px solid var(--line)', fontSize: '12px' }}>
+                    <p className="dossier-paragraph"><strong>Company:</strong> {data.contractor?.name || 'Unassigned'}</p>
+                    <p className="dossier-paragraph"><strong>Lead Contact:</strong> {data.contractor?.contactPerson} ({data.contractor?.phone})</p>
+                    <p className="dossier-paragraph"><strong>GSTIN:</strong> {data.contractor?.gstin || '06AABCV5678G1Z4'}</p>
+                    <p className="dossier-paragraph"><strong>Performance Rating:</strong> ⭐ {data.contractor?.rating || '4.8'}/5</p>
+                    <div className="dossier-inspection-box">
                       <strong>Inspection Findings:</strong>
-                      <div style={{ color: 'var(--text-soft)', marginTop: '2px' }}>{data.contractor?.inspectionNotes}</div>
+                      <div className="coo-cell-subtext">{data.contractor?.inspectionNotes}</div>
                     </div>
                   </div>
                 </div>
@@ -146,21 +146,21 @@ export default function WorkOrderDossierModal({ workOrderId, onClose, onEscalate
                 <div className="dossier-card">
                   <div className="dossier-card-title">3. Estimate & Rate Card Breakdown</div>
                   <div className="dossier-card-content">
-                    <div style={{ fontSize: '12px', borderBottom: '1px solid var(--line)', paddingBottom: '6px', marginBottom: '6px', display: 'flex', justifyContent: 'space-between' }}>
+                    <div className="dossier-breakdown-header">
                       <span><strong>Money Estimated:</strong> ₹{(data.estimated_cost || 0).toLocaleString('en-IN')}</span>
-                      <span style={{ color: '#16a34a' }}><strong>Money Used:</strong> ₹{(data.actual_cost || (data.status === 'COMPLETED' ? (data.estimated_cost || 0) : 0)).toLocaleString('en-IN')}</span>
+                      <span className="dossier-money-used"><strong>Money Used:</strong> ₹{(data.actual_cost || (data.status === 'COMPLETED' ? (data.estimated_cost || 0) : 0)).toLocaleString('en-IN')}</span>
                     </div>
                     {data.lineItems && data.lineItems.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div className="dossier-items-list">
                         {data.lineItems.map((li, idx) => (
-                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <div key={idx} className="dossier-item-row">
                             <span>{li.description || li.item_name} (x{li.qty || li.quantity})</span>
-                            <span style={{ fontWeight: 700 }}>₹{(Number(li.amount) || Number(li.rate * li.quantity) || 0).toLocaleString('en-IN')}</span>
+                            <strong>₹{(Number(li.amount) || Number(li.rate * li.quantity) || 0).toLocaleString('en-IN')}</strong>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p style={{ color: 'var(--text-soft)', fontSize: '12px', margin: 0 }}>AMC scheduled rate card items reconciled.</p>
+                      <p className="coo-cell-subtext">AMC scheduled rate card items reconciled.</p>
                     )}
                   </div>
                 </div>
@@ -169,19 +169,19 @@ export default function WorkOrderDossierModal({ workOrderId, onClose, onEscalate
                 <div className="dossier-card">
                   <div className="dossier-card-title">4. Work Progress & Completion Proof</div>
                   <div className="dossier-card-content">
-                    <p style={{ margin: '0 0 6px' }}><strong>Progress Status:</strong> {data.status}</p>
-                    <p style={{ margin: '0 0 6px' }}><strong>Completed Date:</strong> {data.completedAt ? new Date(data.completedAt).toLocaleDateString() : 'In Progress'}</p>
+                    <p className="dossier-paragraph"><strong>Progress Status:</strong> {data.status}</p>
+                    <p className="dossier-paragraph"><strong>Completed Date:</strong> {data.completedAt ? new Date(data.completedAt).toLocaleDateString() : 'In Progress'}</p>
                     {data.evidence && data.evidence.length > 0 ? (
                       <div>
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-soft)' }}>After-Repair Photos:</span>
-                        <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                        <span className="dossier-photo-label">After-Repair Photos:</span>
+                        <div className="dossier-photo-grid">
                           {data.evidence.map((ev, idx) => (
-                            <img key={idx} src={ev.file_url} alt="Proof" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--line)' }} />
+                            <img key={idx} src={ev.file_url} alt="Proof" className="dossier-photo-thumb" />
                           ))}
                         </div>
                       </div>
                     ) : (
-                      <div style={{ fontSize: '12px', color: 'var(--text-soft)', marginTop: '4px' }}>
+                      <div className="coo-cell-subtext">
                         {['COMPLETED', 'CLOSED'].includes(data.status) ? '✅ Repair evidence uploaded and confirmed.' : '⏳ Awaiting post-fix photographic evidence upload.'}
                       </div>
                     )}
@@ -194,14 +194,14 @@ export default function WorkOrderDossierModal({ workOrderId, onClose, onEscalate
                   <div className="dossier-card-content">
                     {data.complaint?.verification ? (
                       <div>
-                        <p style={{ margin: '0 0 6px', color: '#15803d', fontWeight: 700 }}>
+                        <p className="dossier-verified-badge">
                           ✅ Verified by RWA ({data.complaint.verification.verified_by || 'Dr. Arvind Swaminathan'})
                         </p>
-                        <p style={{ margin: '0 0 6px' }}>Rating: {'⭐'.repeat(data.complaint.verification.rating || 5)} ({data.complaint.verification.rating || 5}/5)</p>
-                        <p style={{ margin: '0 0 6px', fontSize: '12px', color: 'var(--text-soft)' }}>Remarks: {data.complaint.verification.remarks}</p>
+                        <p className="dossier-paragraph">Rating: {'⭐'.repeat(data.complaint.verification.rating || 5)} ({data.complaint.verification.rating || 5}/5)</p>
+                        <p className="dossier-paragraph soft">Remarks: {data.complaint.verification.remarks}</p>
                       </div>
                     ) : (
-                      <div style={{ fontSize: '12px', color: 'var(--text-soft)' }}>
+                      <div className="coo-cell-subtext">
                         ⏳ On-ground verification pending citizen / RWA inspection.
                       </div>
                     )}
@@ -214,20 +214,20 @@ export default function WorkOrderDossierModal({ workOrderId, onClose, onEscalate
                   <div className="dossier-card-content">
                     {data.invoice ? (
                       <div>
-                        <p style={{ margin: '0 0 6px' }}><strong>Invoice Code:</strong> {data.invoice.invoiceCode || data.invoice.invoiceNumber}</p>
-                        <p style={{ margin: '0 0 6px' }}><strong>Billed Amount:</strong> ₹{Number(data.invoice.totalAmount).toLocaleString('en-IN')}</p>
-                        <p style={{ margin: '0 0 6px' }}>
+                        <p className="dossier-paragraph"><strong>Invoice Code:</strong> {data.invoice.invoiceCode || data.invoice.invoiceNumber}</p>
+                        <p className="dossier-paragraph"><strong>Billed Amount:</strong> ₹{Number(data.invoice.totalAmount).toLocaleString('en-IN')}</p>
+                        <p className="dossier-paragraph">
                           <strong>Audit Status:</strong>{' '}
                           <span className={`status-pill ${data.invoice.status?.toLowerCase()}`}>{data.invoice.status}</span>
                         </p>
                         {data.invoice.varianceAmount > 0 && (
-                          <p style={{ margin: '0 0 6px', color: '#dc2626', fontSize: '12px' }}>
+                          <p className="dossier-variance-alert">
                             Variance: +₹{Number(data.invoice.varianceAmount).toLocaleString('en-IN')} ({data.invoice.varianceReason})
                           </p>
                         )}
                       </div>
                     ) : (
-                      <div style={{ fontSize: '12px', color: 'var(--text-soft)' }}>
+                      <div className="coo-cell-subtext">
                         Awaiting contractor invoice submission following completion.
                       </div>
                     )}
@@ -237,8 +237,8 @@ export default function WorkOrderDossierModal({ workOrderId, onClose, onEscalate
 
               {/* Escalate Directive Box */}
               {showEscalateForm && (
-                <form onSubmit={handleEscalate} style={{ padding: '16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 'var(--radius-md)', marginTop: '16px' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#991b1b', marginBottom: '8px' }}>
+                <form onSubmit={handleEscalate} className="dossier-escalate-form">
+                  <div className="dossier-escalate-title">
                     🚨 Issue Township COO Emergency Directive:
                   </div>
                   <textarea
@@ -247,9 +247,9 @@ export default function WorkOrderDossierModal({ workOrderId, onClose, onEscalate
                     value={escalateRemarks}
                     onChange={(e) => setEscalateRemarks(e.target.value)}
                     placeholder="Enter urgent executive directive for the Department Head and Contractor..."
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '4px', border: '1px solid #fca5a5', fontSize: '13px', boxSizing: 'border-box' }}
+                    className="dossier-escalate-textarea"
                   />
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                  <div className="dossier-escalate-actions">
                     <button type="button" onClick={() => setShowEscalateForm(false)} className="btn-coo-secondary">
                       Cancel
                     </button>

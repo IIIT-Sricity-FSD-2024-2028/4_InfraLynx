@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { cooApi } from '../../services/api.js';
 
 export default function CooEstimateApprovals({ approvals, onRefresh, onOpenDossier }) {
@@ -44,7 +44,7 @@ export default function CooEstimateApprovals({ approvals, onRefresh, onOpenDossi
       {/* Banner */}
       <div className="coo-banner">
         <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', background: '#fef3c7', borderRadius: 'var(--radius-full)', color: '#b45309', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', marginBottom: '8px' }}>
+          <div className="coo-banner-eyebrow amber">
             ⚖️ Tier 3 Executive Governance
           </div>
           <h2 className="coo-banner-title">Major Capital & Estimate Approvals Board</h2>
@@ -52,7 +52,7 @@ export default function CooEstimateApprovals({ approvals, onRefresh, onOpenDossi
             Joint sign-off authority for high-value contractor estimates exceeding municipal thresholds (&gt; ₹10,000 INR).
           </p>
         </div>
-        <span style={{ padding: '8px 14px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: '13px', fontWeight: 700 }}>
+        <span className="coo-badge-pill">
           {approvals.length} Awaiting Executive Decision
         </span>
       </div>
@@ -60,28 +60,28 @@ export default function CooEstimateApprovals({ approvals, onRefresh, onOpenDossi
       {/* Approvals List Grid */}
       {approvals.length === 0 ? (
         <div className="coo-panel">
-          <div className="coo-panel-body" style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-soft)' }}>
-            <div style={{ fontSize: '32px', marginBottom: '8px' }}>🎉</div>
-            <h3 style={{ margin: '0 0 6px', color: 'var(--text)' }}>All High-Value Estimates Cleared</h3>
-            <p style={{ margin: 0, fontSize: '14px' }}>
+          <div className="coo-panel-body coo-cleared-box">
+            <div className="coo-cleared-emoji">🎉</div>
+            <h3 className="coo-cleared-title">All High-Value Estimates Cleared</h3>
+            <p className="coo-cleared-desc">
               No contractor estimates are currently pending Township COO joint sign-off.
             </p>
           </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="coo-approvals-feed">
           {approvals.map((item) => (
-            <div key={item.id} className="coo-panel" style={{ margin: 0 }}>
+            <div key={item.id} className="coo-panel coo-approval-card">
               <div className="coo-panel-header">
                 <div>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 700, color: 'var(--primary-darker)' }}>
+                  <span className="coo-approval-wo-code">
                     {item.workOrderNumber}
                   </span>
-                  <h3 style={{ margin: '2px 0 0', fontSize: '16px' }}>{item.title}</h3>
+                  <h3 className="coo-modal-title">{item.title}</h3>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '12px', color: 'var(--text-soft)' }}>Estimated Total</div>
-                  <strong style={{ fontSize: '19px', color: 'var(--primary-darker)' }}>
+                <div className="coo-approval-total-box">
+                  <div className="coo-approval-total-label">Estimated Total</div>
+                  <strong className="coo-approval-total-val">
                     ₹{item.estimatedCost.toLocaleString('en-IN')}
                   </strong>
                 </div>
@@ -89,35 +89,35 @@ export default function CooEstimateApprovals({ approvals, onRefresh, onOpenDossi
 
               <div className="coo-panel-body">
                 {/* Meta details */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '16px', padding: '12px', background: 'var(--surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)' }}>
+                <div className="coo-approval-meta-grid">
                   <div>
-                    <span style={{ fontSize: '11px', color: 'var(--text-soft)', display: 'block' }}>Department</span>
+                    <span className="coo-approval-meta-label">Department</span>
                     <strong>{item.departmentName}</strong>
                   </div>
                   <div>
-                    <span style={{ fontSize: '11px', color: 'var(--text-soft)', display: 'block' }}>Contractor</span>
+                    <span className="coo-approval-meta-label">Contractor</span>
                     <strong>{item.contractorName}</strong> ({item.contractorContact})
                   </div>
                   <div>
-                    <span style={{ fontSize: '11px', color: 'var(--text-soft)', display: 'block' }}>Department Head Status</span>
-                    <span style={{ color: 'var(--primary-dark)', fontWeight: 700 }}>Recommended for COO Sign-Off ✓</span>
+                    <span className="coo-approval-meta-label">Department Head Status</span>
+                    <span className="coo-approval-meta-status">Recommended for COO Sign-Off ✓</span>
                   </div>
                 </div>
 
                 {/* Line Items Table */}
-                <div style={{ marginBottom: '16px' }}>
-                  <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                <div>
+                  <div className="coo-approval-section-title">
                     Itemized AMC Rate Card Schedule
                   </div>
                   <div className="coo-table-wrapper">
-                    <table className="coo-table" style={{ background: '#ffffff' }}>
+                    <table className="coo-table coo-approval-table">
                       <thead>
                         <tr>
                           <th>Item Description</th>
                           <th>Unit</th>
                           <th>Qty</th>
                           <th>Agreed AMC Rate</th>
-                          <th style={{ textAlign: 'right' }}>Total Amount</th>
+                          <th className="align-right">Total Amount</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -127,8 +127,8 @@ export default function CooEstimateApprovals({ approvals, onRefresh, onOpenDossi
                             <td>{li.unit}</td>
                             <td>{li.quantity || li.qty}</td>
                             <td>₹{Number(li.rate).toLocaleString('en-IN')}</td>
-                            <td style={{ textAlign: 'right', fontWeight: 700 }}>
-                              ₹{Number(li.amount || li.rate * (li.quantity || li.qty)).toLocaleString('en-IN')}
+                            <td className="align-right">
+                              <strong>₹{Number(li.amount || li.rate * (li.quantity || li.qty)).toLocaleString('en-IN')}</strong>
                             </td>
                           </tr>
                         ))}
@@ -138,16 +138,16 @@ export default function CooEstimateApprovals({ approvals, onRefresh, onOpenDossi
                 </div>
 
                 {/* Dept Head Notes */}
-                <div style={{ padding: '10px 14px', background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: 'var(--radius-sm)', fontSize: '12.5px', color: '#92400e', marginBottom: '18px' }}>
+                <div className="coo-approval-note-box">
                   <strong>Department Head Recommendation:</strong> {item.deptHeadRecommendation}
                 </div>
 
                 {/* Action Buttons */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--line)', paddingTop: '16px' }}>
+                <div className="coo-approval-actions">
                   <button onClick={() => onOpenDossier(item.id)} className="btn-coo-secondary">
                     🔍 Full Dossier
                   </button>
-                  <button onClick={() => openDecisionModal(item, 'REQUEST_REVISION')} className="btn-coo-secondary" style={{ color: '#b45309', borderColor: '#fde68a' }}>
+                  <button onClick={() => openDecisionModal(item, 'REQUEST_REVISION')} className="btn-coo-warn">
                     🔄 Request Revision
                   </button>
                   <button onClick={() => openDecisionModal(item, 'REJECT')} className="btn-coo-danger">
@@ -169,24 +169,24 @@ export default function CooEstimateApprovals({ approvals, onRefresh, onOpenDossi
           <div className="coo-modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="coo-modal-header">
               <div>
-                <span style={{ fontSize: '11px', color: 'var(--text-soft)', textTransform: 'uppercase', fontWeight: 800 }}>
+                <span className="coo-modal-title-eyebrow">
                   Executive Action Decision
                 </span>
-                <h3 style={{ margin: 0, fontSize: '16px' }}>
+                <h3 className="coo-modal-title">
                   {decisionAction === 'APPROVE' ? 'Authorize Estimate' : decisionAction === 'REJECT' ? 'Reject Estimate' : 'Request Contractor Revision'}: {activeApproval.workOrderNumber}
                 </h3>
               </div>
-              <button onClick={() => setActiveApproval(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setActiveApproval(null)} className="coo-modal-close-btn">✕</button>
             </div>
 
             <form onSubmit={handleSubmitDecision}>
               <div className="coo-modal-body">
-                <p style={{ fontSize: '13.5px', color: 'var(--text-soft)', marginTop: 0 }}>
+                <p className="dossier-paragraph soft">
                   Amount: <strong>₹{activeApproval.estimatedCost.toLocaleString('en-IN')}</strong> · Vendor: <strong>{activeApproval.contractorName}</strong>
                 </p>
 
-                <div style={{ marginTop: '14px' }}>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, marginBottom: '6px' }}>
+                <div className="coo-form-group">
+                  <label className="coo-form-label">
                     Executive Decision Remarks / Directive:
                   </label>
                   <textarea
@@ -194,8 +194,7 @@ export default function CooEstimateApprovals({ approvals, onRefresh, onOpenDossi
                     required
                     value={decisionRemarks}
                     onChange={(e) => setDecisionRemarks(e.target.value)}
-                    className="coo-input"
-                    style={{ width: '100%', boxSizing: 'border-box' }}
+                    className="coo-textarea"
                   />
                 </div>
               </div>

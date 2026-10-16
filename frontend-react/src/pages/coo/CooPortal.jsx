@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTIMS } from '../../context/TIMSContext.jsx';
 import { cooApi, masterApi } from '../../services/api.js';
 import CooDashboard from './CooDashboard.jsx';
@@ -159,7 +159,7 @@ export default function CooPortal({ onExitToLanding }) {
             <span>⚖️</span>
             <span>Estimate Approvals</span>
             {approvals.length > 0 && (
-              <span className="coo-tab-badge" style={{ background: '#fef3c7', color: '#b45309' }}>
+              <span className="coo-tab-badge warn">
                 {approvals.length}
               </span>
             )}
@@ -170,7 +170,7 @@ export default function CooPortal({ onExitToLanding }) {
       {/* ── Main Tab Workspace ── */}
       <main className="coo-main">
         {loading && (
-          <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-soft)' }}>
+          <div className="coo-loading-state">
             ⏳ Synchronizing real-time municipal executive data...
           </div>
         )}
