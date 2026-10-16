@@ -81,27 +81,15 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
   const [detectedUserName, setDetectedUserName] = useState('')
 
   useEffect(() => {
+    // Reset all form fields, errors, and validation states on open/close
     setErrorMsg(null)
     setErrors({})
     setTouched({})
     setSubmitted(false)
     setLoading(false)
     setShowPassword(false)
-
-    if (initialRole) {
-      const r = initialRole.toLowerCase()
-      let email = 'rwa@infralynx.com'
-      if (r === 'coo') email = 'coo@infralynx.com'
-      else if (r === 'finance') email = 'finance@infralynx.com'
-      else if (r === 'clerk') email = 'clerk@infralynx.com'
-      else if (r === 'dept_head' || r === 'depthead') email = 'head@infralynx.com'
-      else if (r === 'contractor') email = 'contractor@infralynx.com'
-      else if (r === 'superadmin' || r === 'super_admin') email = 'superadmin@infralynx.com'
-      setFormData({ email, password: 'Password@123' })
-    } else {
-      setFormData({ email: '', password: '' })
-    }
-  }, [isOpen, initialRole])
+    setFormData({ email: '', password: '' })
+  }, [isOpen])
 
   useEffect(() => {
     function handleKeyDown(e) {
