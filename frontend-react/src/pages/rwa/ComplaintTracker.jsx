@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
 import './styles/ComplaintTracker.css'
 
-const getStatusConfig = (userName = 'Dr. Arvind Swaminathan') => ({
+const getStatusConfig = (userName) => ({
   PENDING_VERIFICATION: {
     label: 'Pending Verification',
     badgeClass: 'status-pending-verification',
