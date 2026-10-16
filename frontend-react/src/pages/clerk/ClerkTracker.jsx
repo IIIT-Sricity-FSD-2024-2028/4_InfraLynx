@@ -14,7 +14,7 @@ const STAGES = [
   { id: 'ASSIGNED',             label: 'Assigned',     desc: 'Contractor accepted' },
   { id: 'IN_PROGRESS',          label: 'In Progress',  desc: 'Work ongoing'        },
   { id: 'COMPLETED',            label: 'Completed',    desc: 'Contractor done'     },
-  { id: 'PENDING_VERIFICATION', label: 'Finance OK',   desc: 'Invoice verified'    },
+  { id: 'PENDING_VERIFICATION', label: 'Pending Verify', desc: 'Awaiting sign-off'   },
   { id: 'CLOSED',               label: 'Closed',       desc: 'RWA confirmed'       },
 ]
 

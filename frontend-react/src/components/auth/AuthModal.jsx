@@ -73,7 +73,6 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
   })
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
-  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState(null)
   const [submitted, setSubmitted] = useState(false)
@@ -87,7 +86,6 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
     setTouched({})
     setSubmitted(false)
     setLoading(false)
-    setShowPassword(false)
     setFormData({ email: '', password: '' })
   }, [isOpen])
 
@@ -271,7 +269,7 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
               </p>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <form onSubmit={handleSubmit} noValidate autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               {/* Error Notice */}
               {errorMsg && (
                 <div
@@ -314,7 +312,7 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
                     borderColor: errors.email && touched.email ? '#ef4444' : 'var(--line-strong)',
                     background: loading ? '#f8fafc' : '#ffffff',
                   }}
-                  autoComplete="username"
+                  autoComplete="off"
                 />
                 {errors.email && touched.email && (
                   <span style={{ display: 'block', color: '#dc2626', fontSize: 12, marginTop: 4, fontWeight: 500 }}>
@@ -333,45 +331,22 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
                     Password
                   </label>
                 </div>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    id="auth-password"
-                    type={showPassword ? 'text' : 'password'}
-                    disabled={loading}
-                    placeholder="Enter password"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    onBlur={() => handleBlur('password')}
-                    style={{
-                      ...inputStyle,
-                      paddingRight: 40,
-                      borderColor: errors.password && touched.password ? '#ef4444' : 'var(--line-strong)',
-                      background: loading ? '#f8fafc' : '#ffffff',
-                    }}
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    disabled={loading}
-                    tabIndex="-1"
-                    title={showPassword ? 'Hide password' : 'Show password'}
-                    style={{
-                      position: 'absolute',
-                      right: 10,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: 15,
-                      color: 'var(--text-soft)',
-                      padding: 2,
-                    }}
-                  >
-                    {showPassword ? '🙈' : '👁️'}
-                  </button>
-                </div>
+                <input
+                  id="auth-password"
+                  type="password"
+                  disabled={loading}
+                  placeholder="Enter password"
+                  value={formData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  onBlur={() => handleBlur('password')}
+                  style={{
+                    ...inputStyle,
+                    borderColor: errors.password && touched.password ? '#ef4444' : 'var(--line-strong)',
+                    background: loading ? '#f8fafc' : '#ffffff',
+                  }}
+                  autoComplete="new-password"
+                />
+                
                 {errors.password && touched.password && (
                   <span style={{ display: 'block', color: '#dc2626', fontSize: 12, marginTop: 4, fontWeight: 500 }}>
                     {errors.password}

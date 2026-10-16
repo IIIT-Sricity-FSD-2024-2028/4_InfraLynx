@@ -60,39 +60,21 @@ export default function ClerkDashboard({
     return complaints[0]?.category || null
   }, [currentUser, complaints])
 
-  // Subcategories belonging strictly to the clerk's department
+  // Subcategories derived dynamically from active complaints in this department
   const subcategoryOptions = useMemo(() => {
     const list = []
     const seen = new Set()
 
-    // 1. Gather all actual subcategories from complaints in this department
     complaints.forEach(c => {
-      const sub = c.subcategory
+      const sub = c.subcategory || c.subCategory
       if (sub && typeof sub === 'string' && sub.trim() && !seen.has(sub.trim())) {
         seen.add(sub.trim())
         list.push(sub.trim())
       }
     })
 
-    // 2. Department-specific standard subcategory defaults
-    const defaults = {
-      Electrical: ['Streetlight Failure', 'Distribution Failure', 'Transformer / Feeder'],
-      Civil: ['Road Damage', 'Drainage Overflow', 'Footpath Hazard'],
-      Water: ['Pipeline Burst', 'Overhead Tank Leak', 'Waterlogging'],
-      Horticulture: ['Tree Pruning', 'Lawn Maintenance', 'Irrigation'],
-    }
-
-    if (clerkDeptCategory && defaults[clerkDeptCategory]) {
-      defaults[clerkDeptCategory].forEach(d => {
-        if (!seen.has(d)) {
-          seen.add(d)
-          list.push(d)
-        }
-      })
-    }
-
-    return list
-  }, [complaints, clerkDeptCategory])
+    return list.sort()
+  }, [complaints])
 
   // ── KPI metrics ──────────────────────────────────────────────────────────
   const stats = useMemo(() => ({

@@ -51,24 +51,7 @@ export default function Nav({ onOpenAuth, onOpenSignUp, currentUser, onLogout, o
           </div>
         </a>
 
-        {/* Live Active Pill (Desktop) */}
-        <div
-          className="hide-mobile"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '5px 14px',
-            background: 'var(--surface-muted)',
-            borderRadius: 'var(--radius-full)',
-            border: '1px solid var(--line)',
-            fontSize: 12,
-            color: 'var(--text-soft)',
-          }}
-        >
-          <span className="pulse-dot" />
-          <span>Core Telemetry: <strong style={{ color: 'var(--primary-dark)' }}>99.98% Active</strong></span>
-        </div>
+        
 
         {/* Desktop Navigation Links */}
         <nav
