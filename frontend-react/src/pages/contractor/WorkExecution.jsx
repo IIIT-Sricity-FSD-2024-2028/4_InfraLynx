@@ -294,7 +294,7 @@ export default function WorkExecution({
               className="btn-contractor-primary execution-start-btn"
               style={{ background: '#059669', borderColor: '#059669' }}
             >
-              🚀 Start Work (Mark IN_PROGRESS)
+              🚀 Start Work
             </button>
           </div>
         )}
@@ -378,14 +378,14 @@ export default function WorkExecution({
             Estimate Approved — Ready to Deploy Ground Crew
           </h3>
           <p style={{ maxWidth: 520, margin: '0 auto 20px', color: '#15803d', fontSize: 14, lineHeight: 1.5 }}>
-            Department Head approval has been granted. Click <strong>Start Work (Mark IN_PROGRESS)</strong> to commence physical repair work on site. Completion proof and photo verification forms will activate once work is in progress.
+            Department Head approval has been granted. Click <strong>Start Work</strong> to commence physical repair work on site. Completion proof and photo verification forms will activate once work is in progress.
           </p>
           <button
             onClick={handleStart}
             className="btn-contractor-primary"
             style={{ background: '#16a34a', borderColor: '#16a34a' }}
           >
-            🚀 Start Work (Mark IN_PROGRESS)
+            🚀 Start Work
           </button>
         </div>
       )}
