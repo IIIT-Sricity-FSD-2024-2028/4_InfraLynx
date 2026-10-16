@@ -75,13 +75,26 @@ export function TIMSProvider({ children }) {
     const handleRevocation = () => {
       setCurrentUser(null)
     }
+    // Cross-tab logout: when another tab calls logout(), it sets tims_logout_signal
+    // in localStorage which fires the 'storage' event in all other tabs
+    const handleStorageLogout = (e) => {
+      if (e.key === 'tims_logout_signal') {
+        // Clear our own sessionStorage and force logout UI
+        try { sessionStorage.clear() } catch (_) {}
+        handleRevocation()
+        // Clean up the signal key so it doesn't persist
+        try { localStorage.removeItem('tims_logout_signal') } catch (_) {}
+      }
+    }
     window.addEventListener('tims_auth_session_expired', handleRevocation)
     window.addEventListener('tims_auth_unauthorized', handleRevocation)
     window.addEventListener('tims_auth_logout', handleRevocation)
+    window.addEventListener('storage', handleStorageLogout)
     return () => {
       window.removeEventListener('tims_auth_session_expired', handleRevocation)
       window.removeEventListener('tims_auth_unauthorized', handleRevocation)
       window.removeEventListener('tims_auth_logout', handleRevocation)
+      window.removeEventListener('storage', handleStorageLogout)
     }
   }, [])
 

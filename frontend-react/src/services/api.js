@@ -169,6 +169,8 @@ export const authApi = {
     } finally {
       sessionStorage.removeItem(TOKEN_KEY);
       sessionStorage.removeItem(USER_KEY);
+      // Broadcast logout to other open tabs via localStorage storage event
+      try { localStorage.setItem('tims_logout_signal', '' + Date.now()); } catch (_) {}
       window.dispatchEvent(new Event('tims_auth_logout'));
     }
   },
