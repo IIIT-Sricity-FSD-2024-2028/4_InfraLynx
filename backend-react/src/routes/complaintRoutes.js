@@ -9,7 +9,6 @@ import {
   getComplaints,
   getComplaintById,
   verifyComplaint,
-  disputeComplaint,
 } from '../controllers/complaintController.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { uploadArray } from '../middleware/upload.js';
@@ -53,19 +52,6 @@ router.post(
   authenticate,
   requireRole('RWA', 'TOWNSHIP_COO'),
   verifyComplaint
-);
-
-/**
- * @route   POST /api/v1/complaints/:id/dispute
- * @desc    Dispute repair work and request corrective rework
- * @access  Private (RWA, TOWNSHIP_COO)
- */
-router.post(
-  '/:id/dispute',
-  authenticate,
-  requireRole('RWA', 'TOWNSHIP_COO'),
-  uploadArray('photos', 5),
-  disputeComplaint
 );
 
 export default router;

@@ -10,7 +10,7 @@ const ACTORS = [
       'Report infrastructure issues with category, sector/location, severity, and photo evidence.',
       'Track live ticket progress and view assigned contractor and estimated completion time.',
       'Inspect contractor resolution evidence (mandatory before/after photo documentation).',
-      'Officially confirm issue resolution or trigger the dispute/rework cycle for incomplete repairs.',
+      'Officially confirm issue resolution and star rating to authorize payment release.',
     ],
     consoleAction: 'Submit Citizen Ticket',
     mockData: {
@@ -29,7 +29,7 @@ const ACTORS = [
       'Perform technical site inspections and log actual labour and material needs.',
       'Prepare AMC-based estimates using fixed rate cards — no arbitrary markups.',
       'Upload mandatory before/after photo proof to mark work completed.',
-      'Respond immediately to RWA disputes and perform corrective rework without extra billing.',
+      'Deliver high-quality execution meeting municipal standards under AMC warranty.',
     ],
     consoleAction: 'Submit AMC Estimate',
     mockData: {

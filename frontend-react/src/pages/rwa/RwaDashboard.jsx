@@ -37,9 +37,8 @@ export default function RwaDashboard({
       const st = normStatus(c.status)
       return st === 'CLOSED' || st === 'VERIFIED'
     }).length
-    const disputed = complaints.filter((c) => normStatus(c.status) === 'DISPUTED').length
 
-    return { total, open, validated, inProgress, pendingVerification, closed, disputed }
+    return { total, open, validated, inProgress, pendingVerification, closed }
   }, [complaints])
 
   // Filter complaints
@@ -65,8 +64,7 @@ export default function RwaDashboard({
         (selectedStatus === 'PENDING' && st === 'PENDING_VERIFICATION') ||
         (selectedStatus === 'ACTIVE' &&
           ['REPORTED', 'UNDER_REVIEW', 'VALIDATED', 'WORK_ORDER_CREATED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(st)) ||
-        (selectedStatus === 'CLOSED' && (st === 'CLOSED' || st === 'VERIFIED')) ||
-        (selectedStatus === 'DISPUTED' && st === 'DISPUTED')
+        (selectedStatus === 'CLOSED' && (st === 'CLOSED' || st === 'VERIFIED'))
 
       return matchSearch && matchCategory && matchStatus
     })
@@ -112,8 +110,6 @@ export default function RwaDashboard({
       case 'CLOSED':
       case 'VERIFIED':
         return { bg: '#dcfce7', color: '#166534', border: '#bbf7d0', label: 'Closed & Verified' }
-      case 'DISPUTED':
-        return { bg: '#fee2e2', color: '#991b1b', border: '#fecaca', label: 'Disputed / Reopened' }
       default:
         return { bg: '#f3f4f6', color: '#374151', border: '#e5e7eb', label: (rawStatus || '').replace(/_/g, ' ') }
     }

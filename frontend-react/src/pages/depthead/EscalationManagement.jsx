@@ -5,7 +5,7 @@ export default function EscalationManagement() {
   const { complaints, updateComplaintStatus } = useTIMS()
   
   // Mocks for escalated issues
-  const escalatedIssues = complaints.filter(c => c.status === 'ESCALATED' || c.status === 'SLA_BREACHED' || c.status === 'DISPUTED')
+  const escalatedIssues = complaints.filter(c => c.status === 'ESCALATED' || c.status === 'SLA_BREACHED')
   
   const [selectedIssue, setSelectedIssue] = useState(null)
   const [escalationRemarks, setEscalationRemarks] = useState('')
@@ -37,7 +37,7 @@ export default function EscalationManagement() {
     <div>
       <h2 className="dept-page-title">Escalation Management</h2>
       <p style={{ color: 'var(--text-soft)', marginBottom: '24px' }}>
-        Manage SLA breaches, severe contractor delays, and escalated disputes.
+        Manage SLA breaches, severe contractor delays, and escalated work orders.
       </p>
 
       <div className="panel-card" style={{ overflow: 'hidden' }}>

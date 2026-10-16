@@ -133,10 +133,10 @@ const TIMS_MODULES = [
   },
   {
     id: 10,
-    title: 'RWA Verification & Dispute Rework Loop',
+    title: 'RWA Verification & Resolution Sign-Off',
     category: 'operations',
-    desc: 'Resident inspection sign-off. If work is unsatisfactory, ticket reopens into contractor rework cycle automatically.',
-    tags: ['Resident Sign-off', 'Rework Loop', 'Closure'],
+    desc: 'Resident inspection sign-off. Once physical repair evidence is confirmed on ground, ticket closes and authorizes contractor payment.',
+    tags: ['Resident Sign-off', 'Quality Rating', 'Closure'],
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M23 4v6h-6" />

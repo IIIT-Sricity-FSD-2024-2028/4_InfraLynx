@@ -323,27 +323,16 @@ export default function WorkOrderDetails({ complaint, onBack }) {
         </div>
 
         <div className="panel-card" style={{ padding: '24px' }}>
-          <h4 style={{ marginBottom: '24px', paddingBottom: '12px', borderBottom: '1px solid var(--line)', color: 'var(--text-main)' }}>RWA Verification & Dispute Status</h4>
+          <h4 style={{ marginBottom: '24px', paddingBottom: '12px', borderBottom: '1px solid var(--line)', color: 'var(--text-main)' }}>RWA Verification Status</h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <span style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: 'var(--text-soft)', textTransform: 'uppercase', marginBottom: '8px' }}>Verification Status</span>
               {comp.verifiedByRwa || comp.verificationStatus === 'VERIFIED' ? (
                 <span className="badge-eyebrow" style={{ background: '#dcfce7', color: '#16a34a' }}>VERIFIED BY RWA</span>
-              ) : comp.disputed || comp.verificationStatus === 'DISPUTED' ? (
-                <span className="badge-eyebrow" style={{ background: '#fee2e2', color: '#dc2626' }}>DISPUTED BY RWA</span>
               ) : (
                 <span className="badge-eyebrow" style={{ background: '#f3f4f6', color: '#6b7280' }}>PENDING VERIFICATION</span>
               )}
             </div>
-
-            {(comp.disputed || comp.verificationStatus === 'DISPUTED') && (
-              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '16px', borderRadius: '8px' }}>
-                <span style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: '#b91c1c', textTransform: 'uppercase' }}>Dispute Reason</span>
-                <p style={{ color: '#991b1b', marginTop: '4px', fontSize: '13px' }}>
-                  {comp.disputeReason || 'RWA has flagged issues with the completed work. Contractor intervention required.'}
-                </p>
-              </div>
-            )}
             
             {(comp.verifiedByRwa || comp.verificationStatus === 'VERIFIED') && (
               <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '16px', borderRadius: '8px' }}>

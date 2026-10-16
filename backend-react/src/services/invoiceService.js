@@ -93,7 +93,6 @@ export const perform3WayCheck = async (invoiceId) => {
   // Verify Citizen / RWA signoff
   const workCompleted = workOrder?.status === 'COMPLETED' || workOrder?.status === 'CLOSED';
   const rwaVerified = (complaint && (complaint.status === 'CLOSED' || complaint.status === 'VERIFIED' || complaint.is_resolved_by_resident === true || complaint.verification?.status === 'CONFIRMED')) || invoice.rwa_verified === true;
-  const isDisputed = complaint?.status === 'DISPUTED' || complaint?.verification?.status === 'DISPUTED';
 
   // Determine Reconciliation Status
   let reconciliationStatus = 'MATCH';
@@ -105,9 +104,6 @@ export const perform3WayCheck = async (invoiceId) => {
   } else if (!workCompleted) {
     reconciliationStatus = 'WORK_NOT_COMPLETED';
     message = 'Linked work order must be completed before payment authorization.';
-  } else if (isDisputed) {
-    reconciliationStatus = 'DISPUTED_WORK';
-    message = 'RWA / citizen dispute blocks payment authorization until corrective rework is completed.';
   } else if (!rwaVerified) {
     reconciliationStatus = 'UNVERIFIED_WORK';
     message = 'Work completion awaiting RWA / citizen confirmation before payment release.';

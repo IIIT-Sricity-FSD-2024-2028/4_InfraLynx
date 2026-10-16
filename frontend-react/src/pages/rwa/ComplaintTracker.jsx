@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
 import './styles/ComplaintTracker.css'
 
 const getStatusConfig = (userName = 'Dr. Arvind Swaminathan') => ({
@@ -46,11 +47,6 @@ const getStatusConfig = (userName = 'Dr. Arvind Swaminathan') => ({
     label: 'Closed',
     badgeClass: 'status-closed',
     desc: `Work verified and approved on ground by ${userName}. Ticket officially closed.`,
-  },
-  DISPUTED: {
-    label: 'Disputed',
-    badgeClass: 'status-disputed',
-    desc: 'Work rejected during verification. Routed back to contractor for mandatory rework.',
   },
 })
 
@@ -103,6 +99,15 @@ export default function ComplaintTracker({
     badgeClass: 'status-reported',
     desc: `Current status is ${activeComplaint.status.replace(/_/g, ' ')}.`,
   }
+  const uniqueBeforePhotos = useMemo(() => {
+    const raw = activeComplaint.beforePhotos || activeComplaint.before_photos || []
+    return Array.from(new Set(raw.filter(Boolean)))
+  }, [activeComplaint])
+
+  const uniqueAfterPhotos = useMemo(() => {
+    const raw = activeComplaint.afterPhotos || activeComplaint.after_photos || []
+    return Array.from(new Set(raw.filter(Boolean)))
+  }, [activeComplaint])
 
   return (
     <div className="tracker-root">
@@ -157,14 +162,14 @@ export default function ComplaintTracker({
               ⚡ Action Required: Contractor Submitted Completion Proof
             </div>
             <div className="tracker-banner-desc">
-              The repair has been marked finished by {activeComplaint.assignedContractor?.name || 'Contractor'}. Review before & after evidence to sign off or dispute.
+              The repair has been marked finished by {activeComplaint.assignedContractor?.name || 'Contractor'}. Review before & after evidence to sign off.
             </div>
           </div>
           <button
             onClick={() => onNavigate('verify')}
             className="btn-banner-verify"
           >
-            Go to Verification & Dispute →
+            Go to Verification →
           </button>
         </div>
       )}
@@ -175,16 +180,6 @@ export default function ComplaintTracker({
           <span style={{ fontSize: 20 }}>✅</span>
           <div>
             <strong>Issue Officially Closed & Verified</strong> — Signed off by {activeComplaint.verification?.verifiedBy || `${currentUser?.name || 'Dr. Arvind Swaminathan'} (${currentUser?.title || 'RWA Secretary'})`} with {activeComplaint.verification?.rating || 5}/5 rating.
-          </div>
-        </div>
-      )}
-
-      {/* Disputed Banner */}
-      {activeComplaint.status === 'DISPUTED' && (
-        <div className="tracker-banner-disputed">
-          <span style={{ fontSize: 20 }}>⚠️</span>
-          <div>
-            <strong>Dispute Opened / Reopened for Rework</strong> — Reason: "{activeComplaint.dispute?.reason}". Contractor re-dispatched for corrective action.
           </div>
         </div>
       )}
@@ -267,32 +262,36 @@ export default function ComplaintTracker({
 
           {/* Photo Evidence */}
           <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-            <div>
-              <span className="attr-label" style={{ marginBottom: 6 }}>
-                Citizen Site Photo
-              </span>
-              <div className="photo-preview-wrap">
-                {(activeComplaint.beforePhotos || []).map((src, i) => (
-                  <img
-                    key={i}
-                    src={src}
-                    alt={`Before Proof ${i + 1}`}
-                    className="photo-preview-img"
-                  />
-                ))}
+            {uniqueBeforePhotos.length > 0 && (
+              <div>
+                <span className="attr-label" style={{ marginBottom: 6 }}>
+                  Citizen Site Photo
+                </span>
+                <div className="photo-preview-wrap">
+                  {uniqueBeforePhotos.map((src, i) => (
+                    <img
+                      key={i}
+                      src={getPhotoUrl(src)}
+                      onError={handlePhotoError}
+                      alt={`Before Proof ${i + 1}`}
+                      className="photo-preview-img"
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {activeComplaint.afterPhotos && activeComplaint.afterPhotos.length > 0 && (
+            {uniqueAfterPhotos.length > 0 && (
               <div>
                 <span className="attr-label" style={{ marginBottom: 6 }}>
                   Resolution Evidence Photo
                 </span>
                 <div className="photo-preview-wrap">
-                  {activeComplaint.afterPhotos.map((src, i) => (
+                  {uniqueAfterPhotos.map((src, i) => (
                     <img
                       key={i}
-                      src={src}
+                      src={getPhotoUrl(src)}
+                      onError={handlePhotoError}
                       alt={`After Proof ${i + 1}`}
                       className="photo-preview-img after"
                     />

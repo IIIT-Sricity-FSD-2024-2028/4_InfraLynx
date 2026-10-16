@@ -74,13 +74,12 @@ export default function ClerkTracker({ complaints: propComplaints, selectedCompl
       c.workOrderId ||
       c.work_order_code ||
       ['WORK_ORDER_CREATED','ASSIGNED','IN_PROGRESS','COMPLETED',
-       'PENDING_VERIFICATION','AWAITING_DEPT_HEAD','CLOSED','DISPUTED'].includes(c.status)
+       'PENDING_VERIFICATION','AWAITING_DEPT_HEAD','CLOSED'].includes(c.status)
     ), [complaints])
 
   // Current stage index for stepper
   const stageIdx = useMemo(() => {
     if (!active) return 0
-    if (active.status === 'DISPUTED')           return 8
     if (active.status === 'AWAITING_DEPT_HEAD') return 3
     if (active.status === 'REJECTED')           return 1
     const i = STAGES.findIndex(s => s.id === active.status)
@@ -97,7 +96,6 @@ export default function ClerkTracker({ complaints: propComplaints, selectedCompl
       COMPLETED:             { cls: 'completed',      text: 'Work completed. Awaiting finance invoice verification.' },
       PENDING_VERIFICATION:  { cls: 'pending-verify', text: 'Finance verified the invoice. RWA has 3 days to confirm (auto-closes after 3 days).' },
       CLOSED:                { cls: 'closed',         text: 'Complaint fully resolved and closed by RWA.' },
-      DISPUTED:              { cls: 'disputed',       text: 'RWA disputed repair quality. Contractor must rework.' },
     }
     return m[status] || null
   }
@@ -229,7 +227,7 @@ export default function ClerkTracker({ complaints: propComplaints, selectedCompl
             <div className="ct-section-spacer">
               <span className="ct-attr-label ct-attr-label-block">Site Photos</span>
               <div className="ct-photos">
-                {active.beforePhotos.map((src, i) => (
+                {Array.from(new Set(active.beforePhotos)).map((src, i) => (
                   <img key={i} src={src} alt={`Before ${i + 1}`} className="ct-photo" />
                 ))}
               </div>

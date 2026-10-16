@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
 import './styles/VerificationDispute.css'
 
@@ -9,14 +9,13 @@ export default function VerificationDispute({
   onNavigate,
   onSelectComplaint,
   onConfirmFix,
-  onDisputeComplaint,
 }) {
 
   const normStatus = (s) => (s || '').toUpperCase().replace(/[\s_-]+/g, '_')
 
   // Eligible complaints for Verification Workspace:
   // Strictly tickets awaiting verification (PENDING_VERIFICATION, COMPLETED, WORK_COMPLETED).
-  // Once closed (verified) or disputed (rework), tickets are no longer in this verification queue.
+  // Once closed (verified), tickets are no longer in this verification queue.
   const eligibleComplaints = complaints.filter((c) => {
     const st = normStatus(c.status)
     return ['PENDING_VERIFICATION', 'COMPLETED', 'WORK_COMPLETED'].includes(st)
@@ -31,36 +30,10 @@ export default function VerificationDispute({
     eligibleComplaints[0] ||
     null
 
-  // Actions state
-  const [isDisputeOpen, setIsDisputeOpen] = useState(false)
+  // Verification state
   const [rating, setRating] = useState(5)
   const [confirmRemarks, setConfirmRemarks] = useState('')
-  const [disputeReason, setDisputeReason] = useState('Incomplete Repair')
-  const [disputeRemarks, setDisputeRemarks] = useState('')
-  const [disputePhotos, setDisputePhotos] = useState([])
   const [actionDoneMessage, setActionDoneMessage] = useState(null)
-
-  // useRef for dispute file input
-  const disputeFileInputRef = useRef(null)
-
-  function handleTriggerDisputeFile() {
-    if (disputeFileInputRef.current) {
-      disputeFileInputRef.current.click()
-    }
-  }
-
-  function handleDisputeFileChange(e) {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (ev) => {
-        if (ev.target?.result) {
-          setDisputePhotos((prev) => [...prev, ev.target.result])
-        }
-      }
-      reader.readAsDataURL(file)
-    }
-  }
 
   // Confirm Fix Handler
   async function handleConfirm() {
@@ -90,43 +63,6 @@ export default function VerificationDispute({
     }
   }
 
-  // Dispute Handler
-  async function handleSubmitDispute(e) {
-    e.preventDefault()
-    if (!activeComplaint) return
-    const ticketId = activeComplaint.complaint_code || activeComplaint.id
-    if (!disputeRemarks.trim()) {
-      alert('Please provide remarks explaining why the repair is disputed.')
-      return
-    }
-
-    try {
-      if (onDisputeComplaint) {
-        await onDisputeComplaint(ticketId, {
-          reason: disputeReason,
-          remarks: disputeRemarks,
-          photos: disputePhotos,
-        })
-      }
-
-      setIsDisputeOpen(false)
-      setActionDoneMessage({
-        type: 'dispute',
-        title: 'Dispute / Rework Triggered',
-        text: `Complaint ${ticketId} marked as DISPUTED. Routed back to contractor rework queue for mandatory corrective action.`,
-      })
-      // Advance to next pending ticket in queue
-      const nextPending = eligibleComplaints.find(
-        (c) => c.id !== activeComplaint.id && c.complaint_code !== ticketId
-      )
-      if (onSelectComplaint) {
-        onSelectComplaint(nextPending || null)
-      }
-    } catch (err) {
-      alert(`Failed to submit dispute: ${err.message}`)
-    }
-  }
-
   // If no eligible complaints are available
   if (!activeComplaint || eligibleComplaints.length === 0) {
     return (
@@ -136,14 +72,14 @@ export default function VerificationDispute({
             <button onClick={() => onNavigate('dashboard')} className="btn-back">
               ← Back to Dashboard
             </button>
-            <h1 className="verification-title">Verification & Dispute Workspace</h1>
+            <h1 className="verification-title">Verification Workspace</h1>
             <p className="verification-subtitle">
-              Inspect contractor before & after physical evidence, confirm resolution, or order rework.
+              Inspect contractor before & after physical evidence, rate repair quality, and confirm resolution.
             </p>
           </div>
         </div>
 
-        {/* Show completion confirmation if user just verified/disputed the last ticket */}
+        {/* Show completion confirmation if user just verified the last ticket */}
         {actionDoneMessage && (
           <div className={`action-result-banner ${actionDoneMessage.type}`} style={{ marginBottom: 20 }}>
             <div>
@@ -202,10 +138,10 @@ export default function VerificationDispute({
             ← Back to Dashboard
           </button>
           <h1 className="verification-title">
-            Verification & Dispute Workspace
+            Verification Workspace
           </h1>
           <p className="verification-subtitle">
-            Inspect contractor before & after physical evidence, confirm resolution, or order rework.
+            Inspect contractor before & after physical evidence, rate repair quality, and confirm resolution.
           </p>
         </div>
 
@@ -218,7 +154,6 @@ export default function VerificationDispute({
               const c = eligibleComplaints.find((item) => item.id === e.target.value || item.complaint_code === e.target.value)
               if (c) onSelectComplaint(c)
               setActionDoneMessage(null)
-              setIsDisputeOpen(false)
             }}
             className="ticket-inspect-select"
           >
@@ -382,171 +317,60 @@ export default function VerificationDispute({
                 Verification Decision — {currentUser?.name || 'Dr. Arvind Swaminathan'} ({currentUser?.title || 'RWA Secretary'})
               </h3>
               <p className="decision-desc">
-                Please inspect the evidence and select whether the reported issue is satisfactorily resolved, or dispute the work to mandate contractor rework.
+                Please inspect the physical evidence. When the repair is satisfactorily resolved on ground, confirm fix to close the ticket and authorize contractor payment.
               </p>
 
-              {!isDisputeOpen ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {/* Confirm Fix Option Card */}
-                  <div className="confirm-option-box">
-                    <div className="confirm-top-row">
-                      <div>
-                        <h4 className="confirm-heading">
-                          Option A: Confirm Fix (Sign-Off)
-                        </h4>
-                        <span className="confirm-sub">
-                          Marks the complaint as CLOSED and notifies township finance that the contractor's AMC invoice is authorized for audit.
-                        </span>
-                      </div>
-
-                      {/* Rating Selector */}
-                      <div className="rating-cluster">
-                        <span style={{ fontSize: 12.5, fontWeight: 600, color: '#166534' }}>Rating:</span>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <button
-                              key={star}
-                              type="button"
-                              onClick={() => setRating(star)}
-                              className="star-btn"
-                              style={{ color: star <= rating ? '#f59e0b' : '#cbd5e1' }}
-                            >
-                              ★
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* Confirm Fix Option Card */}
+                <div className="confirm-option-box">
+                  <div className="confirm-top-row">
+                    <div>
+                      <h4 className="confirm-heading">
+                        Confirm Fix & Authorize Resolution
+                      </h4>
+                      <span className="confirm-sub">
+                        Marks the complaint as CLOSED and notifies township finance that the contractor's AMC invoice is authorized for payment audit.
+                      </span>
                     </div>
 
-                    <input
-                      type="text"
-                      value={confirmRemarks}
-                      onChange={(e) => setConfirmRemarks(e.target.value)}
-                      placeholder="Optional verification remarks (e.g., 'Inspected on-site; streetlights fully restored')..."
-                      className="confirm-remarks-input"
-                    />
-
-                    <div className="confirm-actions-row">
-                      <button
-                        onClick={() => setIsDisputeOpen(true)}
-                        className="btn-open-dispute"
-                      >
-                        Found issues with the repair? Open Dispute instead →
-                      </button>
-
-                      <button
-                        id="btn-confirm-fix"
-                        onClick={handleConfirm}
-                        className="btn-confirm-resolution"
-                      >
-                        Confirm Fix & Authorize Resolution ✓
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                /* Dispute / Reopen Drawer */
-                <form
-                  onSubmit={handleSubmitDispute}
-                  className="dispute-form-box"
-                >
-                  <div className="dispute-top-row">
-                    <h4 className="dispute-heading">
-                      Option B: Dispute / Reopen Complaint for Rework
-                    </h4>
-                    <button
-                      type="button"
-                      onClick={() => setIsDisputeOpen(false)}
-                      className="btn-cancel-dispute"
-                    >
-                      ✕ Cancel Dispute
-                    </button>
-                  </div>
-
-                  {/* Dispute Reason dropdown */}
-                  <div>
-                    <label className="dispute-label">
-                      Dispute Reason <span style={{ color: 'var(--accent-red)' }}>*</span>
-                    </label>
-                    <select
-                      value={disputeReason}
-                      onChange={(e) => setDisputeReason(e.target.value)}
-                      className="dispute-select"
-                    >
-                      <option value="Incomplete Repair">Incomplete Repair (Work left half done)</option>
-                      <option value="Substandard Material">Substandard Material or Poor Quality</option>
-                      <option value="Issue Recurred">Issue Recurred / Still Broken</option>
-                      <option value="Debris Not Cleared">Debris / Waste Left On Site</option>
-                      <option value="Wrong Asset Repaired">Wrong Asset / Location Addressed</option>
-                    </select>
-                  </div>
-
-                  {/* Detailed Remarks */}
-                  <div>
-                    <label className="dispute-label">
-                      Detailed Rejection / Rework Remarks <span style={{ color: 'var(--accent-red)' }}>*</span>
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={disputeRemarks}
-                      onChange={(e) => setDisputeRemarks(e.target.value)}
-                      placeholder="Detail the shortcomings observed on ground and what specific corrections are mandated..."
-                      className="dispute-textarea"
-                    />
-                  </div>
-
-                  {/* Additional Photo Evidence upload via useRef */}
-                  <div>
-                    <label className="dispute-label">
-                      Additional Photo Evidence (Optional)
-                    </label>
-                    <input
-                      type="file"
-                      ref={disputeFileInputRef}
-                      onChange={handleDisputeFileChange}
-                      accept="image/*"
-                      style={{ display: 'none' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleTriggerDisputeFile}
-                      className="btn-attach-evidence"
-                    >
-                      📷 Attach Re-inspection Photo
-                    </button>
-
-                    {disputePhotos.length > 0 && (
-                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                        {disputePhotos.map((src, i) => (
-                          <img
-                            key={i}
-                            src={src}
-                            alt="Dispute evidence"
-                            style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 4 }}
-                          />
+                    {/* Rating Selector */}
+                    <div className="rating-cluster">
+                      <span style={{ fontSize: 12.5, fontWeight: 600, color: '#166534' }}>Rating:</span>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setRating(star)}
+                            className="star-btn"
+                            style={{ color: star <= rating ? '#f59e0b' : '#cbd5e1' }}
+                          >
+                            ★
+                          </button>
                         ))}
                       </div>
-                    )}
+                    </div>
                   </div>
 
-                  {/* Submit Dispute button */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                  <input
+                    type="text"
+                    value={confirmRemarks}
+                    onChange={(e) => setConfirmRemarks(e.target.value)}
+                    placeholder="Optional verification remarks (e.g., 'Inspected on-site; streetlights fully restored')..."
+                    className="confirm-remarks-input"
+                  />
+
+                  <div className="confirm-actions-row" style={{ justifyContent: 'flex-end' }}>
                     <button
-                      type="button"
-                      onClick={() => setIsDisputeOpen(false)}
-                      className="btn-cancel"
+                      id="btn-confirm-fix"
+                      onClick={handleConfirm}
+                      className="btn-confirm-resolution"
                     >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="btn-submit-dispute"
-                    >
-                      Submit Dispute & Mandate Rework ⚠️
+                      Confirm Fix & Authorize Resolution ✓
                     </button>
                   </div>
-                </form>
-              )}
+                </div>
+              </div>
             </>
           )}
         </div>

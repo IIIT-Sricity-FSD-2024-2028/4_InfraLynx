@@ -29,7 +29,6 @@ export default function ComplaintDetailsModal({ complaint, onClose }) {
     COMPLETED: { bg: '#dcfce7', color: '#15803d', label: 'Completed' },
     CLOSED: { bg: '#dcfce7', color: '#166534', label: 'Closed / Verified' },
     REJECTED: { bg: '#fee2e2', color: '#b91c1c', label: 'Rejected' },
-    DISPUTED: { bg: '#fef2f2', color: '#dc2626', label: 'Disputed' },
   };
 
   const statusStyle = statusColors[status] || { bg: '#f3f4f6', color: '#374151', label: status };

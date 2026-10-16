@@ -32,6 +32,7 @@ export default function WorkExecution({
   const [isDragOver, setIsDragOver] = useState(false)
   const [completionRemarks, setCompletionRemarks] = useState('')
   const [submittedMessage, setSubmittedMessage] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const fileInputRef = useRef(null)
 
@@ -118,9 +119,9 @@ export default function WorkExecution({
     setSubmittedMessage(`Work Order ${currentJob.workOrderId || currentJob.id} is now IN PROGRESS. Field crew dispatched.`)
   }
 
-  function handleComplete(e) {
+  async function handleComplete(e) {
     e.preventDefault()
-    if (!currentJob) return
+    if (!currentJob || isSubmitting) return
 
     if (!afterPhoto) {
       alert('Please upload after-repair resolution photographic evidence before marking work completed.')
@@ -135,10 +136,17 @@ export default function WorkExecution({
       completedAt: new Date().toISOString(),
     }
 
-    onSubmitCompletion(currentJob.id, completionData)
-    setSubmittedMessage(
-      `Work Order ${currentJob.workOrderId || currentJob.id} marked as COMPLETED! Forwarded to RWA for verification and Finance for payment authorization.`
-    )
+    try {
+      setIsSubmitting(true)
+      await onSubmitCompletion(currentJob.id, completionData)
+      setSubmittedMessage(
+        `Work Order ${currentJob.workOrderId || currentJob.id} marked as COMPLETED! Forwarded to RWA for verification and Finance for payment authorization.`
+      )
+    } catch (err) {
+      alert(`Submission failed: ${err.message}`)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (!currentJob) {
@@ -648,9 +656,11 @@ export default function WorkExecution({
             ) : (
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="btn-contractor-primary execution-submit-btn"
+                style={{ opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
               >
-                Submit Completion Proof (Mark COMPLETED) &rarr;
+                {isSubmitting ? 'Uploading Proof & Completing...' : 'Submit Completion Proof (Mark COMPLETED) →'}
               </button>
             )}
           </div>

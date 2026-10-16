@@ -70,26 +70,7 @@ export default function RwaPortal({ onExitToLanding }) {
     }
   }
 
-  async function handleDisputeComplaint(id, payload = {}) {
-    try {
-      const updated = await complaintApi.disputeComplaint(id, payload)
-      const resolved = updated?.data || updated
-      setComplaints((prev) =>
-        prev.map((c) => (c.id === id || c.complaint_code === id ? { ...c, ...resolved, status: 'DISPUTED' } : c))
-      )
-      setSelectedComplaint((prev) => {
-        if (!prev) return null
-        if (prev.id === id || prev.complaint_code === id) {
-          return { ...prev, ...resolved, status: 'DISPUTED' }
-        }
-        return prev
-      })
-      return resolved
-    } catch (err) {
-      console.error('[RwaPortal] Error disputing fix:', err.message)
-      throw err
-    }
-  }
+
 
   // Pending verification count for notification badge derived from local state
   const pendingVerificationCount = complaints.filter((c) => {
@@ -176,7 +157,7 @@ export default function RwaPortal({ onExitToLanding }) {
               { id: 'track', label: 'Live Tracker' },
               {
                 id: 'verify',
-                label: 'Verification & Dispute',
+                label: 'Verification',
                 badge: pendingVerificationCount > 0 ? pendingVerificationCount : null,
               },
             ].map((tab) => {
@@ -243,7 +224,6 @@ export default function RwaPortal({ onExitToLanding }) {
             onNavigate={handleNavigate}
             onSelectComplaint={handleSelectComplaint}
             onConfirmFix={handleConfirmFix}
-            onDisputeComplaint={handleDisputeComplaint}
           />
         )}
       </main>

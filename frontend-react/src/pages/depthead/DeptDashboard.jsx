@@ -114,7 +114,6 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
       COMPLETED: { bg: '#dcfce7', color: '#15803d', label: 'Completed' },
       CLOSED: { bg: '#dcfce7', color: '#166534', label: 'Closed / Verified' },
       REJECTED: { bg: '#fee2e2', color: '#b91c1c', label: 'Rejected' },
-      DISPUTED: { bg: '#fef2f2', color: '#dc2626', label: 'Disputed' },
     };
     const current = map[s] || { bg: '#f3f4f6', color: '#374151', label: s.replace(/_/g, ' ') };
     return (
@@ -450,7 +449,6 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
                 <option value="COMPLETED">Completed</option>
                 <option value="CLOSED">Closed / Verified</option>
                 <option value="REJECTED">Rejected</option>
-                <option value="DISPUTED">Disputed</option>
               </select>
             </div>
 

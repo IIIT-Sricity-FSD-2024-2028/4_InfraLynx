@@ -230,16 +230,6 @@ export const authorizeInvoice = async (req, res, next) => {
       });
     }
 
-    if ((complaint.status || '').toUpperCase() === 'DISPUTED' || complaint.verification?.status === 'DISPUTED') {
-      return res.status(409).json({
-        success: false,
-        error: {
-          code: 'DISPUTED_WORK_BLOCKS_PAYMENT',
-          message: 'Cannot authorize invoice while the RWA / citizen has disputed the completed work.',
-        },
-      });
-    }
-
     const isRwaVerified = (complaint && (complaint.status === 'CLOSED' || complaint.status === 'VERIFIED' || complaint.verification?.status === 'CONFIRMED' || complaint.is_resolved_by_resident === true)) || invoice.rwa_verified === true;
 
     if (!isRwaVerified) {
