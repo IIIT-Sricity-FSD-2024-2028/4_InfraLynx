@@ -12,7 +12,6 @@ export default function RwaPortal({ onExitToLanding }) {
   const { currentUser } = useTIMS()
   // Local RWA Complaints State
   const [complaints, setComplaints] = useState([])
-  const [loading, setLoading] = useState(true)
   const [currentScreen, setCurrentScreen] = useState('dashboard')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
   const [successNotice, setSuccessNotice] = useState(null)
@@ -20,13 +19,10 @@ export default function RwaPortal({ onExitToLanding }) {
   // 1. Fetch live complaints from backend on mount
   const loadComplaints = useCallback(async () => {
     try {
-      setLoading(true)
       const data = await complaintApi.getComplaints()
       setComplaints(Array.isArray(data) ? data : [])
     } catch (err) {
       console.warn('[RwaPortal] Backend fetch notice:', err.message)
-    } finally {
-      setLoading(false)
     }
   }, [])
 
@@ -69,8 +65,6 @@ export default function RwaPortal({ onExitToLanding }) {
       throw err
     }
   }
-
-
 
   // Pending verification count for notification badge derived from local state
   const pendingVerificationCount = complaints.filter((c) => {
@@ -186,13 +180,11 @@ export default function RwaPortal({ onExitToLanding }) {
         {currentScreen === 'dashboard' && (
           <RwaDashboard
             complaints={complaints}
-            loading={loading}
             currentUser={currentUser}
             onNavigate={handleNavigate}
             onSelectComplaint={handleSelectComplaint}
             successNotice={successNotice}
             onDismissNotice={() => setSuccessNotice(null)}
-            onRefresh={loadComplaints}
           />
         )}
 
@@ -200,7 +192,6 @@ export default function RwaPortal({ onExitToLanding }) {
           <ReportIssue
             currentUser={currentUser}
             onNavigate={handleNavigate}
-            onSelectComplaint={handleSelectComplaint}
             onComplaintSubmitted={handleComplaintSubmitted}
             onAddComplaint={handleAddComplaint}
           />

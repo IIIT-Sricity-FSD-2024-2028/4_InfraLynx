@@ -1,4 +1,4 @@
-/* ComplaintTracker.css - Styles for Screen 3: Complaint Tracker */
+/* ComplaintTracker.css - Streamlined Styles for Ticket Tracker */
 
 .tracker-root {
   display: flex;
@@ -117,18 +117,7 @@
   color: var(--primary-darker);
 }
 
-.tracker-banner-disputed {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: var(--radius-md);
-  padding: 14px 18px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: #991b1b;
-}
-
-/* Clean Status Overview Card (Replaces 8-stage stepper) */
+/* Live Status Overview Card */
 .tracker-status-card {
   background: #ffffff;
   border-radius: var(--radius-lg);
@@ -212,12 +201,6 @@
   border: 1px solid rgba(22, 163, 74, 0.3);
 }
 
-.status-disputed {
-  background: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fca5a5;
-}
-
 .tracker-status-desc {
   font-size: 13.5px;
   color: var(--text);
@@ -245,13 +228,7 @@
   color: #b91c1c;
 }
 
-/* Two Column Details Layout */
-.details-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 20px;
-}
-
+/* Detail Card */
 .detail-card {
   background: #ffffff;
   border-radius: var(--radius-lg);
@@ -299,7 +276,7 @@
 
 .attributes-table {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 14px;
   font-size: 13px;
   min-width: 0;
@@ -335,126 +312,10 @@
   border-color: #86efac;
 }
 
-.inspection-box {
-  background: #f8faf8;
-  padding: 12px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--line);
-}
-
-.completion-box {
-  background: #f0fdf4;
-  padding: 12px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid #bbf7d0;
-}
-
-/* Complaint Activity / Timeline Card */
-.audit-card {
+.empty-tracker-card {
+  padding: 40px;
+  text-align: center;
   background: #ffffff;
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
-  padding: 24px 28px;
-  box-shadow: var(--shadow-sm);
-}
-
-.audit-card-header {
-  margin-bottom: 22px;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 12px;
-}
-
-.audit-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.audit-subtitle {
-  font-size: 13px;
-  color: var(--text-soft);
-  margin-top: 3px;
-}
-
-.audit-timeline {
-  position: relative;
-  padding-left: 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.audit-timeline::before {
-  content: '';
-  position: absolute;
-  left: 7px;
-  top: 6px;
-  bottom: 6px;
-  width: 2px;
-  background: #e2e8f0;
-}
-
-.audit-item {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-}
-
-.audit-dot {
-  position: absolute;
-  left: -28px;
-  top: 3px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 3px solid var(--primary);
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
-  z-index: 1;
-}
-
-.audit-content {
-  flex: 1;
-}
-
-.audit-header-line {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.audit-stage-pill {
-  font-weight: 700;
-  font-size: 11.5px;
-  padding: 3px 9px;
-  border-radius: 12px;
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #cbd5e1;
-  text-transform: capitalize;
-  letter-spacing: 0.2px;
-}
-
-.audit-actor {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.audit-timestamp {
-  color: var(--text-muted);
-  font-size: 12px;
-  margin-left: auto;
-}
-
-.audit-note {
-  color: var(--text-soft);
-  font-size: 13px;
-  margin-top: 6px;
-  line-height: 1.5;
-  background: #f8fafc;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border-left: 3px solid #cbd5e1;
 }

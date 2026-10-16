@@ -1,17 +1,26 @@
 import { useState, useMemo } from 'react'
 import './styles/RwaDashboard.css'
 
+const STATUS_BADGE_MAP = {
+  PENDING_VERIFICATION: { label: 'Pending Verification', cls: 'pending', pulse: true },
+  IN_PROGRESS: { label: 'In Progress', cls: 'in-progress' },
+  WORK_ORDER_CREATED: { label: 'Work Order Created', cls: 'work-order' },
+  ASSIGNED: { label: 'Assigned', cls: 'assigned' },
+  VALIDATED: { label: 'Validated', cls: 'validated' },
+  UNDER_REVIEW: { label: 'Under Review', cls: 'review' },
+  REPORTED: { label: 'Reported', cls: 'reported' },
+  CLOSED: { label: 'Closed & Verified', cls: 'closed' },
+  VERIFIED: { label: 'Closed & Verified', cls: 'closed' },
+}
+
 export default function RwaDashboard({
   complaints = [],
-  loading = false,
   currentUser,
   onNavigate,
   onSelectComplaint,
   successNotice,
   onDismissNotice,
-  onRefresh,
 }) {
-
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('ALL')
   const [selectedStatus, setSelectedStatus] = useState('ALL')
@@ -20,99 +29,59 @@ export default function RwaDashboard({
 
   // Calculate metrics
   const stats = useMemo(() => {
-    const total = complaints.length
-    const open = complaints.filter((c) => {
-      const st = normStatus(c.status)
-      return ['REPORTED', 'UNDER_REVIEW', 'VALIDATED'].includes(st)
-    }).length
-    const validated = complaints.filter((c) => normStatus(c.status) === 'VALIDATED').length
-    const inProgress = complaints.filter((c) => {
-      const st = normStatus(c.status)
-      return ['WORK_ORDER_CREATED', 'ASSIGNED', 'IN_PROGRESS', 'AWAITING_DEPT_HEAD'].includes(st)
-    }).length
-    const pendingVerification = complaints.filter(
-      (c) => ['PENDING_VERIFICATION', 'COMPLETED', 'WORK_COMPLETED'].includes(normStatus(c.status))
-    ).length
-    const closed = complaints.filter((c) => {
-      const st = normStatus(c.status)
-      return st === 'CLOSED' || st === 'VERIFIED'
-    }).length
+    let open = 0, validated = 0, inProgress = 0, pendingVerification = 0, closed = 0
 
-    return { total, open, validated, inProgress, pendingVerification, closed }
+    complaints.forEach((c) => {
+      const st = normStatus(c.status)
+      if (['REPORTED', 'UNDER_REVIEW', 'VALIDATED'].includes(st)) open++
+      if (st === 'VALIDATED') validated++
+      if (['WORK_ORDER_CREATED', 'ASSIGNED', 'IN_PROGRESS', 'AWAITING_DEPT_HEAD'].includes(st)) inProgress++
+      if (['PENDING_VERIFICATION', 'COMPLETED', 'WORK_COMPLETED'].includes(st)) pendingVerification++
+      if (st === 'CLOSED' || st === 'VERIFIED') closed++
+    })
+
+    return { total: complaints.length, open, validated, inProgress, pendingVerification, closed }
   }, [complaints])
 
   // Filter complaints
   const filteredComplaints = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim()
     return complaints.filter((c) => {
       const loc = c.location || {}
-      const assetName = loc.assetName || c.asset_name || ''
-      const street = loc.street || c.street || ''
-      const matchSearch =
-        !searchQuery ||
-        (c.id && c.id.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (c.complaint_code && c.complaint_code.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (c.title && c.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        assetName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        street.toLowerCase().includes(searchQuery.toLowerCase())
+      const asset = (loc.assetName || c.asset_name || '').toLowerCase()
+      const street = (loc.street || c.street || '').toLowerCase()
+      const title = (c.title || '').toLowerCase()
+      const id = (c.id || '').toLowerCase()
+      const code = (c.complaint_code || '').toLowerCase()
 
-      const matchCategory =
-        selectedCategory === 'ALL' || (c.category || '').toUpperCase() === selectedCategory
+      const matchSearch = !q || id.includes(q) || code.includes(q) || title.includes(q) || asset.includes(q) || street.includes(q)
+      const matchCat = selectedCategory === 'ALL' || (c.category || '').toUpperCase() === selectedCategory
 
       const st = normStatus(c.status)
       const matchStatus =
         selectedStatus === 'ALL' ||
-        (selectedStatus === 'PENDING' && st === 'PENDING_VERIFICATION') ||
-        (selectedStatus === 'ACTIVE' &&
-          ['REPORTED', 'UNDER_REVIEW', 'VALIDATED', 'WORK_ORDER_CREATED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(st)) ||
+        (selectedStatus === 'PENDING' && ['PENDING_VERIFICATION', 'COMPLETED', 'WORK_COMPLETED'].includes(st)) ||
+        (selectedStatus === 'ACTIVE' && ['REPORTED', 'UNDER_REVIEW', 'VALIDATED', 'WORK_ORDER_CREATED', 'ASSIGNED', 'IN_PROGRESS'].includes(st)) ||
         (selectedStatus === 'CLOSED' && (st === 'CLOSED' || st === 'VERIFIED'))
 
-      return matchSearch && matchCategory && matchStatus
+      return matchSearch && matchCat && matchStatus
     })
   }, [complaints, searchQuery, selectedCategory, selectedStatus])
 
-  // Helper for SLA time remaining
+  // SLA time remaining calculation
   function getSlaStatus(deadlineStr) {
-    if (!deadlineStr) return { text: 'N/A', isUrgent: false }
+    if (!deadlineStr) return { text: 'N/A' }
     const diff = new Date(deadlineStr).getTime() - Date.now()
     if (diff <= 0) return { text: 'SLA Breached', isBreached: true }
     const hours = Math.floor(diff / (1000 * 3600))
     const minutes = Math.floor((diff % (1000 * 3600)) / (1000 * 60))
-    if (hours < 6) {
-      return { text: `${hours}h ${minutes}m left`, isUrgent: true }
-    }
-    return { text: `${hours}h remaining`, isNormal: true }
+    if (hours < 6) return { text: `${hours}h ${minutes}m left`, isUrgent: true }
+    return { text: `${hours}h remaining` }
   }
 
-  // Status style helper
   function getStatusBadge(rawStatus) {
-    const status = normStatus(rawStatus)
-    switch (status) {
-      case 'PENDING_VERIFICATION':
-        return {
-          bg: '#fef3c7',
-          color: '#92400e',
-          border: '#fde68a',
-          label: 'Pending Verification',
-          pulse: true,
-        }
-      case 'IN_PROGRESS':
-        return { bg: '#e0f2fe', color: '#0369a1', border: '#bae6fd', label: 'In Progress' }
-      case 'WORK_ORDER_CREATED':
-        return { bg: '#e0e7ff', color: '#3730a3', border: '#c7d2fe', label: 'Work Order Created' }
-      case 'ASSIGNED':
-        return { bg: '#e0e7ff', color: '#4338ca', border: '#c7d2fe', label: 'Assigned' }
-      case 'VALIDATED':
-        return { bg: '#ecfdf5', color: '#047857', border: '#a7f3d0', label: 'Validated' }
-      case 'UNDER_REVIEW':
-        return { bg: '#fef9c3', color: '#854d0e', border: '#fef08a', label: 'Under Review' }
-      case 'REPORTED':
-        return { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0', label: 'Reported' }
-      case 'CLOSED':
-      case 'VERIFIED':
-        return { bg: '#dcfce7', color: '#166534', border: '#bbf7d0', label: 'Closed & Verified' }
-      default:
-        return { bg: '#f3f4f6', color: '#374151', border: '#e5e7eb', label: (rawStatus || '').replace(/_/g, ' ') }
-    }
+    const st = normStatus(rawStatus)
+    return STATUS_BADGE_MAP[st] || { label: (rawStatus || '').replace(/_/g, ' '), cls: 'default' }
   }
 
   return (
@@ -123,12 +92,8 @@ export default function RwaDashboard({
           <div className="notice-content">
             <div className="notice-icon">✓</div>
             <div>
-              <div className="notice-title">
-                Complaint Logged Successfully: {successNotice.id}
-              </div>
-              <div className="notice-desc">
-                {successNotice.message}
-              </div>
+              <div className="notice-title">Complaint Logged Successfully: {successNotice.id}</div>
+              <div className="notice-desc">{successNotice.message}</div>
             </div>
           </div>
 
@@ -145,31 +110,23 @@ export default function RwaDashboard({
             >
               Track Live Status →
             </button>
-            <button
-              onClick={onDismissNotice}
-              className="notice-btn-dismiss"
-              title="Dismiss"
-            >
+            <button onClick={onDismissNotice} className="notice-btn-dismiss" title="Dismiss">
               ✕
             </button>
           </div>
         </div>
       )}
 
-      {/* Welcome Banner & Quick Action */}
+      {/* Welcome Banner */}
       <div className="dashboard-welcome">
         <div>
           <div className="welcome-badge-group">
-            <span className="welcome-badge">
-              {currentUser?.title || 'RWA Secretary'} Portal
-            </span>
+            <span className="welcome-badge">{currentUser?.title || 'RWA Secretary'} Portal</span>
             <span className="welcome-jurisdiction">
               Township Jurisdiction: <strong>{currentUser?.sector || 'Sector 54'}</strong>
             </span>
           </div>
-          <h1 className="welcome-title">
-            Welcome, {currentUser?.name || 'Dr. Arvind Swaminathan'}
-          </h1>
+          <h1 className="welcome-title">Welcome, {currentUser?.name || 'Dr. Arvind Swaminathan'}</h1>
           <p className="welcome-subtitle">
             Sector 54 Residents Welfare Association — Monitor citizen infrastructure complaints, track contractor site work in real time, and verify completion before invoice clearance.
           </p>
@@ -181,14 +138,14 @@ export default function RwaDashboard({
           className="btn-report-quick"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
           Report New Issue
         </button>
       </div>
 
-      {/* Verification Attention Alert if any pending */}
+      {/* Verification Attention Alert */}
       {stats.pendingVerification > 0 && (
         <div className="attention-banner">
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -204,7 +161,9 @@ export default function RwaDashboard({
           </div>
           <button
             onClick={() => {
-              const pendingOne = complaints.find((c) => ['PENDING_VERIFICATION', 'COMPLETED', 'WORK_COMPLETED'].includes(normStatus(c.status)))
+              const pendingOne = complaints.find((c) =>
+                ['PENDING_VERIFICATION', 'COMPLETED', 'WORK_COMPLETED'].includes(normStatus(c.status))
+              )
               if (pendingOne) {
                 onSelectComplaint(pendingOne)
                 onNavigate('verify')
@@ -262,17 +221,9 @@ export default function RwaDashboard({
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"
           />
-          <svg
-            className="search-icon"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          <svg className="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
         </div>
 
@@ -311,9 +262,7 @@ export default function RwaDashboard({
       {/* Complaints List */}
       <div className="complaints-section">
         <div className="complaints-header">
-          <h2 className="complaints-title">
-            Complaints Register ({filteredComplaints.length})
-          </h2>
+          <h2 className="complaints-title">Complaints Register ({filteredComplaints.length})</h2>
           <span className="complaints-count-sub">
             Showing records for {currentUser?.name || 'Dr. Arvind Swaminathan'} ({currentUser?.title || 'RWA Secretary'})
           </span>
@@ -323,29 +272,26 @@ export default function RwaDashboard({
           <div className="empty-card">
             <div className="empty-icon">📋</div>
             <div className="empty-title">No complaints found</div>
-            <p className="empty-desc">
-              Try adjusting your search criteria or report a new infrastructure issue.
-            </p>
+            <p className="empty-desc">Try adjusting your search criteria or report a new infrastructure issue.</p>
           </div>
         ) : (
           filteredComplaints.map((c) => {
-            const statusBadge = getStatusBadge(c.status)
+            const badge = getStatusBadge(c.status)
             const sla = getSlaStatus(c.sla_deadline || c.slaDeadline)
-
-            const catClass = c.category === 'Electrical' ? 'electrical' : c.category === 'Water' ? 'water' : c.category === 'Horticulture' ? 'horticulture' : 'civil'
-            const sevClass = c.severity === 'Emergency' ? 'emergency' : c.severity === 'High' ? 'high' : 'normal'
+            const catClass = (c.category || 'civil').toLowerCase()
+            const sevClass = (c.severity || 'normal').toLowerCase()
+            const isPending = ['PENDING_VERIFICATION', 'COMPLETED', 'WORK_COMPLETED'].includes(normStatus(c.status))
+            const contractor = c.assigned_contractor || c.assignedContractor
 
             return (
               <div
                 key={c.id}
-                className={`complaint-card ${c.status === 'PENDING_VERIFICATION' ? 'pending-card' : ''}`}
+                className={`complaint-card ${isPending ? 'pending-card' : ''}`}
               >
                 {/* Header row */}
                 <div className="card-top-row">
                   <div className="badge-cluster">
-                    <span className="badge-id">
-                      {c.complaint_code || c.id}
-                    </span>
+                    <span className="badge-id">{c.complaint_code || c.id}</span>
                     <span className={`badge-category ${catClass}`}>
                       {c.category} • {c.subcategory || c.subCategory || ''}
                     </span>
@@ -355,45 +301,16 @@ export default function RwaDashboard({
                   </div>
 
                   {/* Status Pill */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span
-                      style={{
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        padding: '4px 10px',
-                        borderRadius: 'var(--radius-full)',
-                        background: statusBadge.bg,
-                        color: statusBadge.color,
-                        border: `1px solid ${statusBadge.border}`,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                      }}
-                    >
-                      {statusBadge.pulse && (
-                        <span
-                          style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            background: '#d97706',
-                            display: 'inline-block',
-                          }}
-                        />
-                      )}
-                      {statusBadge.label}
-                    </span>
-                  </div>
+                  <span className={`badge-status ${badge.cls}`}>
+                    {badge.pulse && <span className="badge-status-pulse" />}
+                    {badge.label}
+                  </span>
                 </div>
 
                 {/* Title & Description */}
                 <div>
-                  <h3 className="card-title">
-                    {c.title}
-                  </h3>
-                  <p className="card-desc">
-                    {c.description}
-                  </p>
+                  <h3 className="card-title">{c.title}</h3>
+                  <p className="card-desc">{c.description}</p>
                 </div>
 
                 {/* Details Footer Grid */}
@@ -405,9 +322,9 @@ export default function RwaDashboard({
                     <div>
                       ⏱️ SLA: <strong style={{ color: sla.isBreached ? 'var(--accent-red)' : sla.isUrgent ? 'var(--accent-amber)' : 'inherit' }}>{sla.text}</strong>
                     </div>
-                    {(c.assigned_contractor || c.assignedContractor) && (
+                    {contractor && (
                       <div>
-                        🛠️ Contractor: <strong>{(c.assigned_contractor || c.assignedContractor).name}</strong>
+                        🛠️ Contractor: <strong>{contractor.name}</strong>
                       </div>
                     )}
                   </div>
@@ -424,7 +341,7 @@ export default function RwaDashboard({
                       Track Details →
                     </button>
 
-                    {c.status === 'PENDING_VERIFICATION' && (
+                    {isPending && (
                       <button
                         onClick={() => {
                           onSelectComplaint(c)
