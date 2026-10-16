@@ -209,7 +209,7 @@ export const createComplaint = async (req, res, next) => {
           if (matches && matches.length === 3) {
             const mimeType = matches[1];
             const buffer = Buffer.from(matches[2], 'base64');
-            const ext = mimeType.includes('png') ? '.png' : mimeType.includes('webp') ? '.webp' : '.jpg';
+            const ext = mimeType.includes('png') ? '.png' : mimeType.includes('webp') ? '.webp' : (mimeType.includes('svg') || buffer.slice(0, 10).toString().includes('<svg')) ? '.svg' : '.jpg';
             const filename = `evidence-${crypto.randomUUID()}${ext}`;
             const uploadDir = config.upload?.dir || path.resolve('uploads');
             if (!fs.existsSync(uploadDir)) {
