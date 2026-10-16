@@ -15,7 +15,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Load environment variables from backend-react/.env
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const { Pool } = pg;
 const databaseUrl = process.env.DATABASE_URL;
@@ -38,8 +38,8 @@ async function main() {
     console.log('========================================================================');
     console.log(`📡 Connecting to Neon database: ${databaseUrl.split('@')[1] || 'Connected'}`);
 
-    const schemaPath = path.resolve(__dirname, '../../../Database-react/schema.sql');
-    const seedPath = path.resolve(__dirname, '../../../Database-react/seed.sql');
+    const schemaPath = path.resolve(__dirname, '../../Database-react/schema.sql');
+    const seedPath = path.resolve(__dirname, '../../Database-react/seed.sql');
 
     if (!fs.existsSync(schemaPath)) {
       throw new Error(`Schema file not found at ${schemaPath}`);
