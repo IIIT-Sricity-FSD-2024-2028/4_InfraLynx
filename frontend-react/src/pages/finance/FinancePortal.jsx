@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import FinanceDashboard from './FinanceDashboard.jsx'
 import InvoiceAudit from './InvoiceAudit.jsx'
+import InvoiceAuditModal from './InvoiceAuditModal.jsx'
 import RateCardViewer from './RateCardViewer.jsx'
 import { financeApi } from '../../services/api.js'
 import { useTIMS } from '../../context/TIMSContext.jsx'
@@ -23,6 +24,18 @@ export default function FinancePortal({ onExitToLanding }) {
   }
 
   useEffect(() => { loadInvoices() }, [currentScreen])
+
+  // Keep activeInvoiceModal in sync when invoices list updates
+  useEffect(() => {
+    if (activeInvoiceModal) {
+      const updated = invoices.find(
+        (i) => (i.rawId && i.rawId === activeInvoiceModal.rawId) || i.id === activeInvoiceModal.id
+      )
+      if (updated && (updated.auditStatus !== activeInvoiceModal.auditStatus || updated.status !== activeInvoiceModal.status)) {
+        setActiveInvoiceModal(updated)
+      }
+    }
+  }, [invoices])
 
   const pendingAuditCount = invoices.filter((i) => i.auditStatus === 'PENDING_AUDIT').length
 
@@ -138,20 +151,32 @@ export default function FinancePortal({ onExitToLanding }) {
           </div>
         )}
         {currentScreen === 'dashboard' && (
-          <FinanceDashboard invoices={invoices} onNavigate={handleNavigate} onOpenInvoice={setActiveInvoiceModal} onAuthorizeInvoice={handleAuthorizeInvoice} />
+          <FinanceDashboard
+            invoices={invoices}
+            onNavigate={handleNavigate}
+            onOpenInvoice={setActiveInvoiceModal}
+            onAuthorizeInvoice={handleAuthorizeInvoice}
+          />
         )}
         {currentScreen === 'audit' && (
           <InvoiceAudit
             invoices={invoices}
-            activeInvoiceModal={activeInvoiceModal}
             onOpenInvoice={setActiveInvoiceModal}
-            onCloseInvoice={() => setActiveInvoiceModal(null)}
+            onAuthorizeInvoice={handleAuthorizeInvoice}
+          />
+        )}
+        {currentScreen === 'rates' && <RateCardViewer />}
+
+        {/* Global Invoice Audit & Details Modal */}
+        {activeInvoiceModal && (
+          <InvoiceAuditModal
+            invoice={activeInvoiceModal}
+            onClose={() => setActiveInvoiceModal(null)}
             onAuthorizeInvoice={handleAuthorizeInvoice}
             onFlagVariance={handleFlagVariance}
             onReleasePayment={handleReleasePayment}
           />
         )}
-        {currentScreen === 'rates' && <RateCardViewer />}
       </main>
     </div>
   )

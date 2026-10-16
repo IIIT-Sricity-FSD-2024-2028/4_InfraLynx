@@ -3,7 +3,6 @@ export default function CooDashboard({ dashboardData, onNavigateTab }) {
     totalDepartments: 4,
     openComplaints: 7,
     activeWorkOrders: 6,
-    pendingApprovals: 2,
     overdueWorkOrders: 1,
     totalInvoicedAmount: 47000,
     totalPaidAmount: 3400,
@@ -25,16 +24,16 @@ export default function CooDashboard({ dashboardData, onNavigateTab }) {
           </p>
         </div>
         <div className="coo-banner-actions">
-          <button onClick={() => onNavigateTab('approvals')} className="btn-coo-primary">
-            ⚖️ Review Pending Approvals ({summary.pendingApprovals})
-          </button>
-          <button onClick={() => onNavigateTab('work_orders')} className="btn-coo-secondary">
+          <button onClick={() => onNavigateTab('work_orders')} className="btn-coo-primary">
             📋 Township Work Orders
+          </button>
+          <button onClick={() => onNavigateTab('departments')} className="btn-coo-secondary">
+            🏛️ Manage Departments
           </button>
         </div>
       </div>
 
-      {/* 5 KPI Metric Cards */}
+      {/* 4 KPI Metric Cards */}
       <div className="coo-kpi-grid">
         <div className="coo-kpi-card" onClick={() => onNavigateTab('departments')}>
           <div className="coo-kpi-top">
@@ -61,15 +60,6 @@ export default function CooDashboard({ dashboardData, onNavigateTab }) {
           </div>
           <div className="coo-kpi-value">{summary.activeWorkOrders}</div>
           <div className="coo-kpi-sub">Field contractors deployed</div>
-        </div>
-
-        <div className="coo-kpi-card amber" onClick={() => onNavigateTab('approvals')}>
-          <div className="coo-kpi-top">
-            <span className="coo-kpi-label">Pending Approvals</span>
-            <span className="coo-kpi-icon">⚖️</span>
-          </div>
-          <div className="coo-kpi-value">{summary.pendingApprovals}</div>
-          <div className="coo-kpi-sub">Requires COO joint sign-off</div>
         </div>
 
         <div className="coo-kpi-card red" onClick={() => onNavigateTab('work_orders')}>

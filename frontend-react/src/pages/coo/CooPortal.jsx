@@ -5,7 +5,6 @@ import CooDashboard from './CooDashboard.jsx';
 import DepartmentManagement from './DepartmentManagement.jsx';
 import DepartmentHeadManagement from './DepartmentHeadManagement.jsx';
 import TownshipWorkOrders from './TownshipWorkOrders.jsx';
-import CooEstimateApprovals from './CooEstimateApprovals.jsx';
 import WorkOrderDossierModal from './WorkOrderDossierModal.jsx';
 import './styles/CooPortal.css';
 
@@ -13,7 +12,7 @@ export default function CooPortal({ onExitToLanding }) {
   const { currentUser, contractors: fallbackContractors = [] } = useTIMS();
 
   // Navigation tab state
-  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'departments' | 'department_heads' | 'work_orders' | 'approvals'
+  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'departments' | 'department_heads' | 'work_orders'
 
   // Data states
   const [loading, setLoading] = useState(true);
@@ -21,7 +20,6 @@ export default function CooPortal({ onExitToLanding }) {
   const [departments, setDepartments] = useState([]);
   const [departmentHeads, setDepartmentHeads] = useState([]);
   const [workOrders, setWorkOrders] = useState([]);
-  const [approvals, setApprovals] = useState([]);
   const [contractors, setContractors] = useState(fallbackContractors);
 
   // Filters for work orders tab
@@ -41,12 +39,11 @@ export default function CooPortal({ onExitToLanding }) {
   const loadCooData = useCallback(async () => {
     try {
       setLoading(true);
-      const [dash, depts, heads, wos, apps, cnts] = await Promise.allSettled([
+      const [dash, depts, heads, wos, cnts] = await Promise.allSettled([
         cooApi.getDashboard(),
         cooApi.getDepartments(),
         cooApi.getDepartmentHeads(),
         cooApi.getWorkOrders(woFilters),
-        cooApi.getApprovals(),
         masterApi.getContractors(),
       ]);
 
@@ -54,7 +51,6 @@ export default function CooPortal({ onExitToLanding }) {
       if (depts.status === 'fulfilled') setDepartments(depts.value);
       if (heads.status === 'fulfilled') setDepartmentHeads(heads.value);
       if (wos.status === 'fulfilled') setWorkOrders(wos.value);
-      if (apps.status === 'fulfilled') setApprovals(apps.value);
       if (cnts.status === 'fulfilled') setContractors(cnts.value);
     } catch (err) {
       console.warn('Error loading COO portal data:', err);
@@ -114,7 +110,7 @@ export default function CooPortal({ onExitToLanding }) {
         </div>
       </header>
 
-      {/* ── 5 Tab Navigation Bar ── */}
+      {/* ── 4 Tab Navigation Bar ── */}
       <nav className="coo-nav-bar">
         <div className="coo-nav-inner">
           <button
@@ -150,19 +146,6 @@ export default function CooPortal({ onExitToLanding }) {
             <span>📋</span>
             <span>Township Work Orders</span>
             <span className="coo-tab-badge">{workOrders.length}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('approvals')}
-            className={`coo-tab-btn ${activeTab === 'approvals' ? 'active' : ''}`}
-          >
-            <span>⚖️</span>
-            <span>Estimate Approvals</span>
-            {approvals.length > 0 && (
-              <span className="coo-tab-badge warn">
-                {approvals.length}
-              </span>
-            )}
           </button>
         </div>
       </nav>
@@ -209,14 +192,6 @@ export default function CooPortal({ onExitToLanding }) {
             onOpenDossier={(woId) => setInspectWorkOrderId(woId)}
             onFilterChange={handleFilterChange}
             filters={woFilters}
-          />
-        )}
-
-        {!loading && activeTab === 'approvals' && (
-          <CooEstimateApprovals
-            approvals={approvals}
-            onRefresh={loadCooData}
-            onOpenDossier={(woId) => setInspectWorkOrderId(woId)}
           />
         )}
       </main>

@@ -1,148 +1,133 @@
-# InfraLynx CRIMS
+# InfraLynx — TIMS (Township Infrastructure Management System)
 
-InfraLynx CRIMS is a civic request and infrastructure workflow prototype for Smart City and Urban Services. The current phase uses a **NestJS in-memory backend** as the single runtime data source.
+Township Infrastructure Management System (TIMS) built with React (Vite), Express.js, and Neon Cloud PostgreSQL.
 
-`Database/DBschema.sql` and the ER diagrams are showcase and future-persistence references. They are not connected to the running product in this phase.
+---
 
-## Current Implementation Phase
+## 1. Dependencies
 
-- Storage: in-memory arrays from `back-end/src/data/seed.data.ts`
-- Backend: NestJS demo API with role-guarded official actions and public request tracking
-- Frontend: static HTML, CSS, and JavaScript pages under `front-end/`, integrated through `front-end/scripts/api-client.js`
-- Database: not connected yet
-- Authentication: demo access only; not production identity management
+### Prerequisites
+- **Node.js**: v18.0.0 or higher
+- **npm**: v9.0.0 or higher
+- **Git**
+- **Neon Cloud PostgreSQL** database account (or local PostgreSQL instance)
 
-## Actor Reconciliation
+### Core Stack
+- **Frontend**: React 19, Vite, React Router DOM, Modular CSS
+- **Backend**: Node.js, Express.js, `pg` (PostgreSQL client), JWT, bcryptjs, Multer, Helmet, CORS
+- **Database**: PostgreSQL (Neon Cloud)
 
-The highest-priority domain source is `Documentation/domainexpertinteraction.md`.
+---
 
-Core operational actors:
+## 2. Project Setup
 
-- City Administrator
-- Department Officer
-- Field Engineer
-
-Specialized authority actors:
-
-- CFO, for financial review, budget allocation, vendor quotation review, and fund release control
-- QC Reviewer, for independent quality verification and closure certification
-
-Public participant:
-
-- Citizen/Public requester, who submits and tracks civic complaints or improvement requests
-
-Citizens are intentionally treated as public requesters in this phase. The citizen profile/sign-in flow is a demo convenience for repeat tracking, not a final production citizen identity model.
-
-## In-Memory Data Map
-
-| Seed collection | Current owner or usage |
-| --- | --- |
-| `departments` | Department module, dashboards, routing labels |
-| `serviceCategories` | Service category module and citizen request routing |
-| `officialRoles`, `officialAccounts` | Demo access and official workspace routing |
-| `citizenUsers` | Demo citizen profile convenience |
-| `requests` | Public request intake, tracking, admin review |
-| `workOrders` | Officer planning, engineer assignment, execution visibility |
-| `quotations` | Vendor quotation review |
-| `budgetProposals` | In-memory budget allocation/review workflow |
-| `fundReleases` | CFO-visible staged release workflow |
-| `procurementBills` | Procurement validation demo data |
-| `qcReviews`, `outcomeReports` | QC certification and closure visibility |
-| `maintenanceSchedules`, `maintenanceLogs` | Maintenance planning and execution logs |
-| `inspections`, `issueReports`, `progressReports` | Field engineer inspection/reporting flows |
-| `resourceRequests`, `sensorDeployments`, `taskMaterialLogs` | Field operations support data |
-| `publicStats`, `impactStories` | Public pride/landing-page insight cards |
-| `adminAlerts`, `budgetSnapshots`, `activityFeed` | Admin and dashboard insight feeds |
-
-## Backend Surfaces
-
-Key API groups:
-
-- `GET /service-categories`
-- `GET /requests`, `GET /requests/track?ref=CRIMS-2026-0042`, `POST /requests`
-- `GET /work-orders`
-- `GET /budget-proposals`
-- `GET /fund-releases`
-- `GET /qc-reviews`
-- `GET /public-insights`
-- `GET /public-insights/admin`
-- `POST /demo-access/official/sign-in`
-- `POST /demo-access/citizen/sign-in`
-
-Official write routes use the demo `x-role` header guard. This is only a prototype shortcut.
-
-## Workflow Model
-
-Citizen request lifecycle:
-
-`RECEIVED -> UNDER_REVIEW -> APPROVED_FOR_PLANNING -> CONVERTED_TO_WORK_ORDER -> CLOSED`
-
-Infrastructure delivery flow:
-
-1. Citizen or public representative submits a request.
-2. City Administrator reviews feasibility and public impact.
-3. Department Officer plans work and assigns field execution.
-4. Field Engineer inspects, executes, reports progress, and records material usage.
-5. CFO reviews budget allocations, quotations, procurement bills, and fund releases.
-6. QC Reviewer certifies completed work before public closure.
-
-## Frontend Notes
-
-The front-end is intentionally built with only HTML, CSS, and JavaScript.
-
-- `front-end/index.html` is the landing/public request page.
-- `front-end/pages/auth.html` handles citizen demo access and official demo sign-in.
-- `front-end/pages/citizen.html` is the citizen request workspace.
-- Official workspaces live in `front-end/pages/admin.html`, `officer.html`, `engineer.html`, `cfo.html`, and `qcreviewer.html`.
-- All dashboard reads and CRUD operations go through the NestJS API; browser storage is used only for demo session and language preferences.
-- `front-end/scripts/routes.js` centralizes page routing for the moved `pages/` structure.
-
-The current visual direction uses a light civic interface with green as the signature color.
-
-## Known Limitations
-
-- No real database connection exists in this phase.
-- `DBschema.sql` may contain future entities that are not active in the current in-memory product.
-- Demo sign-in and `x-role` headers are not secure production authentication.
-- Aadhaar/demo ID values in seed data are mock-only and should not be used as a production identity design.
-- Amount fields such as `amountCr` and `amountLakhs` are display-friendly demo units, not a final accounting schema.
-
-## Future Persistence Phase
-
-When the project moves beyond the in-memory phase:
-
-- Choose the final persistence layer and migration tool.
-- Promote `DBschema.sql` or a revised schema into the real source of truth.
-- Replace demo access with secure authentication, hashed passwords, sessions/JWTs, and production RBAC.
-- Add schema/API parity tests so future drift is caught automatically.
-
-## Local Commands
-
-Install and run both apps from the root:
-
+### 1. Clone the Repository
 ```bash
-npm install
-npm start
+git clone https://github.com/IIIT-Sricity-FSD-2024-2028/4_InfraLynx.git
+cd 4_InfraLynx
 ```
 
-This starts the backend at `http://localhost:3000` and the frontend at `http://localhost:3001`.
-
-Backend only:
-
+### 2. Install Dependencies
 ```bash
-cd back-end
+# Install root dependencies
 npm install
-npm run build
+
+# Install backend dependencies
+cd backend-react
+npm install
+
+# Install frontend dependencies
+cd ../frontend-react
+npm install
+
+# Return to root directory
+cd ..
+```
+
+### 3. Configure Environment Variables
+Create a `.env` file in `backend-react/` by copying the example:
+```bash
+# Windows PowerShell
+Copy-Item backend-react/.env.example backend-react/.env
+
+# Linux / macOS / Git Bash
+cp backend-react/.env.example backend-react/.env
+```
+
+Set your database URL and settings in `backend-react/.env`:
+```env
+PORT=5000
+NODE_ENV=development
+DATABASE_URL=postgresql://username:password@ep-sample.us-east-2.aws.neon.tech/neondb?sslmode=require
+JWT_SECRET=infralynx_jwt_secret_key_2026
+JWT_EXPIRES_IN=7d
+UPLOAD_DIR=uploads
+CORS_ORIGIN=http://localhost:5173,http://localhost:3000
+```
+
+*(Note: `frontend-react/.env` is already pre-configured to connect to `http://localhost:5000/api/v1`)*
+
+---
+
+## 3. Execution Steps
+
+### Run Both Frontend & Backend Concurrently (Recommended)
+From the project root:
+```bash
+npm run start:react
+```
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:5000
+
+---
+
+### Run Services Separately (Alternative)
+
+**Terminal 1 — Backend:**
+```bash
+cd backend-react
+npm run dev
+```
+
+**Terminal 2 — Frontend:**
+```bash
+cd frontend-react
+npm run dev
+```
+
+---
+
+## 4. Testing Instructions
+
+### Automated Integration Tests
+Run the backend role-based integration test suite:
+```bash
+cd backend-react
 npm test
-npm run start:dev
 ```
 
-Frontend only:
+---
 
-Serve `front-end/` with any static server. Direct `file://` opening is not recommended for Review-4 because the frontend expects the backend API at `http://localhost:3000`.
+### Manual Testing Credentials
 
-## Project Status
+All test accounts use the password: **`Password@123`**
 
-Current phase: backend-driven in-memory functional prototype  
-Persistence phase: planned later  
-Last updated: May 2026
+| Role | Test Email | Password | Primary Actions |
+|---|---|---|---|
+| **RWA Representative** | `rwa@infralynx.com` | `Password@123` | Report complaints, inspect photo proof, verify or dispute work |
+| **Desk Clerk** | `clerk@infralynx.com` | `Password@123` | Triage complaints, assign work orders to contractors under active AMC |
+| **Field Contractor** | `contractor@infralynx.com` | `Password@123` | Inspect issues, submit AMC estimates, upload completion proof |
+| **Department Head** | `head@infralynx.com` | `Password@123` | Review & approve estimates, manage department staff and SLAs |
+| **Township COO** | `coo@infralynx.com` | `Password@123` | Township overview, manage departments & heads, monitor work orders |
+| **Finance Clerk** | `finance@infralynx.com` | `Password@123` | 3-way invoice audit, verify RWA gate, release payment vouchers |
+| **Super Admin** | `superadmin@infralynx.com` | `Password@123` | Multi-township configuration, subscription plans, global settings |
+
+---
+
+### End-to-End Test Workflow
+1. **Report:** Login as `rwa@infralynx.com` → Report an infrastructure issue with photos.
+2. **Triage:** Login as `clerk@infralynx.com` → Validate complaint and assign contractor.
+3. **Estimate & Execute:** Login as `contractor@infralynx.com` → Submit AMC estimate → Complete work and upload photos.
+4. **Approve:** Login as `head@infralynx.com` → Approve estimate.
+5. **Verify:** Login as `rwa@infralynx.com` → Verify completed repair.
+6. **Audit & Pay:** Login as `finance@infralynx.com` → Run 3-way check and release payment voucher.

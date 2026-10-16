@@ -160,11 +160,9 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
       console.warn('[AuthModal] Login attempt failed:', err.message)
       const rawMsg = err.message || ''
       if (rawMsg.toLowerCase().includes('not found') || rawMsg.toLowerCase().includes('user not found')) {
-        setErrorMsg('Account with this email does not exist. Please check for typos.')
-      } else if (rawMsg.toLowerCase().includes('password') || rawMsg.toLowerCase().includes('incorrect')) {
-        setErrorMsg('Incorrect password. Please verify your password (passwords are case-sensitive).')
+        setErrorMsg('Email or Password incorrect')
       } else {
-        setErrorMsg(rawMsg || 'Invalid credentials. Please verify your details.')
+        setErrorMsg('Email or Password incorrect')
       }
       setLoading(false)
     }
@@ -346,7 +344,7 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
                   }}
                   autoComplete="new-password"
                 />
-                
+
                 {errors.password && touched.password && (
                   <span style={{ display: 'block', color: '#dc2626', fontSize: 12, marginTop: 4, fontWeight: 500 }}>
                     {errors.password}
