@@ -75,13 +75,32 @@ export function TIMSProvider({ children }) {
     const handleRevocation = () => {
       setCurrentUser(null)
     }
+    // Cross-tab logout: when another tab calls logout(), it sets tims_logout_signal
+    // in localStorage which fires the 'storage' event in all other tabs
+    const handleStorageLogout = (e) => {
+      if (e.key === 'tims_logout_signal' && e.newValue) {
+        // Signal value is "<sessionId>:<timestamp>"
+        // Only log out if the signalling tab shares the same session ID as us.
+        // This prevents a DIFFERENT user logging out in another tab from
+        // kicking out an unrelated session in this tab.
+        const signalSessionId = e.newValue.split(':')[0]
+        const mySessionId = sessionStorage.getItem('tims_session_id')
+        if (mySessionId && mySessionId !== signalSessionId) return
+        // Same session (or session ID not set) — mirror the logout
+        try { sessionStorage.clear() } catch (_) {}
+        handleRevocation()
+        try { localStorage.removeItem('tims_logout_signal') } catch (_) {}
+      }
+    }
     window.addEventListener('tims_auth_session_expired', handleRevocation)
     window.addEventListener('tims_auth_unauthorized', handleRevocation)
     window.addEventListener('tims_auth_logout', handleRevocation)
+    window.addEventListener('storage', handleStorageLogout)
     return () => {
       window.removeEventListener('tims_auth_session_expired', handleRevocation)
       window.removeEventListener('tims_auth_unauthorized', handleRevocation)
       window.removeEventListener('tims_auth_logout', handleRevocation)
+      window.removeEventListener('storage', handleStorageLogout)
     }
   }, [])
 

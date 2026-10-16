@@ -58,7 +58,7 @@ function updateUrlForPortal(portalKey) {
 function AppContent() {
   const { currentUser, logout, setCurrentUser } = useTIMS()
   const [authOpen, setAuthOpen] = useState(false)
-  const [authRole, setAuthRole] = useState('rwa')
+  const [authRole, setAuthRole] = useState(null)
   const [authNotice, setAuthNotice] = useState(null)
   const [signUpOpen, setSignUpOpen] = useState(false)
   const [viewMode, setViewMode] = useState('landing')
@@ -133,8 +133,8 @@ function AppContent() {
     }
   }, [currentUser, viewMode])
 
-  function handleOpenAuth(role = 'rwa') {
-    setAuthRole(typeof role === 'string' ? role : 'rwa')
+  function handleOpenAuth(role = null) {
+    setAuthRole(typeof role === 'string' ? role : null)
     setAuthNotice(null)
     setAuthOpen(true)
   }

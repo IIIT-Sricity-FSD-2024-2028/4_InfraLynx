@@ -32,16 +32,7 @@ export default function Hero({ onOpenAuth }) {
         }}
       >
         <div style={{ maxWidth: 820, margin: '0 auto', textAlign: 'center' }}>
-          {/* Eyebrow Badges */}
-          <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
-            <div className="badge-eyebrow">
-              <span className="pulse-dot" />
-              Citizen-First Infrastructure Portal
-            </div>
-            <div className="badge-eyebrow" style={{ background: '#ecfdf5', color: '#047857' }}>
-              AMC-Governed Financials
-            </div>
-          </div>
+          
 
           {/* Main Title */}
           <h1
@@ -117,81 +108,10 @@ export default function Hero({ onOpenAuth }) {
             </a>
           </div>
 
-          {/* Key Platform Highlights Banner */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: 18,
-              marginTop: 54,
-              paddingTop: 36,
-              borderTop: '1px solid var(--line)',
-            }}
-            className="hero-highlights"
-          >
-            <div className="panel-card" style={{ padding: '20px 16px', textAlign: 'center', background: '#ffffff' }}>
-              <div style={{ fontFamily: 'var(--font-head)', fontSize: 26, fontWeight: 800, color: 'var(--primary-dark)' }}>
-                100%
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>
-                Predefined AMC Rates
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 2 }}>
-                Zero arbitrary rate inflation
-              </div>
-            </div>
-
-            <div className="panel-card" style={{ padding: '20px 16px', textAlign: 'center', background: '#ffffff' }}>
-              <div style={{ fontFamily: 'var(--font-head)', fontSize: 26, fontWeight: 800, color: 'var(--primary-darker)' }}>
-                14 Stages
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>
-                Complete Lifecycle
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 2 }}>
-                Report to payment settlement
-              </div>
-            </div>
-
-            <div className="panel-card" style={{ padding: '20px 16px', textAlign: 'center', background: '#ffffff' }}>
-              <div style={{ fontFamily: 'var(--font-head)', fontSize: 26, fontWeight: 800, color: '#b45309' }}>
-                7 Roles
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>
-                Separation of Duties
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 2 }}>
-                RBAC governance & audit logs
-              </div>
-            </div>
-
-            <div className="panel-card" style={{ padding: '20px 16px', textAlign: 'center', background: '#ffffff' }}>
-              <div style={{ fontFamily: 'var(--font-head)', fontSize: 26, fontWeight: 800, color: 'var(--primary)' }}>
-                RWA Gate
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginTop: 4 }}>
-                Resident Sign-Off
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 2 }}>
-                Mandatory before/after photo proof
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
-      <style>{`
-        @media (max-width: 860px) {
-          .hero-highlights {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-        }
-        @media (max-width: 520px) {
-          .hero-highlights {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
+      
     </section>
   )
 }

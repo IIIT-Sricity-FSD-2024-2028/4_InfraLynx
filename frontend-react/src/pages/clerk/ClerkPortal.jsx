@@ -78,6 +78,24 @@ export default function ClerkPortal({ onExitToLanding }) {
     setSelectedComplaint(complaint)
   }
 
+  const handleComplaintUpdated = useCallback((updatedComplaint) => {
+    if (!updatedComplaint) return
+    const targetId = updatedComplaint.id || updatedComplaint.complaintCode || updatedComplaint.complaint_code
+    setComplaints((prev) =>
+      prev.map((c) =>
+        (c.id === targetId || c.complaint_code === targetId || c.complaintCode === targetId)
+          ? { ...c, ...updatedComplaint }
+          : c
+      )
+    )
+    setSelectedComplaint((prev) =>
+      (prev && (prev.id === targetId || prev.complaint_code === targetId || prev.complaintCode === targetId))
+        ? { ...prev, ...updatedComplaint }
+        : prev
+    )
+    loadComplaints()
+  }, [loadComplaints])
+
   // Called by WorkOrderCreate once WO is dispatched
   function handleWorkOrderCreated(complaint) {
     setSelectedComplaint(complaint)
@@ -168,6 +186,7 @@ export default function ClerkPortal({ onExitToLanding }) {
             selectedComplaint={selectedComplaint}
             onNavigate={handleNavigate}
             onSelectComplaint={handleSelectComplaint}
+            onComplaintUpdated={handleComplaintUpdated}
           />
         )}
         {currentScreen === 'workorder' && (

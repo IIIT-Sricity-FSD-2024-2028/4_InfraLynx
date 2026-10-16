@@ -84,7 +84,24 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static File Serving for Uploaded Documents & Evidence
-app.use('/uploads', express.static(config.upload.dir));
+// Static File Serving for Uploaded Documents & Evidence (with MIME type detection for SVGs)
+app.use(
+  '/uploads',
+  express.static(config.upload.dir, {
+    setHeaders: (res, filePath) => {
+      try {
+        const fd = fs.openSync(filePath, 'r');
+        const buf = Buffer.alloc(128);
+        fs.readSync(fd, buf, 0, 128, 0);
+        fs.closeSync(fd);
+        const headerStr = buf.toString('utf8').trim();
+        if (headerStr.startsWith('<svg') || headerStr.startsWith('<?xml')) {
+          res.setHeader('Content-Type', 'image/svg+xml');
+        }
+      } catch (_) {}
+    },
+  })
+);
 
 // Healthcheck & System Info Endpoint
 app.get('/health', async (req, res) => {

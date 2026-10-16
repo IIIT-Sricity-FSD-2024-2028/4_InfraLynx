@@ -12,12 +12,6 @@ const ACTORS = [
       'Inspect contractor resolution evidence (mandatory before/after photo documentation).',
       'Officially confirm issue resolution and star rating to authorize payment release.',
     ],
-    consoleAction: 'Submit Citizen Ticket',
-    mockData: {
-      activeTickets: 4,
-      pendingSignOffs: 2,
-      satisfactionRate: '98.2%',
-    },
   },
   {
     id: 'contractor',
@@ -31,12 +25,6 @@ const ACTORS = [
       'Upload mandatory before/after photo proof to mark work completed.',
       'Deliver high-quality execution meeting municipal standards under AMC warranty.',
     ],
-    consoleAction: 'Submit AMC Estimate',
-    mockData: {
-      activeWorkOrders: 6,
-      slaCompliance: '97.5%',
-      pendingPayment: '₹1,42,800',
-    },
   },
   {
     id: 'clerk',
@@ -49,12 +37,6 @@ const ACTORS = [
       'Convert validated issues into work orders and assign to empanelled AMC contractors.',
       'Monitor queues and escalate SLA breaches and contractor delays to Department Heads.',
     ],
-    consoleAction: 'Dispatch Work Order',
-    mockData: {
-      inboxQueue: 18,
-      duplicatesMerged: 9,
-      avgTriageTime: '14 mins',
-    },
   },
   {
     id: 'dept_head',
@@ -67,12 +49,6 @@ const ACTORS = [
       'Approve work order estimates that fall within configured departmental budget authority.',
       'Monitor quarterly fund headroom and contractor SLA fulfillment.',
     ],
-    consoleAction: 'Authorize Department Budget',
-    mockData: {
-      pendingApprovals: 3,
-      departmentBudgetUsed: '68%',
-      escalationTickets: 1,
-    },
   },
   {
     id: 'finance',
@@ -85,12 +61,6 @@ const ACTORS = [
       'Flag unauthorized variations and cost discrepancies for managerial investigation.',
       'Authorize verified invoices for final municipal payment processing.',
     ],
-    consoleAction: 'Authorize Invoice Settlement',
-    mockData: {
-      auditedToday: 12,
-      varianceDiscrepancies: 0,
-      clearedSpend: '₹3,84,000',
-    },
   },
   {
     id: 'coo',
@@ -103,16 +73,10 @@ const ACTORS = [
       'Monitor cross-departmental contractor performance using aggregated operational data.',
       'Strategic oversight of long-term civic resource planning.',
     ],
-    consoleAction: 'Review Executive Telemetry',
-    mockData: {
-      townshipSla: '96.4%',
-      activeAmcContracts: 24,
-      quarterlySpend: '₹42.8L',
-    },
   },
 ]
 
-export default function Roles({ onOpenAuth }) {
+export default function Roles() {
   const [activeActorId, setActiveActorId] = useState('rwa')
   const actor = ACTORS.find((a) => a.id === activeActorId) || ACTORS[0]
 
@@ -120,7 +84,7 @@ export default function Roles({ onOpenAuth }) {
     <section id="roles" className="section" style={{ background: '#ffffff' }}>
       <div className="container">
         {/* Section Header */}
-        <div style={{ textAlign: 'center', maxWidth: 740, margin: '0 auto 52px' }}>
+        <div style={{ textAlign: 'center', maxWidth: 740, margin: '0 auto 48px' }}>
           <div className="badge-eyebrow" style={{ marginBottom: 14 }}>
             Role-Based Access Control (RBAC)
           </div>
@@ -129,68 +93,57 @@ export default function Roles({ onOpenAuth }) {
           </h2>
           <p style={{ marginTop: 14, fontSize: 16, color: 'var(--text-soft)' }}>
             Seven distinct platform actors operate on a shared, tamper-evident ledger.
-            Select any role to preview their authority matrix and workflow console.
+            Select any role to view their operational responsibilities and authority matrix.
           </p>
         </div>
 
-        {/* Actor Tabs */}
-        <div
-          style={{
-            display: 'flex',
-            gap: 8,
-            overflowX: 'auto',
-            paddingBottom: 14,
-            marginBottom: 36,
-          }}
-        >
-          {ACTORS.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => setActiveActorId(a.id)}
-              style={{
-                flexShrink: 0,
-                padding: '9px 18px',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: 13.5,
-                fontWeight: 700,
-                background: activeActorId === a.id ? 'var(--primary-dark)' : 'var(--surface-muted)',
-                color: activeActorId === a.id ? '#ffffff' : 'var(--text-soft)',
-                border: activeActorId === a.id ? '1px solid var(--primary-dark)' : '1px solid var(--line)',
-                boxShadow: activeActorId === a.id ? 'var(--shadow-sm)' : 'none',
-                transition: 'var(--transition-fast)',
-              }}
-            >
-              {a.title}
-            </button>
-          ))}
-        </div>
-
-        {/* Actor Detail Panel */}
-        <div
-          className="panel-card"
-          style={{
-            padding: 36,
-            background: 'var(--surface)',
-            border: '1px solid var(--line-strong)',
-          }}
-        >
+        {/* Centered Content Wrapper (aligns tabs and panel card) */}
+        <div style={{ maxWidth: 860, margin: '0 auto' }}>
+          {/* Actor Tabs */}
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: '1.2fr 0.8fr',
-              gap: 40,
-              alignItems: 'center',
+              display: 'flex',
+              gap: 8,
+              justifyContent: 'center',
+              flexWrap: 'wrap',
+              marginBottom: 28,
             }}
-            className="role-grid"
           >
-            {/* Left: Responsibilities */}
+            {ACTORS.map((a) => (
+              <button
+                key={a.id}
+                onClick={() => setActiveActorId(a.id)}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  background: activeActorId === a.id ? 'var(--primary-dark)' : 'var(--surface-muted)',
+                  color: activeActorId === a.id ? '#ffffff' : 'var(--text-soft)',
+                  border: activeActorId === a.id ? '1px solid var(--primary-dark)' : '1px solid var(--line)',
+                  boxShadow: activeActorId === a.id ? 'var(--shadow-sm)' : 'none',
+                  transition: 'var(--transition-fast)',
+                  cursor: 'pointer',
+                }}
+              >
+                {a.title}
+              </button>
+            ))}
+          </div>
+
+          {/* Actor Detail Panel */}
+          <div
+            className="panel-card"
+            style={{
+              padding: '36px 40px',
+              background: 'var(--surface)',
+              border: '1px solid var(--line-strong)',
+            }}
+          >
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                 <span className="badge-eyebrow">
                   {actor.type}
-                </span>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                  SECTION 1 · TIMS ACTOR
                 </span>
               </div>
 
@@ -198,113 +151,26 @@ export default function Roles({ onOpenAuth }) {
                 {actor.title}
               </h3>
 
-              <p style={{ fontSize: 15, color: 'var(--text-soft)', lineHeight: 1.6, marginBottom: 20 }}>
+              <p style={{ fontSize: 15, color: 'var(--text-soft)', lineHeight: 1.6, marginBottom: 24 }}>
                 {actor.summary}
               </p>
 
-              <h4 style={{ fontSize: 13, color: 'var(--primary-dark)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12, fontFamily: 'var(--font-mono)' }}>
+              <h4 style={{ fontSize: 13, color: 'var(--primary-dark)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 14, fontFamily: 'var(--font-mono)' }}>
                 CORE RESPONSIBILITIES & AUTHORITY
               </h4>
 
-              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12, padding: 0, margin: 0 }}>
                 {actor.responsibilities.map((r, i) => (
-                  <li key={i} style={{ display: 'flex', gap: 10, fontSize: 14, color: 'var(--text)', lineHeight: 1.5 }}>
-                    <span style={{ color: 'var(--primary)', fontWeight: 700 }}>✓</span>
+                  <li key={i} style={{ display: 'flex', gap: 12, fontSize: 14.5, color: 'var(--text)', lineHeight: 1.55 }}>
+                    <span style={{ color: 'var(--primary)', fontWeight: 700, flexShrink: 0 }}>✓</span>
                     <span>{r}</span>
                   </li>
                 ))}
               </ul>
-
-              <div style={{ marginTop: 24 }}>
-                <button
-                  type="button"
-                  onClick={() => onOpenAuth(actor.id)}
-                  className="button button-primary"
-                  style={{ padding: '12px 24px' }}
-                >
-                  Official Sign In as {actor.id === 'superadmin' ? 'Super Admin' : actor.title.split(' ')[0]} →
-                </button>
-              </div>
-            </div>
-
-            {/* Right: Simulated Role Console */}
-            <div
-              style={{
-                background: '#ffffff',
-                border: '1px solid var(--line-strong)',
-                borderRadius: 'var(--radius-md)',
-                padding: 24,
-                boxShadow: 'var(--shadow)',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className="pulse-dot" />
-                  <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--primary-dark)', fontWeight: 700 }}>
-                    WORKSPACE TELEMETRY
-                  </span>
-                </div>
-                <span style={{ fontSize: 11, background: 'var(--primary-subtle)', color: 'var(--primary-darker)', padding: '2px 8px', borderRadius: 4, fontWeight: 700 }}>
-                  RBAC Validated
-                </span>
-              </div>
-
-              {/* Metric Tiles */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 18 }}>
-                {Object.entries(actor.mockData).map(([k, v]) => (
-                  <div
-                    key={k}
-                    style={{
-                      padding: '10px 8px',
-                      background: 'var(--surface)',
-                      border: '1px solid var(--line)',
-                      borderRadius: 6,
-                      textAlign: 'center',
-                    }}
-                  >
-                    <div style={{ fontSize: 18, fontWeight: 800, fontFamily: 'var(--font-head)', color: 'var(--text)' }}>
-                      {v}
-                    </div>
-                    <div style={{ fontSize: 10.5, color: 'var(--text-soft)', marginTop: 2, textTransform: 'capitalize' }}>
-                      {k.replace(/([A-Z])/g, ' $1')}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Authorized Action */}
-              <div
-                style={{
-                  padding: 14,
-                  borderRadius: 6,
-                  background: 'var(--primary-subtle)',
-                  border: '1px solid rgba(22, 163, 74, 0.25)',
-                  fontSize: 13,
-                  color: 'var(--primary-darker)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <span>Authorized Role Action:</span>
-                <strong>{actor.consoleAction}</strong>
-              </div>
-
-              <div style={{ marginTop: 14, fontSize: 11.5, color: 'var(--text-muted)', textAlign: 'center' }}>
-                Protected by role-based cryptographically verified access tokens.
-              </div>
             </div>
           </div>
         </div>
       </div>
-
-      <style>{`
-        @media (max-width: 880px) {
-          .role-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </section>
   )
 }
