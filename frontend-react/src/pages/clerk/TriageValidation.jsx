@@ -3,6 +3,12 @@ import { useTIMS } from '../../context/TIMSContext.jsx'
 import { clerkApi } from '../../services/api.js'
 import './styles/TriageValidation.css'
 
+function formatSafeDate(dateVal) {
+  if (!dateVal) return 'Recently'
+  const d = new Date(dateVal)
+  return isNaN(d.getTime()) ? 'Recently' : d.toLocaleString()
+}
+
 /**
  * TriageValidation - Screen 2: Clerk validates or rejects a complaint.
  *
@@ -26,7 +32,7 @@ import './styles/TriageValidation.css'
  *   rejectionReason  - selected reason from dropdown
  *   rejectionRemarks - optional free-text remarks
  */
-export default function TriageValidation({ complaints: propComplaints, selectedComplaint, onNavigate, onSelectComplaint }) {
+export default function TriageValidation({ complaints: propComplaints, selectedComplaint, onNavigate, onSelectComplaint, onComplaintUpdated }) {
   const { complaints: contextComplaints, currentUser, updateComplaintStatus } = useTIMS()
 
   // Filter complaints by clerk's department
@@ -56,6 +62,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
   const [isRejecting,      setIsRejecting]      = useState(false)
   const [rejectionReason,  setRejectionReason]  = useState('Duplicate Complaint')
   const [rejectionRemarks, setRejectionRemarks] = useState('')
+  const [isSubmitting,     setIsSubmitting]     = useState(false)
 
   // Live-sync selected complaint so UI reflects status changes immediately
   const active = useMemo(() => {
@@ -67,39 +74,100 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
   const triageable = complaints.filter(c => c.status === 'REPORTED' || c.status === 'UNDER_REVIEW')
 
   /** Open complaint for review. Auto-transitions REPORTED -> UNDER_REVIEW */
-  function handleOpen(complaint) {
+  async function handleOpen(complaint) {
     onSelectComplaint(complaint)
     if (complaint.status === 'REPORTED') {
-      clerkApi.triageComplaint(complaint.id).catch(() => {})
+      try {
+        const res = await clerkApi.triageComplaint(complaint.id)
+        const updated = {
+          ...(res?.data || res || complaint),
+          status: 'UNDER_REVIEW',
+        }
+        if (onComplaintUpdated) {
+          onComplaintUpdated(updated)
+        }
+      } catch (err) {
+        console.warn('[TriageValidation] Triage notice:', err.message)
+      }
       updateComplaintStatus(
         complaint.id, 'UNDER_REVIEW',
-        `Desk Clerk (${currentUser.name}) opened complaint for review.`
+        `Desk Clerk (${currentUser?.name || 'Staff'}) opened complaint for review.`
       )
     }
   }
 
   /** Validate the active complaint -> VALIDATED */
-  function handleValidate() {
-    if (!active) return
-    clerkApi.validateComplaint(active.id).catch(() => {})
-    updateComplaintStatus(
-      active.id, 'VALIDATED',
-      `Validated by Desk Clerk (${currentUser.name}). All fields verified. Ready for Work Order creation.`
-    )
-    setIsRejecting(false)
+  async function handleValidate() {
+    if (!active || isSubmitting) return
+    setIsSubmitting(true)
+    try {
+      const res = await clerkApi.validateComplaint(active.id)
+      const updated = {
+        ...(res?.data || res || active),
+        status: 'VALIDATED',
+        history: [
+          ...(active.history || []),
+          {
+            stage: 'VALIDATED',
+            timestamp: new Date().toISOString(),
+            actor: `${currentUser?.name || 'Authorized Staff'} (Desk Clerk)`,
+            note: `Validated by Desk Clerk (${currentUser?.name || 'Staff'}). All fields verified. Ready for Work Order creation.`,
+          },
+        ],
+      }
+      if (onComplaintUpdated) {
+        onComplaintUpdated(updated)
+      }
+      updateComplaintStatus(
+        active.id, 'VALIDATED',
+        `Validated by Desk Clerk (${currentUser?.name || 'Staff'}). All fields verified. Ready for Work Order creation.`
+      )
+      setIsRejecting(false)
+    } catch (err) {
+      console.error('[TriageValidation] Validation failed:', err)
+      alert('Validation failed: ' + (err.message || 'Server error'))
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   /** Submit rejection form -> REJECTED */
-  function handleReject(e) {
+  async function handleReject(e) {
     e.preventDefault()
-    if (!active) return
-    clerkApi.rejectComplaint(active.id, { reason: rejectionReason, remarks: rejectionRemarks }).catch(() => {})
-    updateComplaintStatus(
-      active.id, 'REJECTED',
-      `Rejected by ${currentUser.name}. Reason: "${rejectionReason}". Remarks: "${rejectionRemarks || 'None'}".`
-    )
-    setIsRejecting(false)
-    setRejectionRemarks('')
+    if (!active || isSubmitting) return
+    setIsSubmitting(true)
+    try {
+      const res = await clerkApi.rejectComplaint(active.id, { reason: rejectionReason, remarks: rejectionRemarks })
+      const updated = {
+        ...(res?.data || res || active),
+        status: 'REJECTED',
+        rejection_reason: rejectionReason,
+        rejection_remarks: rejectionRemarks,
+        history: [
+          ...(active.history || []),
+          {
+            stage: 'REJECTED',
+            timestamp: new Date().toISOString(),
+            actor: `${currentUser?.name || 'Authorized Staff'} (Desk Clerk)`,
+            note: `Rejected by ${currentUser?.name || 'Staff'}. Reason: "${rejectionReason}". Remarks: "${rejectionRemarks || 'None'}".`,
+          },
+        ],
+      }
+      if (onComplaintUpdated) {
+        onComplaintUpdated(updated)
+      }
+      updateComplaintStatus(
+        active.id, 'REJECTED',
+        `Rejected by ${currentUser?.name || 'Staff'}. Reason: "${rejectionReason}". Remarks: "${rejectionRemarks || 'None'}".`
+      )
+      setIsRejecting(false)
+      setRejectionRemarks('')
+    } catch (err) {
+      console.error('[TriageValidation] Rejection failed:', err)
+      alert('Rejection failed: ' + (err.message || 'Server error'))
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   // Helper: status badge display props
@@ -239,7 +307,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
           <div><span className="tv-attr-label">Reported By</span><strong>{active.reportedBy ? active.reportedBy.name : 'RWA Representative'}</strong></div>
           <div><span className="tv-attr-label">Role</span><strong>{active.reportedBy ? active.reportedBy.role.toUpperCase() : 'RWA'}</strong></div>
           <div><span className="tv-attr-label">Sector</span><strong>{active.reportedBy ? active.reportedBy.sector : active.location.sector}</strong></div>
-          <div><span className="tv-attr-label">Filed At</span><strong>{new Date(active.createdAt).toLocaleString()}</strong></div>
+          <div><span className="tv-attr-label">Filed At</span><strong>{formatSafeDate(active.createdAt || active.created_at)}</strong></div>
         </div>
 
         {/* Photo evidence */}
@@ -280,8 +348,14 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
                 <button className="tv-btn-open-reject" onClick={() => setIsRejecting(true)}>
                   Issue with complaint? Reject instead &#8594;
                 </button>
-                <button id="btn-validate-complaint" className="tv-btn-validate" onClick={handleValidate}>
-                  Validate Complaint &#10003;
+                <button
+                  id="btn-validate-complaint"
+                  className="tv-btn-validate"
+                  onClick={handleValidate}
+                  disabled={isSubmitting}
+                  style={{ opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
+                >
+                  {isSubmitting ? 'Validating...' : 'Validate Complaint ✓'}
                 </button>
               </div>
             </div>
