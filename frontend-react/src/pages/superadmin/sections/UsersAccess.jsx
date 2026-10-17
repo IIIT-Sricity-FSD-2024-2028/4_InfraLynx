@@ -147,7 +147,7 @@ function CreateUserModal({ onClose, onSave, townships, departments, contractors 
 }
 
 // ── User Detail Modal ────────────────────────────────────────────────────────
-function UserDetailModal({ user, onClose, onStatusChange, onResetPassword, onUpdateRole, townships, departments, contractors }) {
+function UserDetailModal({ user, onClose, onStatusChange, onResetPassword, onUpdateRole, onDeleteUser, townships, departments, contractors }) {
   const [tab, setTab] = useState('info')
   const [newStatus, setNewStatus] = useState(user.status)
   const [statusReason, setStatusReason] = useState('')
@@ -178,6 +178,18 @@ function UserDetailModal({ user, onClose, onStatusChange, onResetPassword, onUpd
   async function handleRoleSave() {
     setSaving(true)
     try { await onUpdateRole(user.id, { role: newRole, township_id: newTownship || null, department_id: newDept || null, contractor_id: newRole === 'FIELD_CONTRACTOR' ? newContractor || null : null }) } finally { setSaving(false) }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm(`Are you sure you want to permanently delete user "${user.name}" (${user.email})?\n\nNOTE: If this user has recorded activity (complaints, work orders, or approvals), deletion will be blocked and you must suspend them instead to preserve historical audit trails.`)) {
+      return
+    }
+    setSaving(true)
+    try {
+      await onDeleteUser(user.id)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -294,6 +306,25 @@ function UserDetailModal({ user, onClose, onStatusChange, onResetPassword, onUpd
                   {saving ? 'Saving…' : `Set to ${newStatus}`}
                 </button>
               </div>
+
+              {/* Danger Zone: Permanent Deletion */}
+              <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(220, 38, 38, 0.2)' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#dc2626', marginBottom: 4 }}>
+                  Danger Zone
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-soft)', marginBottom: 12, lineHeight: 1.5 }}>
+                  Permanently delete this user from the system. If this account is referenced in active municipal operations (complaints, work orders, or approvals), deletion will be blocked to maintain legal audit integrity. Use <strong>Suspend</strong> above instead.
+                </div>
+                <button
+                  type="button"
+                  className="sa-btn sa-btn-danger"
+                  onClick={handleDelete}
+                  disabled={saving || user.role === 'SUPER_ADMIN'}
+                  id="sa-btn-delete-user"
+                >
+                  {saving ? 'Deleting…' : '🗑 Permanently Delete User'}
+                </button>
+              </div>
             </div>
           )}
 
@@ -382,6 +413,17 @@ export default function UsersAccess({ api, showToast }) {
   async function handleUpdateRole(id, payload) {
     try { await api.updateUser(id, payload); showToast('Role & assignment updated.', 'success'); setSelectedUser(null); loadAll() }
     catch (e) { showToast(e.message, 'error') }
+  }
+
+  async function handleDeleteUser(id) {
+    try {
+      const res = await api.deleteUser(id);
+      showToast(res.message || 'User deleted permanently.', 'success');
+      setSelectedUser(null);
+      loadAll();
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
   }
 
   return (
@@ -475,6 +517,7 @@ export default function UsersAccess({ api, showToast }) {
           onStatusChange={handleStatusChange}
           onResetPassword={handleResetPassword}
           onUpdateRole={handleUpdateRole}
+          onDeleteUser={handleDeleteUser}
           townships={townships}
           departments={departments}
           contractors={contractors}

@@ -17,15 +17,11 @@ TRUNCATE payments, invoice_items, invoices, verifications, work_completion_items
 -- 1. SUBSCRIPTION PLAN & TOWNSHIP
 -- ------------------------------------------------------------------------------
 INSERT INTO subscription_plans (id, name, price, billing_cycle, max_users, max_departments, features)
-VALUES (
-    'a0000000-0000-0000-0000-000000000001',
-    'Enterprise Municipal Plan',
-    150000.00,
-    'YEARLY',
-    100,
-    15,
-    '["3_WAY_RECONCILIATION", "AMC_RATE_CARD_ENGINE", "ESCALATION_MONITOR", "EXECUTIVE_TELEMETRY"]'::jsonb
-);
+VALUES 
+    ('a0000000-0000-0000-0000-000000000001', 'Enterprise Municipal Plan', 150000.00, 'YEARLY', 100, 15, '["3_WAY_RECONCILIATION", "AMC_RATE_CARD_ENGINE", "ESCALATION_MONITOR", "EXECUTIVE_TELEMETRY"]'::jsonb),
+    ('a0000000-0000-0000-0000-000000000002', 'Professional Municipal Plan', 80000.00, 'YEARLY', 50, 8, '["AMC_RATE_CARD_ENGINE", "ESCALATION_MONITOR"]'::jsonb),
+    ('a0000000-0000-0000-0000-000000000003', 'Starter Municipal Plan', 35000.00, 'YEARLY', 20, 4, '["AMC_RATE_CARD_ENGINE"]'::jsonb)
+ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO townships (id, name, address, contact_email, contact_phone, status, subscription_plan_id)
 VALUES (
@@ -37,6 +33,16 @@ VALUES (
     'ACTIVE',
     'a0000000-0000-0000-0000-000000000001'
 );
+
+INSERT INTO township_subscriptions (id, township_id, plan_id, start_date, end_date, status)
+VALUES (
+    'c0000000-0000-0000-0000-000000000001',
+    'b0000000-0000-0000-0000-000000000001',
+    'a0000000-0000-0000-0000-000000000001',
+    CURRENT_TIMESTAMP - INTERVAL '30 days',
+    CURRENT_TIMESTAMP + INTERVAL '335 days',
+    'ACTIVE'
+) ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO township_settings (township_id, timezone, currency, default_sla_hours, auto_close_hours, major_expenditure_threshold)
 VALUES (

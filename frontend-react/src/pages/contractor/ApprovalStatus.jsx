@@ -70,7 +70,7 @@ export default function ApprovalStatus({
           {
             id: 'APPROVED',
             label: 'Approved & Ready for Execution',
-            count: jobs.filter((j) => j.status === 'APPROVED' || j.status === 'IN_PROGRESS' || j.status === 'COMPLETED' || j.estimate?.status === 'APPROVED').length,
+            count: jobs.filter((j) => (j.status === 'APPROVED' || j.estimate?.status === 'APPROVED') && !['COMPLETED', 'PENDING_VERIFICATION', 'VERIFIED', 'CLOSED'].includes(j.status)).length,
           },
           {
             id: 'REVISION',
@@ -127,10 +127,12 @@ export default function ApprovalStatus({
           const est = job.estimate
           const isAwaiting = ['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO'].includes(job.status)
           const isRevision = job.status === 'REVISION_REQUESTED'
-          const isApproved = job.status === 'APPROVED' || job.status === 'IN_PROGRESS' || job.status === 'COMPLETED' || est?.status === 'APPROVED'
+          const isCompleted = ['COMPLETED', 'PENDING_VERIFICATION', 'VERIFIED', 'CLOSED'].includes(job.status)
+          const isInProgress = job.status === 'IN_PROGRESS'
+          const isReadyForExecution = (job.status === 'APPROVED' || est?.status === 'APPROVED') && !isInProgress && !isCompleted
 
           const total = job.estimated_cost || 0
-          const cardVariant = isRevision ? 'revision' : isAwaiting ? 'pending' : 'approved'
+          const cardVariant = isRevision ? 'revision' : isAwaiting ? 'pending' : isCompleted ? 'completed' : 'approved'
 
           return (
             <div
@@ -167,8 +169,18 @@ export default function ApprovalStatus({
                     {isAwaiting && (
                       <span className="status-pill awaiting">Pending Dept Approval</span>
                     )}
-                    {isApproved && (
+                    {isReadyForExecution && (
                       <span className="status-pill completed">Approved & Ready</span>
+                    )}
+                    {isInProgress && (
+                      <span className="status-pill awaiting" style={{ background: '#e0f2fe', color: '#0369a1', borderColor: '#bae6fd' }}>
+                        In Progress ⚙️
+                      </span>
+                    )}
+                    {isCompleted && (
+                      <span className="status-pill completed" style={{ background: '#dcfce7', color: '#15803d', borderColor: '#bbf7d0' }}>
+                        Work Completed ✓
+                      </span>
                     )}
                   </div>
                 </div>
@@ -218,7 +230,7 @@ export default function ApprovalStatus({
                   </button>
                 )}
 
-                {isApproved && (
+                {isReadyForExecution && (
                   <button
                     onClick={() => {
                       onSelectJob(job)
@@ -228,6 +240,32 @@ export default function ApprovalStatus({
                     style={{ background: '#16a34a' }}
                   >
                     Proceed to Work Execution &rarr;
+                  </button>
+                )}
+
+                {isInProgress && (
+                  <button
+                    onClick={() => {
+                      onSelectJob(job)
+                      onNavigate('execution')
+                    }}
+                    className="btn-contractor-primary"
+                    style={{ background: '#0284c7' }}
+                  >
+                    Continue Work Execution &rarr;
+                  </button>
+                )}
+
+                {isCompleted && (
+                  <button
+                    onClick={() => {
+                      onSelectJob(job)
+                      onNavigate('execution')
+                    }}
+                    className="btn-contractor-secondary"
+                    style={{ background: '#f0fdf4', borderColor: '#86efac', color: '#166534', fontWeight: 600 }}
+                  >
+                    View Completed Execution ✓
                   </button>
                 )}
 

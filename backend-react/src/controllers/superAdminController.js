@@ -746,6 +746,56 @@ export const resetUserPassword = async (req, res, next) => {
   }
 };
 
+/**
+ * DELETE /api/v1/super-admin/users/:id
+ * Permanently delete a user account if no historical transaction references exist
+ */
+export const deleteUser = async (req, res, next) => {
+  try {
+    const user = db.findById('users', req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, error: { message: 'User not found.', statusCode: 404 } });
+    }
+
+    if (user.role === 'SUPER_ADMIN') {
+      return res.status(403).json({ success: false, error: { message: 'Platform Super Admin accounts cannot be deleted.', statusCode: 403 } });
+    }
+
+    // Check for historical transactional references (complaints, work orders, approvals)
+    const complaints = db.findAll('complaints', (c) => c.reported_by === user.id || c.validated_by === user.id);
+    const workOrders = db.findAll('work_orders', (w) => w.assigned_by === user.id);
+    const approvals = db.findAll('approvals', (a) => a.approver_id === user.id);
+    const departments = db.findAll('departments', (d) => d.department_head_id === user.id);
+
+    if (complaints.length > 0 || workOrders.length > 0 || approvals.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: `Cannot permanently delete user '${user.name}' because they have recorded activity (${complaints.length} complaints, ${workOrders.length} work orders, or approvals). Use 'Suspend' instead to deactivate access while preserving legal audit trails.`,
+          statusCode: 400,
+        },
+      });
+    }
+
+    // Unassign if referenced as department head
+    for (const d of departments) {
+      db.update('departments', d.id, { department_head_id: null });
+    }
+
+    // Permanently delete from cache & database
+    db.deleteRecord('users', user.id);
+
+    auditSA(req.user, 'USER_DELETED', 'USER', user.id, {
+      tenant_id: user.township_id,
+      notes: `User '${user.name}' (${user.email}, ${user.role}) was permanently deleted by Super Admin.`,
+    });
+
+    res.status(200).json({ success: true, message: `User '${user.name}' deleted successfully.` });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // ─── GLOBAL CONFIG ────────────────────────────────────────────────────────────
 
 /**
