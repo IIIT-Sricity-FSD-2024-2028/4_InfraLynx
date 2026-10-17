@@ -46,7 +46,15 @@ function formatSafeDate(dateVal) {
   return isNaN(d.getTime()) ? 'Recently' : d.toLocaleString()
 }
 
-export default function ClerkTracker({ complaints: propComplaints, selectedComplaint, onNavigate, onSelectComplaint }) {
+export default function ClerkTracker({ 
+  // --- Props Received from Parent (ClerkPortal) ---
+  complaints: propComplaints, // Complaints queue from ClerkPortal
+  selectedComplaint,          // Currently active complaint selected for lifecycle inspection
+  onNavigate,                 // Callback to switch between portal tabs ('dashboard', 'triage', 'workorder')
+  onSelectComplaint,          // Callback to update selected complaint in parent state
+}) {
+  // --- 1. Global Context Consumption (TIMSContext) ---
+  // Retrieves logged-in Clerk profile (currentUser) and fallback global complaints
   const { complaints: contextComplaints = [], currentUser } = useTIMS()
 
   const complaints = useMemo(() => {

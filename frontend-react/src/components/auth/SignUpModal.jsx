@@ -87,20 +87,24 @@ function validateField(field, value, allData = {}) {
   }
 }
 
-export default function SignUpModal({ isOpen, onClose, onOpenLogin, onSignUpSuccess }) {
-  // --- 1. Component State & Form Data Hooks ---
-  // Modal step (1: Info, 2: Plan, 3: Success Credentials)
-  const [step, setStep] = useState(1)
-  const [loading, setLoading] = useState(false)
-  const [apiError, setApiError] = useState(null)
-  const [formData, setFormData] = useState(INITIAL_FORM)
-  const [touched, setTouched] = useState({})
-  const [showPasswordChange, setShowPasswordChange] = useState(false)
-  const [newPassword, setNewPassword] = useState('')
-  const [passwordUpdateMsg, setPasswordUpdateMsg] = useState(null)
-  const [passwordUpdateLoading, setPasswordUpdateLoading] = useState(false)
-  const [createdData, setCreatedData] = useState(null)
-  const pwdTimerRef = useRef(null)
+export default function SignUpModal({ 
+  isOpen,           // Controls whether the modal dialog is visible on screen
+  onClose,          // Callback function to close the modal
+  onOpenLogin,      // Callback function to open the Login modal instead
+  onSignUpSuccess,  // Callback notifying parent of newly provisioned township & credentials
+}) {
+  // --- 1. Component State & Controlled Form Hooks ---
+  const [step, setStep]                                 = useState(1)           // Active wizard step (1: Details, 2: Plan, 3: Provisioned Credentials)
+  const [loading, setLoading]                           = useState(false)       // Async submission loading state (disables buttons & shows spinner)
+  const [apiError, setApiError]                         = useState(null)        // Server error response message (e.g. duplicate email registration)
+  const [formData, setFormData]                         = useState(INITIAL_FORM)// Controlled form object storing all input fields
+  const [touched, setTouched]                           = useState({})          // Tracks blurred fields so errors only show after user interaction
+  const [showPasswordChange, setShowPasswordChange]     = useState(false)       // Toggles inline password update drawer in Step 3
+  const [newPassword, setNewPassword]                   = useState('')          // Controlled input state for password change in Step 3
+  const [passwordUpdateMsg, setPasswordUpdateMsg]       = useState(null)        // Feedback toast message for password update
+  const [passwordUpdateLoading, setPasswordUpdateLoading]= useState(false)       // Loading state for password update API call
+  const [createdData, setCreatedData]                   = useState(null)        // Stores newly created township and provisioned COO account
+  const pwdTimerRef                                     = useRef(null)          // Mutable timer reference to cleanly cancel timeouts on unmount
 
   useEffect(() => () => { if (pwdTimerRef.current) clearTimeout(pwdTimerRef.current) }, [])
 
