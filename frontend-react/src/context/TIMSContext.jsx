@@ -3,57 +3,6 @@ import { authApi, systemApi, masterApi, complaintApi } from '../services/api.js'
 
 const INITIAL_CURRENT_USER = null
 
-const CANONICAL_FALLBACK_CONTRACTORS = [
-  {
-    id: 'c0000000-0000-0000-0000-000000000001',
-    name: 'Larsen & Toubro Urban Infra Works Ltd.',
-    company_name: 'Larsen & Toubro Urban Infra Works Ltd.',
-    lead: 'Rameshwar Nath Sharma',
-    phone: '+91 98110 45231',
-    email: 'rameshwar.sharma@infralynx.com',
-    departments: ['Civil', 'Roads'],
-    amcContractId: 'AMC-CIV-2025-08',
-    status: 'Active',
-    rating: 4.8,
-  },
-  {
-    id: 'c0000000-0000-0000-0000-000000000002',
-    name: 'Voltech Power & Electrical Systems Ltd.',
-    company_name: 'Voltech Power & Electrical Systems Ltd.',
-    lead: 'Vikram Singh Rathore',
-    phone: '+91 97230 11984',
-    email: 'vikram.rathore@infralynx.com',
-    departments: ['Electrical', 'Power'],
-    amcContractId: 'AMC-ELE-2025-03',
-    status: 'Active',
-    rating: 4.6,
-  },
-  {
-    id: 'c0000000-0000-0000-0000-000000000003',
-    name: 'Kirloskar HydroTech & Water Systems Pvt. Ltd.',
-    company_name: 'Kirloskar HydroTech & Water Systems Pvt. Ltd.',
-    lead: 'Suresh Narayan Kulkarni',
-    phone: '+91 94220 33819',
-    email: 'suresh.kulkarni@infralynx.com',
-    departments: ['Water', 'Sanitation'],
-    amcContractId: 'AMC-WTR-2025-11',
-    status: 'Active',
-    rating: 4.9,
-  },
-  {
-    id: 'c0000000-0000-0000-0000-000000000004',
-    name: 'Swachh Urban Environmental Solutions LLP',
-    company_name: 'Swachh Urban Environmental Solutions LLP',
-    lead: 'Gurpreet Singh Sandhu',
-    phone: '+91 98722 55431',
-    email: 'gurpreet.sandhu@infralynx.com',
-    departments: ['Horticulture', 'Horticulture & Urban Waste Management', 'Waste'],
-    amcContractId: 'AMC-SAN-2025-18',
-    status: 'Active',
-    rating: 4.7,
-  },
-]
-
 const TIMSContext = createContext(null)
 
 export function TIMSProvider({ children }) {
@@ -61,7 +10,7 @@ export function TIMSProvider({ children }) {
     return authApi.getCachedUser() || INITIAL_CURRENT_USER
   })
 
-  const [contractors, setContractors] = useState(CANONICAL_FALLBACK_CONTRACTORS)
+  const [contractors, setContractors] = useState([])
   const [amcRateCards, setAmcRateCards] = useState([])
 
   const [backendStatus, setBackendStatus] = useState({
@@ -183,8 +132,6 @@ export function TIMSProvider({ children }) {
     logout,
     refreshMasterData,
     refreshComplaints,
-    complaints: [],
-    updateComplaintStatus: () => {},
   }
 
   return <TIMSContext.Provider value={value}>{children}</TIMSContext.Provider>

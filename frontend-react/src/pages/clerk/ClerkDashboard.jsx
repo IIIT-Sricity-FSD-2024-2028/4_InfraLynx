@@ -18,7 +18,7 @@ export default function ClerkDashboard({
   complaints: propComplaints,
   onNavigate, onSelectComplaint, successNotice, onDismissNotice,
 }) {
-  const { complaints: contextComplaints, currentUser } = useTIMS()
+  const { complaints: contextComplaints = [], currentUser } = useTIMS()
 
   // Filter complaints by clerk's department
   const complaints = useMemo(() => {
