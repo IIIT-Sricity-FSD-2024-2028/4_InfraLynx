@@ -244,6 +244,27 @@ export const registerTownship = async (req, res, next) => {
       created_at: new Date().toISOString(),
     });
 
+    const oneYearLater = new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString();
+    db.insert('tenant_subscriptions', {
+      id: crypto.randomUUID(),
+      township_id: townshipId,
+      plan_id: 'a0000000-0000-0000-0000-000000000001',
+      subscription_plan_id: 'a0000000-0000-0000-0000-000000000001',
+      plan_label: 'Enterprise',
+      billing_cycle: 'YEARLY',
+      status: 'ACTIVE',
+      start_date: new Date().toISOString(),
+      expiry_date: oneYearLater,
+      end_date: oneYearLater,
+      primary_contact: executiveName.trim(),
+      contact_email: email.trim(),
+      contact_phone: String(phone).trim(),
+      legal_entity: townshipName.trim(),
+      max_users: 100,
+      max_complaints_monthly: 500,
+      max_storage_gb: 20,
+    });
+
     // 4. Create standard 4 departments
     const defaultDepts = [
       { name: 'Civil Infrastructure & Roads', desc: 'Arterial asphalt roads, stormwater drains, footpaths.' },

@@ -65,7 +65,6 @@ const TABLE_COLUMNS = {
   super_audit_logs: ['id', 'admin_id', 'admin_name', 'admin_role', 'action', 'entity_type', 'entity_id', 'tenant_id', 'previous_value', 'new_value', 'outcome', 'notes', 'timestamp'],
   subscription_plans: ['id', 'name', 'plan_label', 'price', 'billing_cycle', 'max_users', 'max_departments', 'features'],
   township_subscriptions: ['id', 'township_id', 'plan_id', 'start_date', 'end_date', 'status', 'created_at'],
-  tenant_subscriptions: ['id', 'township_id', 'subscription_plan_id', 'status', 'start_date', 'end_date', 'billing_cycle'],
 };
 
 const UUID_COLUMNS = new Set([
@@ -217,12 +216,73 @@ export async function refreshTablesFromPostgres() {
     tables.complaint_evidence = synthetic;
   }
 
-  // Populate tenant_subscriptions alias from township_subscriptions if needed
-  if ((!tables.tenant_subscriptions || tables.tenant_subscriptions.length === 0) && tables.township_subscriptions?.length > 0) {
-    tables.tenant_subscriptions = tables.township_subscriptions.map((s) => ({
-      ...s,
-      subscription_plan_id: s.plan_id || s.subscription_plan_id,
-    }));
+  // Ensure subscription_plans have clean plan_label for Super Admin dropdowns & filters
+  if (tables.subscription_plans) {
+    tables.subscription_plans = tables.subscription_plans.map((p) => {
+      let label = p.plan_label;
+      if (!label) {
+        if (p.name?.toLowerCase().includes('enterprise')) label = 'Enterprise';
+        else if (p.name?.toLowerCase().includes('professional')) label = 'Professional';
+        else if (p.name?.toLowerCase().includes('starter')) label = 'Starter';
+        else label = p.name || 'Enterprise';
+      }
+      return {
+        ...p,
+        plan_label: label,
+      };
+    });
+  }
+
+  // Populate tenant_subscriptions alias from township_subscriptions OR derive from active townships
+  if (tables.township_subscriptions && tables.township_subscriptions.length > 0) {
+    tables.tenant_subscriptions = tables.township_subscriptions.map((s) => {
+      const plan = tables.subscription_plans?.find((p) => p.id === (s.plan_id || s.subscription_plan_id));
+      const township = tables.townships?.find((t) => t.id === s.township_id);
+      const expDate = s.end_date || s.expiry_date || new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString();
+      return {
+        id: s.id,
+        township_id: s.township_id,
+        subscription_plan_id: s.plan_id || s.subscription_plan_id,
+        plan_id: s.plan_id || s.subscription_plan_id,
+        plan_label: plan?.plan_label || 'Enterprise',
+        billing_cycle: plan?.billing_cycle || 'YEARLY',
+        start_date: s.start_date || new Date().toISOString(),
+        end_date: expDate,
+        expiry_date: expDate,
+        status: s.status || 'ACTIVE',
+        primary_contact: township?.contact_email || '',
+        contact_email: township?.contact_email || '',
+        contact_phone: township?.contact_phone || '',
+        legal_entity: township?.name || '',
+        max_users: plan?.max_users || 50,
+        max_complaints_monthly: 500,
+        max_storage_gb: 20,
+      };
+    });
+  } else if (tables.townships && tables.townships.length > 0) {
+    tables.tenant_subscriptions = tables.townships.map((t) => {
+      const plan = tables.subscription_plans?.find((p) => p.id === t.subscription_plan_id) || tables.subscription_plans?.[0];
+      const expDate = new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString();
+      return {
+        id: t.id,
+        township_id: t.id,
+        subscription_plan_id: t.subscription_plan_id || plan?.id || 'a0000000-0000-0000-0000-000000000001',
+        plan_id: t.subscription_plan_id || plan?.id || 'a0000000-0000-0000-0000-000000000001',
+        plan_label: plan?.plan_label || 'Enterprise',
+        billing_cycle: plan?.billing_cycle || 'YEARLY',
+        start_date: t.created_at || new Date().toISOString(),
+        end_date: expDate,
+        expiry_date: expDate,
+        status: t.status || 'ACTIVE',
+        primary_contact: t.contact_email || '',
+        contact_email: t.contact_email || '',
+        contact_phone: t.contact_phone || '',
+        legal_entity: t.name || '',
+        max_users: plan?.max_users || 50,
+        max_complaints_monthly: 500,
+        max_storage_gb: 20,
+      };
+    });
   }
 
   // Populate work_orders extra fields from estimates if present
@@ -338,6 +398,43 @@ export const insert = (table, record) => {
         console.error(`[PostgreSQL Insert Error on ${table}]:`, err.message);
       });
     }
+  } else if (table === 'tenant_subscriptions') {
+    // Sync tenant_subscriptions alias into township_subscriptions in memory & PostgreSQL
+    const plan = (tables.subscription_plans || []).find(
+      (p) => p.id === (item.plan_id || item.subscription_plan_id) || p.plan_label === item.plan_label
+    );
+    const planId = plan?.id || item.plan_id || item.subscription_plan_id || 'a0000000-0000-0000-0000-000000000001';
+    const startDate = item.start_date || new Date().toISOString();
+    const endDate = item.expiry_date || item.end_date || new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString();
+    const status = item.status || 'ACTIVE';
+
+    if (!tables.township_subscriptions) tables.township_subscriptions = [];
+    const existingTsIdx = tables.township_subscriptions.findIndex((s) => s.id === item.id || s.township_id === item.township_id);
+    const tsRecord = {
+      id: item.id,
+      township_id: item.township_id,
+      plan_id: planId,
+      start_date: startDate,
+      end_date: endDate,
+      status,
+      created_at: item.created_at,
+    };
+    if (existingTsIdx !== -1) {
+      tables.township_subscriptions[existingTsIdx] = tsRecord;
+    } else {
+      tables.township_subscriptions.unshift(tsRecord);
+    }
+
+    if (pool) {
+      pool.query(
+        `INSERT INTO township_subscriptions (id, township_id, plan_id, start_date, end_date, status)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (id) DO UPDATE SET plan_id = EXCLUDED.plan_id, end_date = EXCLUDED.end_date, status = EXCLUDED.status`,
+        [item.id, item.township_id, planId, startDate, endDate, status]
+      ).catch((err) => {
+        console.error('[PostgreSQL Insert Error on township_subscriptions via alias]:', err.message);
+      });
+    }
   }
 
   return item;
@@ -376,6 +473,35 @@ export const update = (table, id, updates) => {
       const sql = `UPDATE ${table} SET ${setClauses} WHERE id = $${values.length}`;
       pool.query(sql, values).catch((err) => {
         console.error(`[PostgreSQL Update Error on ${table}]:`, err.message);
+      });
+    }
+  } else if (table === 'tenant_subscriptions') {
+    // Sync tenant_subscriptions alias updates into township_subscriptions in memory & PostgreSQL
+    const sub = list[index];
+    const plan = updates.plan_label ? (tables.subscription_plans || []).find((p) => p.plan_label === updates.plan_label) : null;
+    const planId = plan?.id || updates.plan_id || updates.subscription_plan_id || sub.plan_id || sub.subscription_plan_id;
+    const endDate = updates.expiry_date || updates.end_date || sub.expiry_date || sub.end_date;
+    const status = updates.status || sub.status;
+
+    if (tables.township_subscriptions) {
+      const tsIdx = tables.township_subscriptions.findIndex((s) => s.id === sub.id || s.township_id === sub.township_id);
+      if (tsIdx !== -1) {
+        tables.township_subscriptions[tsIdx] = {
+          ...tables.township_subscriptions[tsIdx],
+          plan_id: planId,
+          end_date: endDate,
+          status,
+          updated_at: new Date().toISOString(),
+        };
+      }
+    }
+
+    if (pool) {
+      pool.query(
+        `UPDATE township_subscriptions SET plan_id = $1, end_date = $2, status = $3 WHERE id = $4 OR township_id = $5`,
+        [planId, endDate, status, sub.id, sub.township_id]
+      ).catch((err) => {
+        console.error('[PostgreSQL Update Error on township_subscriptions via alias]:', err.message);
       });
     }
   }
