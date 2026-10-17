@@ -12,8 +12,8 @@
  */
 
 import http from 'http';
-import app from './app.js';
-import db from './config/db.js';
+import app from '../src/app.js';
+import db from '../src/config/db.js';
 
 let BASE_URL = 'http://localhost:5000/api/v1';
 let selfServer = null;

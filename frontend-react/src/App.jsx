@@ -266,6 +266,8 @@ function AppContent() {
             <Hero onOpenAuth={handleOpenAuth} />
             <Roles onOpenAuth={handleOpenAuth} />
             <Features />
+            <Pricing onOpenAuth={handleOpenAuth} />
+            <Contact />
           </main>
           <Footer onOpenAuth={handleOpenAuth} />
 

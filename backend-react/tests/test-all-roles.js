@@ -1,8 +1,8 @@
 import http from 'http';
-import app from './app.js';
-import db from './config/db.js';
-import { getApprovalThresholds } from './services/approvalService.js';
-import { getSlaHours } from './services/slaService.js';
+import app from '../src/app.js';
+import db from '../src/config/db.js';
+import { getApprovalThresholds } from '../src/services/approvalService.js';
+import { getSlaHours } from '../src/services/slaService.js';
 
 async function testAllRoleEndpoints() {
   console.log('========================================================================');
