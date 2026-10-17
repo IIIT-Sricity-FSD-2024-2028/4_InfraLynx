@@ -40,23 +40,34 @@ const STATUS_FILTERS = [
 ]
 
 export default function ClerkDashboard({
-  complaints: propComplaints,
-  onNavigate, onSelectComplaint, successNotice, onDismissNotice,
+  // --- Props Received from Parent (ClerkPortal) ---
+  complaints: propComplaints,          // Complaints list passed down from parent ClerkPortal
+  onNavigate,                          // Callback function to switch between portal screens ('triage', 'workorder', 'tracker')
+  onSelectComplaint,                   // Callback function to set the active complaint for inspection/triage
+  successNotice,                       // Active green toast notification banner object (id & message)
+  onDismissNotice,                     // Callback function to close the success toast notification
 }) {
+  // --- 1. Global Context Consumption (TIMSContext) ---
+  // Retrieves logged-in Clerk profile (currentUser) and fallback global complaints
   const { complaints: contextComplaints = [], currentUser } = useTIMS()
 
+  // --- 2. Derived Department Complaints (useMemo) ---
+  // Uses complaints passed via props (from ClerkPortal); otherwise falls back to context complaints
+  // and filters them strictly to the Desk Clerk's assigned department (e.g. Civil only)
   const complaints = useMemo(() => {
     if (propComplaints) return propComplaints
     return contextComplaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
   }, [propComplaints, contextComplaints, currentUser])
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedStatus, setSelectedStatus] = useState('ALL')
-  const [selectedCategory, setSelectedCategory] = useState('ALL')
+  // --- 3. Component Local State Management (useState) ---
+  const [searchQuery, setSearchQuery]           = useState('')      // Controlled input for live search (ID, title, block, street)
+  const [selectedStatus, setSelectedStatus]     = useState('ALL')   // Active status filter pill ('ALL', 'TRIAGE', 'ACTIVE', 'COMPLETED', 'CLOSED')
+  const [selectedCategory, setSelectedCategory] = useState('ALL')   // Active civic subcategory filter pill
 
+  // Display label of the clerk's assigned department (defaults to 'Operations' if unassigned)
   const deptDisplay = currentUser?.department_name || 'Operations'
 
-    // --- 1. Derived State: Unique Subcategories & KPI Metrics (Memoized) ---
+  // --- 4. Derived State: Unique Subcategories & KPI Metrics (Memoized) ---
   // Extracts unique civic subcategories present in this department complaints
   const subcategoryOptions = useMemo(() => {
     const seen = new Set()

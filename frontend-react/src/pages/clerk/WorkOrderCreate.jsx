@@ -12,14 +12,20 @@ const PRIORITIES = ['Emergency', 'High', 'Medium', 'Low']
  * WorkOrderCreate - Screen 3: Desk Clerk assigns an authorized AMC contractor,
  * configures execution priority and site instructions, and issues the Work Order.
  */
-export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkOrderCreated }) {
+export default function WorkOrderCreate({ 
+  // --- Props Received from Parent (ClerkPortal) ---
+  selectedComplaint,     // Currently selected validated complaint to convert into a Work Order
+  onNavigate,            // Callback to switch tabs (e.g. redirect to 'tracker' after WO creation)
+  onWorkOrderCreated,    // Callback notifying parent ClerkPortal of newly issued Work Order
+}) {
+  // --- 1. Global Context Consumption (TIMSContext) ---
   const {
-    complaints = [],
-    contractors = [],
-    currentUser,
-    refreshComplaints,
-    refreshMasterData,
-    updateComplaintStatus,
+    complaints = [],            // Global complaints list
+    contractors = [],           // Master list of empanelled AMC contractors loaded from PostgreSQL
+    currentUser,                // Logged-in Clerk profile (for audit logging)
+    refreshComplaints,          // Context function to reload complaints from backend
+    refreshMasterData,          // Context function to reload contractors & AMC rate cards
+    updateComplaintStatus,      // Context updater callback
   } = useTIMS()
 
   // Ensure fresh master data (e.g. empanelled contractors and rate cards)

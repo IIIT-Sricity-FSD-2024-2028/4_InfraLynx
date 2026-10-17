@@ -48,13 +48,15 @@ export function isComplaintInClerkDepartment(complaint, user) {
   return Boolean(deptId && cDeptId && String(cDeptId) === String(deptId))
 }
 
-export default function ClerkPortal({ onExitToLanding }) {
-  // --- 1. State Management & Navigation ---
-  const { currentUser } = useTIMS()
-  const [complaints, setComplaints] = useState([])
-  const [currentScreen, setCurrentScreen] = useState('dashboard')
-  const [selectedComplaint, setSelectedComplaint] = useState(null)
-  const [successNotice, setSuccessNotice] = useState(null)
+export default function ClerkPortal({ 
+  onExitToLanding, // Callback to return user to public landing page on sign out
+}) {
+  // --- 1. Global Session State & Portal Navigation ---
+  const { currentUser } = useTIMS()                                 // Logged-in Clerk profile (role, department, id, name)
+  const [complaints, setComplaints]               = useState([])    // Master complaints array loaded from PostgreSQL backend API
+  const [currentScreen, setCurrentScreen]         = useState('dashboard') // Tab router state: 'dashboard' | 'triage' | 'workorder' | 'tracker'
+  const [selectedComplaint, setSelectedComplaint] = useState(null)  // Currently active complaint selected for triage or work order creation
+  const [successNotice, setSuccessNotice]         = useState(null)  // Temporary green notification toast object { id, message }
 
     // --- 2. Data Fetching & Sync (Side Effects) ---
   // Fetches latest complaints from backend API

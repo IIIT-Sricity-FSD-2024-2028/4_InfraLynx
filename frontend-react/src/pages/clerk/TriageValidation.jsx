@@ -32,13 +32,15 @@ function formatSafeDate(dateVal) {
  *   UNDER_REVIEW -> REJECTED      (clerk rejects ticket with reason and formal remarks)
  */
 export default function TriageValidation({
-  complaints: propComplaints,
-  selectedComplaint,
-  onNavigate,
-  onSelectComplaint,
-  onComplaintUpdated,
+  // --- Props Received from Parent (ClerkPortal) ---
+  complaints: propComplaints,    // Live complaints queue from parent ClerkPortal
+  selectedComplaint,             // Currently selected complaint for triage
+  onNavigate,                    // Callback to switch tabs (e.g. move to 'workorder' screen after validation)
+  onSelectComplaint,             // Callback to set the active complaint in parent state
+  onComplaintUpdated,            // Callback to update parent state when ticket status changes
 }) {
-  // Context state for global complaint updates and logged-in user details
+  // --- 1. Global Context Consumption (TIMSContext) ---
+  // Retrieves global user details, fallback complaints, and optional status update callback
   const { complaints: contextComplaints = [], currentUser, updateComplaintStatus } = useTIMS()
 
   // Filter complaints strictly matching the Desk Clerk's assigned department
