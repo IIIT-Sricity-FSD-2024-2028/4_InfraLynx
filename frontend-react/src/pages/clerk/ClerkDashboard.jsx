@@ -1,140 +1,116 @@
+/**
+ * ClerkDashboard - Screen 1: Desk Clerk Operations Queue & Metrics Overview
+ *
+ * Key Features:
+ * - Real-time operational KPI metrics (Total complaints, Pending triage, Active WOs, Awaiting Dept Head, Closed).
+ * - Multi-criteria client-side search (by ID, title, street, block).
+ * - Multi-level filtering (by status pills and civic subcategories).
+ * - Quick action buttons routing directly to Triage, Work Order creation, and Tracker views.
+ *
+ * Key React Concepts:
+ * - Derived State (useMemo): Calculates statistics and filtered arrays without redundant re-renders.
+ * - Controlled Search & Filter Inputs: Local state updates trigger instant filtered view updates.
+ * - Component Communication: Prop callbacks (onNavigate, onSelectComplaint) notify parent ClerkPortal.
+ */
 import { useState, useMemo } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
+import { isComplaintInClerkDepartment } from './ClerkPortal.jsx'
 import './styles/ClerkDashboard.css'
 
-/**
- * ClerkDashboard - Screen 1: Overview of complaints for the Clerk's department.
- *
- * Props:
- *   complaints                    - list of complaints filtered by department (optional)
- *   onNavigate(screen)            - navigate to another clerk screen
- *   onSelectComplaint(complaint)  - store complaint in portal state
- *   successNotice                 - { id, message } | null  toast after WO dispatch
- *   onDismissNotice()             - clears the success toast
- *
- * Context used: complaints (all), currentUser
- */
+const STATUS_MAP = {
+  REPORTED:             { label: 'Reported',           bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+  UNDER_REVIEW:         { label: 'Under Review',       bg: '#fffbeb', color: '#92400e', border: '#fde68a', pulse: true },
+  VALIDATED:            { label: 'Validated',          bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
+  REJECTED:             { label: 'Rejected',           bg: '#fef2f2', color: '#991b1b', border: '#fecaca' },
+  WORK_ORDER_CREATED:   { label: 'WO Created',         bg: '#fffbeb', color: '#92400e', border: '#fde68a' },
+  AWAITING_DEPT_HEAD:   { label: 'Awaiting Dept Head', bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', pulse: true },
+  ASSIGNED:             { label: 'Assigned',           bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
+  IN_PROGRESS:          { label: 'In Progress',        bg: '#eff6ff', color: '#1e40af', border: '#bfdbfe', pulse: true },
+  COMPLETED:            { label: 'Completed',          bg: '#f0fdf4', color: '#166534', border: '#86efac' },
+  PENDING_VERIFICATION: { label: 'Pending Verify',     bg: '#fffbeb', color: '#92400e', border: '#fde68a', pulse: true },
+  CLOSED:               { label: 'Closed',             bg: '#f0fdf4', color: '#15803d', border: '#86efac' },
+}
+
+const STATUS_FILTERS = [
+  { id: 'ALL', label: 'All' },
+  { id: 'TRIAGE', label: 'Needs Triage' },
+  { id: 'ACTIVE', label: 'Active WO' },
+  { id: 'COMPLETED', label: 'Completed' },
+  { id: 'CLOSED', label: 'Closed' },
+]
+
 export default function ClerkDashboard({
   complaints: propComplaints,
   onNavigate, onSelectComplaint, successNotice, onDismissNotice,
 }) {
   const { complaints: contextComplaints, currentUser } = useTIMS()
 
-  // Filter complaints by clerk's department
   const complaints = useMemo(() => {
     if (propComplaints) return propComplaints
-    if (!currentUser || currentUser.role !== 'DESK_CLERK') return contextComplaints
-    const deptId = currentUser.department_id
-    const deptName = (currentUser.department_name || '').toLowerCase()
-    if (!deptId && !deptName) return contextComplaints
-
-    return contextComplaints.filter(c => {
-      const cDeptId = c.department_id
-      if (deptId && cDeptId && String(cDeptId) === String(deptId)) return true
-      const cCat = (c.category || c.department_name || '').toLowerCase()
-      if (deptName && cCat) {
-        if (deptName.includes(cCat) || cCat.includes(deptName)) return true
-        if (deptName.includes('electr') && cCat.includes('electr')) return true
-        if (deptName.includes('water') && (cCat.includes('water') || cCat.includes('sanitat') || cCat.includes('plumb') || cCat.includes('drain'))) return true
-        if (deptName.includes('civil') && (cCat.includes('civil') || cCat.includes('road'))) return true
-        if (deptName.includes('horticult') && (cCat.includes('horticult') || cCat.includes('garden'))) return true
-      }
-      if (deptId && cDeptId) return String(cDeptId) === String(deptId)
-      return false
-    })
+    return contextComplaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
   }, [propComplaints, contextComplaints, currentUser])
 
-  const [searchQuery,       setSearchQuery]       = useState('')
-  const [selectedStatus,    setSelectedStatus]    = useState('ALL')
-  const [selectedCategory,  setSelectedCategory]  = useState('ALL')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState('ALL')
+  const [selectedCategory, setSelectedCategory] = useState('ALL')
 
   const deptDisplay = currentUser?.department_name || 'Operations'
 
-  // Detect clerk's department domain
-  const clerkDeptCategory = useMemo(() => {
-    const name = (currentUser?.department_name || '').toLowerCase()
-    if (name.includes('electr')) return 'Electrical'
-    if (name.includes('civil') || name.includes('road')) return 'Civil'
-    if (name.includes('water') || name.includes('drain') || name.includes('plumb')) return 'Water'
-    if (name.includes('horticult') || name.includes('garden')) return 'Horticulture'
-    return complaints[0]?.category || null
-  }, [currentUser, complaints])
-
-  // Subcategories derived dynamically from active complaints in this department
+    // --- 1. Derived State: Unique Subcategories & KPI Metrics (Memoized) ---
+  // Extracts unique civic subcategories present in this department complaints
   const subcategoryOptions = useMemo(() => {
-    const list = []
     const seen = new Set()
-
     complaints.forEach(c => {
       const sub = c.subcategory || c.subCategory
-      if (sub && typeof sub === 'string' && sub.trim() && !seen.has(sub.trim())) {
-        seen.add(sub.trim())
-        list.push(sub.trim())
-      }
+      if (sub && typeof sub === 'string' && sub.trim()) seen.add(sub.trim())
     })
-
-    return list.sort()
+    return Array.from(seen).sort()
   }, [complaints])
 
-  // ── KPI metrics ──────────────────────────────────────────────────────────
   const stats = useMemo(() => ({
-    total:            complaints.length,
-    pendingTriage:    complaints.filter(c => c.status === 'REPORTED' || c.status === 'UNDER_REVIEW').length,
+    total: complaints.length,
+    pendingTriage: complaints.filter(c => c.status === 'REPORTED' || c.status === 'UNDER_REVIEW').length,
     workOrdersRaised: complaints.filter(c => ['WORK_ORDER_CREATED','ASSIGNED','IN_PROGRESS','COMPLETED','PENDING_VERIFICATION'].includes(c.status)).length,
     awaitingDeptHead: complaints.filter(c => c.status === 'AWAITING_DEPT_HEAD').length,
-    closed:           complaints.filter(c => c.status === 'CLOSED').length,
+    closed: complaints.filter(c => c.status === 'CLOSED').length,
   }), [complaints])
 
-  // ── Filtered list ─────────────────────────────────────────────────────────
+    // --- 2. Live Client-Side Search & Multi-Filter Logic (Memoized) ---
+  // Filters complaints by text query, lifecycle status, and subcategory
   const filtered = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim()
     return complaints.filter(c => {
-      const q = searchQuery.toLowerCase()
       const matchSearch = !q ||
-        c.id.toLowerCase().includes(q) ||
-        c.title.toLowerCase().includes(q) ||
+        c.id?.toLowerCase().includes(q) ||
+        c.title?.toLowerCase().includes(q) ||
         (c.location?.street || '').toLowerCase().includes(q) ||
-        (c.location?.block  || '').toLowerCase().includes(q)
+        (c.location?.block || '').toLowerCase().includes(q)
 
       const matchStatus =
-        selectedStatus === 'ALL'       ? true :
-        selectedStatus === 'TRIAGE'    ? (c.status === 'REPORTED' || c.status === 'UNDER_REVIEW') :
-        selectedStatus === 'ACTIVE'    ? ['VALIDATED','WORK_ORDER_CREATED','ASSIGNED','IN_PROGRESS','AWAITING_DEPT_HEAD'].includes(c.status) :
+        selectedStatus === 'ALL' ? true :
+        selectedStatus === 'TRIAGE' ? (c.status === 'REPORTED' || c.status === 'UNDER_REVIEW') :
+        selectedStatus === 'ACTIVE' ? ['VALIDATED','WORK_ORDER_CREATED','ASSIGNED','IN_PROGRESS','AWAITING_DEPT_HEAD'].includes(c.status) :
         selectedStatus === 'COMPLETED' ? ['COMPLETED','PENDING_VERIFICATION'].includes(c.status) :
-        selectedStatus === 'CLOSED'    ? (c.status === 'CLOSED' || c.status === 'REJECTED') :
+        selectedStatus === 'CLOSED' ? (c.status === 'CLOSED' || c.status === 'REJECTED') :
         c.status === selectedStatus
 
-      const matchCat =
-        selectedCategory === 'ALL'
-          ? true
-          : (c.subCategory || c.subcategory || c.title || '').toLowerCase().includes(selectedCategory.toLowerCase()) ||
-            selectedCategory.toLowerCase().includes((c.subCategory || c.subcategory || '').toLowerCase())
+      const sub = (c.subCategory || c.subcategory || c.title || '').toLowerCase()
+      const matchCat = selectedCategory === 'ALL' || sub.includes(selectedCategory.toLowerCase())
 
       return matchSearch && matchStatus && matchCat
     })
   }, [complaints, searchQuery, selectedStatus, selectedCategory])
 
-  // ── Status badge helper ───────────────────────────────────────────────────
-  function statusBadge(status) {
-    const m = {
-      REPORTED:             { label: 'Reported',           bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe', pulse: false },
-      UNDER_REVIEW:         { label: 'Under Review',       bg: '#fffbeb', color: '#92400e', border: '#fde68a', pulse: true  },
-      VALIDATED:            { label: 'Validated',          bg: '#f0fdf4', color: '#166534', border: '#bbf7d0', pulse: false },
-      REJECTED:             { label: 'Rejected',           bg: '#fef2f2', color: '#991b1b', border: '#fecaca', pulse: false },
-      WORK_ORDER_CREATED:   { label: 'WO Created',         bg: '#fffbeb', color: '#92400e', border: '#fde68a', pulse: false },
-      AWAITING_DEPT_HEAD:   { label: 'Awaiting Dept Head', bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', pulse: true  },
-      ASSIGNED:             { label: 'Assigned',           bg: '#f0fdf4', color: '#166534', border: '#bbf7d0', pulse: false },
-      IN_PROGRESS:          { label: 'In Progress',        bg: '#eff6ff', color: '#1e40af', border: '#bfdbfe', pulse: true  },
-      COMPLETED:            { label: 'Completed',          bg: '#f0fdf4', color: '#166534', border: '#86efac', pulse: false },
-      PENDING_VERIFICATION: { label: 'Pending Verify',     bg: '#fffbeb', color: '#92400e', border: '#fde68a', pulse: true  },
-      CLOSED:               { label: 'Closed',             bg: '#f0fdf4', color: '#15803d', border: '#86efac', pulse: false },
-    }
-    return m[status] || { label: status, bg: '#f1f5f9', color: '#475569', border: '#e2e8f0', pulse: false }
-  }
+  const metricItems = [
+    { label: 'Department Complaints', val: stats.total, sub: `${deptDisplay} register` },
+    { label: 'Pending Triage', val: stats.pendingTriage, sub: 'Awaiting clerk review', alert: stats.pendingTriage > 0 ? 'amber' : '' },
+    { label: 'Work Orders Raised', val: stats.workOrdersRaised, sub: 'Dispatched to contractors', color: 'blue' },
+    { label: 'Awaiting Dept Head', val: stats.awaitingDeptHead, sub: 'Approval required', alert: stats.awaitingDeptHead > 0 ? 'orange' : '' },
+    { label: 'Closed / Resolved', val: stats.closed, sub: 'RWA verified & signed off', color: 'green' },
+  ]
 
   return (
     <div className="cd-root">
-
-      {/* ── Welcome banner ── */}
       <div className="cd-welcome">
         <span className="cd-welcome-badge">Desk Clerk &bull; {deptDisplay}</span>
         <div className="cd-welcome-title">Good day, {currentUser?.name}</div>
@@ -143,7 +119,6 @@ export default function ClerkDashboard({
         </div>
       </div>
 
-      {/* ── Success toast (shown after WO dispatch) ── */}
       {successNotice && (
         <div className="cd-toast">
           <div>
@@ -154,36 +129,16 @@ export default function ClerkDashboard({
         </div>
       )}
 
-      {/* ── KPI metric cards ── */}
       <div className="cd-metrics">
-        <div className="cd-metric-card">
-          <div className="cd-metric-label">Department Complaints</div>
-          <div className="cd-metric-val">{stats.total}</div>
-          <div className="cd-metric-sub">{deptDisplay} register</div>
-        </div>
-        <div className={`cd-metric-card${stats.pendingTriage > 0 ? ' amber-alert' : ''}`}>
-          <div className="cd-metric-label">Pending Triage</div>
-          <div className={`cd-metric-val${stats.pendingTriage > 0 ? ' amber' : ''}`}>{stats.pendingTriage}</div>
-          <div className="cd-metric-sub">Awaiting clerk review</div>
-        </div>
-        <div className="cd-metric-card">
-          <div className="cd-metric-label">Work Orders Raised</div>
-          <div className="cd-metric-val blue">{stats.workOrdersRaised}</div>
-          <div className="cd-metric-sub">Dispatched to contractors</div>
-        </div>
-        <div className={`cd-metric-card${stats.awaitingDeptHead > 0 ? ' orange-alert' : ''}`}>
-          <div className="cd-metric-label">Awaiting Dept Head</div>
-          <div className={`cd-metric-val${stats.awaitingDeptHead > 0 ? ' orange' : ''}`}>{stats.awaitingDeptHead}</div>
-          <div className="cd-metric-sub">Approval required</div>
-        </div>
-        <div className="cd-metric-card">
-          <div className="cd-metric-label">Closed / Resolved</div>
-          <div className="cd-metric-val green">{stats.closed}</div>
-          <div className="cd-metric-sub">RWA verified &amp; signed off</div>
-        </div>
+        {metricItems.map(({ label, val, sub, alert, color }) => (
+          <div key={label} className={`cd-metric-card${alert ? ` ${alert}-alert` : ''}`}>
+            <div className="cd-metric-label">{label}</div>
+            <div className={`cd-metric-val${alert ? ` ${alert}` : color ? ` ${color}` : ''}`}>{val}</div>
+            <div className="cd-metric-sub">{sub}</div>
+          </div>
+        ))}
       </div>
 
-      {/* ── Filter toolbar ── */}
       <div className="cd-filter-bar">
         <div className="cd-search-wrap">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="cd-search-icon">
@@ -199,42 +154,24 @@ export default function ClerkDashboard({
           />
         </div>
         <div className="cd-filter-group">
-          <button
-            onClick={() => setSelectedCategory('ALL')}
-            className={`cd-filter-btn${selectedCategory === 'ALL' ? ' active' : ''}`}
-          >
+          <button onClick={() => setSelectedCategory('ALL')} className={`cd-filter-btn${selectedCategory === 'ALL' ? ' active' : ''}`}>
             All Subcategories
           </button>
           {subcategoryOptions.map(sub => (
-            <button
-              key={sub}
-              onClick={() => setSelectedCategory(sub)}
-              className={`cd-filter-btn${selectedCategory === sub ? ' active' : ''}`}
-            >
+            <button key={sub} onClick={() => setSelectedCategory(sub)} className={`cd-filter-btn${selectedCategory === sub ? ' active' : ''}`}>
               {sub}
             </button>
           ))}
         </div>
         <div className="cd-filter-group">
-          {[
-            { id: 'ALL',       label: 'All'          },
-            { id: 'TRIAGE',    label: 'Needs Triage' },
-            { id: 'ACTIVE',    label: 'Active WO'    },
-            { id: 'COMPLETED', label: 'Completed'    },
-            { id: 'CLOSED',    label: 'Closed'       },
-          ].map(st => (
-            <button
-              key={st.id}
-              onClick={() => setSelectedStatus(st.id)}
-              className={`cd-filter-btn${selectedStatus === st.id ? ' active' : ''}`}
-            >
+          {STATUS_FILTERS.map(st => (
+            <button key={st.id} onClick={() => setSelectedStatus(st.id)} className={`cd-filter-btn${selectedStatus === st.id ? ' active' : ''}`}>
               {st.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── Complaint list ── */}
       <div className="cd-list-section">
         <div className="cd-list-header">
           <h2 className="cd-list-title">Complaints Register ({filtered.length})</h2>
@@ -249,38 +186,29 @@ export default function ClerkDashboard({
           </div>
         ) : (
           filtered.map(c => {
-            const sb         = statusBadge(c.status)
+            const sb = STATUS_MAP[c.status] || { label: c.status, bg: '#f1f5f9', color: '#475569', border: '#e2e8f0' }
             const needsTriage = c.status === 'REPORTED' || c.status === 'UNDER_REVIEW'
-            const isRejected  = c.status === 'REJECTED'
-            const catCls = c.category === 'Electrical' ? 'electrical' : c.category === 'Water' ? 'water' : c.category === 'Horticulture' ? 'horticulture' : 'civil'
-            const sevCls = c.severity === 'Emergency'  ? 'emergency'  : c.severity === 'High'  ? 'high' : 'normal'
+            const isRejected = c.status === 'REJECTED'
+            const catCls = (c.category || '').toLowerCase()
+            const sevCls = c.severity === 'Emergency' ? 'emergency' : c.severity === 'High' ? 'high' : 'normal'
 
             return (
-              <div
-                key={c.id}
-                className={`cd-card${needsTriage ? ' needs-triage' : ''}${isRejected ? ' rejected' : ''}`}
-              >
-                {/* Top row: badges + status pill */}
+              <div key={c.id} className={`cd-card${needsTriage ? ' needs-triage' : ''}${isRejected ? ' rejected' : ''}`}>
                 <div className="cd-card-top">
                   <div className="cd-badges">
                     <span className="cd-badge-id">{c.id}</span>
                     <span className={`cd-badge-cat ${catCls}`}>{c.category} &bull; {c.subCategory || c.subcategory || ''}</span>
                     <span className={`cd-badge-sev ${sevCls}`}>{c.severity} Severity</span>
                   </div>
-                  <span
-                    className="cd-badge-status-pill"
-                    style={{ background: sb.bg, color: sb.color, borderColor: sb.border }}
-                  >
+                  <span className="cd-badge-status-pill" style={{ background: sb.bg, color: sb.color, borderColor: sb.border }}>
                     {sb.pulse && <span className="cd-badge-pulse-indicator" style={{ background: sb.color }} />}
                     {sb.label}
                   </span>
                 </div>
 
-                {/* Title + description */}
                 <h3 className="cd-card-title">{c.title}</h3>
                 <p className="cd-card-desc">{c.description}</p>
 
-                {/* Footer: location + actions */}
                 <div className="cd-card-footer">
                   <div className="cd-card-meta">
                     <span>&#128205; <strong>{c.location?.block || 'Block A'}, {c.location?.street || 'N/A'}</strong> ({c.location?.sector || 'Sector 54'})</span>
@@ -288,29 +216,17 @@ export default function ClerkDashboard({
                     {c.assignedContractor && <span>&#128295; <strong>{c.assignedContractor.name}</strong></span>}
                   </div>
                   <div className="cd-card-actions">
-                    {/* Triage button — shown for new/under-review complaints */}
                     {needsTriage && (
-                      <button
-                        onClick={() => { onSelectComplaint(c); onNavigate('triage') }}
-                        className="cd-btn-triage"
-                      >
+                      <button onClick={() => { onSelectComplaint(c); onNavigate('triage') }} className="cd-btn-triage">
                         Triage &amp; Validate &#10003;
                       </button>
                     )}
-                    {/* Create WO button — shown only for VALIDATED complaints */}
                     {c.status === 'VALIDATED' && (
-                      <button
-                        onClick={() => { onSelectComplaint(c); onNavigate('workorder') }}
-                        className="cd-btn-wo"
-                      >
+                      <button onClick={() => { onSelectComplaint(c); onNavigate('workorder') }} className="cd-btn-wo">
                         Create Work Order &#8594;
                       </button>
                     )}
-                    {/* Track button — always shown */}
-                    <button
-                      onClick={() => { onSelectComplaint(c); onNavigate('tracker') }}
-                      className="cd-btn-track"
-                    >
+                    <button onClick={() => { onSelectComplaint(c); onNavigate('tracker') }} className="cd-btn-track">
                       Track &#8594;
                     </button>
                   </div>

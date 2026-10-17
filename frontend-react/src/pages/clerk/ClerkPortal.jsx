@@ -1,3 +1,19 @@
+/**
+ * ClerkPortal - Master Portal Container for Desk Clerk Operations
+ *
+ * Architecture & Tabbed Routing:
+ * - Serves as the central shell/layout for Desk Clerk operations across all 4 operational tabs:
+ *   1. Dashboard: Queue overview, metrics, search, and category filtering.
+ *   2. Triage & Validate: Review reported tickets, mark validated or rejected.
+ *   3. Create Work Order: Assign empanelled AMC contractor, set priority, dispatch WO.
+ *   4. WO Tracker: Full lifecycle tracker from reported to closed.
+ *
+ * Key React Concepts:
+ * - Component Composition & Conditional Rendering: Switches child views based on currentScreen.
+ * - State Hoisting & Shared State: Manages complaints data, selected complaint, and success notices across sibling views.
+ * - Side Effects: useEffect fetches fresh complaints on initial load and screen transitions.
+ * - Props Passing & Callback Invocation: Child views notify parent of updates via callback props.
+ */
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 import { complaintApi } from '../../services/api.js'
@@ -9,8 +25,9 @@ import './styles/ClerkPortal.css'
 
 /**
  * Helper to determine if a complaint belongs to the clerk's department.
+ * Exported so other Clerk screens import this single source of truth.
  */
-function isComplaintInClerkDepartment(complaint, user) {
+export function isComplaintInClerkDepartment(complaint, user) {
   if (!user || user.role !== 'DESK_CLERK') return true
   const deptId = user.department_id
   const deptName = (user.department_name || '').toLowerCase()
@@ -28,97 +45,84 @@ function isComplaintInClerkDepartment(complaint, user) {
     if (deptName.includes('horticult') && (cCat.includes('horticult') || cCat.includes('garden'))) return true
   }
 
-  if (deptId && cDeptId) return String(cDeptId) === String(deptId)
-  return false
+  return Boolean(deptId && cDeptId && String(cDeptId) === String(deptId))
 }
 
 export default function ClerkPortal({ onExitToLanding }) {
+  // --- 1. State Management & Navigation ---
   const { currentUser } = useTIMS()
-
   const [complaints, setComplaints] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [currentScreen, setCurrentScreen]         = useState('dashboard')
+  const [currentScreen, setCurrentScreen] = useState('dashboard')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
-  const [successNotice, setSuccessNotice]         = useState(null)
+  const [successNotice, setSuccessNotice] = useState(null)
 
-  // Fetch live complaints directly from PostgreSQL backend
+    // --- 2. Data Fetching & Sync (Side Effects) ---
+  // Fetches latest complaints from backend API
   const loadComplaints = useCallback(async () => {
     try {
-      setLoading(true)
       const data = await complaintApi.getComplaints()
-      if (Array.isArray(data)) {
-        setComplaints(data)
-      }
+      if (Array.isArray(data)) setComplaints(data)
     } catch (err) {
       console.warn('[ClerkPortal] Error loading complaints:', err.message)
-    } finally {
-      setLoading(false)
     }
   }, [])
 
-  useEffect(() => {
-    loadComplaints()
-  }, [loadComplaints, currentScreen])
+  useEffect(() => { loadComplaints() }, [loadComplaints, currentScreen])
 
-  // Filter complaints strictly by the Clerk's department
-  const departmentComplaints = useMemo(() => {
-    return complaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
-  }, [complaints, currentUser])
+    // --- 3. Filtered State & Badge Counts (Memoized) ---
+  // Restricts visible complaints strictly to the clerk assigned civic department
+  const departmentComplaints = useMemo(() => (
+    complaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
+  ), [complaints, currentUser])
 
-  // Badge counts for tabs
-  const pendingTriageCount    = departmentComplaints.filter(c => c.status === 'REPORTED' || c.status === 'UNDER_REVIEW').length
-  const awaitingDeptHeadCount = departmentComplaints.filter(c => c.status === 'AWAITING_DEPT_HEAD').length
+  const pendingTriageCount = useMemo(() => (
+    departmentComplaints.filter(c => c.status === 'REPORTED' || c.status === 'UNDER_REVIEW').length
+  ), [departmentComplaints])
 
-  function handleNavigate(screen) {
+  const awaitingDeptHeadCount = useMemo(() => (
+    departmentComplaints.filter(c => c.status === 'AWAITING_DEPT_HEAD').length
+  ), [departmentComplaints])
+
+    // --- 4. Navigation & Action Handlers ---
+  // Smooth screen transitions
+  const handleNavigate = useCallback((screen) => {
     setCurrentScreen(screen)
     window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+  }, [])
 
-  function handleSelectComplaint(complaint) {
-    setSelectedComplaint(complaint)
-  }
-
-  const handleComplaintUpdated = useCallback((updatedComplaint) => {
-    if (!updatedComplaint) return
-    const targetId = updatedComplaint.id || updatedComplaint.complaintCode || updatedComplaint.complaint_code
-    setComplaints((prev) =>
-      prev.map((c) =>
-        (c.id === targetId || c.complaint_code === targetId || c.complaintCode === targetId)
-          ? { ...c, ...updatedComplaint }
-          : c
-      )
-    )
-    setSelectedComplaint((prev) =>
-      (prev && (prev.id === targetId || prev.complaint_code === targetId || prev.complaintCode === targetId))
-        ? { ...prev, ...updatedComplaint }
-        : prev
-    )
+  const handleComplaintUpdated = useCallback((updated) => {
+    if (!updated) return
+    const targetId = updated.id || updated.complaintCode || updated.complaint_code
+    const match = (c) => c.id === targetId || c.complaint_code === targetId || c.complaintCode === targetId
+    setComplaints(prev => prev.map(c => match(c) ? { ...c, ...updated } : c))
+    setSelectedComplaint(prev => prev && match(prev) ? { ...prev, ...updated } : prev)
     loadComplaints()
   }, [loadComplaints])
 
-  // Called by WorkOrderCreate once WO is dispatched
-  function handleWorkOrderCreated(complaint) {
+  const handleWorkOrderCreated = useCallback((complaint) => {
     setSelectedComplaint(complaint)
-    const woId       = complaint.work_order_number || complaint.id
-    const contractor = complaint.assigned_contractor ? complaint.assigned_contractor.name : 'contractor'
+    const woId = complaint.work_order_number || complaint.id
+    const contractor = complaint.assigned_contractor?.name || 'contractor'
     setSuccessNotice({
       id: complaint.id,
       message: `Work Order ${woId} assigned & dispatched to ${contractor} for "${complaint.title}" (${complaint.id}).`,
     })
     loadComplaints()
     handleNavigate('dashboard')
-  }
+  }, [loadComplaints, handleNavigate])
 
   const deptDisplay = currentUser?.department_name || 'Operations'
+  const tabs = [
+    { id: 'dashboard', label: 'Dashboard', badge: pendingTriageCount > 0 ? pendingTriageCount : null },
+    { id: 'triage', label: 'Triage & Validate' },
+    { id: 'workorder', label: 'Create Work Order' },
+    { id: 'tracker', label: 'WO Tracker', badge: awaitingDeptHeadCount > 0 ? awaitingDeptHeadCount : null },
+  ]
 
   return (
     <div className="clerk-shell">
-
-      {/* ── Sticky header ── */}
       <header className="clerk-header">
         <div className="clerk-header-top">
-
-          {/* Brand logo + amber role badge */}
           <div className="clerk-brand-group">
             <div className="clerk-brand-link" onClick={() => handleNavigate('dashboard')}>
               <img src="/assets/CRIMS_logo.png" alt="TIMS" className="clerk-brand-logo" />
@@ -133,49 +137,39 @@ export default function ClerkPortal({ onExitToLanding }) {
             </div>
           </div>
 
-          {/* User info + action buttons */}
           <div className="clerk-user-actions">
             <div className="clerk-user-badge">
               <div className="clerk-user-name">{currentUser?.name}</div>
               <div className="clerk-user-role">{deptDisplay} Desk</div>
             </div>
             {onExitToLanding && (
-              <button onClick={onExitToLanding} className="clerk-btn-exit">
-                Exit Portal &#8599;
-              </button>
+              <button onClick={onExitToLanding} className="clerk-btn-exit">Exit Portal &#8599;</button>
             )}
           </div>
         </div>
 
-        {/* ── Tab navigation bar ── */}
         <div className="clerk-tabs-wrapper">
           <div className="clerk-tabs-container">
-            {[
-              { id: 'dashboard', label: 'Dashboard',          badge: pendingTriageCount > 0 ? pendingTriageCount : null },
-              { id: 'triage',    label: 'Triage & Validate',  badge: null },
-              { id: 'workorder', label: 'Create Work Order',  badge: null },
-              { id: 'tracker',   label: 'WO Tracker',         badge: awaitingDeptHeadCount > 0 ? awaitingDeptHeadCount : null },
-            ].map(tab => (
+            {tabs.map(({ id, label, badge }) => (
               <button
-                key={tab.id}
-                onClick={() => handleNavigate(tab.id)}
-                className={`clerk-tab-btn${currentScreen === tab.id ? ' active' : ''}`}
+                key={id}
+                onClick={() => handleNavigate(id)}
+                className={`clerk-tab-btn${currentScreen === id ? ' active' : ''}`}
               >
-                {tab.label}
-                {tab.badge && <span className="clerk-tab-badge">{tab.badge}</span>}
+                {label}
+                {badge && <span className="clerk-tab-badge">{badge}</span>}
               </button>
             ))}
           </div>
         </div>
       </header>
 
-      {/* ── Active screen ── */}
       <main className="clerk-main-container">
         {currentScreen === 'dashboard' && (
           <ClerkDashboard
             complaints={departmentComplaints}
             onNavigate={handleNavigate}
-            onSelectComplaint={handleSelectComplaint}
+            onSelectComplaint={setSelectedComplaint}
             successNotice={successNotice}
             onDismissNotice={() => setSuccessNotice(null)}
           />
@@ -185,7 +179,7 @@ export default function ClerkPortal({ onExitToLanding }) {
             complaints={departmentComplaints}
             selectedComplaint={selectedComplaint}
             onNavigate={handleNavigate}
-            onSelectComplaint={handleSelectComplaint}
+            onSelectComplaint={setSelectedComplaint}
             onComplaintUpdated={handleComplaintUpdated}
           />
         )}
@@ -201,11 +195,10 @@ export default function ClerkPortal({ onExitToLanding }) {
             complaints={departmentComplaints}
             selectedComplaint={selectedComplaint}
             onNavigate={handleNavigate}
-            onSelectComplaint={handleSelectComplaint}
+            onSelectComplaint={setSelectedComplaint}
           />
         )}
       </main>
-
     </div>
   )
 }

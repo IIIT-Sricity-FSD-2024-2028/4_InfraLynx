@@ -1,170 +1,152 @@
-import { useState } from 'react'
+/**
+ * SignUpModal - Township Onboarding and Executive Registration Wizard (3-Step Modal)
+ *
+ * Workflow:
+ * - Step 1 (Executive Info): Controlled form with live regex validation and instant password checklist.
+ * - Step 2 (Subscription Plan): Confirmation of the Enterprise Municipal tier with sandbox demonstration notice.
+ * - Step 3 (Credential Provisioning): Displays provisioned COO credentials, role badge, and allows password update.
+ *
+ * Key React Concepts:
+ * - Controlled Components: Form state held in useState and synchronized on every keystroke.
+ * - Performance Optimization: useMemo caches field validation and password rules to prevent redundant recalculations.
+ * - Event Callbacks: useCallback memoizes change and submit handlers to prevent child re-renders.
+ * - Side Effect Cleanup: useEffect with useRef cleanly unmounts any pending setTimeout handles to avoid memory leaks.
+ */
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { authApi } from '../../services/api.js'
 import './styles/SignUpModal.css'
 
-// Strict validation patterns
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 const PHONE_REGEX = /^[6-9]\d{9}$/
 const NAME_REGEX = /^[a-zA-Z\s.'-]{3,60}$/
+const UPPER_REGEX = /[A-Z]/
+const LOWER_REGEX = /[a-z]/
+const DIGIT_REGEX = /\d/
+const SPECIAL_REGEX = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/
+
+const INITIAL_FORM = {
+  townshipName: '', executiveName: '', email: '', phone: '',
+  sector: '', password: '', confirmPassword: '', agreeTerms: false,
+}
+
+const STEP1_FIELDS = [
+  { key: 'townshipName', label: 'Township / Municipal Entity Name', placeholder: 'e.g. DLF CyberCity & Aralias Smart Township', full: true },
+  { key: 'executiveName', label: 'Executive / COO Full Name', placeholder: 'e.g. Col. Sanjeev Dewan' },
+  { key: 'email', label: 'Official Email Address', placeholder: 'coo@infralynx.com', type: 'email' },
+  { key: 'phone', label: 'Contact Mobile (10-Digit)', placeholder: '9871234567', type: 'tel', maxLength: 10 },
+  { key: 'sector', label: 'Sector / Location', placeholder: 'e.g. Sector 54, Golf Course Road' },
+  { key: 'password', label: 'Password', placeholder: '••••••••••••', type: 'password' },
+  { key: 'confirmPassword', label: 'Confirm Password', placeholder: '••••••••••••', type: 'password' },
+]
+
+const PWD_CHECKS_CONFIG = [
+  { key: 'length', label: 'At least 8 characters' },
+  { key: 'upper', label: '1 Uppercase letter (A-Z)' },
+  { key: 'lower', label: '1 Lowercase letter (a-z)' },
+  { key: 'number', label: '1 Number (0-9)' },
+  { key: 'special', label: '1 Special character (!@#$%^&*)' },
+]
+
+const PLAN_FEATURES = [
+  '4 Complete Departments (Civil, Electrical, Water, Horticulture)',
+  'AMC Rate Card Engine & 3-Way Reconciliation',
+  'Township COO Directorate & Escalation Telemetry',
+  'Unlimited RWA Resident Complaint Filing',
+  '100 Internal Staff & Contractor Accounts',
+  'Automated SLA Escalation & Overrides',
+]
+
+function validateField(field, value, allData = {}) {
+  const v = (value || '').toString().trim()
+  switch (field) {
+    case 'townshipName':
+      return !v ? 'Township or municipal entity name is required.' : v.length < 3 ? 'Township name must be at least 3 characters.' : ''
+    case 'executiveName':
+      return !v ? 'Executive full name is required.' : !NAME_REGEX.test(v) ? 'Name must be 3-60 characters and contain letters only.' : ''
+    case 'email':
+      if (!v) return 'Official email address is required.'
+      if (v.includes('@@') || (v.match(/@/g) || []).length !== 1) return 'Invalid email: multiple @ characters detected.'
+      return !EMAIL_REGEX.test(v) ? 'Enter a valid corporate email (e.g. coo@township.com).' : ''
+    case 'phone':
+      return !v ? '10-digit mobile number is required.' : !PHONE_REGEX.test(v) ? 'Enter a valid 10-digit Indian mobile number (e.g. 9812345678).' : ''
+    case 'sector':
+      return !v ? 'Township sector / location address is required.' : v.length < 3 ? 'Sector / location must be at least 3 characters.' : ''
+    case 'password':
+      if (!value) return 'Password is required.'
+      if (value.length < 8) return 'Password must be at least 8 characters long.'
+      if (!UPPER_REGEX.test(value)) return 'Password must contain at least one uppercase letter (A-Z).'
+      if (!LOWER_REGEX.test(value)) return 'Password must contain at least one lowercase letter (a-z).'
+      if (!DIGIT_REGEX.test(value)) return 'Password must contain at least one number (0-9).'
+      return !SPECIAL_REGEX.test(value) ? 'Password must contain at least one special character (!@#$%^&*).' : ''
+    case 'confirmPassword':
+      return !value ? 'Please confirm your password.' : value !== allData.password ? 'Passwords do not match.' : ''
+    case 'agreeTerms':
+      return !value ? 'You must agree to the Terms of Service to proceed.' : ''
+    default:
+      return ''
+  }
+}
 
 export default function SignUpModal({ isOpen, onClose, onOpenLogin, onSignUpSuccess }) {
-  const [step, setStep] = useState(1) // 1: Details, 2: Plan Confirmation, 3: Credentials & Launch
+  // --- 1. Component State & Form Data Hooks ---
+  // Modal step (1: Info, 2: Plan, 3: Success Credentials)
+  const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [apiError, setApiError] = useState(null)
-
-  // Step 1 Form Data
-  const [formData, setFormData] = useState({
-    townshipName: '',
-    executiveName: '',
-    email: '',
-    phone: '',
-    sector: '',
-    password: '',
-    confirmPassword: '',
-    agreeTerms: false,
-  })
-
-  // Touched state for immediate on-blur feedback
+  const [formData, setFormData] = useState(INITIAL_FORM)
   const [touched, setTouched] = useState({})
-
-  // Step 3 Password update state
   const [showPasswordChange, setShowPasswordChange] = useState(false)
   const [newPassword, setNewPassword] = useState('')
   const [passwordUpdateMsg, setPasswordUpdateMsg] = useState(null)
   const [passwordUpdateLoading, setPasswordUpdateLoading] = useState(false)
-
-  // Created credentials payload from server
   const [createdData, setCreatedData] = useState(null)
+  const pwdTimerRef = useRef(null)
 
-  if (!isOpen) return null
+  useEffect(() => () => { if (pwdTimerRef.current) clearTimeout(pwdTimerRef.current) }, [])
 
-  // ── Validation Helpers ───────────────────────────────────────────────────────
-  const validateField = (field, value, allData = formData) => {
-    switch (field) {
-      case 'townshipName':
-        if (!value || !value.trim()) return 'Township or municipal entity name is required.'
-        if (value.trim().length < 3) return 'Township name must be at least 3 characters.'
-        return ''
+    // --- 2. Real-Time Form Validation & Password Checks (Memoized) ---
+  // Validates all fields against domain rules whenever formData changes
+  const errors = useMemo(() => {
+    const errs = {}
+    Object.keys(formData).forEach(k => { errs[k] = validateField(k, formData[k], formData) })
+    return errs
+  }, [formData])
 
-      case 'executiveName':
-        if (!value || !value.trim()) return 'Executive full name is required.'
-        if (!NAME_REGEX.test(value.trim())) return 'Name must be 3-60 characters and contain letters only.'
-        return ''
+  const isStep1Valid = useMemo(() => (
+    Object.values(errors).every(e => !e) &&
+    Object.entries(formData).every(([k, v]) => Boolean(v))
+  ), [errors, formData])
 
-      case 'email':
-        if (!value || !value.trim()) return 'Official email address is required.'
-        const emailTrimmed = value.trim()
-        if (emailTrimmed.includes('@@') || (emailTrimmed.match(/@/g) || []).length !== 1) {
-          return 'Invalid email: multiple @ characters detected.'
-        }
-        if (!EMAIL_REGEX.test(emailTrimmed)) {
-          return 'Enter a valid corporate email (e.g. coo@township.com).'
-        }
-        return ''
-
-      case 'phone':
-        if (!value || !value.trim()) return '10-digit mobile number is required.'
-        if (!PHONE_REGEX.test(value.trim())) {
-          return 'Enter a valid 10-digit Indian mobile number (e.g. 9812345678).'
-        }
-        return ''
-
-      case 'sector':
-        if (!value || !value.trim()) return 'Township sector / location address is required.'
-        if (value.trim().length < 3) return 'Sector / location must be at least 3 characters.'
-        return ''
-
-      case 'password':
-        if (!value) return 'Password is required.'
-        if (value.length < 8) return 'Password must be at least 8 characters long.'
-        if (!/[A-Z]/.test(value)) return 'Password must contain at least one uppercase letter (A-Z).'
-        if (!/[a-z]/.test(value)) return 'Password must contain at least one lowercase letter (a-z).'
-        if (!/\d/.test(value)) return 'Password must contain at least one number (0-9).'
-        if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(value)) {
-          return 'Password must contain at least one special character (!@#$%^&*).'
-        }
-        return ''
-
-      case 'confirmPassword':
-        if (!value) return 'Please confirm your password.'
-        if (value !== allData.password) return 'Passwords do not match.'
-        return ''
-
-      case 'agreeTerms':
-        if (!value) return 'You must agree to the Terms of Service to proceed.'
-        return ''
-
-      default:
-        return ''
-    }
-  }
-
-  // Real-time error computation
-  const errors = {
-    townshipName: validateField('townshipName', formData.townshipName),
-    executiveName: validateField('executiveName', formData.executiveName),
-    email: validateField('email', formData.email),
-    phone: validateField('phone', formData.phone),
-    sector: validateField('sector', formData.sector),
-    password: validateField('password', formData.password),
-    confirmPassword: validateField('confirmPassword', formData.confirmPassword),
-    agreeTerms: validateField('agreeTerms', formData.agreeTerms),
-  }
-
-  const isStep1Valid =
-    !errors.townshipName &&
-    !errors.executiveName &&
-    !errors.email &&
-    !errors.phone &&
-    !errors.sector &&
-    !errors.password &&
-    !errors.confirmPassword &&
-    !errors.agreeTerms &&
-    formData.townshipName &&
-    formData.executiveName &&
-    formData.email &&
-    formData.phone &&
-    formData.sector &&
-    formData.password &&
-    formData.confirmPassword &&
-    formData.agreeTerms
-
-  // Live password checklist checks
-  const pwdChecks = {
+  const pwdChecks = useMemo(() => ({
     length: formData.password.length >= 8,
-    upper: /[A-Z]/.test(formData.password),
-    lower: /[a-z]/.test(formData.password),
-    number: /\d/.test(formData.password),
-    special: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(formData.password),
-  }
+    upper: UPPER_REGEX.test(formData.password),
+    lower: LOWER_REGEX.test(formData.password),
+    number: DIGIT_REGEX.test(formData.password),
+    special: SPECIAL_REGEX.test(formData.password),
+  }), [formData.password])
 
-  const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    // --- 3. Event Handlers & Callbacks (Memoized) ---
+  // Handles controlled input changes and clears api error
+  const handleChange = useCallback((field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
     setApiError(null)
-  }
+  }, [])
 
-  const handleBlur = (field) => {
-    setTouched((prev) => ({ ...prev, [field]: true }))
-  }
+  const handleBlur = useCallback((field) => {
+    setTouched(prev => ({ ...prev, [field]: true }))
+  }, [])
 
-  // Advance to Step 2
-  const handleProceedToPlan = (e) => {
+    // Validates step 1 inputs on submit before advancing to subscription selection
+  const handleProceedToPlan = useCallback((e) => {
     e.preventDefault()
-    // Touch all fields to show any missing requirements
-    const allTouched = Object.keys(formData).reduce((acc, k) => ({ ...acc, [k]: true }), {})
-    setTouched(allTouched)
+    setTouched(Object.keys(formData).reduce((acc, k) => { acc[k] = true; return acc }, {}))
+    if (isStep1Valid) { setApiError(null); setStep(2) }
+  }, [formData, isStep1Valid])
 
-    if (isStep1Valid) {
-      setApiError(null)
-      setStep(2)
-    }
-  }
-
-  // Step 2: Confirm plan & register on backend
-  const handleActivateSubscription = async () => {
+    // Submits registration payload to backend auth API and activates township tier
+  const handleActivateSubscription = useCallback(async () => {
     setLoading(true)
     setApiError(null)
-
     try {
       const data = await authApi.registerTownship({
         townshipName: formData.townshipName.trim(),
@@ -175,11 +157,7 @@ export default function SignUpModal({ isOpen, onClose, onOpenLogin, onSignUpSucc
         password: formData.password,
         planLabel: 'Enterprise Municipal Plan',
       })
-
-      if (!data) {
-        throw new Error('Failed to retrieve registration data.')
-      }
-
+      if (!data) throw new Error('Failed to retrieve registration data.')
       setCreatedData(data)
       setStep(3)
     } catch (err) {
@@ -188,55 +166,46 @@ export default function SignUpModal({ isOpen, onClose, onOpenLogin, onSignUpSucc
     } finally {
       setLoading(false)
     }
-  }
+  }, [formData])
 
-  // Step 3: Update password handler
-  const handleUpdatePassword = async (e) => {
+    // Optional: Allows freshly onboarded COO to update password immediately
+  const handleUpdatePassword = useCallback(async (e) => {
     e.preventDefault()
     const pwdErr = validateField('password', newPassword)
-    if (pwdErr) {
-      setPasswordUpdateMsg({ type: 'error', text: pwdErr })
-      return
-    }
+    if (pwdErr) { setPasswordUpdateMsg({ type: 'error', text: pwdErr }); return }
 
     setPasswordUpdateLoading(true)
     setPasswordUpdateMsg(null)
-
     try {
-      await authApi.setPassword(
-        createdData?.user?.email || formData.email.trim(),
-        newPassword
-      )
-
+      await authApi.setPassword(createdData?.user?.email || formData.email.trim(), newPassword)
       setPasswordUpdateMsg({ type: 'success', text: 'Password successfully updated!' })
       setNewPassword('')
-      setTimeout(() => setShowPasswordChange(false), 2000)
+      if (pwdTimerRef.current) clearTimeout(pwdTimerRef.current)
+      pwdTimerRef.current = setTimeout(() => setShowPasswordChange(false), 2000)
     } catch (err) {
       setPasswordUpdateMsg({ type: 'error', text: err.message || 'Could not update password.' })
     } finally {
       setPasswordUpdateLoading(false)
     }
-  }
+  }, [newPassword, createdData, formData.email])
 
-  // Step 3: Final Launch into COO Directorate
-  const handleLaunchDirectorate = () => {
+    // Launches the COO Directorate portal with the newly created account
+  const handleLaunchDirectorate = useCallback(() => {
     const userToLogin = createdData?.user || {
       name: formData.executiveName.trim(),
       email: formData.email.trim(),
       role: 'TOWNSHIP_COO',
       townshipName: formData.townshipName.trim(),
     }
-    if (onSignUpSuccess) {
-      onSignUpSuccess(userToLogin)
-    } else {
-      onClose()
-    }
-  }
+    if (onSignUpSuccess) onSignUpSuccess(userToLogin)
+    else onClose()
+  }, [createdData, formData, onSignUpSuccess, onClose])
+
+  if (!isOpen) return null
 
   return (
     <div className="su-overlay" onClick={onClose}>
       <div className="su-modal" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
         <div className="su-header">
           <div>
             <div className="su-brand">
@@ -254,193 +223,62 @@ export default function SignUpModal({ isOpen, onClose, onOpenLogin, onSignUpSucc
               {step === 3 && 'Step 3 of 3: Official credentials & directorate launch'}
             </p>
           </div>
-          <button className="su-close-btn" onClick={onClose} aria-label="Close modal">
-            &times;
-          </button>
+          <button className="su-close-btn" onClick={onClose} aria-label="Close modal">&times;</button>
         </div>
 
-        {/* Stepper Progress Bar */}
         <div className="su-stepper">
-          <div className={`su-step-item ${step === 1 ? 'active' : 'completed'}`}>
-            <span className="su-step-num">{step > 1 ? '✓' : '1'}</span>
-            <span>Executive Info</span>
-          </div>
-          <div className={`su-step-divider ${step >= 2 ? 'completed' : ''}`} />
-          <div className={`su-step-item ${step === 2 ? 'active' : step > 2 ? 'completed' : ''}`}>
-            <span className="su-step-num">{step > 2 ? '✓' : '2'}</span>
-            <span>Subscription Plan</span>
-          </div>
-          <div className={`su-step-divider ${step === 3 ? 'completed' : ''}`} />
-          <div className={`su-step-item ${step === 3 ? 'active' : ''}`}>
-            <span className="su-step-num">3</span>
-            <span>Credentials</span>
-          </div>
+          {[
+            { num: 1, label: 'Executive Info' },
+            { num: 2, label: 'Subscription Plan' },
+            { num: 3, label: 'Credentials' },
+          ].map(({ num, label }, i) => (
+            <div key={num} style={{ display: 'contents' }}>
+              {i > 0 && <div className={`su-step-divider ${step >= num ? 'completed' : ''}`} />}
+              <div className={`su-step-item ${step === num ? 'active' : step > num ? 'completed' : ''}`}>
+                <span className="su-step-num">{step > num ? '✓' : num}</span>
+                <span>{label}</span>
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* Body */}
         <div className="su-body">
           {apiError && <div className="su-api-error">&#9888; {apiError}</div>}
 
-          {/* ───────────────── STEP 1: Details ───────────────── */}
           {step === 1 && (
             <form onSubmit={handleProceedToPlan} id="signup-step1-form">
               <div className="su-form-grid">
-                {/* Township Name */}
-                <div className="su-field su-field-full">
-                  <label className="su-label">
-                    <span>Township / Municipal Entity Name<span className="su-required">*</span></span>
-                  </label>
-                  <input
-                    type="text"
-                    className={`su-input ${touched.townshipName ? (errors.townshipName ? 'is-error' : 'is-valid') : ''}`}
-                    placeholder="e.g. DLF CyberCity & Aralias Smart Township"
-                    value={formData.townshipName}
-                    onChange={(e) => handleChange('townshipName', e.target.value)}
-                    onBlur={() => handleBlur('townshipName')}
-                    required
-                  />
-                  {touched.townshipName && errors.townshipName && (
-                    <span className="su-error-msg">&#9888; {errors.townshipName}</span>
-                  )}
-                </div>
+                {STEP1_FIELDS.map(({ key, label, placeholder, type = 'text', full, maxLength }) => (
+                  <div key={key} className={`su-field${full ? ' su-field-full' : ''}`}>
+                    <label className="su-label">
+                      <span>{label}<span className="su-required">*</span></span>
+                    </label>
+                    <input
+                      type={type}
+                      maxLength={maxLength}
+                      className={`su-input ${touched[key] ? (errors[key] ? 'is-error' : 'is-valid') : ''}`}
+                      placeholder={placeholder}
+                      value={formData[key]}
+                      onChange={(e) => handleChange(key, key === 'phone' ? e.target.value.replace(/\D/g, '') : e.target.value)}
+                      onBlur={() => handleBlur(key)}
+                      required
+                    />
+                    {touched[key] && errors[key] && (
+                      <span className="su-error-msg">&#9888; {errors[key]}</span>
+                    )}
+                  </div>
+                ))}
 
-                {/* Executive Name */}
-                <div className="su-field">
-                  <label className="su-label">
-                    <span>Executive / COO Full Name<span className="su-required">*</span></span>
-                  </label>
-                  <input
-                    type="text"
-                    className={`su-input ${touched.executiveName ? (errors.executiveName ? 'is-error' : 'is-valid') : ''}`}
-                    placeholder="e.g. Col. Sanjeev Dewan"
-                    value={formData.executiveName}
-                    onChange={(e) => handleChange('executiveName', e.target.value)}
-                    onBlur={() => handleBlur('executiveName')}
-                    required
-                  />
-                  {touched.executiveName && errors.executiveName && (
-                    <span className="su-error-msg">&#9888; {errors.executiveName}</span>
-                  )}
-                </div>
-
-                {/* Official Email */}
-                <div className="su-field">
-                  <label className="su-label">
-                    <span>Official Email Address<span className="su-required">*</span></span>
-                  </label>
-                  <input
-                    type="email"
-                    className={`su-input ${touched.email ? (errors.email ? 'is-error' : 'is-valid') : ''}`}
-                    placeholder="coo@infralynx.com"
-                    value={formData.email}
-                    onChange={(e) => handleChange('email', e.target.value)}
-                    onBlur={() => handleBlur('email')}
-                    required
-                  />
-                  {touched.email && errors.email && (
-                    <span className="su-error-msg">&#9888; {errors.email}</span>
-                  )}
-                </div>
-
-                {/* Phone Number */}
-                <div className="su-field">
-                  <label className="su-label">
-                    <span>Contact Mobile (10-Digit)<span className="su-required">*</span></span>
-                  </label>
-                  <input
-                    type="tel"
-                    maxLength={10}
-                    className={`su-input ${touched.phone ? (errors.phone ? 'is-error' : 'is-valid') : ''}`}
-                    placeholder="9871234567"
-                    value={formData.phone}
-                    onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, ''))}
-                    onBlur={() => handleBlur('phone')}
-                    required
-                  />
-                  {touched.phone && errors.phone && (
-                    <span className="su-error-msg">&#9888; {errors.phone}</span>
-                  )}
-                </div>
-
-                {/* Sector / Location */}
-                <div className="su-field">
-                  <label className="su-label">
-                    <span>Sector / Location<span className="su-required">*</span></span>
-                  </label>
-                  <input
-                    type="text"
-                    className={`su-input ${touched.sector ? (errors.sector ? 'is-error' : 'is-valid') : ''}`}
-                    placeholder="e.g. Sector 54, Golf Course Road"
-                    value={formData.sector}
-                    onChange={(e) => handleChange('sector', e.target.value)}
-                    onBlur={() => handleBlur('sector')}
-                    required
-                  />
-                  {touched.sector && errors.sector && (
-                    <span className="su-error-msg">&#9888; {errors.sector}</span>
-                  )}
-                </div>
-
-                {/* Password */}
-                <div className="su-field">
-                  <label className="su-label">
-                    <span>Password<span className="su-required">*</span></span>
-                  </label>
-                  <input
-                    type="password"
-                    className={`su-input ${touched.password ? (errors.password ? 'is-error' : 'is-valid') : ''}`}
-                    placeholder="••••••••••••"
-                    value={formData.password}
-                    onChange={(e) => handleChange('password', e.target.value)}
-                    onBlur={() => handleBlur('password')}
-                    required
-                  />
-                  {touched.password && errors.password && (
-                    <span className="su-error-msg">&#9888; {errors.password}</span>
-                  )}
-                </div>
-
-                {/* Confirm Password */}
-                <div className="su-field">
-                  <label className="su-label">
-                    <span>Confirm Password<span className="su-required">*</span></span>
-                  </label>
-                  <input
-                    type="password"
-                    className={`su-input ${touched.confirmPassword ? (errors.confirmPassword ? 'is-error' : 'is-valid') : ''}`}
-                    placeholder="••••••••••••"
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                    onBlur={() => handleBlur('confirmPassword')}
-                    required
-                  />
-                  {touched.confirmPassword && errors.confirmPassword && (
-                    <span className="su-error-msg">&#9888; {errors.confirmPassword}</span>
-                  )}
-                </div>
-
-                {/* Live Password Strength Checklist */}
                 <div className="su-field-full">
                   <div className="su-pwd-checks">
-                    <span className={`su-pwd-check-item ${pwdChecks.length ? 'met' : ''}`}>
-                      {pwdChecks.length ? '✓' : '○'} At least 8 characters
-                    </span>
-                    <span className={`su-pwd-check-item ${pwdChecks.upper ? 'met' : ''}`}>
-                      {pwdChecks.upper ? '✓' : '○'} 1 Uppercase letter (A-Z)
-                    </span>
-                    <span className={`su-pwd-check-item ${pwdChecks.lower ? 'met' : ''}`}>
-                      {pwdChecks.lower ? '✓' : '○'} 1 Lowercase letter (a-z)
-                    </span>
-                    <span className={`su-pwd-check-item ${pwdChecks.number ? 'met' : ''}`}>
-                      {pwdChecks.number ? '✓' : '○'} 1 Number (0-9)
-                    </span>
-                    <span className={`su-pwd-check-item ${pwdChecks.special ? 'met' : ''}`}>
-                      {pwdChecks.special ? '✓' : '○'} 1 Special character (!@#$%^&*)
-                    </span>
+                    {PWD_CHECKS_CONFIG.map(({ key, label }) => (
+                      <span key={key} className={`su-pwd-check-item ${pwdChecks[key] ? 'met' : ''}`}>
+                        {pwdChecks[key] ? '✓' : '○'} {label}
+                      </span>
+                    ))}
                   </div>
                 </div>
 
-                {/* Terms agreement */}
                 <div className="su-field-full">
                   <label className="su-checkbox-label">
                     <input
@@ -462,26 +300,19 @@ export default function SignUpModal({ isOpen, onClose, onOpenLogin, onSignUpSucc
             </form>
           )}
 
-          {/* ───────────────── STEP 2: Subscription Plan ───────────────── */}
           {step === 2 && (
             <div>
               <div className="su-plan-card">
                 <span className="su-plan-badge">Default Municipal Tier</span>
                 <div className="su-plan-title">Enterprise Municipal &amp; Township Plan</div>
-                <div className="su-plan-price">
-                  ₹1,50,000 <span>/ year (Billed Annually)</span>
-                </div>
+                <div className="su-plan-price">₹1,50,000 <span>/ year (Billed Annually)</span></div>
                 <p className="su-plan-desc">
                   Full infrastructure lifecycle orchestration for large gated townships, SEZs, and municipal zones.
                 </p>
-
                 <ul className="su-plan-features">
-                  <li><span className="su-plan-check">✓</span> 4 Complete Departments (Civil, Electrical, Water, Horticulture)</li>
-                  <li><span className="su-plan-check">✓</span> AMC Rate Card Engine &amp; 3-Way Reconciliation</li>
-                  <li><span className="su-plan-check">✓</span> Township COO Directorate &amp; Escalation Telemetry</li>
-                  <li><span className="su-plan-check">✓</span> Unlimited RWA Resident Complaint Filing</li>
-                  <li><span className="su-plan-check">✓</span> 100 Internal Staff &amp; Contractor Accounts</li>
-                  <li><span className="su-plan-check">✓</span> Automated SLA Escalation &amp; Overrides</li>
+                  {PLAN_FEATURES.map((feat) => (
+                    <li key={feat}><span className="su-plan-check">✓</span> {feat}</li>
+                  ))}
                 </ul>
               </div>
 
@@ -497,14 +328,11 @@ export default function SignUpModal({ isOpen, onClose, onOpenLogin, onSignUpSucc
             </div>
           )}
 
-          {/* ───────────────── STEP 3: Credentials & Launch ───────────────── */}
           {step === 3 && (
             <div>
               <div className="su-success-banner">
                 <div className="su-success-icon">✓</div>
-                <h3 style={{ fontSize: 20, color: '#0f172a', margin: '0 0 6px' }}>
-                  Township Registered &amp; Activated!
-                </h3>
+                <h3 style={{ fontSize: 20, color: '#0f172a', margin: '0 0 6px' }}>Township Registered &amp; Activated!</h3>
                 <p style={{ fontSize: 14, color: '#64748b', margin: 0 }}>
                   Your official <strong>Township COO</strong> credentials have been provisioned.
                 </p>
@@ -531,7 +359,6 @@ export default function SignUpModal({ isOpen, onClose, onOpenLogin, onSignUpSucc
                 </div>
               </div>
 
-              {/* Password Setting / Updating Section */}
               <div className="su-pwd-change-box">
                 <div className="su-pwd-change-title">
                   <span>Security &amp; Password</span>
@@ -560,11 +387,7 @@ export default function SignUpModal({ isOpen, onClose, onOpenLogin, onSignUpSucc
                         style={{ flex: 1 }}
                         required
                       />
-                      <button
-                        type="submit"
-                        className="su-btn su-btn-primary"
-                        disabled={passwordUpdateLoading}
-                      >
+                      <button type="submit" className="su-btn su-btn-primary" disabled={passwordUpdateLoading}>
                         {passwordUpdateLoading ? 'Saving...' : 'Set Password'}
                       </button>
                     </div>
@@ -585,19 +408,11 @@ export default function SignUpModal({ isOpen, onClose, onOpenLogin, onSignUpSucc
           )}
         </div>
 
-        {/* Footer */}
         <div className="su-footer">
           {step === 1 && (
             <>
-              <button type="button" className="su-btn su-btn-secondary" onClick={onClose}>
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form="signup-step1-form"
-                className="su-btn su-btn-primary"
-                disabled={!isStep1Valid}
-              >
+              <button type="button" className="su-btn su-btn-secondary" onClick={onClose}>Cancel</button>
+              <button type="submit" form="signup-step1-form" className="su-btn su-btn-primary" disabled={!isStep1Valid}>
                 Continue to Plan Selection &rarr;
               </button>
             </>
@@ -605,20 +420,10 @@ export default function SignUpModal({ isOpen, onClose, onOpenLogin, onSignUpSucc
 
           {step === 2 && (
             <>
-              <button
-                type="button"
-                className="su-btn su-btn-secondary"
-                onClick={() => setStep(1)}
-                disabled={loading}
-              >
+              <button type="button" className="su-btn su-btn-secondary" onClick={() => setStep(1)} disabled={loading}>
                 &larr; Back to Details
               </button>
-              <button
-                type="button"
-                className="su-btn su-btn-primary"
-                onClick={handleActivateSubscription}
-                disabled={loading}
-              >
+              <button type="button" className="su-btn su-btn-primary" onClick={handleActivateSubscription} disabled={loading}>
                 {loading ? 'Activating Township...' : 'Confirm & Activate Township Subscription ✓'}
               </button>
             </>
@@ -629,18 +434,13 @@ export default function SignUpModal({ isOpen, onClose, onOpenLogin, onSignUpSucc
               <div style={{ fontSize: 12, color: '#64748b' }}>
                 Departments &amp; desk clerk staff can be created inside the portal.
               </div>
-              <button
-                type="button"
-                className="su-btn su-btn-launch"
-                onClick={handleLaunchDirectorate}
-              >
+              <button type="button" className="su-btn su-btn-launch" onClick={handleLaunchDirectorate}>
                 Launch COO Directorate &rarr;
               </button>
             </>
           )}
         </div>
 
-        {/* Toggle link to Sign In */}
         {step === 1 && (
           <div className="su-login-link" style={{ paddingBottom: 16 }}>
             Already an official staff member or RWA?{' '}
