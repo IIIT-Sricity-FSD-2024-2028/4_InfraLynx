@@ -3,7 +3,7 @@ import { authenticate, requireSuperAdmin } from '../middleware/auth.js';
 import {
   getOverview,
   getTenants, createTenant, getTenantById, updateTenant, updateTenantStatus, updateSubscription,
-  getUsers, createUser, updateUserStatus, updateUser, resetUserPassword, deleteUser,
+  getUsers, createUser, updateUserStatus, updateUser, resetUserPassword,
   getGlobalConfig, updateGlobalConfig,
   getDepartments, createDepartment,
   getContractors, createContractor,
@@ -33,7 +33,6 @@ router.post('/users', createUser);
 router.patch('/users/:id', updateUser);
 router.patch('/users/:id/status', updateUserStatus);
 router.post('/users/:id/reset-password', resetUserPassword);
-router.delete('/users/:id', deleteUser);
 
 // ── Global Config ─────────────────────────────────────────────────────────────
 router.get('/config', getGlobalConfig);

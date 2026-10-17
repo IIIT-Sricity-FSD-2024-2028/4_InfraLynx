@@ -769,10 +769,6 @@ export const superAdminApi = {
     const res = await apiRequest(`/super-admin/users/${id}/reset-password`, { method: 'POST', body: JSON.stringify({ new_password }) });
     return res;
   },
-  async deleteUser(id) {
-    const res = await apiRequest(`/super-admin/users/${id}`, { method: 'DELETE' });
-    return res;
-  },
 
   // Config
   async getConfig() {
