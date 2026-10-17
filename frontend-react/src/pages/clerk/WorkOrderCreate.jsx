@@ -1,64 +1,56 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 import { clerkApi } from '../../services/api.js'
 import './styles/WorkOrderCreate.css'
 
 /**
- * WorkOrderCreate - Screen 3: Assign contractor, set priority & instructions, and dispatch.
- *
- * Props:
- *   selectedComplaint             - validated complaint (null -> empty state)
- *   onNavigate(screen)            - navigate to another screen
- *   onWorkOrderCreated(complaint) - callback after dispatch; receives enriched complaint
- *
- * Context:
- *   complaints, contractors, currentUser, refreshComplaints, updateComplaintStatus
- *
- * Local state:
- *   selectedContractorId - chosen contractor (auto-defaults to first match)
- *   priority             - 'Emergency' | 'High' | 'Medium' | 'Low'
- *   specialInstructions  - free-text for contractor
- *
- * On dispatch:
- *   - generates workOrderId: WO-YYYY-NNNN
- *   - calls clerkApi.createWorkOrder
- *   - transitions complaint status -> ASSIGNED
- *   - calls onWorkOrderCreated with enriched complaint object (for toast)
+ * Priority tiers available for Work Order dispatch
+ */
+const PRIORITIES = ['Emergency', 'High', 'Medium', 'Low']
+
+/**
+ * WorkOrderCreate - Screen 3: Desk Clerk assigns an authorized AMC contractor,
+ * configures execution priority and site instructions, and issues the Work Order.
  */
 export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkOrderCreated }) {
-  const { contractors = [], currentUser, refreshComplaints, refreshMasterData, updateComplaintStatus } = useTIMS()
+  const {
+    complaints = [],
+    contractors = [],
+    currentUser,
+    refreshComplaints,
+    refreshMasterData,
+    updateComplaintStatus,
+  } = useTIMS()
 
+  // Ensure fresh master data (e.g. empanelled contractors and rate cards)
   useEffect(() => {
-    if (typeof refreshMasterData === 'function') {
-      refreshMasterData()
-    }
+    if (typeof refreshMasterData === 'function') refreshMasterData()
   }, [refreshMasterData])
 
-  // Live-sync selected complaint
+  // Synchronize active complaint with global context
   const active = useMemo(() => {
     if (!selectedComplaint) return null
     return complaints.find(c => c.id === selectedComplaint.id) || selectedComplaint
   }, [complaints, selectedComplaint])
 
+  // Form State
   const [selectedContractorId, setSelectedContractorId] = useState('')
-  const [priority,             setPriority]             = useState('Medium')
-  const [specialInstructions,  setSpecialInstructions]  = useState('')
-  const [isSubmitting,         setIsSubmitting]         = useState(false)
+  const [priority, setPriority]                         = useState('Medium')
+  const [specialInstructions, setSpecialInstructions]   = useState('')
+  const [isSubmitting, setIsSubmitting]                 = useState(false)
 
-  // Filter contractors by complaint category with intelligent category matching & safe fallback
+  // Filter empanelled AMC contractors matching the complaint's civic category
   const filteredContractors = useMemo(() => {
     if (!contractors || contractors.length === 0) return []
     if (!active || !active.category) return contractors
 
     const cat = (active.category || '').toLowerCase()
     const matches = contractors.filter(c => {
-      if (!c.departments || !Array.isArray(c.departments) || c.departments.length === 0) {
-        return false
-      }
+      if (!c.departments || !Array.isArray(c.departments) || c.departments.length === 0) return false
       return c.departments.some(deptName => {
         const d = (deptName || '').toLowerCase()
         if (d === cat || d.includes(cat) || cat.includes(d)) return true
-        // Category synonyms
+        // Synonym matches across related civic disciplines
         if ((cat.includes('civil') || cat.includes('road') || cat.includes('pothole')) && (d.includes('civil') || d.includes('road'))) return true
         if ((cat.includes('elect') || cat.includes('power') || cat.includes('light')) && (d.includes('elect') || d.includes('power'))) return true
         if ((cat.includes('water') || cat.includes('drain') || cat.includes('sanitat') || cat.includes('plumb') || cat.includes('sewage')) && (d.includes('water') || d.includes('sanitat') || d.includes('drain'))) return true
@@ -70,30 +62,25 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
     return matches.length > 0 ? matches : contractors
   }, [contractors, active])
 
-  // Auto-select contractor: prefer the one assigned during verification, or first match for the complaint's category
+  // Auto-select preferred contractor or default to the first matching vendor
   useEffect(() => {
     if (!active) return
-
     const activeContractorId = active.assignedContractor?.id || active.assigned_contractor_id || active.contractor_id
     if (activeContractorId && filteredContractors.some(c => c.id === activeContractorId)) {
       setSelectedContractorId(activeContractorId)
       return
     }
-
     if (filteredContractors.length > 0) {
-      const isCurrentValid = filteredContractors.some(c => c.id === selectedContractorId)
-      if (!isCurrentValid) {
-        setSelectedContractorId(filteredContractors[0].id)
-      }
+      setSelectedContractorId(prev => filteredContractors.some(c => c.id === prev) ? prev : filteredContractors[0].id)
     } else {
       setSelectedContractorId('')
     }
-  }, [filteredContractors, active?.id, active?.category])
+  }, [filteredContractors, active])
 
   /**
-   * handleDispatch - creates Work Order and assigns contractor in backend, transitions complaint status.
+   * Dispatch Work Order: Creates backend WO record and updates ticket status -> ASSIGNED
    */
-  async function handleDispatch(e) {
+  const handleDispatch = useCallback(async (e) => {
     e.preventDefault()
     if (!active) return
     if (!selectedContractorId) {
@@ -103,10 +90,10 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
 
     const contractor = contractors.find(c => c.id === selectedContractorId)
     const newStatus = 'ASSIGNED'
-
     setIsSubmitting(true)
+
     try {
-      // 1. Create work order in backend
+      // 1. Submit work order payload to backend API
       const res = await clerkApi.createWorkOrder({
         complaint_id: active.id,
         complaintId: active.id,
@@ -121,7 +108,7 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
       const woCode = woData?.work_order_number || `WO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
       const assignedContractor = woData?.contractor || contractor
 
-      // 2. Fetch updated complaints from database
+      // 2. Refresh database complaints
       const freshComplaints = await refreshComplaints()
       const updatedComplaint = freshComplaints.find(c => c.id === active.id) || {
         ...active,
@@ -140,7 +127,6 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
         created_at: new Date().toISOString(),
       }
 
-      // 3. Complete dispatch callback
       onWorkOrderCreated(updatedComplaint)
     } catch (err) {
       console.error('[WorkOrderCreate] Error creating work order:', err)
@@ -166,9 +152,9 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
     } finally {
       setIsSubmitting(false)
     }
-  }
+  }, [active, selectedContractorId, priority, specialInstructions, contractors, refreshComplaints, updateComplaintStatus, onWorkOrderCreated])
 
-  // ── Empty state ────────────────────────────────────────────────────────────
+  // ── Empty State: No complaint selected ───────────────────────────────────
   if (!active) {
     return (
       <div className="wo-root">
@@ -176,18 +162,14 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
         <div className="wo-card wo-empty-card">
           <div className="wo-empty-icon">&#128196;</div>
           <div className="wo-empty-title">No validated complaint selected</div>
-          <p className="wo-empty-desc">
-            Go to Dashboard, click a validated complaint, then press &ldquo;Create Work Order&rdquo;.
-          </p>
-          <button onClick={() => onNavigate('dashboard')} className="wo-btn-back wo-btn-back-spacer">
-            &#8592; Back to Dashboard
-          </button>
+          <p className="wo-empty-desc">Go to Dashboard, click a validated complaint, then press &ldquo;Create Work Order&rdquo;.</p>
+          <button onClick={() => onNavigate('dashboard')} className="wo-btn-back wo-btn-back-spacer">&#8592; Back to Dashboard</button>
         </div>
       </div>
     )
   }
 
-  // ── Wrong status guard ─────────────────────────────────────────────────────
+  // ── Guard: Ensure complaint is VALIDATED before raising work order ────────
   if (active.status !== 'VALIDATED' && active.status !== 'AWAITING_DEPT_HEAD') {
     return (
       <div className="wo-root">
@@ -195,20 +177,24 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
         <div className="wo-card wo-empty-card">
           <div className="wo-empty-icon">&#9888;</div>
           <div className="wo-empty-title">
-            {active.workOrderId
-              ? `Work Order ${active.workOrderId} already created.`
-              : `Status "${active.status}" does not allow WO creation.`}
+            {active.workOrderId ? `Work Order ${active.workOrderId} already created.` : `Status "${active.status}" does not allow WO creation.`}
           </div>
-          <button
-            onClick={() => onNavigate(active.workOrderId ? 'tracker' : 'triage')}
-            className="wo-btn-back wo-btn-back-spacer"
-          >
+          <button onClick={() => onNavigate(active.workOrderId ? 'tracker' : 'triage')} className="wo-btn-back wo-btn-back-spacer">
             {active.workOrderId ? 'View in Tracker' : 'Go to Triage'}
           </button>
         </div>
       </div>
     )
   }
+
+  // Structured summary strip for the target complaint
+  const refItems = [
+    { label: 'Complaint ID', val: active.id, mono: true },
+    { label: 'Title', val: active.title },
+    { label: 'Category', val: `${active.category} • ${active.subCategory || active.subcategory || ''}` },
+    { label: 'Location', val: `${active.location?.block || 'Block A'}, ${active.location?.sector || 'Sector 54'}` },
+    { label: 'Status', val: 'VALIDATED ✓', validated: true },
+  ]
 
   return (
     <div className="wo-root">
@@ -221,18 +207,18 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
         </div>
       </div>
 
-      {/* Complaint reference strip */}
+      {/* Complaint Reference Banner */}
       <div className="wo-ref-strip">
-        <div className="wo-ref-item"><span className="wo-ref-label">Complaint ID</span><span className="wo-ref-val mono">{active.id}</span></div>
-        <div className="wo-ref-item"><span className="wo-ref-label">Title</span><span className="wo-ref-val">{active.title}</span></div>
-        <div className="wo-ref-item"><span className="wo-ref-label">Category</span><span className="wo-ref-val">{active.category} &bull; {active.subCategory || active.subcategory || ''}</span></div>
-        <div className="wo-ref-item"><span className="wo-ref-label">Location</span><span className="wo-ref-val">{active.location?.block || 'Block A'}, {active.location?.sector || 'Sector 54'}</span></div>
-        <div className="wo-ref-item"><span className="wo-ref-label">Status</span><span className="wo-ref-val wo-ref-val-validated">VALIDATED &#10003;</span></div>
+        {refItems.map(({ label, val, mono, validated }) => (
+          <div key={label} className="wo-ref-item">
+            <span className="wo-ref-label">{label}</span>
+            <span className={`wo-ref-val${mono ? ' mono' : validated ? ' wo-ref-val-validated' : ''}`}>{val}</span>
+          </div>
+        ))}
       </div>
 
       <form className="wo-form-card" onSubmit={handleDispatch}>
-
-        {/* Section 1: Contractor Assignment */}
+        {/* Section 1: Empanelled AMC Contractor Selection */}
         <div className="wo-section">
           <div className="wo-section-title">1. Contractor Assignment</div>
           {filteredContractors.length === 0 ? (
@@ -256,11 +242,11 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
           )}
         </div>
 
-        {/* Section 2: Priority */}
+        {/* Section 2: Priority Selection */}
         <div className="wo-section">
           <div className="wo-section-title">2. Work Order Priority</div>
           <div className="wo-priority-grid">
-            {['Emergency', 'High', 'Medium', 'Low'].map(p => (
+            {PRIORITIES.map(p => (
               <div
                 key={p}
                 onClick={() => setPriority(p)}
@@ -272,7 +258,7 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
           </div>
         </div>
 
-        {/* Section 3: Special Instructions */}
+        {/* Section 3: Special Site Instructions */}
         <div className="wo-section">
           <div className="wo-section-title">3. Special Instructions for Contractor</div>
           <textarea
@@ -284,7 +270,7 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
           />
         </div>
 
-        {/* Actions */}
+        {/* Action Controls */}
         <div className="wo-form-actions">
           <button type="button" className="wo-btn-cancel" onClick={() => onNavigate('dashboard')}>Cancel</button>
           <button

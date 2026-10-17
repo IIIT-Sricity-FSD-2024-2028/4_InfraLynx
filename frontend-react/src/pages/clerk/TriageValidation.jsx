@@ -1,8 +1,22 @@
 import { useState, useMemo } from 'react'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 import { clerkApi } from '../../services/api.js'
+import { isComplaintInClerkDepartment } from './ClerkPortal.jsx'
 import './styles/TriageValidation.css'
 
+/**
+ * Status badge styling configuration
+ */
+const STATUS_BADGES = {
+  REPORTED:     { label: 'Reported',     bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+  UNDER_REVIEW: { label: 'Under Review', bg: '#fffbeb', color: '#92400e', border: '#fde68a' },
+  VALIDATED:    { label: 'Validated',    bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
+  REJECTED:     { label: 'Rejected',     bg: '#fef2f2', color: '#991b1b', border: '#fecaca' },
+}
+
+/**
+ * Formats timestamps safely into localized strings or 'Recently'
+ */
 function formatSafeDate(dateVal) {
   if (!dateVal) return 'Recently'
   const d = new Date(dateVal)
@@ -10,93 +24,70 @@ function formatSafeDate(dateVal) {
 }
 
 /**
- * TriageValidation - Screen 2: Clerk validates or rejects a complaint.
+ * TriageValidation - Screen 2: Desk Clerk complaint verification & triage.
  *
- * Props:
- *   selectedComplaint            - complaint to review (null shows a picker list)
- *   onNavigate(screen)           - navigate to another screen
- *   onSelectComplaint(complaint) - update selected complaint in portal state
- *
- * Context:
- *   complaints            - live list (re-synced via useMemo so UI updates instantly)
- *   currentUser           - clerk user info
- *   updateComplaintStatus - transitions status + appends history entry
- *
- * Status transitions:
- *   REPORTED     -> UNDER_REVIEW   (auto on open)
- *   UNDER_REVIEW -> VALIDATED      (clerk clicks Validate)
- *   UNDER_REVIEW -> REJECTED       (clerk submits rejection form)
- *
- * Local state:
- *   isRejecting      - toggles rejection form visibility
- *   rejectionReason  - selected reason from dropdown
- *   rejectionRemarks - optional free-text remarks
+ * Lifecycle Transitions:
+ *   REPORTED     -> UNDER_REVIEW  (auto-triggered when clerk opens complaint for inspection)
+ *   UNDER_REVIEW -> VALIDATED     (clerk confirms location, category, severity, and photo validity)
+ *   UNDER_REVIEW -> REJECTED      (clerk rejects ticket with reason and formal remarks)
  */
-export default function TriageValidation({ complaints: propComplaints, selectedComplaint, onNavigate, onSelectComplaint, onComplaintUpdated }) {
+export default function TriageValidation({
+  complaints: propComplaints,
+  selectedComplaint,
+  onNavigate,
+  onSelectComplaint,
+  onComplaintUpdated,
+}) {
+  // Context state for global complaint updates and logged-in user details
   const { complaints: contextComplaints = [], currentUser, updateComplaintStatus } = useTIMS()
 
-  // Filter complaints by clerk's department
+  // Filter complaints strictly matching the Desk Clerk's assigned department
   const complaints = useMemo(() => {
     if (propComplaints) return propComplaints
-    if (!currentUser || currentUser.role !== 'DESK_CLERK') return contextComplaints
-    const deptId = currentUser.department_id
-    const deptName = (currentUser.department_name || '').toLowerCase()
-    if (!deptId && !deptName) return contextComplaints
-
-    return contextComplaints.filter(c => {
-      const cDeptId = c.department_id
-      if (deptId && cDeptId && String(cDeptId) === String(deptId)) return true
-      const cCat = (c.category || c.department_name || '').toLowerCase()
-      if (deptName && cCat) {
-        if (deptName.includes(cCat) || cCat.includes(deptName)) return true
-        if (deptName.includes('electr') && cCat.includes('electr')) return true
-        if (deptName.includes('water') && (cCat.includes('water') || cCat.includes('sanitat') || cCat.includes('plumb') || cCat.includes('drain'))) return true
-        if (deptName.includes('civil') && (cCat.includes('civil') || cCat.includes('road'))) return true
-        if (deptName.includes('horticult') && (cCat.includes('horticult') || cCat.includes('garden'))) return true
-      }
-      if (deptId && cDeptId) return String(cDeptId) === String(deptId)
-      return false
-    })
+    return contextComplaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
   }, [propComplaints, contextComplaints, currentUser])
 
-  const [isRejecting,      setIsRejecting]      = useState(false)
-  const [rejectionReason,  setRejectionReason]  = useState('Duplicate Complaint')
+  // Form states for rejection workflow
+  const [isRejecting, setIsRejecting]           = useState(false)
+  const [rejectionReason, setRejectionReason]   = useState('Duplicate Complaint')
   const [rejectionRemarks, setRejectionRemarks] = useState('')
-  const [isSubmitting,     setIsSubmitting]     = useState(false)
+  const [isSubmitting, setIsSubmitting]         = useState(false)
 
-  // Live-sync selected complaint so UI reflects status changes immediately
+  // Synchronize the currently active complaint with live state
   const active = useMemo(() => {
     if (!selectedComplaint) return null
     return complaints.find(c => c.id === selectedComplaint.id) || selectedComplaint
   }, [complaints, selectedComplaint])
 
-  // All complaints that still need triage (for picker list & switcher)
-  const triageable = complaints.filter(c => c.status === 'REPORTED' || c.status === 'UNDER_REVIEW')
+  // Complaints currently awaiting review or triage
+  const triageable = useMemo(() => (
+    complaints.filter(c => c.status === 'REPORTED' || c.status === 'UNDER_REVIEW')
+  ), [complaints])
 
-  /** Open complaint for review. Auto-transitions REPORTED -> UNDER_REVIEW */
+  /**
+   * Automatically transition complaint from REPORTED -> UNDER_REVIEW when opened
+   */
   async function handleOpen(complaint) {
     onSelectComplaint(complaint)
     if (complaint.status === 'REPORTED') {
       try {
         const res = await clerkApi.triageComplaint(complaint.id)
-        const updated = {
-          ...(res?.data || res || complaint),
-          status: 'UNDER_REVIEW',
-        }
-        if (onComplaintUpdated) {
-          onComplaintUpdated(updated)
-        }
+        const updated = { ...(res?.data || res || complaint), status: 'UNDER_REVIEW' }
+        if (onComplaintUpdated) onComplaintUpdated(updated)
       } catch (err) {
         console.warn('[TriageValidation] Triage notice:', err.message)
       }
       updateComplaintStatus?.(
-        complaint.id, 'UNDER_REVIEW',
+        complaint.id,
+        'UNDER_REVIEW',
         `Desk Clerk (${currentUser?.name || 'Staff'}) opened complaint for review.`
       )
     }
   }
 
-  /** Validate the active complaint -> VALIDATED */
+  /**
+   * Validate complaint: Marks ticket VALIDATED, unlocks work order dispatch
+   */
   async function handleValidate() {
     if (!active || isSubmitting) return
     setIsSubmitting(true)
@@ -115,11 +106,10 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
           },
         ],
       }
-      if (onComplaintUpdated) {
-        onComplaintUpdated(updated)
-      }
+      if (onComplaintUpdated) onComplaintUpdated(updated)
       updateComplaintStatus?.(
-        active.id, 'VALIDATED',
+        active.id,
+        'VALIDATED',
         `Validated by Desk Clerk (${currentUser?.name || 'Staff'}). All fields verified. Ready for Work Order creation.`
       )
       setIsRejecting(false)
@@ -131,7 +121,9 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
     }
   }
 
-  /** Submit rejection form -> REJECTED */
+  /**
+   * Reject complaint: Marks ticket REJECTED with mandatory audit remarks
+   */
   async function handleReject(e) {
     e.preventDefault()
     if (!active || isSubmitting) return
@@ -153,11 +145,10 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
           },
         ],
       }
-      if (onComplaintUpdated) {
-        onComplaintUpdated(updated)
-      }
+      if (onComplaintUpdated) onComplaintUpdated(updated)
       updateComplaintStatus?.(
-        active.id, 'REJECTED',
+        active.id,
+        'REJECTED',
         `Rejected by ${currentUser?.name || 'Staff'}. Reason: "${rejectionReason}". Remarks: "${rejectionRemarks || 'None'}".`
       )
       setIsRejecting(false)
@@ -170,18 +161,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
     }
   }
 
-  // Helper: status badge display props
-  function badge(status) {
-    const m = {
-      REPORTED:     { label: 'Reported',     bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
-      UNDER_REVIEW: { label: 'Under Review', bg: '#fffbeb', color: '#92400e', border: '#fde68a' },
-      VALIDATED:    { label: 'Validated',    bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
-      REJECTED:     { label: 'Rejected',     bg: '#fef2f2', color: '#991b1b', border: '#fecaca' },
-    }
-    return m[status] || { label: status, bg: '#f1f5f9', color: '#475569', border: '#e2e8f0' }
-  }
-
-  // ── No complaint selected: show picker list ───────────────────────────────
+  // ── Render Picker View when no complaint is selected ──────────────────────
   if (!active) {
     return (
       <div className="tv-root">
@@ -200,13 +180,13 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
         ) : (
           <div className="tv-picker-list">
             {triageable.map(c => {
-              const b = badge(c.status)
+              const b = STATUS_BADGES[c.status] || { label: c.status, bg: '#f1f5f9', color: '#475569', border: '#e2e8f0' }
               return (
                 <div key={c.id} className="tv-picker-row" onClick={() => handleOpen(c)}>
                   <div>
                     <span className="tv-picker-id">{c.id}</span>
                     <span className="tv-picker-title">{c.title}</span>
-                    <div className="tv-picker-meta">{c.category} &bull; {c.location.sector}, {c.location.block}</div>
+                    <div className="tv-picker-meta">{c.category} &bull; {c.location?.sector}, {c.location?.block}</div>
                   </div>
                   <div className="tv-picker-right">
                     <span className="tv-badge-pill" style={{ background: b.bg, color: b.color, borderColor: b.border }}>
@@ -224,15 +204,26 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
   }
 
   const isActed = active.status === 'VALIDATED' || active.status === 'REJECTED'
-  const catCls  = active.category === 'Electrical' ? 'electrical' : active.category === 'Water' ? 'water' : active.category === 'Horticulture' ? 'horticulture' : 'civil'
-  const sevCls  = active.severity === 'Emergency'  ? 'emergency'  : active.severity === 'High'  ? 'high' : 'normal'
-  const b       = badge(active.status)
+  const catCls  = (active.category || '').toLowerCase()
+  const sevCls  = active.severity === 'Emergency' ? 'emergency' : active.severity === 'High' ? 'high' : 'normal'
+  const b       = STATUS_BADGES[active.status] || { label: active.status, bg: '#f1f5f9', color: '#475569', border: '#e2e8f0' }
+
+  // Clean data attributes for the complaint detail card
+  const attributeList = [
+    { label: 'Category', value: `${active.category} (${active.subCategory || active.subcategory || ''})` },
+    { label: 'Severity', value: active.severity },
+    { label: 'Sector/Block', value: `${active.location?.sector || 'Sector 54'} — ${active.location?.block || 'Block A'}` },
+    { label: 'Street', value: active.location?.street || '—' },
+    { label: 'Asset ID', value: active.location?.assetId || 'ASSET-GEN-01', mono: true },
+    { label: 'Asset Name', value: active.location?.assetName || 'Municipal Asset' },
+    { label: 'Landmark', value: active.location?.landmark || '—' },
+  ]
 
   return (
     <div className="tv-root">
       <button className="tv-back-btn" onClick={() => onNavigate('dashboard')}>&#8592; Back to Dashboard</button>
 
-      {/* Header + complaint switcher */}
+      {/* Header and complaint switcher */}
       <div className="tv-header">
         <div>
           <h1 className="tv-title">Triage &amp; Validate</h1>
@@ -252,7 +243,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
         )}
       </div>
 
-      {/* Already acted banner */}
+      {/* Banner shown if already validated or rejected */}
       {isActed && (
         <div className={`tv-acted-banner${active.status === 'VALIDATED' ? ' validated' : ' rejected'}`}>
           <strong>
@@ -268,12 +259,12 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
         </div>
       )}
 
-      {/* Complaint detail card */}
+      {/* Complaint Detail Card */}
       <div className="tv-card">
         <div className="tv-card-top">
           <div className="tv-id-row">
             <span className="tv-id-pill">{active.id}</span>
-            <span className={`tv-cat-pill ${catCls}`}>{active.category} &bull; {active.subCategory}</span>
+            <span className={`tv-cat-pill ${catCls}`}>{active.category} &bull; {active.subCategory || active.subcategory || ''}</span>
             <span className={`tv-sev-pill ${sevCls}`}>{active.severity} Severity</span>
           </div>
           <span className="tv-status-badge" style={{ background: b.bg, color: b.color, borderColor: b.border }}>
@@ -284,34 +275,26 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
         <h2 className="tv-complaint-title">{active.title}</h2>
         <p className="tv-complaint-desc">{active.description}</p>
 
-        {/* Attribute grid */}
+        {/* Structured complaint attributes */}
         <div className="tv-attrs">
-          {[
-            { label: 'Category',      value: `${active.category} (${active.subCategory})` },
-            { label: 'Severity',      value: active.severity },
-            { label: 'Sector/Block',  value: `${active.location.sector} — ${active.location.block}` },
-            { label: 'Street',        value: active.location.street || '—' },
-            { label: 'Asset ID',      value: active.location.assetId, mono: true },
-            { label: 'Asset Name',    value: active.location.assetName },
-            { label: 'Landmark',      value: active.location.landmark || '—' },
-          ].map(a => (
-            <div key={a.label} className="tv-attr-item">
-              <span className="tv-attr-label">{a.label}</span>
-              <span className={`tv-attr-val${a.mono ? ' mono' : ''}`}>{a.value}</span>
+          {attributeList.map(({ label, value, mono }) => (
+            <div key={label} className="tv-attr-item">
+              <span className="tv-attr-label">{label}</span>
+              <span className={`tv-attr-val${mono ? ' mono' : ''}`}>{value}</span>
             </div>
           ))}
         </div>
 
-        {/* Reporter info */}
+        {/* Reporter information */}
         <div className="tv-reporter">
-          <div><span className="tv-attr-label">Reported By</span><strong>{active.reportedBy ? active.reportedBy.name : 'RWA Representative'}</strong></div>
-          <div><span className="tv-attr-label">Role</span><strong>{active.reportedBy ? active.reportedBy.role.toUpperCase() : 'RWA'}</strong></div>
-          <div><span className="tv-attr-label">Sector</span><strong>{active.reportedBy ? active.reportedBy.sector : active.location.sector}</strong></div>
+          <div><span className="tv-attr-label">Reported By</span><strong>{active.reportedBy?.name || 'RWA Representative'}</strong></div>
+          <div><span className="tv-attr-label">Role</span><strong>{(active.reportedBy?.role || 'RWA').toUpperCase()}</strong></div>
+          <div><span className="tv-attr-label">Sector</span><strong>{active.reportedBy?.sector || active.location?.sector || 'Sector 54'}</strong></div>
           <div><span className="tv-attr-label">Filed At</span><strong>{formatSafeDate(active.createdAt || active.created_at)}</strong></div>
         </div>
 
-        {/* Photo evidence */}
-        {active.beforePhotos && active.beforePhotos.length > 0 && (
+        {/* Photographic evidence submitted by resident */}
+        {active.beforePhotos?.length > 0 && (
           <div>
             <span className="tv-attr-label tv-attr-label-block">Site Evidence Photos</span>
             <div className="tv-photos">
@@ -323,7 +306,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
         )}
       </div>
 
-      {/* Decision panel — only shown when complaint not yet acted on */}
+      {/* Decision Panel (shown only when pending review) */}
       {!isActed && (
         <div className="tv-decision-card">
           <h2 className="tv-decision-title">Clerk Decision</h2>
@@ -331,13 +314,11 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
             Review the details above carefully. Validate to proceed, or reject with a documented reason.
           </p>
 
-          {/* Option A: Validate */}
-          {!isRejecting && (
+          {!isRejecting ? (
+            /* Option A: Validate Action Box */
             <div className="tv-validate-box">
               <h3 className="tv-validate-heading">Option A — Validate Complaint</h3>
-              <p className="tv-validate-subtext">
-                Confirm all fields are accurate and the issue is within township jurisdiction.
-              </p>
+              <p className="tv-validate-subtext">Confirm all fields are accurate and the issue is within township jurisdiction.</p>
               <ul className="tv-checklist">
                 <li>&#10003; Location verified within township limits</li>
                 <li>&#10003; Category and sub-category correctly assigned</li>
@@ -359,10 +340,8 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
                 </button>
               </div>
             </div>
-          )}
-
-          {/* Option B: Reject form */}
-          {isRejecting && (
+          ) : (
+            /* Option B: Reject Form */
             <form className="tv-reject-box" onSubmit={handleReject}>
               <div className="tv-reject-top">
                 <h3 className="tv-reject-heading">Option B — Reject Complaint</h3>
@@ -404,7 +383,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
         </div>
       )}
 
-      {/* Audit trail */}
+      {/* Immutable Complaint Audit Trail */}
       <div className="tv-audit-card">
         <h3 className="tv-audit-title">Complaint Audit Trail</h3>
         <div className="tv-audit-list">
@@ -415,7 +394,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
                 <div className="tv-audit-header">
                   <span className="tv-audit-stage">{ev.stage}</span>
                   <strong className="tv-audit-actor">{ev.actor}</strong>
-                  <span className="tv-audit-time">{new Date(ev.timestamp).toLocaleString()}</span>
+                  <span className="tv-audit-time">{formatSafeDate(ev.timestamp)}</span>
                 </div>
                 <div className="tv-audit-note">{ev.note}</div>
               </div>
