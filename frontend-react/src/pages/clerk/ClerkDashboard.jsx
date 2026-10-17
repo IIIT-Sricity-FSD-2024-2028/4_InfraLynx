@@ -43,7 +43,7 @@ export default function ClerkDashboard({
   complaints: propComplaints,
   onNavigate, onSelectComplaint, successNotice, onDismissNotice,
 }) {
-  const { complaints: contextComplaints, currentUser } = useTIMS()
+  const { complaints: contextComplaints = [], currentUser } = useTIMS()
 
   const complaints = useMemo(() => {
     if (propComplaints) return propComplaints

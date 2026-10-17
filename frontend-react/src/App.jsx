@@ -5,8 +5,6 @@ import Nav from './components/landing/Nav.jsx'
 import Hero from './components/landing/Hero.jsx'
 import Features from './components/landing/Features.jsx'
 import Roles from './components/landing/Roles.jsx'
-import Pricing from './components/landing/Pricing.jsx'
-import Contact from './components/landing/Contact.jsx'
 import Footer from './components/landing/Footer.jsx'
 import AuthModal from './components/auth/AuthModal.jsx'
 import SignUpModal from './components/auth/SignUpModal.jsx'
@@ -249,11 +247,11 @@ function AppContent() {
               if (currentUser) {
                 const target =
                   currentUser.role === 'TOWNSHIP_COO' ? 'coo' :
-                  currentUser.role === 'FINANCE_CLERK' ? 'finance' :
-                  currentUser.role === 'DESK_CLERK' ? 'clerk' :
-                  currentUser.role === 'DEPARTMENT_HEAD' ? 'dept_head' :
-                  currentUser.role === 'FIELD_CONTRACTOR' ? 'contractor' :
-                  currentUser.role === 'SUPER_ADMIN' ? 'superadmin' : 'rwa'
+                    currentUser.role === 'FINANCE_CLERK' ? 'finance' :
+                      currentUser.role === 'DESK_CLERK' ? 'clerk' :
+                        currentUser.role === 'DEPARTMENT_HEAD' ? 'dept_head' :
+                          currentUser.role === 'FIELD_CONTRACTOR' ? 'contractor' :
+                            currentUser.role === 'SUPER_ADMIN' ? 'superadmin' : 'rwa'
                 setViewMode(target)
                 updateUrlForPortal(target)
               } else {
@@ -264,12 +262,10 @@ function AppContent() {
           />
           <main style={{ flex: 1 }}>
             <Hero onOpenAuth={handleOpenAuth} />
-            <Roles onOpenAuth={handleOpenAuth} />
+            <Roles />
             <Features />
-            <Pricing onOpenAuth={handleOpenAuth} />
-            <Contact />
           </main>
-          <Footer onOpenAuth={handleOpenAuth} />
+          <Footer />
 
           <AuthModal
             isOpen={authOpen}

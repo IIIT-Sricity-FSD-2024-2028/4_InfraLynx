@@ -39,7 +39,7 @@ export default function TriageValidation({
   onComplaintUpdated,
 }) {
   // Context state for global complaint updates and logged-in user details
-  const { complaints: contextComplaints, currentUser, updateComplaintStatus } = useTIMS()
+  const { complaints: contextComplaints = [], currentUser, updateComplaintStatus } = useTIMS()
 
   // Filter complaints strictly matching the Desk Clerk's assigned department
   const complaints = useMemo(() => {
@@ -77,7 +77,7 @@ export default function TriageValidation({
       } catch (err) {
         console.warn('[TriageValidation] Triage notice:', err.message)
       }
-      updateComplaintStatus(
+      updateComplaintStatus?.(
         complaint.id,
         'UNDER_REVIEW',
         `Desk Clerk (${currentUser?.name || 'Staff'}) opened complaint for review.`
@@ -107,7 +107,7 @@ export default function TriageValidation({
         ],
       }
       if (onComplaintUpdated) onComplaintUpdated(updated)
-      updateComplaintStatus(
+      updateComplaintStatus?.(
         active.id,
         'VALIDATED',
         `Validated by Desk Clerk (${currentUser?.name || 'Staff'}). All fields verified. Ready for Work Order creation.`
@@ -146,7 +146,7 @@ export default function TriageValidation({
         ],
       }
       if (onComplaintUpdated) onComplaintUpdated(updated)
-      updateComplaintStatus(
+      updateComplaintStatus?.(
         active.id,
         'REJECTED',
         `Rejected by ${currentUser?.name || 'Staff'}. Reason: "${rejectionReason}". Remarks: "${rejectionRemarks || 'None'}".`

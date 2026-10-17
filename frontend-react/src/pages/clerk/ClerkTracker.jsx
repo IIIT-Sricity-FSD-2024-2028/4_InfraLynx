@@ -47,7 +47,7 @@ function formatSafeDate(dateVal) {
 }
 
 export default function ClerkTracker({ complaints: propComplaints, selectedComplaint, onNavigate, onSelectComplaint }) {
-  const { complaints: contextComplaints, currentUser } = useTIMS()
+  const { complaints: contextComplaints = [], currentUser } = useTIMS()
 
   const complaints = useMemo(() => {
     if (propComplaints) return propComplaints

@@ -14,8 +14,8 @@ const PRIORITIES = ['Emergency', 'High', 'Medium', 'Low']
  */
 export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkOrderCreated }) {
   const {
-    complaints,
-    contractors,
+    complaints = [],
+    contractors = [],
     currentUser,
     refreshComplaints,
     refreshMasterData,
@@ -147,7 +147,7 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
         special_instructions: specialInstructions,
         specialInstructions,
       }
-      updateComplaintStatus(active.id, newStatus, note, fallbackPayload)
+      updateComplaintStatus?.(active.id, newStatus, note, fallbackPayload)
       onWorkOrderCreated({ ...active, ...fallbackPayload })
     } finally {
       setIsSubmitting(false)
