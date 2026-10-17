@@ -26,7 +26,7 @@ import './styles/WorkOrderCreate.css'
  *   - calls onWorkOrderCreated with enriched complaint object (for toast)
  */
 export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkOrderCreated }) {
-  const { complaints, contractors, currentUser, refreshComplaints, refreshMasterData, updateComplaintStatus } = useTIMS()
+  const { contractors = [], currentUser, refreshComplaints, refreshMasterData, updateComplaintStatus } = useTIMS()
 
   useEffect(() => {
     if (typeof refreshMasterData === 'function') {
@@ -161,7 +161,7 @@ export default function WorkOrderCreate({ selectedComplaint, onNavigate, onWorkO
         special_instructions: specialInstructions,
         specialInstructions,
       }
-      updateComplaintStatus(active.id, newStatus, note, fallbackPayload)
+      updateComplaintStatus?.(active.id, newStatus, note, fallbackPayload)
       onWorkOrderCreated({ ...active, ...fallbackPayload })
     } finally {
       setIsSubmitting(false)

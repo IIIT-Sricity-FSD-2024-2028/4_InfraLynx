@@ -33,7 +33,7 @@ function formatSafeDate(dateVal) {
  *   rejectionRemarks - optional free-text remarks
  */
 export default function TriageValidation({ complaints: propComplaints, selectedComplaint, onNavigate, onSelectComplaint, onComplaintUpdated }) {
-  const { complaints: contextComplaints, currentUser, updateComplaintStatus } = useTIMS()
+  const { complaints: contextComplaints = [], currentUser, updateComplaintStatus } = useTIMS()
 
   // Filter complaints by clerk's department
   const complaints = useMemo(() => {
@@ -89,7 +89,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
       } catch (err) {
         console.warn('[TriageValidation] Triage notice:', err.message)
       }
-      updateComplaintStatus(
+      updateComplaintStatus?.(
         complaint.id, 'UNDER_REVIEW',
         `Desk Clerk (${currentUser?.name || 'Staff'}) opened complaint for review.`
       )
@@ -118,7 +118,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
       if (onComplaintUpdated) {
         onComplaintUpdated(updated)
       }
-      updateComplaintStatus(
+      updateComplaintStatus?.(
         active.id, 'VALIDATED',
         `Validated by Desk Clerk (${currentUser?.name || 'Staff'}). All fields verified. Ready for Work Order creation.`
       )
@@ -156,7 +156,7 @@ export default function TriageValidation({ complaints: propComplaints, selectedC
       if (onComplaintUpdated) {
         onComplaintUpdated(updated)
       }
-      updateComplaintStatus(
+      updateComplaintStatus?.(
         active.id, 'REJECTED',
         `Rejected by ${currentUser?.name || 'Staff'}. Reason: "${rejectionReason}". Remarks: "${rejectionRemarks || 'None'}".`
       )
