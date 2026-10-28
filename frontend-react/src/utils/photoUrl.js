@@ -42,9 +42,9 @@ export function handlePhotoError(e, rawUrl) {
     const trimmed = targetUrl.trim();
     if (trimmed.startsWith('/uploads/') || trimmed.startsWith('uploads/')) {
       const clean = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-      // If we are already on localhost:5000, don't re-attempt same URL
+      // If we are already on 127.0.0.1:5000, don't re-attempt same URL
       if (!e.target.src.includes(':5000')) {
-        e.target.src = `http://localhost:5000${clean}`;
+        e.target.src = `http://127.0.0.1:5000${clean}`;
         return;
       }
     }

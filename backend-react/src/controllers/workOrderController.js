@@ -13,7 +13,7 @@ import crypto from 'crypto';
 import db from '../config/db.js';
 import { AppError } from '../middleware/error.js';
 import { generateWorkOrderNumber } from '../utils/generateId.js';
-import { calculateSlaDeadline, evaluateSlaStatus } from '../services/slaService.js';
+import { calculateSlaDeadline, evaluateSlaStatus, pauseSla, resumeSla } from '../services/slaService.js';
 
 /** ₹10,000 threshold above which Department Head approval is required */
 const DEPT_HEAD_THRESHOLD = 10000;
@@ -89,6 +89,19 @@ export function formatWorkOrderResponse(wo) {
     lineItems:            wo.line_items || [],
     isUnassigned:         !wo.contractor_id,
     isDelayed:            slaStatus.isBreached || slaStatus.state === 'AT_RISK',
+    bidding_open:         Boolean(wo.bidding_open),
+    biddingOpen:          Boolean(wo.bidding_open),
+    selected_bid_id:      wo.selected_bid_id || null,
+    contractor_reason:    wo.contractor_reason || '',
+    contractorReason:     wo.contractor_reason || '',
+    inquiry_remark:       wo.inquiry_remark || '',
+    inquiryRemark:        wo.inquiry_remark || '',
+    inquiry_by:           wo.inquiry_by || null,
+    inquiry_by_role:      wo.inquiry_by_role || null,
+    overrun_inquiry_status: wo.overrun_inquiry_status || 'NONE',
+    overrunInquiryStatus: wo.overrun_inquiry_status || 'NONE',
+    bids:                 (db.findAll('work_order_bids', (b) => b.work_order_id === wo.id) || []),
+    inquiries:            (db.findAll('cost_overrun_inquiries', (q) => q.work_order_id === wo.id) || []),
     slaStatus,
     contractor: contractor
       ? {
@@ -644,11 +657,582 @@ export const getWorkOrderById = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc   Open a Work Order for multi-contractor bidding
+ * @route  POST /api/v1/work-orders/:id/open-bidding
+ * @access Private (DESK_CLERK, TOWNSHIP_COO)
+ */
+export const openBidding = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const wo = db.findOne('work_orders', (w) => w.id === id || w.work_order_number === id);
+
+    if (!wo) {
+      return next(new AppError(`Work Order "${id}" not found.`, 404, 'NOT_FOUND'));
+    }
+
+    const now = new Date().toISOString();
+    const updated = db.update('work_orders', wo.id, {
+      bidding_open: true,
+      status: 'ASSIGNED',
+      updated_at: now,
+    });
+
+    db.logAudit({
+      township_id: wo.township_id || req.user.township_id,
+      user_id: req.user.id,
+      action: 'WORK_ORDER_BIDDING_OPENED',
+      entity_type: 'work_orders',
+      entity_id: wo.id,
+      old_value: JSON.stringify({ bidding_open: false }),
+      new_value: JSON.stringify({ bidding_open: true }),
+      notes: `Work Order ${wo.work_order_number || wo.id} opened for contractor bidding.`,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Work Order successfully opened for multi-contractor bidding.',
+      data: formatWorkOrderResponse(updated),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc   Submit a contractor bid on a Work Order
+ * @route  POST /api/v1/work-orders/:id/bids
+ * @access Private (FIELD_CONTRACTOR, DESK_CLERK, TOWNSHIP_COO)
+ */
+export const submitBid = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { contractor_id, bid_amount, estimated_days = 2, justification = '' } = req.body;
+
+    const wo = db.findOne('work_orders', (w) => w.id === id || w.work_order_number === id);
+    if (!wo) {
+      return next(new AppError(`Work Order "${id}" not found.`, 404, 'NOT_FOUND'));
+    }
+
+    const targetContractorId = req.user.contractor_id || contractor_id;
+    if (!targetContractorId) {
+      return next(new AppError('contractor_id is required to submit a bid.', 400, 'VALIDATION_ERROR'));
+    }
+
+    const contractor = db.findOne('contractors', (c) => c.id === targetContractorId);
+    if (!contractor) {
+      return next(new AppError('Contractor not found.', 404, 'NOT_FOUND'));
+    }
+
+    if (!bid_amount || Number(bid_amount) <= 0) {
+      return next(new AppError('A valid positive bid_amount is required.', 400, 'VALIDATION_ERROR'));
+    }
+
+    const rating = Number(contractor.rating || 4.7);
+    const now = new Date().toISOString();
+
+    // Check if contractor already submitted a bid for this work order
+    const existingBid = db.findOne(
+      'work_order_bids',
+      (b) => b.work_order_id === wo.id && b.contractor_id === targetContractorId
+    );
+
+    let savedBid;
+    if (existingBid) {
+      savedBid = db.update('work_order_bids', existingBid.id, {
+        bid_amount: Number(bid_amount),
+        estimated_days: Number(estimated_days),
+        justification,
+        contractor_rating_snapshot: rating,
+        status: 'SUBMITTED',
+        submitted_at: now,
+      });
+    } else {
+      savedBid = db.insert('work_order_bids', {
+        work_order_id: wo.id,
+        contractor_id: targetContractorId,
+        bid_amount: Number(bid_amount),
+        estimated_days: Number(estimated_days),
+        justification,
+        contractor_rating_snapshot: rating,
+        status: 'SUBMITTED',
+        submitted_at: now,
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `Bid of ₹${Number(bid_amount).toLocaleString()} submitted by ${contractor.company_name}.`,
+      data: {
+        ...savedBid,
+        contractor_name: contractor.company_name,
+        rating,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc   Get all bids for a Work Order with composite scoring
+ * @route  GET /api/v1/work-orders/:id/bids
+ * @access Private
+ */
+export const getWorkOrderBids = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const wo = db.findOne('work_orders', (w) => w.id === id || w.work_order_number === id);
+
+    if (!wo) {
+      return next(new AppError(`Work Order "${id}" not found.`, 404, 'NOT_FOUND'));
+    }
+
+    const bids = db.findAll('work_order_bids', (b) => b.work_order_id === wo.id);
+    const contractors = db.find('contractors');
+
+    if (bids.length === 0) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: [],
+      });
+    }
+
+    const minBid = Math.min(...bids.map((b) => Number(b.bid_amount)));
+
+    const scoredBids = bids.map((b) => {
+      const c = contractors.find((item) => item.id === b.contractor_id);
+      const rating = Number(b.contractor_rating_snapshot || c?.rating || 4.5);
+      const costScore = minBid > 0 ? Number((minBid / Number(b.bid_amount)).toFixed(4)) : 1.0;
+      const ratingScore = Number((rating / 5.0).toFixed(4));
+      // Composite algorithm: 60% weight to low cost, 40% weight to high rating
+      const compositeScore = Number(((0.60 * costScore) + (0.40 * ratingScore)).toFixed(4));
+
+      return {
+        ...b,
+        contractor_name: c ? c.company_name : 'Unknown Contractor',
+        rating,
+        cost_score: costScore,
+        rating_score: ratingScore,
+        composite_score: compositeScore,
+      };
+    }).sort((a, b) => b.composite_score - a.composite_score || a.bid_amount - b.bid_amount);
+
+    res.status(200).json({
+      success: true,
+      count: scoredBids.length,
+      data: scoredBids,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc   Auto-select best contractor bid based on low cost & high rating
+ * @route  POST /api/v1/work-orders/:id/auto-select-bid
+ * @access Private (DESK_CLERK, TOWNSHIP_COO)
+ */
+export const autoSelectBestBid = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const wo = db.findOne('work_orders', (w) => w.id === id || w.work_order_number === id);
+
+    if (!wo) {
+      return next(new AppError(`Work Order "${id}" not found.`, 404, 'NOT_FOUND'));
+    }
+
+    const bids = db.findAll('work_order_bids', (b) => b.work_order_id === wo.id);
+    if (!bids || bids.length === 0) {
+      return next(new AppError('No bids have been submitted for this work order yet.', 400, 'NO_BIDS_AVAILABLE'));
+    }
+
+    const contractors = db.find('contractors');
+    const minBid = Math.min(...bids.map((b) => Number(b.bid_amount)));
+
+    // Calculate composite score for each bid
+    const scoredBids = bids.map((b) => {
+      const c = contractors.find((item) => item.id === b.contractor_id);
+      const rating = Number(b.contractor_rating_snapshot || c?.rating || 4.5);
+      const costScore = minBid > 0 ? Number((minBid / Number(b.bid_amount)).toFixed(4)) : 1.0;
+      const ratingScore = Number((rating / 5.0).toFixed(4));
+      const compositeScore = Number(((0.60 * costScore) + (0.40 * ratingScore)).toFixed(4));
+
+      return {
+        ...b,
+        contractor: c,
+        rating,
+        cost_score: costScore,
+        rating_score: ratingScore,
+        composite_score: compositeScore,
+      };
+    }).sort((a, b) => b.composite_score - a.composite_score || a.bid_amount - b.bid_amount);
+
+    const winningBid = scoredBids[0];
+    const now = new Date().toISOString();
+
+    // Mark winning bid as ACCEPTED and other bids as REJECTED
+    scoredBids.forEach((b) => {
+      const isWinner = b.id === winningBid.id;
+      db.update('work_order_bids', b.id, {
+        status: isWinner ? 'ACCEPTED' : 'REJECTED',
+        selected_at: isWinner ? now : null,
+        composite_score: b.composite_score,
+      });
+    });
+
+    // Update Work Order with winning contractor and bid amount
+    const updatedWo = db.update('work_orders', wo.id, {
+      contractor_id: winningBid.contractor_id,
+      selected_bid_id: winningBid.id,
+      estimated_cost: Number(winningBid.bid_amount),
+      estimate_amount: Number(winningBid.bid_amount),
+      status: 'ASSIGNED',
+      bidding_open: false,
+      updated_at: now,
+    });
+
+    // Update linked complaint
+    const complaint = db.findOne('complaints', (c) => c.id === wo.complaint_id);
+    if (complaint) {
+      db.update('complaints', complaint.id, {
+        status: 'ASSIGNED',
+        assigned_contractor_id: winningBid.contractor_id,
+        history: [
+          ...(complaint.history || []),
+          {
+            stage: 'ASSIGNED',
+            timestamp: now,
+            actor: `${req.user.name} (Auto-Selection Engine)`,
+            note: `Contractor ${winningBid.contractor?.company_name || 'Winning Bidder'} auto-selected via competitive bidding (Bid: ₹${winningBid.bid_amount}, Rating: ${winningBid.rating}★, Score: ${winningBid.composite_score}).`,
+          },
+        ],
+      });
+    }
+
+    db.logAudit({
+      township_id: wo.township_id || req.user.township_id,
+      user_id: req.user.id,
+      action: 'BID_AUTO_SELECTED',
+      entity_type: 'work_orders',
+      entity_id: wo.id,
+      new_value: JSON.stringify({
+        winningContractor: winningBid.contractor?.company_name,
+        bidAmount: winningBid.bid_amount,
+        rating: winningBid.rating,
+        compositeScore: winningBid.composite_score,
+      }),
+      notes: `Winning contractor auto-selected based on low cost & high rating.`,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Best contractor auto-selected: ${winningBid.contractor?.company_name} (Bid: ₹${winningBid.bid_amount}, Score: ${winningBid.composite_score}).`,
+      data: {
+        winningBid,
+        rankings: scoredBids,
+        workOrder: formatWorkOrderResponse(updatedWo),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc   Add an inquiry remark by Finance or COO when amount used > amount asked
+ * @route  POST /api/v1/work-orders/:id/overrun-inquiry
+ * @access Private (FINANCE_CLERK, TOWNSHIP_COO)
+ */
+export const addOverrunInquiry = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { remark } = req.body;
+
+    if (!remark || !remark.trim()) {
+      return next(new AppError('A descriptive inquiry remark is required asking why the amount is high.', 400, 'VALIDATION_ERROR'));
+    }
+
+    const wo = db.findOne('work_orders', (w) => w.id === id || w.work_order_number === id);
+    if (!wo) {
+      return next(new AppError(`Work Order "${id}" not found.`, 404, 'NOT_FOUND'));
+    }
+
+    const now = new Date().toISOString();
+    const est = Number(wo.estimated_cost || wo.estimate_amount || 0);
+    const actual = Number(wo.actual_cost || wo.moneyUsed || est);
+    const variance = actual - est;
+
+    const inquiryRecord = db.insert('cost_overrun_inquiries', {
+      work_order_id: wo.id,
+      contractor_id: wo.contractor_id,
+      original_estimate: est,
+      actual_amount_used: actual,
+      variance_amount: variance,
+      contractor_reason: wo.contractor_reason || 'Insufficient reason given by contractor',
+      inquirer_id: req.user.id,
+      inquirer_role: req.user.role,
+      inquirer_remark: remark.trim(),
+      status: 'PENDING_CONTRACTOR_RESPONSE',
+      created_at: now,
+    });
+
+    const updatedWo = db.update('work_orders', wo.id, {
+      overrun_inquiry_status: 'INQUIRY_SENT',
+      inquiry_remark: remark.trim(),
+      inquiry_by: req.user.name,
+      inquiry_by_role: req.user.role,
+      updated_at: now,
+    });
+
+    // Also update linked invoice if present
+    const invoice = db.findOne('invoices', (i) => i.work_order_id === wo.id);
+    if (invoice) {
+      db.update('invoices', invoice.id, {
+        status: 'ON_HOLD_VARIANCE',
+        inquiry_remark: remark.trim(),
+        inquiry_by: req.user.name,
+        inquiry_status: 'INSUFFICIENT_REASON_FLAGGED',
+      });
+    }
+
+    db.logAudit({
+      township_id: wo.township_id || req.user.township_id,
+      user_id: req.user.id,
+      action: 'OVERRUN_INQUIRY_ISSUED',
+      entity_type: 'work_orders',
+      entity_id: wo.id,
+      new_value: JSON.stringify({
+        remark,
+        asked: est,
+        used: actual,
+        variance,
+        inquiredBy: `${req.user.name} (${req.user.role})`,
+      }),
+      notes: `Inquiry dispatched to contractor questioning high expenditure.`,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Inquiry successfully sent to contractor: "${remark.trim()}"`,
+      data: {
+        inquiry: inquiryRecord,
+        workOrder: formatWorkOrderResponse(updatedWo),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc   Contractor responds to an overrun inquiry with detailed justification
+ * @route  POST /api/v1/work-orders/:id/overrun-response
+ * @access Private (FIELD_CONTRACTOR, TOWNSHIP_COO)
+ */
+export const respondToOverrunInquiry = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { rebuttal } = req.body;
+
+    if (!rebuttal || !rebuttal.trim()) {
+      return next(new AppError('Detailed explanation/rebuttal is required.', 400, 'VALIDATION_ERROR'));
+    }
+
+    const wo = db.findOne('work_orders', (w) => w.id === id || w.work_order_number === id);
+    if (!wo) {
+      return next(new AppError(`Work Order "${id}" not found.`, 404, 'NOT_FOUND'));
+    }
+
+    const now = new Date().toISOString();
+
+    // Update active inquiry
+    const activeInquiry = db.findOne(
+      'cost_overrun_inquiries',
+      (q) => q.work_order_id === wo.id && q.status === 'PENDING_CONTRACTOR_RESPONSE'
+    );
+    if (activeInquiry) {
+      db.update('cost_overrun_inquiries', activeInquiry.id, {
+        contractor_rebuttal: rebuttal.trim(),
+        status: 'RESOLVED',
+        resolved_at: now,
+      });
+    }
+
+    const updatedWo = db.update('work_orders', wo.id, {
+      overrun_inquiry_status: 'RESPONSE_SUBMITTED',
+      contractor_reason: rebuttal.trim(),
+      updated_at: now,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Contractor explanation submitted successfully for Finance/COO review.',
+      data: formatWorkOrderResponse(updatedWo),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc   Finance or COO resolves/settles an overrun inquiry
+ * @route  POST /api/v1/work-orders/:id/overrun-resolve
+ * @access Private (FINANCE_CLERK, TOWNSHIP_COO)
+ */
+export const resolveOverrunInquiry = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { action = 'ACCEPT', final_amount } = req.body;
+
+    const wo = db.findOne('work_orders', (w) => w.id === id || w.work_order_number === id);
+    if (!wo) {
+      return next(new AppError(`Work Order "${id}" not found.`, 404, 'NOT_FOUND'));
+    }
+
+    const now = new Date().toISOString();
+    const settledAmount = final_amount ? Number(final_amount) : Number(wo.actual_cost || wo.estimated_cost);
+
+    const updatedWo = db.update('work_orders', wo.id, {
+      overrun_inquiry_status: 'RESOLVED',
+      actual_cost: settledAmount,
+      updated_at: now,
+    });
+
+    const invoice = db.findOne('invoices', (i) => i.work_order_id === wo.id);
+    if (invoice) {
+      db.update('invoices', invoice.id, {
+        status: action === 'ACCEPT' ? 'APPROVED_FOR_PAYMENT' : 'PENDING_AUDIT',
+        total_amount: settledAmount,
+        inquiry_status: 'RESOLVED',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Overrun inquiry resolved (${action}). Settled at ₹${settledAmount.toLocaleString()}.`,
+      data: formatWorkOrderResponse(updatedWo),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * @desc   Contractor retacts their bid prior to deadline
+ * @route  POST /api/v1/work-orders/:id/bids/retract
+ * @route  DELETE /api/v1/work-orders/:id/bids
+ * @access Private (FIELD_CONTRACTOR, TOWNSHIP_COO)
+ */
+export const retractBid = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const wo = db.findOne('work_orders', (w) => w.id === id || w.work_order_number === id);
+    if (!wo) {
+      return next(new AppError(`Work Order "${id}" not found.`, 404, 'NOT_FOUND'));
+    }
+
+    const targetContractorId = req.user.contractor_id || req.body.contractor_id;
+    if (!targetContractorId) {
+      return next(new AppError('contractor_id is required to retract a bid.', 400, 'VALIDATION_ERROR'));
+    }
+
+    const bid = db.findOne('work_order_bids', (b) => b.work_order_id === wo.id && b.contractor_id === targetContractorId);
+    if (!bid) {
+      return next(new AppError('No bid found for this contractor on this work order.', 404, 'NOT_FOUND'));
+    }
+
+    if (bid.status === 'ACCEPTED') {
+      return next(new AppError('Cannot retract an awarded/accepted bid.', 400, 'BID_ALREADY_AWARDED'));
+    }
+
+    const now = new Date().toISOString();
+    db.update('work_order_bids', bid.id, {
+      status: 'RETRACTED',
+      updated_at: now,
+    });
+
+    db.logAudit({
+      township_id: wo.township_id,
+      user_id: req.user.id,
+      action: 'CONTRACTOR_BID_RETRACTED',
+      entity_type: 'work_orders',
+      entity_id: wo.id,
+      notes: `Bid of ₹${bid.bid_amount} retracted by contractor ${targetContractorId}`,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Bid successfully retracted.',
+      data: { bidId: bid.id, status: 'RETRACTED' },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc   Pause Work Order SLA clock
+ * @route  POST /api/v1/work-orders/:id/pause
+ * @access Private (DESK_CLERK, TOWNSHIP_COO)
+ */
+export const pauseWorkOrder = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { reason = 'Work paused due to material delay / environmental conditions' } = req.body;
+    const paused = pauseSla('work_orders', id, reason, req.user);
+    if (!paused) {
+      return next(new AppError(`Work Order "${id}" not found.`, 404, 'NOT_FOUND'));
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Work order and SLA clock paused.',
+      data: formatWorkOrderResponse(paused),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc   Resume Work Order SLA clock (extends deadline)
+ * @route  POST /api/v1/work-orders/:id/resume
+ * @access Private (DESK_CLERK, TOWNSHIP_COO)
+ */
+export const resumeWorkOrder = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const resumed = resumeSla('work_orders', id, req.user);
+    if (!resumed) {
+      return next(new AppError(`Work Order "${id}" not found.`, 404, 'NOT_FOUND'));
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Work order resumed and SLA deadline extended.',
+      data: formatWorkOrderResponse(resumed),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export default {
   createWorkOrder,
   assignContractor,
   reassignContractor,
   getWorkOrders,
   getWorkOrderById,
+  openBidding,
+  submitBid,
+  getWorkOrderBids,
+  autoSelectBestBid,
+  addOverrunInquiry,
+  respondToOverrunInquiry,
+  resolveOverrunInquiry,
+  retractBid,
+  pauseWorkOrder,
+  resumeWorkOrder,
   formatWorkOrderResponse,
 };

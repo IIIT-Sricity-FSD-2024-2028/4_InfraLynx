@@ -10,7 +10,7 @@ export default function ContractorDashboard({
 }) {
   // Compute key metrics
   const assignedJobs = useMemo(
-    () => jobs.filter((j) => j.status === 'ASSIGNED' || j.status === 'WORK_ORDER_CREATED'),
+    () => jobs.filter((j) => j.status === 'ASSIGNED' &&  j.status === 'WORK_ORDER_CREATED'),
     [jobs]
   )
   const inProgressJobs = useMemo(

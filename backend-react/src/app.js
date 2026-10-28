@@ -71,6 +71,7 @@ app.use(
       return callback(new Error('Blocked by CORS policy'));
     },
     credentials: true,
+    maxAge: 86400,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   })

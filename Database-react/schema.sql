@@ -7,6 +7,9 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Drop existing tables in reverse dependency order if recreating
+DROP TABLE IF EXISTS cost_overrun_inquiries CASCADE;
+DROP TABLE IF EXISTS work_order_bids CASCADE;
+DROP TABLE IF EXISTS complaint_evidence CASCADE;
 DROP TABLE IF EXISTS audit_logs CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS township_settings CASCADE;
@@ -314,9 +317,30 @@ CREATE TABLE complaints (
     validated_by UUID REFERENCES users(id) ON DELETE SET NULL,
     validated_at TIMESTAMP WITH TIME ZONE,
     rejection_reason TEXT,
+    cancellation_reason TEXT,
+    cancelled_at TIMESTAMP WITH TIME ZONE,
+    cancelled_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    last_edited_at TIMESTAMP WITH TIME ZONE,
+    edit_history JSONB DEFAULT '[]'::jsonb,
+    sla_paused_at TIMESTAMP WITH TIME ZONE,
+    sla_paused_duration_ms BIGINT DEFAULT 0,
+    sla_stage VARCHAR(50) DEFAULT 'RESPONSE',
+    sla_response_deadline TIMESTAMP WITH TIME ZONE,
+    sla_status VARCHAR(50) DEFAULT 'ON_TIME',
     reported_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(township_id, complaint_code)
+);
+
+
+CREATE TABLE complaint_evidence (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    complaint_id UUID NOT NULL REFERENCES complaints(id) ON DELETE CASCADE,
+    evidence_type VARCHAR(50) NOT NULL DEFAULT 'BEFORE',
+    file_url TEXT NOT NULL,
+    caption TEXT,
+    uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE complaint_photos (
@@ -379,6 +403,14 @@ CREATE TABLE work_orders (
     assigned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     due_at TIMESTAMP WITH TIME ZONE,
     completed_at TIMESTAMP WITH TIME ZONE,
+    bidding_open BOOLEAN NOT NULL DEFAULT FALSE,
+    selected_bid_id UUID,
+    contractor_reason TEXT,
+    actual_cost NUMERIC(12, 2),
+    estimated_cost NUMERIC(12, 2),
+    overrun_inquiry_status VARCHAR(50) DEFAULT 'NONE',
+    sla_paused_at TIMESTAMP WITH TIME ZONE,
+    sla_paused_duration_ms BIGINT DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(township_id, work_order_number),
@@ -415,7 +447,9 @@ CREATE TABLE estimate_items (
     unit VARCHAR(50) NOT NULL,
     quantity NUMERIC(10, 2) NOT NULL,
     rate_snapshot NUMERIC(12, 2) NOT NULL, -- Preserves rate at estimate time
-    amount NUMERIC(12, 2) NOT NULL
+    amount NUMERIC(12, 2) NOT NULL,
+    flagged BOOLEAN DEFAULT FALSE,
+    flag_reason TEXT
 );
 
 -- ------------------------------------------------------------------------------
@@ -498,6 +532,10 @@ CREATE TABLE invoices (
     variance_amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
     rate_card_match BOOLEAN NOT NULL DEFAULT TRUE,
     variance_reason TEXT,
+    overrun_reason TEXT,
+    inquiry_remark TEXT,
+    inquiry_by VARCHAR(150),
+    inquiry_status VARCHAR(50),
     status invoice_status NOT NULL DEFAULT 'PENDING_AUDIT',
     authorized_by UUID REFERENCES users(id) ON DELETE SET NULL,
     authorized_at TIMESTAMP WITH TIME ZONE,
@@ -584,3 +622,7 @@ CREATE INDEX idx_invoices_township_status ON invoices(township_id, status);
 CREATE INDEX idx_invoices_work_order ON invoices(work_order_id);
 CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
 CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read);
+
+CREATE INDEX idx_work_order_bids_wo ON work_order_bids(work_order_id);
+CREATE INDEX idx_cost_overrun_wo ON cost_overrun_inquiries(work_order_id);
+CREATE INDEX idx_complaint_evidence_comp ON complaint_evidence(complaint_id);

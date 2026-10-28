@@ -593,12 +593,66 @@ export const getPayments = async (req, res, next) => {
   }
 };
 
+
+/**
+ * @desc   Flag a specific line item in invoice without blocking entire work order
+ * @route  POST /api/v1/finance/invoices/:id/flag-item
+ * @access Private (FINANCE_CLERK, TOWNSHIP_COO)
+ */
+export const flagLineItem = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { itemId, item_id, reason } = req.body;
+    const targetItemId = itemId || item_id;
+
+    if (!targetItemId || !reason) {
+      return next(new AppError('itemId and reason are required to flag a line item.', 400, 'VALIDATION_ERROR'));
+    }
+
+    const inv = db.findOne('invoices', (i) => i.id === id || i.invoice_code === id);
+    if (!inv) {
+      return next(new AppError(`Invoice "${id}" not found.`, 404, 'NOT_FOUND'));
+    }
+
+    const item = db.findOne('invoice_items', (it) => it.id === targetItemId || (it.invoice_id === inv.id && it.description === targetItemId));
+    if (!item) {
+      return next(new AppError(`Line item "${targetItemId}" not found in invoice.`, 404, 'NOT_FOUND'));
+    }
+
+    const now = new Date().toISOString();
+    const updatedItem = db.update('invoice_items', item.id, {
+      flagged: true,
+      flag_reason: reason.trim(),
+      flagged_by: req.user.name,
+      flagged_at: now,
+    });
+
+    db.logAudit({
+      township_id: inv.township_id,
+      user_id: req.user.id,
+      action: 'LINE_ITEM_FLAGGED',
+      entity_type: 'invoice_items',
+      entity_id: item.id,
+      notes: `Invoice line item "${item.description}" flagged: "${reason}"`,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Line item "${item.description}" flagged for review without blocking full payment.`,
+      data: updatedItem,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export default {
   getInvoices,
   getInvoiceById,
   runThreeWayCheck,
   authorizeInvoice,
   flagVariance,
+  flagLineItem,
   releasePayment,
   getRateCards,
   getFinanceAnalytics,

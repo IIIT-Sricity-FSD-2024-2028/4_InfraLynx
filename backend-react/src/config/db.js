@@ -39,6 +39,7 @@ const TABLE_COLUMNS = {
     'category', 'subcategory', 'title', 'description', 'severity', 'sector', 'block',
     'street', 'location_details', 'latitude', 'longitude', 'status', 'sla_id', 'sla_deadline',
     'is_duplicate', 'master_complaint_id', 'validated_by', 'validated_at', 'rejection_reason',
+    'cancellation_reason', 'cancelled_at', 'cancelled_by', 'last_edited_at', 'edit_history', 'sla_paused_at', 'sla_paused_duration_ms', 'sla_stage', 'sla_response_deadline', 'sla_status',
     'reported_at', 'updated_at'
   ],
   complaint_photos: ['id', 'complaint_id', 'file_url', 'file_type', 'uploaded_by'],
@@ -47,7 +48,8 @@ const TABLE_COLUMNS = {
   amc_rates: ['id', 'amc_id', 'item_code', 'item_name', 'service_type', 'unit', 'rate', 'effective_from', 'effective_to', 'status'],
   work_orders: [
     'id', 'work_order_number', 'township_id', 'complaint_id', 'department_id', 'contractor_id',
-    'assigned_by', 'priority', 'status', 'assigned_at', 'due_at', 'completed_at'
+    'assigned_by', 'priority', 'status', 'assigned_at', 'due_at', 'completed_at',
+    'bidding_open', 'selected_bid_id', 'contractor_reason', 'actual_cost', 'estimated_cost', 'overrun_inquiry_status', 'sla_paused_at', 'sla_paused_duration_ms'
   ],
   work_evidence: ['id', 'work_order_id', 'type', 'file_url', 'remarks', 'uploaded_by'],
   estimates: ['id', 'work_order_id', 'contractor_id', 'total_amount', 'status', 'inspection_notes', 'submitted_at', 'approved_at'],
@@ -56,15 +58,18 @@ const TABLE_COLUMNS = {
   invoices: [
     'id', 'invoice_code', 'township_id', 'contractor_id', 'work_order_id', 'invoice_number',
     'invoice_date', 'subtotal', 'tax', 'total_amount', 'approved_estimate_amount', 'variance_amount',
-    'rate_card_match', 'variance_reason', 'status', 'authorized_by', 'authorized_at'
+    'rate_card_match', 'variance_reason', 'status', 'authorized_by', 'authorized_at',
+    'overrun_reason', 'inquiry_remark', 'inquiry_by', 'inquiry_status'
   ],
-  invoice_items: ['id', 'invoice_id', 'description', 'unit', 'quantity', 'rate', 'amount'],
+  invoice_items: ['id', 'invoice_id', 'description', 'unit', 'quantity', 'rate', 'amount', 'flagged', 'flag_reason'],
   payments: ['id', 'township_id', 'invoice_id', 'contractor_id', 'amount', 'status', 'payment_mode', 'payment_reference', 'authorized_by', 'authorized_at', 'paid_at'],
   audit_logs: ['id', 'township_id', 'user_id', 'action', 'entity_type', 'entity_id', 'old_value', 'new_value'],
   global_config: ['id', 'key', 'value', 'category', 'description', 'updated_at'],
   super_audit_logs: ['id', 'admin_id', 'admin_name', 'admin_role', 'action', 'entity_type', 'entity_id', 'tenant_id', 'previous_value', 'new_value', 'outcome', 'notes', 'timestamp'],
   subscription_plans: ['id', 'name', 'plan_label', 'price', 'billing_cycle', 'max_users', 'max_departments', 'features'],
   township_subscriptions: ['id', 'township_id', 'plan_id', 'start_date', 'end_date', 'status', 'created_at'],
+  work_order_bids: ['id', 'work_order_id', 'contractor_id', 'bid_amount', 'estimated_days', 'justification', 'contractor_rating_snapshot', 'composite_score', 'status', 'submitted_at', 'selected_at'],
+  cost_overrun_inquiries: ['id', 'work_order_id', 'invoice_id', 'contractor_id', 'original_estimate', 'actual_amount_used', 'variance_amount', 'contractor_reason', 'inquirer_id', 'inquirer_role', 'inquirer_remark', 'contractor_rebuttal', 'status', 'created_at', 'resolved_at'],
 };
 
 const UUID_COLUMNS = new Set([
@@ -72,7 +77,12 @@ const UUID_COLUMNS = new Set([
   'asset_id', 'sla_id', 'master_complaint_id', 'validated_by', 'complaint_id',
   'work_order_id', 'assigned_by', 'uploaded_by', 'amc_id', 'amc_rate_id',
   'estimate_id', 'approver_id', 'invoice_id', 'authorized_by', 'user_id',
-  'subscription_plan_id', 'department_head_id', 'entity_id'
+  'subscription_plan_id', 'department_head_id', 'entity_id', 'selected_bid_id',
+  'inquirer_id', 'cancelled_by'
+]);
+
+const JSON_COLUMNS = new Set([
+  'edit_history', 'features', 'old_value', 'new_value', 'previous_value'
 ]);
 
 const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
@@ -131,6 +141,9 @@ function sanitizeForPostgres(table, record) {
           val = col === 'id' ? crypto.randomUUID() : null;
         }
       }
+      if (JSON_COLUMNS.has(col) && val !== null && val !== undefined && typeof val === 'object') {
+        val = JSON.stringify(val);
+      }
       if (ENUM_MAPPINGS[table] && ENUM_MAPPINGS[table][col]) {
         val = ENUM_MAPPINGS[table][col](val);
       }
@@ -166,6 +179,8 @@ export const tables = {
   super_audit_logs: [],
   subscription_plans: [],
   tenant_subscriptions: [],
+  work_order_bids: [],
+  cost_overrun_inquiries: [],
 };
 
 /**

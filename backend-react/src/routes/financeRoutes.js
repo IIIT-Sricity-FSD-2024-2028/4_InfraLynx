@@ -30,4 +30,6 @@ router.get('/rate-cards', financeController.getRateCards);
 // Financial Metrics & Telemetry
 router.get('/analytics', financeController.getFinanceAnalytics);
 
+router.post('/invoices/:id/flag-item', financeController.flagLineItem);
+
 export default router;

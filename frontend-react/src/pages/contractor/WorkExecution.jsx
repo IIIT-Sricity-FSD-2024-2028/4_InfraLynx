@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
+import { contractorApi } from '../../services/api.js'
 import './styles/WorkExecution.css'
 
 export default function WorkExecution({
@@ -57,6 +58,25 @@ export default function WorkExecution({
   function handleTriggerFileInput() {
     if (fileInputRef.current) {
       fileInputRef.current.click()
+    }
+  }
+
+
+  async function handleSendRebuttal() {
+    if (!rebuttalInput.trim()) {
+      alert('Please enter a detailed response/rebuttal to the inquiry.')
+      return
+    }
+    const woId = currentJob.backendWoId || currentJob.work_order_id || currentJob.id
+    try {
+      setRebuttalSending(true)
+      await contractorApi.respondToOverrun(woId, rebuttalInput.trim())
+      setRebuttalSuccess('Response submitted to Finance/COO for review.')
+      setRebuttalInput('')
+    } catch (err) {
+      alert(`Failed to send rebuttal: ${err.message}`)
+    } finally {
+      setRebuttalSending(false)
     }
   }
 
@@ -479,6 +499,92 @@ export default function WorkExecution({
         </h3>
 
         <form onSubmit={handleComplete} className="execution-form">
+
+          {/* Overrun Inquiry Banner (If Finance/COO flagged this job) */}
+          {currentJob.inquiry_remark && (
+            <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8, padding: 14, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#c2410c', fontWeight: 700, fontSize: 14 }}>
+                ⚠️ Official Expenditure Inquiry from {currentJob.inquiry_by || 'Finance'} ({currentJob.inquiry_by_role || 'Executive'}):
+              </div>
+              <p style={{ margin: '6px 0 10px 0', color: '#9a3412', fontSize: 13, fontStyle: 'italic' }}>
+                &quot;{currentJob.inquiry_remark}&quot;
+              </p>
+              {rebuttalSuccess ? (
+                <div style={{ color: '#166534', background: '#dcfce7', padding: '6px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
+                  ✓ {rebuttalSuccess}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <textarea
+                    rows={2}
+                    placeholder="Enter your explanation / itemized cost justification..."
+                    value={rebuttalInput}
+                    onChange={(e) => setRebuttalInput(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #fdba74', fontSize: 13 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSendRebuttal}
+                    disabled={rebuttalSending}
+                    style={{ alignSelf: 'flex-start', background: '#ea580c', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 6, fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
+                  >
+                    {rebuttalSending ? 'Submitting...' : 'Submit Response to Finance →'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Actual Amount Used & Budget Overrun Fields */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div className="execution-form-group">
+              <label className="execution-label">
+                Approved Estimate Amount (Asked)
+              </label>
+              <input
+                type="text"
+                disabled
+                value={`₹${initialEst.toLocaleString()}`}
+                className="execution-input"
+                style={{ background: '#f1f5f9', fontWeight: 600 }}
+              />
+            </div>
+
+            <div className="execution-form-group">
+              <label className="execution-label">
+                Actual Expenditure (Amount Used) <span className="execution-req">*</span>
+              </label>
+              <input
+                type="number"
+                disabled={isCompleted}
+                value={actualExpense}
+                onChange={(e) => setActualExpense(Number(e.target.value))}
+                className="execution-input"
+                style={{ fontWeight: 700, color: Number(actualExpense) > initialEst ? '#dc2626' : '#1e293b' }}
+              />
+            </div>
+          </div>
+
+          {Number(actualExpense) > initialEst && (
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: 12, marginBottom: 16 }}>
+              <div style={{ color: '#991b1b', fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
+                ⚠️ Budget Overrun Detected (+₹{(Number(actualExpense) - initialEst).toLocaleString()} variance)
+              </div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#7f1d1d', marginBottom: 4 }}>
+                Contractor Justification &amp; Overrun Reason *
+              </label>
+              <textarea
+                rows={2}
+                required
+                disabled={isCompleted}
+                placeholder="Explain unexpected subsurface damage, extra materials, or rate changes requiring higher expenditure..."
+                value={overrunReason}
+                onChange={(e) => setOverrunReason(e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #fca5a5', fontSize: 13, boxSizing: 'border-box' }}
+              />
+            </div>
+          )}
+
           {/* 1. Actual Work Performed */}
           <div className="execution-form-group">
             <label className="execution-label">

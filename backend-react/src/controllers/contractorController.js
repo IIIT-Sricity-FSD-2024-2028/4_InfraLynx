@@ -588,15 +588,25 @@ export const updateJobStatus = async (req, res, next) => {
         return next(new AppError('Approved estimate amount is required before completion can be invoiced.', 409, 'APPROVED_ESTIMATE_REQUIRED'));
       }
       const requestedActualCost = Number(req.body.actualCost || req.body.actual_cost || req.body.billedAmount || estimatedCost);
-      if (Number.isFinite(requestedActualCost) && requestedActualCost > estimatedCost) {
-        return next(new AppError('Completion billing cannot exceed the approved AMC estimate. Submit a revised estimate for additional work.', 409, 'BILLING_EXCEEDS_ESTIMATE'));
+      const overrunReason = req.body.overrunReason || req.body.overrun_reason || req.body.varianceReason || req.body.variance_reason || req.body.remarks || '';
+      
+      if (Number.isFinite(requestedActualCost) && requestedActualCost > estimatedCost && !overrunReason.trim()) {
+        return next(
+          new AppError(
+            `Amount used (₹${requestedActualCost.toLocaleString()}) exceeds the approved estimate (₹${estimatedCost.toLocaleString()}). A detailed overrun reason/justification is required.`,
+            400,
+            'OVERRUN_REASON_REQUIRED'
+          )
+        );
       }
-      const actualCost = estimatedCost;
-      const variance = actualCost - estimatedCost;
+      const actualCost = Number.isFinite(requestedActualCost) ? requestedActualCost : estimatedCost;
+      const variance = Math.max(0, actualCost - estimatedCost);
 
-      // Update work order with actual cost
+      // Update work order with actual cost and contractor reason
       db.update('work_orders', wo.id, {
         actual_cost: actualCost,
+        contractor_reason: variance > 0 ? overrunReason.trim() : null,
+        overrun_inquiry_status: variance > 0 ? 'PENDING_AUDIT' : 'NONE',
       });
 
       // Find or create invoice for Finance Audit Check
@@ -827,11 +837,158 @@ export const uploadEvidence = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc   Recall an unapproved estimate to fix mistakes (Human Fallibility principle)
+ * @route  POST /api/v1/contractor/jobs/:id/recall-estimate
+ * @access Private (FIELD_CONTRACTOR, TOWNSHIP_COO)
+ */
+export const recallEstimate = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const wo = findWorkOrderByReference(id);
+    if (!wo) {
+      return next(new AppError('Work order not found.', 404, 'NOT_FOUND'));
+    }
+    assertContractorWorkOrderAccess(req, wo);
+
+    if (wo.status !== 'AWAITING_DEPT_HEAD' && wo.status !== 'ESTIMATE_SUBMITTED') {
+      return next(new AppError(`Cannot recall estimate in status '${wo.status}'. It has already been approved or execution has begun.`, 400, 'CANNOT_RECALL'));
+    }
+
+    const now = new Date().toISOString();
+    const updated = db.update('work_orders', wo.id, {
+      status: 'ASSIGNED',
+      rejection_notes: 'Estimate recalled by contractor for correction',
+      updated_at: now,
+    });
+
+    const est = db.findOne('estimates', (e) => e.work_order_id === wo.id);
+    if (est) {
+      db.update('estimates', est.id, {
+        status: 'DRAFT',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Estimate recalled successfully. You can now edit and resubmit.',
+      data: updated,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * @desc   Amend site inspection findings before estimate approval
+ * @route  POST /api/v1/contractor/jobs/:id/amend-inspection
+ * @access Private (FIELD_CONTRACTOR, TOWNSHIP_COO)
+ */
+export const amendSiteInspection = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { inspectionNotes, inspection_notes, reason = 'Inspector site correction' } = req.body;
+    const notes = inspectionNotes || inspection_notes;
+
+    if (!notes) {
+      return next(new AppError('Amended inspection findings are required.', 400, 'VALIDATION_ERROR'));
+    }
+
+    const wo = db.findOne('work_orders', (w) => w.id === id || w.work_order_number === id);
+    if (!wo) {
+      return next(new AppError(`Work Order "${id}" not found.`, 404, 'NOT_FOUND'));
+    }
+
+    const now = new Date().toISOString();
+    const updatedWo = db.update('work_orders', wo.id, {
+      inspection_notes: notes,
+      inspected_at: now,
+      inspection_amended: true,
+      inspection_amendment_reason: reason,
+      updated_at: now,
+    });
+
+    const est = db.findOne('estimates', (e) => e.work_order_id === wo.id);
+    if (est) {
+      db.update('estimates', est.id, { inspection_notes: notes, updated_at: now });
+    }
+
+    db.logAudit({
+      township_id: wo.township_id,
+      user_id: req.user.id,
+      action: 'INSPECTION_AMENDED',
+      entity_type: 'work_orders',
+      entity_id: wo.id,
+      notes: `Inspection amended by ${req.user.name}: "${notes}". Reason: "${reason}"`,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Inspection findings amended successfully.',
+      data: updatedWo,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc   Contractor appeals a rejected estimate or verification dispute
+ * @route  POST /api/v1/contractor/jobs/:id/appeal
+ * @access Private (FIELD_CONTRACTOR, TOWNSHIP_COO)
+ */
+export const appealDispute = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { appealReason, appeal_reason } = req.body;
+    const reason = appealReason || appeal_reason;
+
+    if (!reason) {
+      return next(new AppError('Appeal reason is required.', 400, 'VALIDATION_ERROR'));
+    }
+
+    const wo = db.findOne('work_orders', (w) => w.id === id || w.work_order_number === id);
+    if (!wo) {
+      return next(new AppError(`Work Order "${id}" not found.`, 404, 'NOT_FOUND'));
+    }
+
+    const now = new Date().toISOString();
+    const updatedWo = db.update('work_orders', wo.id, {
+      status: 'AWAITING_COO',
+      appeal_status: 'PENDING_COO_REVIEW',
+      appeal_reason: reason,
+      appeal_submitted_at: now,
+      updated_at: now,
+    });
+
+    db.logAudit({
+      township_id: wo.township_id,
+      user_id: req.user.id,
+      action: 'DISPUTE_APPEALED_TO_COO',
+      entity_type: 'work_orders',
+      entity_id: wo.id,
+      notes: `Appeal submitted by contractor ${req.user.name}: "${reason}"`,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Dispute appeal submitted for Executive review.',
+      data: updatedWo,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export default {
   getAssignedJobs,
   getJobById,
   submitSiteInspection,
   submitEstimate,
+  recallEstimate,
+  amendSiteInspection,
+  appealDispute,
   updateJobStatus,
   uploadEvidence,
 };
