@@ -1,14 +1,7 @@
 export default function CooDashboard({ dashboardData, onNavigateTab }) {
-  const summary = dashboardData?.summary || {
-    totalDepartments: 4,
-    openComplaints: 7,
-    activeWorkOrders: 6,
-    overdueWorkOrders: 1,
-    totalInvoicedAmount: 47000,
-    totalPaidAmount: 3400,
-  };
-
+  const summary = dashboardData?.summary || {};
   const departments = dashboardData?.departmentPerformance || [];
+
 
   return (
     <div>

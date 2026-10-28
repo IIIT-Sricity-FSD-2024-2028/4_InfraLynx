@@ -4,7 +4,7 @@ export default function TownshipWorkOrders({
   workOrders,
   departments,
   contractors,
-  onOpenDossier,
+  onViewDetails,
   onFilterChange,
   filters,
 }) {
@@ -158,7 +158,7 @@ export default function TownshipWorkOrders({
                   </tr>
                 ) : (
                   workOrders.map((wo) => (
-                    <tr key={wo.id} onClick={() => onOpenDossier(wo.id)} className="wo-table-row-clickable">
+                    <tr key={wo.id} onClick={() => onViewDetails(wo.id)} className="wo-table-row-clickable">
                       <td>
                         <strong className="coo-approval-wo-code">{wo.workOrderNumber}</strong>
                         <div className="coo-cell-strong-text">
@@ -212,10 +212,10 @@ export default function TownshipWorkOrders({
                       </td>
                       <td className="align-right" onClick={(e) => e.stopPropagation()}>
                         <button
-                          onClick={() => onOpenDossier(wo.id)}
+                          onClick={() => onViewDetails(wo.id)}
                           className="btn-coo-primary btn-coo-sm"
                         >
-                          🔍 Inspect Dossier
+                          View Details
                         </button>
                       </td>
                     </tr>

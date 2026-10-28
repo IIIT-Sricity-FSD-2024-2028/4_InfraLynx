@@ -5,7 +5,7 @@ import CooDashboard from './CooDashboard.jsx';
 import DepartmentManagement from './DepartmentManagement.jsx';
 import DepartmentHeadManagement from './DepartmentHeadManagement.jsx';
 import TownshipWorkOrders from './TownshipWorkOrders.jsx';
-import WorkOrderDossierModal from './WorkOrderDossierModal.jsx';
+import WorkOrderDetailsModal from './WorkOrderDetailsModal.jsx';
 import './styles/CooPortal.css';
 
 export default function CooPortal({ onExitToLanding }) {
@@ -189,19 +189,18 @@ export default function CooPortal({ onExitToLanding }) {
             workOrders={workOrders}
             departments={departments}
             contractors={contractors}
-            onOpenDossier={(woId) => setInspectWorkOrderId(woId)}
+            onViewDetails={(woId) => setInspectWorkOrderId(woId)}
             onFilterChange={handleFilterChange}
             filters={woFilters}
           />
         )}
       </main>
 
-      {/* ── Deep Work Order Dossier Inspector Modal ── */}
+      {/* Work Order Details Modal */}
       {inspectWorkOrderId && (
-        <WorkOrderDossierModal
+        <WorkOrderDetailsModal
           workOrderId={inspectWorkOrderId}
           onClose={() => setInspectWorkOrderId(null)}
-          onEscalateSuccess={loadCooData}
         />
       )}
     </div>
