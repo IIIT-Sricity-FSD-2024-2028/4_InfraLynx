@@ -1,4 +1,7 @@
 import { useState, useRef } from 'react'
+import { useDispatch } from 'react-redux'
+import { submitComplaint } from '../../store/rwa/complaintsSlice.js'
+import { navigateTo, selectComplaint, setSuccessNotice } from '../../store/rwa/uiSlice.js'
 import './styles/ReportIssue.css'
 
 const CATEGORY_DATA = {
@@ -48,15 +51,11 @@ const CATEGORY_DATA = {
   },
 }
 
-export default function ReportIssue({
-  onNavigate,
-  onComplaintSubmitted,
-  onAddComplaint,
-  currentUser,
-}) {
+export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
+  const dispatch = useDispatch()
   const [submitting, setSubmitting] = useState(false)
 
-  // Form State
+  // Form State — stays local (purely UI, not shared)
   const [category, setCategory] = useState('Civil')
   const [subCategory, setSubCategory] = useState(CATEGORY_DATA.Civil.subcategories[0].name)
   const [sector, setSector] = useState(currentUser?.sector || 'Sector 54')
@@ -67,21 +66,15 @@ export default function ReportIssue({
   const [description, setDescription] = useState('')
   const [photos, setPhotos] = useState([])
 
-  // useRef for File Input element
   const fileInputRef = useRef(null)
 
-  // Trigger file upload dialog via useRef
   function handleTriggerFileInput() {
-    if (fileInputRef.current) {
-      fileInputRef.current.click()
-    }
+    if (fileInputRef.current) fileInputRef.current.click()
   }
 
-  // Handle local file selection
   function handleFileChange(e) {
     const files = Array.from(e.target.files)
     if (!files.length) return
-
     files.forEach((file) => {
       const reader = new FileReader()
       reader.onload = (uploadEvent) => {
@@ -100,7 +93,6 @@ export default function ReportIssue({
 
   async function handleSubmit(e) {
     e.preventDefault()
-
     if (!description.trim()) {
       alert('Please enter an issue description.')
       return
@@ -108,21 +100,25 @@ export default function ReportIssue({
 
     try {
       setSubmitting(true)
-      const created = await onAddComplaint({
-        title: `${category}: ${subCategory}`,
-        category,
-        subCategory,
-        location: {
-          sector,
-          block,
-          street,
-          assetId: assetName.split(' ')[0] || 'ASSET-01',
-          assetName,
-          landmark: landmark.trim() || `Near ${block} entrance`,
-        },
-        description,
-        photos,
-      })
+
+      // Dispatch Redux thunk instead of calling prop callback
+      const created = await dispatch(
+        submitComplaint({
+          title: `${category}: ${subCategory}`,
+          category,
+          subCategory,
+          location: {
+            sector,
+            block,
+            street,
+            assetId: assetName.split(' ')[0] || 'ASSET-01',
+            assetName,
+            landmark: landmark.trim() || `Near ${block} entrance`,
+          },
+          description,
+          photos,
+        })
+      ).unwrap()
 
       // Reset form
       setDescription('')
@@ -131,7 +127,16 @@ export default function ReportIssue({
       if (onComplaintSubmitted) {
         onComplaintSubmitted(created)
       } else {
-        onNavigate('dashboard')
+        // Fallback: dispatch to dashboard
+        dispatch(selectComplaint(created))
+        dispatch(
+          setSuccessNotice({
+            id: created.id,
+            title: created.title,
+            message: `Issue "${created.title}" (${created.id}) successfully reported and logged!`,
+          })
+        )
+        dispatch(navigateTo('dashboard'))
       }
     } catch (err) {
       alert(`Failed to submit complaint: ${err.message}`)
@@ -145,7 +150,7 @@ export default function ReportIssue({
       {/* Header */}
       <div className="report-header">
         <button
-          onClick={() => onNavigate('dashboard')}
+          onClick={() => dispatch(navigateTo('dashboard'))}
           className="btn-back"
         >
           ← Back to Dashboard
@@ -158,10 +163,7 @@ export default function ReportIssue({
         </p>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="report-form"
-      >
+      <form onSubmit={handleSubmit} className="report-form">
         {/* Step 1: Category Picker */}
         <div>
           <label className="form-label">
@@ -178,12 +180,8 @@ export default function ReportIssue({
                   className={`category-card ${isSelected ? 'selected' : ''}`}
                 >
                   <div className="category-icon">{cat.icon}</div>
-                  <div className="category-name">
-                    {catKey}
-                  </div>
-                  <div className="category-desc">
-                    {cat.description}
-                  </div>
+                  <div className="category-name">{catKey}</div>
+                  <div className="category-desc">{cat.description}</div>
                 </div>
               )
             })}
@@ -222,11 +220,7 @@ export default function ReportIssue({
             {/* Sector */}
             <div>
               <span className="location-field-label">Sector</span>
-              <select
-                value={sector}
-                onChange={(e) => setSector(e.target.value)}
-                className="form-select"
-              >
+              <select value={sector} onChange={(e) => setSector(e.target.value)} className="form-select">
                 <option value="Sector 54">Sector 54 (Golf Course Road Hub)</option>
                 <option value="Sector 53">Sector 53 (DLF Phase 5)</option>
                 <option value="Sector 42">Sector 42 (CyberCity Connect)</option>
@@ -237,11 +231,7 @@ export default function ReportIssue({
             {/* Block */}
             <div>
               <span className="location-field-label">Block</span>
-              <select
-                value={block}
-                onChange={(e) => setBlock(e.target.value)}
-                className="form-select"
-              >
+              <select value={block} onChange={(e) => setBlock(e.target.value)} className="form-select">
                 <option value="Block A">Block A (The Aralias & Villas)</option>
                 <option value="Block B">Block B (The Magnolias Towers)</option>
                 <option value="Block C">Block C (Cyber Terraces)</option>
@@ -300,7 +290,7 @@ export default function ReportIssue({
           />
         </div>
 
-        {/* Step 5: Photo Upload using useRef */}
+        {/* Step 5: Photo Upload */}
         <div>
           <div className="upload-header">
             <label className="form-label" style={{ marginBottom: 0 }}>
@@ -308,21 +298,16 @@ export default function ReportIssue({
             </label>
           </div>
 
-          {/* Hidden File Input using useRef */}
           <input
             type="file"
-            ref={fileInputRef}
+            ref={(el) => { fileInputRef.current = el }}
             onChange={handleFileChange}
             accept="image/*"
             style={{ display: 'none' }}
             multiple
           />
 
-          {/* Drag & Drop / Click Zone */}
-          <div
-            onClick={handleTriggerFileInput}
-            className="dropzone"
-          >
+          <div onClick={handleTriggerFileInput} className="dropzone">
             <div className="dropzone-icon">📷</div>
             <div className="dropzone-title">
               Click to browse or drag & drop inspection photos
@@ -332,16 +317,11 @@ export default function ReportIssue({
             </div>
           </div>
 
-          {/* Uploaded Thumbnails Preview */}
           {photos.length > 0 && (
             <div className="thumbnails-strip">
               {photos.map((src, idx) => (
                 <div key={idx} className="thumbnail-wrap">
-                  <img
-                    src={src}
-                    alt={`Upload ${idx + 1}`}
-                    className="thumbnail-img"
-                  />
+                  <img src={src} alt={`Upload ${idx + 1}`} className="thumbnail-img" />
                   <button
                     type="button"
                     onClick={(e) => {
@@ -362,7 +342,7 @@ export default function ReportIssue({
         <div className="form-actions">
           <button
             type="button"
-            onClick={() => onNavigate('dashboard')}
+            onClick={() => dispatch(navigateTo('dashboard'))}
             className="btn-cancel"
           >
             Cancel
