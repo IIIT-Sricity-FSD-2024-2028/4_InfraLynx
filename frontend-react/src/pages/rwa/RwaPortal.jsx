@@ -1,6 +1,24 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
 import { useTIMS } from '../../context/TIMSContext.jsx'
-import { complaintApi } from '../../services/api.js'
+
+// Redux slices
+import {
+  fetchComplaints,
+  selectAllComplaints,
+  selectPendingVerificationCount,
+} from '../../store/rwa/complaintsSlice.js'
+import {
+  navigateTo,
+  selectComplaint,
+  setSuccessNotice,
+  dismissNotice,
+  selectCurrentScreen,
+  selectSuccessNotice,
+  selectSelectedComplaint,
+} from '../../store/rwa/uiSlice.js'
+
+// Child screens
 import RwaDashboard from './RwaDashboard.jsx'
 import ReportIssue from './ReportIssue.jsx'
 import ComplaintTracker from './ComplaintTracker.jsx'
@@ -8,87 +26,44 @@ import VerificationDispute from './VerificationDispute.jsx'
 import './styles/RwaPortal.css'
 
 export default function RwaPortal({ onExitToLanding }) {
-  // Global auth context
   const { currentUser } = useTIMS()
-  // Local RWA Complaints State
-  const [complaints, setComplaints] = useState([])
-  const [currentScreen, setCurrentScreen] = useState('dashboard')
-  const [selectedComplaint, setSelectedComplaint] = useState(null)
-  const [successNotice, setSuccessNotice] = useState(null)
+  const dispatch = useDispatch()
 
-  // 1. Fetch live complaints from backend on mount
-  const loadComplaints = useCallback(async () => {
-    try {
-      const data = await complaintApi.getComplaints()
-      setComplaints(Array.isArray(data) ? data : [])
-    } catch (err) {
-      console.warn('[RwaPortal] Backend fetch notice:', err.message)
-    }
-  }, [])
+  // ── Redux state ──────────────────────────────────────────────────────────
+  const currentScreen = useSelector(selectCurrentScreen)
+  const successNotice = useSelector(selectSuccessNotice)
+  const selectedComplaint = useSelector(selectSelectedComplaint)
+  const pendingVerificationCount = useSelector(selectPendingVerificationCount)
 
+  // ── Fetch complaints on mount ────────────────────────────────────────────
   useEffect(() => {
-    loadComplaints()
-  }, [loadComplaints])
+    dispatch(fetchComplaints())
+  }, [dispatch])
 
-  // 2. Direct local actions via Backend API
-  async function handleAddComplaint(formData) {
-    try {
-      const created = await complaintApi.createComplaint(formData)
-      const newRecord = created?.data || created
-      await loadComplaints()
-      return newRecord
-    } catch (err) {
-      console.error('[RwaPortal] Error creating complaint:', err.message)
-      throw err
-    }
-  }
-
-  const normStatus = (s) => (s || '').toUpperCase().replace(/[\s_-]+/g, '_')
-
-  async function handleConfirmFix(id, payload = {}) {
-    try {
-      const updated = await complaintApi.verifyComplaint(id, payload)
-      const resolved = updated?.data || updated
-      setComplaints((prev) =>
-        prev.map((c) => (c.id === id || c.complaint_code === id ? { ...c, ...resolved, status: 'CLOSED' } : c))
-      )
-      setSelectedComplaint((prev) => {
-        if (!prev) return null
-        if (prev.id === id || prev.complaint_code === id) {
-          return { ...prev, ...resolved, status: 'CLOSED' }
-        }
-        return prev
-      })
-      return resolved
-    } catch (err) {
-      console.error('[RwaPortal] Error confirming fix:', err.message)
-      throw err
-    }
-  }
-
-  // Pending verification count for notification badge derived from local state
-  const pendingVerificationCount = complaints.filter((c) => {
-    const st = normStatus(c.status)
-    return ['PENDING_VERIFICATION', 'COMPLETED', 'WORK_COMPLETED'].includes(st)
-  }).length
-
+  // ── Handlers (all dispatch Redux actions) ────────────────────────────────
   function handleNavigate(screen) {
-    setCurrentScreen(screen)
+    dispatch(navigateTo(screen))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function handleSelectComplaint(complaint) {
-    setSelectedComplaint(complaint)
+    dispatch(selectComplaint(complaint))
+  }
+
+  function handleDismissNotice() {
+    dispatch(dismissNotice())
   }
 
   function handleComplaintSubmitted(newComplaint) {
-    setSelectedComplaint(newComplaint)
-    setSuccessNotice({
-      id: newComplaint.id,
-      title: newComplaint.title,
-      message: `Issue "${newComplaint.title}" (${newComplaint.id}) successfully reported and logged!`,
-    })
-    setCurrentScreen('dashboard')
+    dispatch(selectComplaint(newComplaint))
+    dispatch(
+      setSuccessNotice({
+        id: newComplaint.id,
+        title: newComplaint.title,
+        message: `Issue "${newComplaint.title}" (${newComplaint.id}) successfully reported and logged!`,
+      })
+    )
+    dispatch(navigateTo('dashboard'))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -122,7 +97,6 @@ export default function RwaPortal({ onExitToLanding }) {
 
           {/* User Info & Actions */}
           <div className="rwa-user-actions">
-            {/* User identity badge */}
             <div className="rwa-user-badge">
               <div className="rwa-user-name">{currentUser?.name || 'Dr. Arvind Swaminathan'}</div>
               <div className="rwa-user-role">
@@ -130,12 +104,8 @@ export default function RwaPortal({ onExitToLanding }) {
               </div>
             </div>
 
-            {/* Exit to Landing Page */}
             {onExitToLanding && (
-              <button
-                onClick={onExitToLanding}
-                className="rwa-btn-exit"
-              >
+              <button onClick={onExitToLanding} className="rwa-btn-exit">
                 Exit Portal ↗
               </button>
             )}
@@ -164,9 +134,7 @@ export default function RwaPortal({ onExitToLanding }) {
                 >
                   {tab.label}
                   {tab.badge && (
-                    <span className="rwa-tab-badge">
-                      {tab.badge}
-                    </span>
+                    <span className="rwa-tab-badge">{tab.badge}</span>
                   )}
                 </button>
               )
@@ -179,49 +147,35 @@ export default function RwaPortal({ onExitToLanding }) {
       <main className="rwa-main-container">
         {currentScreen === 'dashboard' && (
           <RwaDashboard
-            complaints={complaints}
             currentUser={currentUser}
-            onNavigate={handleNavigate}
-            onSelectComplaint={handleSelectComplaint}
-            successNotice={successNotice}
-            onDismissNotice={() => setSuccessNotice(null)}
+            onComplaintSubmitted={handleComplaintSubmitted}
+            onDismissNotice={handleDismissNotice}
           />
         )}
 
         {currentScreen === 'report' && (
           <ReportIssue
             currentUser={currentUser}
-            onNavigate={handleNavigate}
             onComplaintSubmitted={handleComplaintSubmitted}
-            onAddComplaint={handleAddComplaint}
           />
         )}
 
         {currentScreen === 'track' && (
           <ComplaintTracker
-            complaints={complaints}
-            selectedComplaint={selectedComplaint}
             currentUser={currentUser}
-            onNavigate={handleNavigate}
-            onSelectComplaint={handleSelectComplaint}
           />
         )}
 
         {currentScreen === 'verify' && (
           <VerificationDispute
-            complaints={complaints}
-            selectedComplaint={selectedComplaint}
             currentUser={currentUser}
-            onNavigate={handleNavigate}
-            onSelectComplaint={handleSelectComplaint}
-            onConfirmFix={handleConfirmFix}
           />
         )}
       </main>
 
       {/* Minimal Civic Footer */}
       <footer className="rwa-footer">
-        TIMS Township Infrastructure Management System 
+        TIMS Township Infrastructure Management System
       </footer>
     </div>
   )

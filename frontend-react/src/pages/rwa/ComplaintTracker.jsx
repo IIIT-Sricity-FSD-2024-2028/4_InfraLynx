@@ -1,4 +1,11 @@
 import { useMemo } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
+import { selectAllComplaints } from '../../store/rwa/complaintsSlice.js'
+import {
+  selectSelectedComplaint,
+  navigateTo,
+  selectComplaint,
+} from '../../store/rwa/uiSlice.js'
 import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
 import './styles/ComplaintTracker.css'
 
@@ -50,13 +57,11 @@ const STATUS_MAP = {
   },
 }
 
-export default function ComplaintTracker({
-  complaints = [],
-  selectedComplaint,
-  currentUser,
-  onNavigate,
-  onSelectComplaint,
-}) {
+export default function ComplaintTracker({ currentUser }) {
+  const dispatch = useDispatch()
+  const complaints = useSelector(selectAllComplaints)
+  const selectedComplaint = useSelector(selectSelectedComplaint)
+
   const activeComplaint = useMemo(() => {
     if (selectedComplaint) {
       return complaints.find((c) => c.id === selectedComplaint.id) || selectedComplaint
@@ -78,7 +83,7 @@ export default function ComplaintTracker({
     return (
       <div className="empty-tracker-card">
         <h3>No complaint selected to track.</h3>
-        <button onClick={() => onNavigate('dashboard')} className="btn-result-return" style={{ marginTop: 12 }}>
+        <button onClick={() => dispatch(navigateTo('dashboard'))} className="btn-result-return" style={{ marginTop: 12 }}>
           Go to Dashboard
         </button>
       </div>
@@ -108,7 +113,7 @@ export default function ComplaintTracker({
       {/* Top Bar Navigation */}
       <div className="tracker-top-bar">
         <div>
-          <button onClick={() => onNavigate('dashboard')} className="btn-back">
+          <button onClick={() => dispatch(navigateTo('dashboard'))} className="btn-back">
             ← Back to All Complaints
           </button>
           <div className="tracker-title-group">
@@ -126,7 +131,7 @@ export default function ComplaintTracker({
             value={activeComplaint.id}
             onChange={(e) => {
               const found = complaints.find((c) => c.id === e.target.value)
-              if (found) onSelectComplaint(found)
+              if (found) dispatch(selectComplaint(found))
             }}
             className="switcher-select"
           >
@@ -150,7 +155,7 @@ export default function ComplaintTracker({
               The repair has been marked finished by {contractor?.name || 'Contractor'}. Review before & after evidence to sign off.
             </div>
           </div>
-          <button onClick={() => onNavigate('verify')} className="btn-banner-verify">
+          <button onClick={() => dispatch(navigateTo('verify'))} className="btn-banner-verify">
             Go to Verification →
           </button>
         </div>
