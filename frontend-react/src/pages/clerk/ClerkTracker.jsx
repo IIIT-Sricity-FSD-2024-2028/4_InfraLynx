@@ -14,8 +14,12 @@
  * - Conditional Rendering: Displays work order picker when no ticket is active, or full tracking detail view.
  * - Props & Context Synchronization: Keeps local ticket view aligned with global TIMS context.
  */
-import { useMemo } from 'react'
-import { useTIMS } from '../../context/TIMSContext.jsx'
+import { useMemo, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { useTIMS }     from '../../context/TIMSContext.jsx'
+import { selectAllClerkComplaints } from '../../store/clerk/complaintsSlice.js'
+import { selectAllWorkOrders, fetchWorkOrders } from '../../store/clerk/workOrdersSlice.js'
+import { selectAuthUser } from '../../store/auth/authSlice.js'
 import { isComplaintInClerkDepartment } from './ClerkPortal.jsx'
 import './styles/ClerkTracker.css'
 
@@ -53,14 +57,26 @@ export default function ClerkTracker({
   onNavigate,                 // Callback to switch between portal tabs ('dashboard', 'triage', 'workorder')
   onSelectComplaint,          // Callback to update selected complaint in parent state
 }) {
-  // --- 1. Global Context Consumption (TIMSContext) ---
-  // Retrieves logged-in Clerk profile (currentUser) and fallback global complaints
-  const { complaints: contextComplaints = [], currentUser } = useTIMS()
+  // --- 1. Redux Dispatch & Session State ---
+  const dispatch = useDispatch()
+  const reduxUser = useSelector(selectAuthUser)
+  const { currentUser: contextUser } = useTIMS()
+  const currentUser = reduxUser || contextUser
+
+  // Synchronize work orders from backend database into Redux store
+  useEffect(() => {
+    dispatch(fetchWorkOrders())
+  }, [dispatch])
+
+  // --- 2. Redux Store Selectors ---
+  // Components read data directly from Redux store — never fetch independently
+  const reduxComplaints = useSelector(selectAllClerkComplaints)
+  const reduxWorkOrders = useSelector(selectAllWorkOrders)
 
   const complaints = useMemo(() => {
     if (propComplaints) return propComplaints
-    return contextComplaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
-  }, [propComplaints, contextComplaints, currentUser])
+    return reduxComplaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
+  }, [propComplaints, reduxComplaints, currentUser])
 
   const active = useMemo(() => {
     if (!selectedComplaint) return null
