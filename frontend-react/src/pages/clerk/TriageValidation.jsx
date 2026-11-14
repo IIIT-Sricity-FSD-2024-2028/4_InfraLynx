@@ -1,6 +1,12 @@
 import { useState, useMemo } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { useTIMS } from '../../context/TIMSContext.jsx'
-import { clerkApi } from '../../services/api.js'
+import {
+  triageComplaint,
+  validateComplaint,
+  rejectComplaint,
+  selectAllClerkComplaints,
+} from '../../store/clerk/complaintsSlice.js'
 import { isComplaintInClerkDepartment } from './ClerkPortal.jsx'
 import './styles/TriageValidation.css'
 
@@ -39,15 +45,21 @@ export default function TriageValidation({
   onSelectComplaint,             // Callback to set the active complaint in parent state
   onComplaintUpdated,            // Callback to update parent state when ticket status changes
 }) {
-  // --- 1. Global Context Consumption (TIMSContext) ---
-  // Retrieves global user details, fallback complaints, and optional status update callback
-  const { complaints: contextComplaints = [], currentUser, updateComplaintStatus } = useTIMS()
+  // --- 1. Redux dispatch & selectors ---
+  const dispatch = useDispatch()
+
+  // --- 2. Session (TIMSContext — user profile only) ---
+  const { currentUser } = useTIMS()
+
+  // --- 3. Redux fallback: read from store if no prop provided ---
+  // Components never fetch data independently — data comes from Redux store
+  const reduxComplaints = useSelector(selectAllClerkComplaints)
 
   // Filter complaints strictly matching the Desk Clerk's assigned department
   const complaints = useMemo(() => {
     if (propComplaints) return propComplaints
-    return contextComplaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
-  }, [propComplaints, contextComplaints, currentUser])
+    return reduxComplaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
+  }, [propComplaints, reduxComplaints, currentUser])
 
   // Form states for rejection workflow
   const [isRejecting, setIsRejecting]           = useState(false)
@@ -67,53 +79,45 @@ export default function TriageValidation({
   ), [complaints])
 
   /**
-   * Automatically transition complaint from REPORTED -> UNDER_REVIEW when opened
+   * Automatically transition complaint from REPORTED -> UNDER_REVIEW when opened.
+   * Dispatches triageComplaint thunk — DB updated first, then Redux state updated from response.
    */
   async function handleOpen(complaint) {
     onSelectComplaint(complaint)
     if (complaint.status === 'REPORTED') {
       try {
-        const res = await clerkApi.triageComplaint(complaint.id)
-        const updated = { ...(res?.data || res || complaint), status: 'UNDER_REVIEW' }
+        // Dispatch Redux thunk: calls clerkApi.triageComplaint → updates DB → updates Redux store
+        const result = await dispatch(triageComplaint(complaint.id))
+        const updated = result.payload || { ...complaint, status: 'UNDER_REVIEW' }
         if (onComplaintUpdated) onComplaintUpdated(updated)
       } catch (err) {
         console.warn('[TriageValidation] Triage notice:', err.message)
       }
-      updateComplaintStatus?.(
-        complaint.id,
-        'UNDER_REVIEW',
-        `Desk Clerk (${currentUser?.name || 'Staff'}) opened complaint for review.`
-      )
     }
   }
 
   /**
-   * Validate complaint: Marks ticket VALIDATED, unlocks work order dispatch
+   * Validate complaint: Marks ticket VALIDATED, unlocks work order dispatch.
+   * Dispatches validateComplaint thunk — DB updated first, then Redux store updated from response.
    */
   async function handleValidate() {
     if (!active || isSubmitting) return
     setIsSubmitting(true)
     try {
-      const res = await clerkApi.validateComplaint(active.id)
+      const historyEntry = {
+        stage: 'VALIDATED',
+        timestamp: new Date().toISOString(),
+        actor: `${currentUser?.name || 'Authorized Staff'} (Desk Clerk)`,
+        note: `Validated by Desk Clerk (${currentUser?.name || 'Staff'}). All fields verified. Ready for Work Order creation.`,
+      }
+      // Dispatch Redux thunk: DB updated first → Redux state updated from DB response
+      const result = await dispatch(validateComplaint({ id: active.id, historyEntry }))
       const updated = {
-        ...(res?.data || res || active),
-        status: 'VALIDATED',
-        history: [
-          ...(active.history || []),
-          {
-            stage: 'VALIDATED',
-            timestamp: new Date().toISOString(),
-            actor: `${currentUser?.name || 'Authorized Staff'} (Desk Clerk)`,
-            note: `Validated by Desk Clerk (${currentUser?.name || 'Staff'}). All fields verified. Ready for Work Order creation.`,
-          },
-        ],
+        ...(result.payload || active),
+        status: result.payload?.status || 'VALIDATED',
+        history: [...(active.history || []), historyEntry],
       }
       if (onComplaintUpdated) onComplaintUpdated(updated)
-      updateComplaintStatus?.(
-        active.id,
-        'VALIDATED',
-        `Validated by Desk Clerk (${currentUser?.name || 'Staff'}). All fields verified. Ready for Work Order creation.`
-      )
       setIsRejecting(false)
     } catch (err) {
       console.error('[TriageValidation] Validation failed:', err)
@@ -124,35 +128,35 @@ export default function TriageValidation({
   }
 
   /**
-   * Reject complaint: Marks ticket REJECTED with mandatory audit remarks
+   * Reject complaint: Marks ticket REJECTED with mandatory audit remarks.
+   * Dispatches rejectComplaint thunk — DB updated first, then Redux store updated from response.
    */
   async function handleReject(e) {
     e.preventDefault()
     if (!active || isSubmitting) return
     setIsSubmitting(true)
     try {
-      const res = await clerkApi.rejectComplaint(active.id, { reason: rejectionReason, remarks: rejectionRemarks })
+      const historyEntry = {
+        stage: 'REJECTED',
+        timestamp: new Date().toISOString(),
+        actor: `${currentUser?.name || 'Authorized Staff'} (Desk Clerk)`,
+        note: `Rejected by ${currentUser?.name || 'Staff'}. Reason: "${rejectionReason}". Remarks: "${rejectionRemarks || 'None'}".`,
+      }
+      // Dispatch Redux thunk: DB updated first → Redux state updated from DB response
+      const result = await dispatch(rejectComplaint({
+        id: active.id,
+        reason: rejectionReason,
+        remarks: rejectionRemarks,
+        historyEntry,
+      }))
       const updated = {
-        ...(res?.data || res || active),
-        status: 'REJECTED',
+        ...(result.payload || active),
+        status: result.payload?.status || 'REJECTED',
         rejection_reason: rejectionReason,
         rejection_remarks: rejectionRemarks,
-        history: [
-          ...(active.history || []),
-          {
-            stage: 'REJECTED',
-            timestamp: new Date().toISOString(),
-            actor: `${currentUser?.name || 'Authorized Staff'} (Desk Clerk)`,
-            note: `Rejected by ${currentUser?.name || 'Staff'}. Reason: "${rejectionReason}". Remarks: "${rejectionRemarks || 'None'}".`,
-          },
-        ],
+        history: [...(active.history || []), historyEntry],
       }
       if (onComplaintUpdated) onComplaintUpdated(updated)
-      updateComplaintStatus?.(
-        active.id,
-        'REJECTED',
-        `Rejected by ${currentUser?.name || 'Staff'}. Reason: "${rejectionReason}". Remarks: "${rejectionRemarks || 'None'}".`
-      )
       setIsRejecting(false)
       setRejectionRemarks('')
     } catch (err) {

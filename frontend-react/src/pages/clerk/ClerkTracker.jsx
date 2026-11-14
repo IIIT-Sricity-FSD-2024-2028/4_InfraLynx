@@ -15,7 +15,9 @@
  * - Props & Context Synchronization: Keeps local ticket view aligned with global TIMS context.
  */
 import { useMemo } from 'react'
-import { useTIMS } from '../../context/TIMSContext.jsx'
+import { useSelector } from 'react-redux'
+import { useTIMS }     from '../../context/TIMSContext.jsx'
+import { selectAllClerkComplaints } from '../../store/clerk/complaintsSlice.js'
 import { isComplaintInClerkDepartment } from './ClerkPortal.jsx'
 import './styles/ClerkTracker.css'
 
@@ -53,14 +55,17 @@ export default function ClerkTracker({
   onNavigate,                 // Callback to switch between portal tabs ('dashboard', 'triage', 'workorder')
   onSelectComplaint,          // Callback to update selected complaint in parent state
 }) {
-  // --- 1. Global Context Consumption (TIMSContext) ---
-  // Retrieves logged-in Clerk profile (currentUser) and fallback global complaints
-  const { complaints: contextComplaints = [], currentUser } = useTIMS()
+  // --- 1. Session (TIMSContext — user profile only) ---
+  const { currentUser } = useTIMS()
+
+  // --- 2. Redux fallback: read complaints from store if no prop provided ---
+  // Components never fetch data independently — data flows from Redux store via ClerkPortal
+  const reduxComplaints = useSelector(selectAllClerkComplaints)
 
   const complaints = useMemo(() => {
     if (propComplaints) return propComplaints
-    return contextComplaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
-  }, [propComplaints, contextComplaints, currentUser])
+    return reduxComplaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
+  }, [propComplaints, reduxComplaints, currentUser])
 
   const active = useMemo(() => {
     if (!selectedComplaint) return null

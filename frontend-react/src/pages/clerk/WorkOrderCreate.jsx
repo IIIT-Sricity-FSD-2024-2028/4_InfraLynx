@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { useTIMS } from '../../context/TIMSContext.jsx'
-import { clerkApi } from '../../services/api.js'
+import { useDispatch, useSelector } from 'react-redux'
+import { useTIMS }                 from '../../context/TIMSContext.jsx'
+import { createWorkOrder }         from '../../store/clerk/workOrdersSlice.js'
+import { selectAllClerkComplaints } from '../../store/clerk/complaintsSlice.js'
 import './styles/WorkOrderCreate.css'
 
 /**
@@ -18,15 +20,20 @@ export default function WorkOrderCreate({
   onNavigate,            // Callback to switch tabs (e.g. redirect to 'tracker' after WO creation)
   onWorkOrderCreated,    // Callback notifying parent ClerkPortal of newly issued Work Order
 }) {
-  // --- 1. Global Context Consumption (TIMSContext) ---
+  // --- 1. Redux dispatch & selectors ---
+  const dispatch = useDispatch()
+
+  // --- 2. Global Context (TIMSContext — user profile + contractors only) ---
   const {
-    complaints = [],            // Global complaints list
     contractors = [],           // Master list of empanelled AMC contractors loaded from PostgreSQL
     currentUser,                // Logged-in Clerk profile (for audit logging)
-    refreshComplaints,          // Context function to reload complaints from backend
     refreshMasterData,          // Context function to reload contractors & AMC rate cards
     updateComplaintStatus,      // Context updater callback
   } = useTIMS()
+
+  // --- 3. Complaints from Redux store (not fetched independently) ---
+  // All complaint data reads from Redux store via useSelector
+  const complaints = useSelector(selectAllClerkComplaints)
 
   // Ensure fresh master data (e.g. empanelled contractors and rate cards)
   useEffect(() => {
@@ -84,7 +91,9 @@ export default function WorkOrderCreate({
   }, [filteredContractors, active])
 
   /**
-   * Dispatch Work Order: Creates backend WO record and updates ticket status -> ASSIGNED
+   * Dispatch Work Order: Dispatches createWorkOrder Redux thunk.
+   * Thunk calls clerkApi.createWorkOrder (DB updated first),
+   * then Redux work orders store is updated from the DB response.
    */
   const handleDispatch = useCallback(async (e) => {
     e.preventDefault()
@@ -99,8 +108,8 @@ export default function WorkOrderCreate({
     setIsSubmitting(true)
 
     try {
-      // 1. Submit work order payload to backend API
-      const res = await clerkApi.createWorkOrder({
+      // Dispatch Redux thunk — DB is updated first, Redux store updated from response
+      const result = await dispatch(createWorkOrder({
         complaint_id: active.id,
         complaintId: active.id,
         contractor_id: selectedContractorId,
@@ -108,15 +117,14 @@ export default function WorkOrderCreate({
         priority: priority.toUpperCase(),
         special_instructions: specialInstructions,
         specialInstructions,
-      })
+      }))
 
-      const woData = res?.data
+      const woData = result.payload
       const woCode = woData?.work_order_number || `WO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
       const assignedContractor = woData?.contractor || contractor
 
-      // 2. Refresh database complaints
-      const freshComplaints = await refreshComplaints()
-      const updatedComplaint = freshComplaints.find(c => c.id === active.id) || {
+      // Build the updated complaint object using the DB response
+      const updatedComplaint = {
         ...active,
         status: newStatus,
         work_order_number: woCode,
@@ -136,9 +144,8 @@ export default function WorkOrderCreate({
       onWorkOrderCreated(updatedComplaint)
     } catch (err) {
       console.error('[WorkOrderCreate] Error creating work order:', err)
+      // Fallback: show optimistic update if backend is unavailable
       const fallbackWoCode = `WO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
-      const note = `Work Order ${fallbackWoCode} assigned to ${contractor?.name || 'contractor'}. Priority: ${priority}. Ready for on-site inspection.`
-
       const fallbackPayload = {
         status: newStatus,
         work_order_number: fallbackWoCode,
@@ -153,7 +160,6 @@ export default function WorkOrderCreate({
         special_instructions: specialInstructions,
         specialInstructions,
       }
-      updateComplaintStatus?.(active.id, newStatus, note, fallbackPayload)
       onWorkOrderCreated({ ...active, ...fallbackPayload })
     } finally {
       setIsSubmitting(false)
