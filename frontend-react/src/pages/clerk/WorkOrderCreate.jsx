@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useTIMS }                 from '../../context/TIMSContext.jsx'
 import { createWorkOrder }         from '../../store/clerk/workOrdersSlice.js'
 import { selectAllClerkComplaints } from '../../store/clerk/complaintsSlice.js'
+import { selectAuthUser }          from '../../store/auth/authSlice.js'
 import './styles/WorkOrderCreate.css'
 
 /**
@@ -22,14 +23,16 @@ export default function WorkOrderCreate({
 }) {
   // --- 1. Redux dispatch & selectors ---
   const dispatch = useDispatch()
+  const reduxUser = useSelector(selectAuthUser)
 
-  // --- 2. Global Context (TIMSContext — user profile + contractors only) ---
+  // --- 2. Global Context (TIMSContext — master data) ---
   const {
     contractors = [],           // Master list of empanelled AMC contractors loaded from PostgreSQL
-    currentUser,                // Logged-in Clerk profile (for audit logging)
+    currentUser: contextUser,   // Fallback user profile
     refreshMasterData,          // Context function to reload contractors & AMC rate cards
     updateComplaintStatus,      // Context updater callback
   } = useTIMS()
+  const currentUser = reduxUser || contextUser
 
   // --- 3. Complaints from Redux store (not fetched independently) ---
   // All complaint data reads from Redux store via useSelector

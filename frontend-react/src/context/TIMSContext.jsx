@@ -1,14 +1,29 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { authApi, systemApi, masterApi, complaintApi } from '../services/api.js'
+import {
+  loginUser,
+  logoutUser,
+  clearAuth,
+  selectAuthUser,
+} from '../store/auth/authSlice.js'
 
 const INITIAL_CURRENT_USER = null
 
 const TIMSContext = createContext(null)
 
 export function TIMSProvider({ children }) {
+  const dispatch = useDispatch()
+  const reduxUser = useSelector(selectAuthUser)
+
   const [currentUser, setCurrentUser] = useState(() => {
-    return authApi.getCachedUser() || INITIAL_CURRENT_USER
+    return reduxUser || authApi.getCachedUser() || INITIAL_CURRENT_USER
   })
+
+  // Synchronize local state whenever Redux auth state updates
+  useEffect(() => {
+    setCurrentUser(reduxUser)
+  }, [reduxUser])
 
   const [contractors, setContractors] = useState([])
   const [amcRateCards, setAmcRateCards] = useState([])
@@ -22,6 +37,7 @@ export function TIMSProvider({ children }) {
   // Listen for session expiration or unauthorized events from API layer
   useEffect(() => {
     const handleRevocation = () => {
+      dispatch(clearAuth())
       setCurrentUser(null)
     }
     // Cross-tab logout: when another tab calls logout(), it sets tims_logout_signal
@@ -96,20 +112,34 @@ export function TIMSProvider({ children }) {
     refreshMasterData()
   }, [backendStatus.connected, currentUser?.id, refreshMasterData])
 
+  /**
+   * Login: Dispatches loginUser Redux thunk.
+   * Rule 4 & 5: Backend database validates credentials first,
+   * then Redux state is updated with returned user from DB response.
+   * Rule 9: Login handled through Redux.
+   */
   const login = useCallback(async (emailOrUsername, password) => {
-    const data = await authApi.login(emailOrUsername, password)
-    const user = data.user
+    const action = await dispatch(loginUser({ emailOrUsername, password }))
+    if (loginUser.rejected.match(action)) {
+      throw new Error(action.payload || 'Login failed')
+    }
+    const user = action.payload
     setCurrentUser(user)
     return { success: true, user }
-  }, [])
+  }, [dispatch])
 
+  /**
+   * Logout: Dispatches logoutUser Redux thunk.
+   * Rule 4 & 5: Backend session invalidated first, then Redux state is cleared.
+   * Rule 9: Logout handled through Redux.
+   */
   const logout = useCallback(async () => {
-    await authApi.logout()
+    await dispatch(logoutUser())
     setCurrentUser(null)
     try {
       sessionStorage.clear()
     } catch (_) {}
-  }, [])
+  }, [dispatch])
 
   // Direct fetch helper for components needing live PostgreSQL complaints
   const refreshComplaints = useCallback(async () => {

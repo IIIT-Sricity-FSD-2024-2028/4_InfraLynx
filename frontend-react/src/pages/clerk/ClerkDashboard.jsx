@@ -16,6 +16,7 @@ import { useState, useMemo } from 'react'
 import { useSelector }       from 'react-redux'
 import { useTIMS }           from '../../context/TIMSContext.jsx'
 import { selectAllClerkComplaints } from '../../store/clerk/complaintsSlice.js'
+import { selectAuthUser }           from '../../store/auth/authSlice.js'
 import { isComplaintInClerkDepartment } from './ClerkPortal.jsx'
 import './styles/ClerkDashboard.css'
 
@@ -49,8 +50,10 @@ export default function ClerkDashboard({
   successNotice,                       // Active green toast notification banner object (id & message)
   onDismissNotice,                     // Callback function to close the success toast notification
 }) {
-  // --- 1. Session (TIMSContext — user profile only) ---
-  const { currentUser } = useTIMS()
+  // --- 1. Session State from Redux Store ---
+  const reduxUser = useSelector(selectAuthUser)
+  const { currentUser: contextUser } = useTIMS()
+  const currentUser = reduxUser || contextUser
 
   // --- 2. Redux fallback: if no prop provided, read directly from Redux store ---
   // Normally ClerkPortal passes complaints as a prop (already filtered for dept).

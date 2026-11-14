@@ -23,6 +23,13 @@ import {
   selectAllClerkComplaints,
   selectClerkComplaintsStatus,
 } from '../../store/clerk/complaintsSlice.js'
+import {
+  fetchWorkOrders,
+} from '../../store/clerk/workOrdersSlice.js'
+import {
+  selectAuthUser,
+  logoutUser,
+} from '../../store/auth/authSlice.js'
 import ClerkDashboard    from './ClerkDashboard.jsx'
 import TriageValidation  from './TriageValidation.jsx'
 import WorkOrderCreate   from './WorkOrderCreate.jsx'
@@ -64,8 +71,10 @@ export default function ClerkPortal({
   const allComplaints     = useSelector(selectAllClerkComplaints)
   const complaintsStatus  = useSelector(selectClerkComplaintsStatus)
 
-  // ── 2. Global Session (TIMSContext — user profile only, not data) ───────────
-  const { currentUser } = useTIMS()
+  // ── 2. Redux Authentication State (Rule 9: auth handled through Redux) ─────
+  const reduxUser = useSelector(selectAuthUser)
+  const { currentUser: contextUser } = useTIMS()
+  const currentUser = reduxUser || contextUser
 
   // ── 3. Local UI State (screen routing, selected complaint, toast) ───────────
   const [currentScreen,     setCurrentScreen]     = useState('dashboard')
@@ -73,10 +82,11 @@ export default function ClerkPortal({
   const [successNotice,     setSuccessNotice]     = useState(null)
 
   // ── 4. Data Loading via Redux Thunk ────────────────────────────────────────
-  // Dispatch fetchComplaints on mount and whenever the clerk switches tabs.
-  // The thunk calls the backend, then Redux updates state — components re-render automatically.
+  // Dispatch fetchComplaints & fetchWorkOrders on mount and on tab transitions.
+  // Repository is called first (DB updated/queried) -> Redux store updated from response.
   useEffect(() => {
     dispatch(fetchComplaints())
+    dispatch(fetchWorkOrders())
   }, [dispatch, currentScreen])
 
   // ── 5. Department Filtering (Memoized Derived State) ───────────────────────
@@ -141,6 +151,17 @@ export default function ClerkPortal({
     handleNavigate('dashboard')
   }, [dispatch, handleNavigate])
 
+  /**
+   * Rule 9: Sign out handled through Redux logoutUser thunk.
+   * Calls authApi.logout() -> clears backend session -> clears Redux store -> returns to landing.
+   */
+  const handleSignOut = useCallback(async () => {
+    await dispatch(logoutUser())
+    if (onExitToLanding) {
+      onExitToLanding()
+    }
+  }, [dispatch, onExitToLanding])
+
   const deptDisplay = currentUser?.department_name || 'Operations'
   const tabs = [
     { id: 'dashboard', label: 'Dashboard',         badge: pendingTriageCount    > 0 ? pendingTriageCount    : null },
@@ -177,8 +198,9 @@ export default function ClerkPortal({
               <span style={{ fontSize: 12, color: '#6b7280' }}>Syncing...</span>
             )}
             {onExitToLanding && (
-              <button onClick={onExitToLanding} className="clerk-btn-exit">Exit Portal &#8599;</button>
+              <button onClick={onExitToLanding} className="clerk-btn-exit" style={{ marginRight: 6 }}>Exit Portal &#8599;</button>
             )}
+            <button onClick={handleSignOut} className="clerk-btn-exit" title="Sign out through Redux">Sign Out &#8599;</button>
           </div>
         </div>
 

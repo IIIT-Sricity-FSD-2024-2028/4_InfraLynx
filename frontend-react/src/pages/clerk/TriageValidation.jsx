@@ -7,6 +7,7 @@ import {
   rejectComplaint,
   selectAllClerkComplaints,
 } from '../../store/clerk/complaintsSlice.js'
+import { selectAuthUser } from '../../store/auth/authSlice.js'
 import { isComplaintInClerkDepartment } from './ClerkPortal.jsx'
 import './styles/TriageValidation.css'
 
@@ -47,9 +48,9 @@ export default function TriageValidation({
 }) {
   // --- 1. Redux dispatch & selectors ---
   const dispatch = useDispatch()
-
-  // --- 2. Session (TIMSContext — user profile only) ---
-  const { currentUser } = useTIMS()
+  const reduxUser = useSelector(selectAuthUser)
+  const { currentUser: contextUser } = useTIMS()
+  const currentUser = reduxUser || contextUser
 
   // --- 3. Redux fallback: read from store if no prop provided ---
   // Components never fetch data independently — data comes from Redux store
