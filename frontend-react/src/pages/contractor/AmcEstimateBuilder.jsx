@@ -1,14 +1,28 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { useTIMS } from '../../context/TIMSContext.jsx'
+import {
+  selectAllContractorJobs,
+  selectContractorSelectedJob,
+  setSelectedJob,
+  submitAmcEstimate,
+} from '../../store/contractor/contractorSlice.js'
 import './styles/AmcEstimateBuilder.css'
 
 export default function AmcEstimateBuilder({
-  jobs = [],
-  selectedJob,
+  jobs: propsJobs,
+  selectedJob: propsSelectedJob,
   onSelectJob,
   onSubmitEstimate,
   onNavigate,
 }) {
+  const dispatch = useDispatch()
+  const reduxJobs = useSelector(selectAllContractorJobs)
+  const reduxSelectedJob = useSelector(selectContractorSelectedJob)
+
+  const jobs = propsJobs || reduxJobs || []
+  const selectedJob = propsSelectedJob || reduxSelectedJob
+
   const { amcRateCards = [] } = useTIMS()
 
   // Only work orders that require estimate drafting/revision.
@@ -237,15 +251,32 @@ export default function AmcEstimateBuilder({
     }
 
     const nextStatus = 'AWAITING_DEPT_HEAD'
-    onSubmitEstimate(currentJob.id, estimateData, nextStatus)
+    if (onSubmitEstimate) {
+      onSubmitEstimate(currentJob.id, estimateData, nextStatus)
+    } else {
+      const targetJob = jobs.find((j) => j.id === currentJob.id) || currentJob
+      const workOrderId =
+        targetJob?.backendWoId || targetJob?.workOrderId || targetJob?.workOrderCode || currentJob.id
+      const complaintId = targetJob?.complaintId || targetJob?.id || currentJob.id
+      dispatch(
+        submitAmcEstimate({
+          jobId: currentJob.id,
+          workOrderId,
+          complaintId,
+          estimateData,
+        })
+      )
+    }
 
     setSubmittedMessage(
       `Estimate of ₹${totalEstimate.toLocaleString('en-IN')} submitted for ${currentJob.workOrderId || currentJob.id}. Forwarded to Department Head for approval.`
     )
 
     setTimeout(() => {
-      onSelectJob({ ...currentJob, estimate: estimateData, status: nextStatus })
-      onNavigate('approvals')
+      const updatedJob = { ...currentJob, estimate: estimateData, status: nextStatus }
+      dispatch(setSelectedJob(updatedJob))
+      if (onSelectJob) onSelectJob(updatedJob)
+      if (onNavigate) onNavigate('approvals')
     }, 1200)
   }
 
@@ -299,7 +330,10 @@ export default function AmcEstimateBuilder({
             onChange={(e) => {
               setActiveJobId(e.target.value)
               const sel = estimatableJobs.find((j) => j.id === e.target.value)
-              if (sel) onSelectJob(sel)
+              if (sel) {
+                dispatch(setSelectedJob(sel))
+                if (onSelectJob) onSelectJob(sel)
+              }
             }}
             className="estimate-rate-select"
             style={{ width: 'auto', minWidth: 200 }}

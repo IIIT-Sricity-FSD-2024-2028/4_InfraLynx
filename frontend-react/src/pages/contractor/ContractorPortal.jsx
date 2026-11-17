@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { useTIMS } from '../../context/TIMSContext.jsx'
-import { contractorApi } from '../../services/api.js'
 import ContractorDashboard from './ContractorDashboard.jsx'
 import AssignedWorkOrders from './AssignedWorkOrders.jsx'
 import SiteInspection from './SiteInspection.jsx'
@@ -8,452 +8,167 @@ import AmcEstimateBuilder from './AmcEstimateBuilder.jsx'
 import ApprovalStatus from './ApprovalStatus.jsx'
 import WorkExecution from './WorkExecution.jsx'
 import ErrorBoundary from '../../components/common/ErrorBoundary.jsx'
+import {
+  fetchContractorJobs,
+  submitSiteInspection,
+  submitAmcEstimate,
+  startWorkOrder,
+  submitJobCompletion,
+  setSelectedJob,
+  clearLastActionMessage,
+  selectAllContractorJobs,
+  selectContractorLoading,
+  selectContractorSelectedJob,
+  selectLastActionMessage,
+  selectInspectionError,
+  selectEstimateError,
+  selectStatusUpdateError,
+} from '../../store/contractor/contractorSlice.js'
 import './styles/ContractorPortal.css'
 
-function mapBackendJobToUi(wo) {
-  const beforePhotos = Array.isArray(wo.beforePhotos) && wo.beforePhotos.length > 0
-    ? wo.beforePhotos
-    : (wo.evidence || []).filter((e) => (e.evidence_type || e.type) === 'BEFORE').map((e) => e.file_url || e.fileUrl)
-  const afterPhotos = Array.isArray(wo.afterPhotos) && wo.afterPhotos.length > 0
-    ? wo.afterPhotos
-    : (wo.evidence || []).filter((e) => (e.evidence_type || e.type) === 'AFTER').map((e) => e.file_url || e.fileUrl)
-
-  const inspection = wo.inspectionNotes || wo.inspected_at || wo.inspectedAt ? {
-    observedProblem: wo.observedProblem || wo.inspectionNotes || '',
-    equipmentCondition: wo.equipmentCondition || '',
-    requiredWork: wo.requiredWork || '',
-    inspectionPhoto: wo.inspectionPhoto || null,
-    remarks: wo.inspectionNotes || '',
-    inspectedAt: wo.inspectedAt || wo.inspected_at || new Date().toISOString(),
-  } : null
-
-  const estimate = (wo.estimateAmount > 0 || (wo.lineItems && wo.lineItems.length > 0)) ? {
-    items: (wo.lineItems || []).map((item) => ({
-      rateCardId: item.rateCardId || item.itemCode || 'RATE-01',
-      service: item.description || item.service || 'Remediation Service',
-      unit: item.unit || 'Unit',
-      rate: Number(item.officialRate || item.rate || item.unitCost || 500),
-      qty: Number(item.quantity || item.qty || 1),
-      subtotal: Number(item.totalAmount || ((item.quantity || item.qty || 1) * (item.officialRate || item.rate || 500))),
-    })),
-    total: Number(wo.estimateAmount || 0),
-    status: wo.status === 'AWAITING_DEPT_HEAD' ? 'PENDING_APPROVAL' : 'APPROVED',
-    submittedAt: wo.createdAt,
-  } : null
-
-  const execution = (wo.status === 'IN_PROGRESS' || wo.status === 'COMPLETED' || wo.completed_at || wo.completedAt) ? {
-    startedAt: wo.started_at || wo.createdAt,
-    completedAt: wo.completed_at || wo.completedAt,
-    actualWorkSummary: wo.completionRemarks || wo.completion_remarks || '',
-    actualLabourDetails: wo.actualLabourDetails || '',
-    afterPhoto: afterPhotos[0] || '',
-  } : null
-
-  const estimated_cost = Number(wo.estimated_cost ?? wo.estimate_amount ?? 0)
-  const actual_cost = (wo.actual_cost !== null && wo.actual_cost !== undefined)
-    ? Number(wo.actual_cost)
-    : (wo.status === 'COMPLETED' ? estimated_cost : null)
-
-  const work_order_number = wo.work_order_number || wo.work_order_code || `WO-${wo.id?.slice(0, 8)}`
-  const complaint_code = wo.complaint_code || wo.complaint_id || wo.id
-  const sla_deadline = wo.sla_deadline || wo.due_at || new Date(Date.now() + 24 * 3600 * 1000).toISOString()
-  const created_at = wo.created_at || new Date().toISOString()
-  const special_instructions = wo.special_instructions || wo.description || ''
-
-  return {
-    id: complaint_code,
-    backendWoId: wo.id,
-    work_order_id: wo.id,
-    work_order_number,
-    complaint_id: wo.complaint_id || wo.id,
-    complaint_code,
-    title: wo.title || 'Field Work Order',
-    category: wo.category || 'General',
-    subcategory: wo.subcategory || '',
-    subCategory: wo.subcategory || '',
-    location: typeof wo.location === 'object' && wo.location !== null ? wo.location : {
-      sector: wo.sector || 'Sector 54',
-      block: wo.block || 'Block A',
-      street: wo.street || 'Gulmohar Marg',
-      landmark: wo.location_details || '',
-    },
-    severity: wo.severity || wo.priority || 'Medium',
-    priority: wo.priority || wo.severity || 'Medium',
-    sla_deadline,
-    status: wo.status,
-    estimated_cost,
-    actual_cost,
-    special_instructions,
-    created_at,
-    // Backwards-compatible aliases
-    workOrderId: work_order_number,
-    workOrderCode: work_order_number,
-    complaintId: wo.complaint_id || wo.id,
-    complaintCode: complaint_code,
-    slaDeadline: sla_deadline,
-    estimateAmount: estimated_cost,
-    estimatedCost: estimated_cost,
-    actualCost: actual_cost,
-    moneyEstimated: estimated_cost,
-    moneyUsed: actual_cost !== null ? actual_cost : 0,
-    description: special_instructions,
-    reportedBy: wo.reported_by || { name: 'Dr. Arvind Swaminathan', role: 'RWA Secretary' },
-    createdAt: created_at,
-    beforePhotos,
-    afterPhotos,
-    inspection,
-    estimate,
-    execution,
-    rawBackendData: wo,
-  }
-}
-
 export default function ContractorPortal({ onExitToLanding }) {
-  const {
-    currentUser,
-    complaints = [],
-    updateComplaintStatus,
-    refreshComplaints,
-  } = useTIMS()
+  // Auth & shared context (only used for currentUser display and amcRateCards)
+  const { currentUser } = useTIMS()
 
-  // Local state for contractor jobs (loaded from backend API)
-  const [jobs, setJobs] = useState([])
+  const dispatch = useDispatch()
 
-  // Navigation tab state: 'dashboard' | 'workorders' | 'inspection' | 'estimate' | 'approvals' | 'execution' | 'rework'
+  // ── Redux state ──────────────────────────────────────────────────────────
+  const jobs        = useSelector(selectAllContractorJobs)
+  const loading     = useSelector(selectContractorLoading)
+  const selectedJob = useSelector(selectContractorSelectedJob)
+  const successNotice = useSelector(selectLastActionMessage)
+  const inspectionError   = useSelector(selectInspectionError)
+  const estimateError     = useSelector(selectEstimateError)
+  const statusUpdateError = useSelector(selectStatusUpdateError)
+
+  // ── Local UI-only state (not shared data, so stays local) ────────────────
+  // Navigation tab state: 'dashboard' | 'workorders' | 'inspection' | 'estimate' | 'approvals' | 'execution'
   const [currentScreen, setCurrentScreen] = useState('dashboard')
-  const [selectedJob, setSelectedJob] = useState(null)
-  const [successNotice, setSuccessNotice] = useState(null)
 
-  // Fetch live jobs from backend API on mount and on screen switch
-  const loadBackendJobs = useCallback(async () => {
-    try {
-      const liveWorkOrders = await contractorApi.getJobs()
-      if (Array.isArray(liveWorkOrders)) {
-        const mappedJobs = liveWorkOrders.map(mapBackendJobToUi)
-        setJobs(mappedJobs)
-      }
-    } catch (err) {
-      console.warn('[ContractorPortal] Backend sync notice:', err.message)
-    }
-  }, [])
-
+  // ── Fetch jobs on mount and whenever the active screen changes ────────────
   useEffect(() => {
-    loadBackendJobs()
-  }, [loadBackendJobs, currentScreen])
+    dispatch(fetchContractorJobs())
+  }, [dispatch, currentScreen])
 
-  // Persist contractor local jobs in tab-isolated sessionStorage safely
-  useEffect(() => {
-    try {
-      sessionStorage.setItem('tims_contractor_jobs_v1', JSON.stringify(jobs))
-    } catch (storageErr) {
-      console.warn('[ContractorPortal] Could not persist jobs to sessionStorage:', storageErr.message)
-    }
-  }, [jobs])
-
-  // Real-time synchronization: If a complaint in shared context was updated or assigned, reflect here
-  useEffect(() => {
-    const currentContractorId = currentUser?.contractor_id || currentUser?.contractorId
-    const currentDeptId = currentUser?.department_id || currentUser?.departmentId
-
-    complaints.forEach((cmp) => {
-      const matchesContractor = !currentContractorId ||
-        cmp.assignedContractor?.id === currentContractorId ||
-        cmp.assigned_contractor_id === currentContractorId ||
-        cmp.contractor_id === currentContractorId ||
-        (currentDeptId && cmp.department_id === currentDeptId)
-
-      if (matchesContractor && (cmp.assignedContractor || cmp.workOrderId || cmp.status === 'ASSIGNED')) {
-        setJobs((prev) => {
-          const exists = prev.find((j) => j.id === cmp.id)
-          if (!exists) {
-            // New job from clerk or citizen
-            const newJob = {
-              id: cmp.id,
-              workOrderId: cmp.workOrderId || `WO-2026-${Math.floor(100 + Math.random() * 900)}`,
-              title: cmp.title,
-              category: cmp.category,
-              location: typeof cmp.location === 'object' && cmp.location !== null ? cmp.location : {
-                sector: cmp.sector || (typeof cmp.location === 'string' ? cmp.location : 'Sector 54'),
-                block: 'Block A',
-                street: 'Gulmohar Marg',
-                landmark: typeof cmp.location === 'string' ? cmp.location : '',
-              },
-              slaDeadline: cmp.slaDeadline,
-              status: cmp.status === 'REPORTED' || cmp.status === 'UNDER_REVIEW' ? 'ASSIGNED' : cmp.status,
-              description: cmp.description,
-              reportedBy: cmp.reportedBy,
-              createdAt: cmp.createdAt,
-              beforePhotos: cmp.beforePhotos || [],
-              afterPhotos: cmp.afterPhotos || [],
-              inspection: cmp.inspectionRemarks ? { remarks: cmp.inspectionRemarks } : null,
-              estimate: cmp.estimateAmount ? { total: cmp.estimateAmount } : null,
-              execution: cmp.completedAt ? { completedAt: cmp.completedAt } : null,
-            }
-            return [newJob, ...prev]
-          }
-          return prev
-        })
-      }
-    })
-  }, [complaints])
-
+  // ── Navigation handlers ───────────────────────────────────────────────────
   function handleNavigate(screen) {
     setCurrentScreen(screen)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function handleSelectJob(job) {
-    setSelectedJob(job)
+    dispatch(setSelectedJob(job))
   }
 
-  // Action: Save Site Inspection
+  function handleDismissNotice() {
+    dispatch(clearLastActionMessage())
+  }
+
+  // ── Action: Save Site Inspection ──────────────────────────────────────────
   async function handleSaveInspection(jobId, inspectionData) {
     const targetJob = jobs.find((j) => j.id === jobId)
-    const workOrderId = targetJob?.backendWoId || targetJob?.workOrderId || targetJob?.workOrderCode || jobId
+    const workOrderId =
+      targetJob?.backendWoId || targetJob?.workOrderId || targetJob?.workOrderCode || jobId
     const complaintId = targetJob?.complaintId || targetJob?.id || jobId
 
-    // Bridge to backend contractor API
-    try {
-      await contractorApi.submitInspection({
+    const result = await dispatch(
+      submitSiteInspection({
+        jobId,
         workOrderId,
         complaintId,
-        inspectionNotes: `${inspectionData.observedProblem || ''} | Condition: ${inspectionData.equipmentCondition || ''} | Required: ${inspectionData.requiredWork || ''} | Remarks: ${inspectionData.remarks || ''}`,
-        severityConfirmed: targetJob?.severity || 'Medium',
-      })
-
-      if (inspectionData.inspectionPhoto) {
-        await contractorApi.uploadEvidence({
-          workOrderId,
-          complaintId,
-          evidenceType: 'BEFORE',
-          photos: [inspectionData.inspectionPhoto],
-          caption: inspectionData.observedProblem || 'Initial site inspection assessment proof',
-        })
-      }
-    } catch (err) {
-      console.warn('[ContractorPortal] Backend submitInspection note:', err.message)
-    }
-
-    setJobs((prev) =>
-      prev.map((j) => {
-        if (j.id !== jobId) return j
-        return {
-          ...j,
-          inspection: inspectionData,
-          beforePhotos: [inspectionData.inspectionPhoto, ...(j.beforePhotos || [])],
-        }
+        inspectionData,
+        severity: targetJob?.severity || 'Medium',
       })
     )
 
-    // Notify context if status is updated
-    if (updateComplaintStatus) {
-      updateComplaintStatus(
-        jobId,
-        'UNDER_REVIEW',
-        `Site inspection logged by contractor: ${inspectionData.observedProblem}`
-      )
+    // Propagate rejection so SiteInspection.jsx can catch and show user-facing error
+    if (submitSiteInspection.rejected.match(result)) {
+      throw new Error(result.payload || 'Inspection submission failed')
     }
-
-    setSuccessNotice({
-      message: `Site inspection successfully saved for ${jobId}. Ready to create AMC estimate.`,
-    })
   }
 
-  // Action: Submit AMC Estimate
-  async function handleSubmitEstimate(jobId, estimateData, nextStatus) {
+  // ── Action: Submit AMC Estimate ───────────────────────────────────────────
+  async function handleSubmitEstimate(jobId, estimateData, _nextStatus) {
     const targetJob = jobs.find((j) => j.id === jobId)
-    const workOrderId = targetJob?.backendWoId || targetJob?.workOrderId || targetJob?.workOrderCode || jobId
+    const workOrderId =
+      targetJob?.backendWoId || targetJob?.workOrderId || targetJob?.workOrderCode || jobId
     const complaintId = targetJob?.complaintId || targetJob?.id || jobId
 
-    let finalStatus = nextStatus
-
-    // Bridge to backend contractor API
-    try {
-      const lineItemsPayload = (estimateData.items || []).map((it) => ({
-        rateCardId: it.rateCardId,
-        itemCode: it.rateCardId,
-        description: it.service,
-        service: it.service,
-        unit: it.unit,
-        rate: Number(it.rate || 0),
-        unitCost: Number(it.rate || 0),
-        quantity: Number(it.qty || 1),
-        qty: Number(it.qty || 1),
-      }))
-
-      const res = await contractorApi.submitEstimate({
+    const result = await dispatch(
+      submitAmcEstimate({
+        jobId,
         workOrderId,
         complaintId,
-        lineItems: lineItemsPayload,
-      })
-
-      if (res?.data?.workOrder?.status) {
-        finalStatus = res.data.workOrder.status
-      }
-    } catch (err) {
-      console.warn('[ContractorPortal] Backend submitEstimate note:', err.message)
-    }
-
-    setJobs((prev) =>
-      prev.map((j) => {
-        if (j.id !== jobId) return j
-        return {
-          ...j,
-          estimate: estimateData,
-          status: finalStatus || 'AWAITING_DEPT_HEAD',
-          estimateAmount: Number(estimateData.total || 0),
-          estimated_cost: Number(estimateData.total || 0),
-        }
+        estimateData,
       })
     )
 
-    // Clear selectedJob so create estimate list doesn't retain the submitted job
-    setSelectedJob((prev) => (prev?.id === jobId ? null : prev))
-
-    if (updateComplaintStatus) {
-      updateComplaintStatus(
-        jobId,
-        finalStatus || 'AWAITING_DEPT_HEAD',
-        `AMC Estimate submitted: ₹${estimateData.total?.toLocaleString('en-IN')}`
-      )
+    if (submitAmcEstimate.rejected.match(result)) {
+      throw new Error(result.payload || 'Estimate submission failed')
     }
-
-    setSuccessNotice({
-      message: `AMC Estimate of ₹${estimateData.total?.toLocaleString('en-IN')} submitted for ${jobId}. Awaiting Department Head approval.`,
-    })
   }
 
-  // Action: Start Work
+  // ── Action: Start Work ────────────────────────────────────────────────────
   async function handleStartWork(jobId) {
     const targetJob = jobs.find((j) => j.id === jobId)
-    const targetId = targetJob?.backendWoId || targetJob?.workOrderId || targetJob?.workOrderCode || jobId
+    const backendWoId =
+      targetJob?.backendWoId || targetJob?.workOrderId || targetJob?.workOrderCode || jobId
 
     const hasUnapprovedEstimate =
-      (Boolean(targetJob?.estimate) || Number(targetJob?.estimateAmount || targetJob?.estimated_cost || 0) > 0) &&
+      (Boolean(targetJob?.estimate) ||
+        Number(targetJob?.estimateAmount || targetJob?.estimated_cost || 0) > 0) &&
       targetJob?.status !== 'APPROVED' &&
       targetJob?.status !== 'REWORK_REQUESTED'
     const isAwaiting =
-      ['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO', 'ESCALATED_TO_COO'].includes(targetJob?.status) ||
-      hasUnapprovedEstimate
-    const isApproved = targetJob?.status === 'APPROVED' || targetJob?.status === 'REWORK_REQUESTED'
+      ['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO', 'ESCALATED_TO_COO'].includes(
+        targetJob?.status
+      ) || hasUnapprovedEstimate
+    const isApproved =
+      targetJob?.status === 'APPROVED' || targetJob?.status === 'REWORK_REQUESTED'
 
     if (isAwaiting || !isApproved) {
       alert('Cannot start work: Department Head approval is required before commencing work.')
       return
     }
 
-    // Bridge to backend contractor API
-    try {
-      await contractorApi.updateJobStatus(targetId, {
-        status: 'IN_PROGRESS',
-        remarks: 'Contractor commenced physical work on site.',
-      })
-    } catch (err) {
-      console.warn('[ContractorPortal] Backend updateJobStatus note:', err.message)
-      alert(err.message || 'Cannot start work: Department Head approval is required.')
-      return
+    const result = await dispatch(startWorkOrder({ jobId, backendWoId }))
+
+    if (startWorkOrder.rejected.match(result)) {
+      alert(result.payload || 'Cannot start work: Department Head approval is required.')
     }
-
-    setJobs((prev) =>
-      prev.map((j) => {
-        if (j.id !== jobId) return j
-        return {
-          ...j,
-          status: 'IN_PROGRESS',
-          execution: {
-            startedAt: new Date().toISOString(),
-          },
-        }
-      })
-    )
-
-    if (updateComplaintStatus) {
-      updateComplaintStatus(jobId, 'IN_PROGRESS', 'Contractor commenced ground repair work.')
-    }
-
-    setSuccessNotice({
-      message: `Work Order ${jobId} transitioned to IN PROGRESS. Field crew deployed.`,
-    })
   }
 
-  // Action: Submit Completion
+  // ── Action: Submit Completion ─────────────────────────────────────────────
   async function handleSubmitCompletion(jobId, completionData) {
     const targetJob = jobs.find((j) => j.id === jobId)
-    const targetId = targetJob?.backendWoId || targetJob?.workOrderId || targetJob?.workOrderCode || jobId
-    const complaintId = targetJob?.complaintId || targetJob?.complaintCode || targetJob?.id || jobId
+    const backendWoId =
+      targetJob?.backendWoId || targetJob?.workOrderId || targetJob?.workOrderCode || jobId
+    const complaintId =
+      targetJob?.complaintId || targetJob?.complaintCode || targetJob?.id || jobId
+    const estimatedCost = Number(
+      targetJob?.moneyEstimated || targetJob?.estimatedCost || targetJob?.estimateAmount || 0
+    )
 
-    // Bridge to backend contractor API
-    try {
-      const estimatedCost = Number(targetJob?.moneyEstimated || targetJob?.estimatedCost || targetJob?.estimateAmount || 3500)
-      const actualCost = Number(targetJob?.moneyUsed || targetJob?.actualCost || estimatedCost)
-
-      if (completionData.afterPhoto) {
-        await contractorApi.uploadEvidence({
-          workOrderId: targetId,
-          complaintId,
-          evidenceType: 'AFTER',
-          photos: [completionData.afterPhoto],
-          caption: completionData.actualWorkSummary || 'Post-repair completion proof',
-        })
-      }
-
-      await contractorApi.updateJobStatus(targetId, {
-        status: 'COMPLETED',
-        actualCost,
-        remarks: `${completionData.actualWorkSummary || ''} | Labour: ${completionData.actualLabourDetails || ''} | Notes: ${completionData.completionRemarks || ''}`,
-      })
-
-      await loadBackendJobs()
-    } catch (err) {
-      console.warn('[ContractorPortal] Backend submitCompletion note:', err.message)
-    }
-
-    setJobs((prev) =>
-      prev.map((j) => {
-        if (j.id !== jobId) return j
-        return {
-          ...j,
-          status: 'PENDING_VERIFICATION',
-          completedAt: completionData.completedAt,
-          completionRemarks: completionData.completionRemarks,
-          afterPhotos: [completionData.afterPhoto],
-          execution: {
-            ...j.execution,
-            ...completionData,
-          },
-        }
+    const result = await dispatch(
+      submitJobCompletion({
+        jobId,
+        backendWoId,
+        complaintId,
+        completionData,
+        estimatedCost,
       })
     )
 
-    if (updateComplaintStatus) {
-      updateComplaintStatus(
-        complaintId,
-        'PENDING_VERIFICATION',
-        `Repair completed by contractor. Proof uploaded: ${completionData.actualWorkSummary || 'Resolution evidence attached'}`,
-        {
-          completedAt: completionData.completedAt,
-          afterPhotos: [completionData.afterPhoto],
-          completionRemarks: completionData.completionRemarks,
-        }
-      )
+    if (submitJobCompletion.rejected.match(result)) {
+      throw new Error(result.payload || 'Completion submission failed')
     }
-
-    if (refreshComplaints) {
-      try {
-        await refreshComplaints()
-      } catch (_) {}
-    }
-
-    setSuccessNotice({
-      message: `Work Order ${jobId} marked as COMPLETED! Forwarded to RWA for verification and Finance for payment authorization.`,
-    })
   }
 
-  // Tab Badge counts
-  const assignedCount = jobs.filter((j) => j.status === 'ASSIGNED' || j.status === 'WORK_ORDER_CREATED').length
+  // ── Tab Badge counts (derived from Redux jobs) ────────────────────────────
+  const assignedCount   = jobs.filter((j) => j.status === 'ASSIGNED' || j.status === 'WORK_ORDER_CREATED').length
   const inspectionNeeded = jobs.filter((j) => j.status === 'ASSIGNED' && !j.inspection).length
   const inProgressCount = jobs.filter((j) => j.status === 'IN_PROGRESS').length
-  const revisionCount = jobs.filter((j) => j.status === 'REVISION_REQUESTED').length
+  const revisionCount   = jobs.filter((j) => j.status === 'REVISION_REQUESTED').length
 
   return (
     <div className="contractor-shell">
@@ -483,7 +198,8 @@ export default function ContractorPortal({ onExitToLanding }) {
                 {currentUser?.name || 'Field Contractor'}
               </div>
               <div className="contractor-user-role">
-                {currentUser?.contractor_name || currentUser?.contractorName || 'AMC Partner'} • {currentUser?.department_name || currentUser?.departmentName || 'Sector 54'}
+                {currentUser?.contractor_name || currentUser?.contractorName || 'AMC Partner'} •{' '}
+                {currentUser?.department_name || currentUser?.departmentName || 'Sector 54'}
               </div>
             </div>
 
@@ -554,6 +270,13 @@ export default function ContractorPortal({ onExitToLanding }) {
         </div>
       </header>
 
+      {/* ── Loading Indicator ────────────────────────────────────── */}
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '8px 0', fontSize: 13, color: '#64748b', background: '#f8fafc' }}>
+          Syncing contractor data…
+        </div>
+      )}
+
       {/* ── Main Screen Body ────────────────────────────────────── */}
       <main className="contractor-main-container">
         <ErrorBoundary>
@@ -562,8 +285,8 @@ export default function ContractorPortal({ onExitToLanding }) {
               jobs={jobs}
               onNavigate={handleNavigate}
               onSelectJob={handleSelectJob}
-              successNotice={successNotice}
-              onDismissNotice={() => setSuccessNotice(null)}
+              successNotice={successNotice ? { message: successNotice } : null}
+              onDismissNotice={handleDismissNotice}
             />
           )}
 
@@ -582,6 +305,7 @@ export default function ContractorPortal({ onExitToLanding }) {
               onSelectJob={handleSelectJob}
               onSaveInspection={handleSaveInspection}
               onNavigate={handleNavigate}
+              inspectionError={inspectionError}
             />
           )}
 
@@ -592,6 +316,7 @@ export default function ContractorPortal({ onExitToLanding }) {
               onSelectJob={handleSelectJob}
               onSubmitEstimate={handleSubmitEstimate}
               onNavigate={handleNavigate}
+              estimateError={estimateError}
             />
           )}
 
@@ -612,6 +337,7 @@ export default function ContractorPortal({ onExitToLanding }) {
               onStartWork={handleStartWork}
               onSubmitCompletion={handleSubmitCompletion}
               onNavigate={handleNavigate}
+              statusUpdateError={statusUpdateError}
             />
           )}
         </ErrorBoundary>

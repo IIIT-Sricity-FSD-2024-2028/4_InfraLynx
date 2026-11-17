@@ -1,14 +1,27 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
+import {
+  selectAllContractorJobs,
+  selectContractorSelectedJob,
+  setSelectedJob,
+  submitSiteInspection,
+} from '../../store/contractor/contractorSlice.js'
 import './styles/SiteInspection.css'
 
 export default function SiteInspection({
-  jobs = [],
-  selectedJob,
+  jobs: propsJobs,
+  selectedJob: propsSelectedJob,
   onSelectJob,
   onSaveInspection,
   onNavigate,
 }) {
+  const dispatch = useDispatch()
+  const reduxJobs = useSelector(selectAllContractorJobs)
+  const reduxSelectedJob = useSelector(selectContractorSelectedJob)
+
+  const jobs = propsJobs || reduxJobs || []
+  const selectedJob = propsSelectedJob || reduxSelectedJob
   // Only work orders that require site inspection and have NOT yet had an estimate created
   const inspectionJobs = useMemo(() => {
     return jobs.filter((j) => {
@@ -138,12 +151,33 @@ export default function SiteInspection({
 
     try {
       setIsSaving(true)
-      await onSaveInspection(currentJob.id, inspectionData)
+      if (onSaveInspection) {
+        await onSaveInspection(currentJob.id, inspectionData)
+      } else {
+        const targetJob = jobs.find((j) => j.id === currentJob.id) || currentJob
+        const workOrderId =
+          targetJob?.backendWoId || targetJob?.workOrderId || targetJob?.workOrderCode || currentJob.id
+        const complaintId = targetJob?.complaintId || targetJob?.id || currentJob.id
+        const result = await dispatch(
+          submitSiteInspection({
+            jobId: currentJob.id,
+            workOrderId,
+            complaintId,
+            inspectionData,
+            severity: targetJob?.severity || 'Medium',
+          })
+        )
+        if (submitSiteInspection.rejected.match(result)) {
+          throw new Error(result.payload || 'Failed to submit site inspection')
+        }
+      }
       setIsSaved(true)
 
+      const updatedJob = { ...currentJob, inspection: inspectionData }
+      dispatch(setSelectedJob(updatedJob))
       if (proceedToEstimate) {
-        onSelectJob({ ...currentJob, inspection: inspectionData })
-        onNavigate('estimate')
+        if (onSelectJob) onSelectJob(updatedJob)
+        if (onNavigate) onNavigate('estimate')
       }
     } catch (err) {
       alert(`Save inspection failed: ${err.message}`)
@@ -204,7 +238,10 @@ export default function SiteInspection({
             onChange={(e) => {
               setActiveJobId(e.target.value)
               const selected = inspectionJobs.find((j) => j.id === e.target.value)
-              if (selected) onSelectJob(selected)
+              if (selected) {
+                dispatch(setSelectedJob(selected))
+                if (onSelectJob) onSelectJob(selected)
+              }
             }}
             className="inspection-select"
           >

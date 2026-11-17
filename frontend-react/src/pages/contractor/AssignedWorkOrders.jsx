@@ -1,11 +1,25 @@
 import { useState, useMemo } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import {
+  selectAllContractorJobs,
+  setSelectedJob,
+} from '../../store/contractor/contractorSlice.js'
 import './styles/AssignedWorkOrders.css'
 
 export default function AssignedWorkOrders({
-  jobs = [],
+  jobs: propsJobs,
   onNavigate,
   onSelectJob,
 }) {
+  const dispatch = useDispatch()
+  const reduxJobs = useSelector(selectAllContractorJobs)
+  const jobs = propsJobs || reduxJobs || []
+
+  const handleSelectJob = (job) => {
+    dispatch(setSelectedJob(job))
+    if (onSelectJob) onSelectJob(job)
+  }
+
   const [filter, setFilter] = useState('ALL') // ALL | ASSIGNED | IN_PROGRESS | COMPLETED | REOPENED
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -283,7 +297,7 @@ export default function AssignedWorkOrders({
                           <>
                             <button
                               onClick={() => {
-                                onSelectJob(job)
+                                handleSelectJob(job)
                                 onNavigate('inspection')
                               }}
                               className="btn-contractor-primary assigned-wo-action-btn"
@@ -292,7 +306,7 @@ export default function AssignedWorkOrders({
                             </button>
                             <button
                               onClick={() => {
-                                onSelectJob(job)
+                                handleSelectJob(job)
                                 onNavigate('estimate')
                               }}
                               className="btn-contractor-secondary assigned-wo-action-subbtn"
@@ -305,7 +319,7 @@ export default function AssignedWorkOrders({
                         {job.status === 'APPROVED' && (
                           <button
                             onClick={() => {
-                              onSelectJob(job)
+                              handleSelectJob(job)
                               onNavigate('execution')
                             }}
                             className="btn-contractor-primary assigned-wo-action-btn"
@@ -318,7 +332,7 @@ export default function AssignedWorkOrders({
                         {job.status === 'IN_PROGRESS' && (
                           <button
                             onClick={() => {
-                              onSelectJob(job)
+                              handleSelectJob(job)
                               onNavigate('execution')
                             }}
                             className="btn-contractor-primary assigned-wo-action-btn amber"
@@ -330,7 +344,7 @@ export default function AssignedWorkOrders({
                         {job.status === 'REVISION_REQUESTED' && (
                           <button
                             onClick={() => {
-                              onSelectJob(job)
+                              handleSelectJob(job)
                               onNavigate('estimate')
                             }}
                             className="btn-contractor-primary assigned-wo-action-btn orange"
@@ -343,7 +357,7 @@ export default function AssignedWorkOrders({
                         {(job.status === 'COMPLETED' || job.status === 'PENDING_VERIFICATION') && (
                           <button
                             onClick={() => {
-                              onSelectJob(job)
+                              handleSelectJob(job)
                               onNavigate('execution')
                             }}
                             className="btn-contractor-secondary assigned-wo-action-btn"
@@ -359,7 +373,7 @@ export default function AssignedWorkOrders({
                             job.status !== 'COMPLETED')) && (
                           <button
                             onClick={() => {
-                              onSelectJob(job)
+                              handleSelectJob(job)
                               onNavigate('approvals')
                             }}
                             className="btn-contractor-secondary assigned-wo-action-btn"

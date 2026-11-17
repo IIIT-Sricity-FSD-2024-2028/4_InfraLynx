@@ -1,16 +1,31 @@
 import { useMemo } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import {
+  selectAllContractorJobs,
+  fetchContractorJobs,
+  setSelectedJob,
+} from '../../store/contractor/contractorSlice.js'
 import './styles/ContractorDashboard.css'
 
 export default function ContractorDashboard({
-  jobs = [],
+  jobs: propsJobs,
   onNavigate,
   onSelectJob,
   successNotice,
   onDismissNotice,
 }) {
+  const dispatch = useDispatch()
+  const reduxJobs = useSelector(selectAllContractorJobs)
+  const jobs = propsJobs || reduxJobs || []
+
+  const handleSelectJob = (job) => {
+    dispatch(setSelectedJob(job))
+    if (onSelectJob) onSelectJob(job)
+  }
+
   // Compute key metrics
   const assignedJobs = useMemo(
-    () => jobs.filter((j) => j.status === 'ASSIGNED' &&  j.status === 'WORK_ORDER_CREATED'),
+    () => jobs.filter((j) => j.status === 'ASSIGNED' || j.status === 'WORK_ORDER_CREATED'),
     [jobs]
   )
   const inProgressJobs = useMemo(
@@ -83,7 +98,7 @@ export default function ContractorDashboard({
           <button
             onClick={() => {
               const pendingInspection = jobs.find((j) => (j.status === 'ASSIGNED' || j.status === 'WORK_ORDER_CREATED') && !j.estimate)
-              if (pendingInspection) onSelectJob(pendingInspection)
+              if (pendingInspection) handleSelectJob(pendingInspection)
               onNavigate('inspection')
             }}
             className="btn-contractor-primary"
@@ -250,7 +265,7 @@ export default function ContractorDashboard({
                       {job.status === 'ASSIGNED' && (
                         <button
                           onClick={() => {
-                            onSelectJob(job)
+                            handleSelectJob(job)
                             onNavigate('inspection')
                           }}
                           className="btn-contractor-primary btn-table-action"
@@ -262,7 +277,7 @@ export default function ContractorDashboard({
                       {job.status === 'APPROVED' && (
                         <button
                           onClick={() => {
-                            onSelectJob(job)
+                            handleSelectJob(job)
                             onNavigate('execution')
                           }}
                           className="btn-contractor-primary btn-table-action"
@@ -275,7 +290,7 @@ export default function ContractorDashboard({
                       {job.status === 'REVISION_REQUESTED' && (
                         <button
                           onClick={() => {
-                            onSelectJob(job)
+                            handleSelectJob(job)
                             onNavigate('estimate')
                           }}
                           className="btn-contractor-primary btn-table-action orange"
@@ -287,7 +302,7 @@ export default function ContractorDashboard({
                       {job.status === 'IN_PROGRESS' && (
                         <button
                           onClick={() => {
-                            onSelectJob(job)
+                            handleSelectJob(job)
                             onNavigate('execution')
                           }}
                           className="btn-contractor-primary btn-table-action amber"
@@ -299,7 +314,7 @@ export default function ContractorDashboard({
                       {(job.status === 'COMPLETED' || job.status === 'PENDING_VERIFICATION') && (
                         <button
                           onClick={() => {
-                            onSelectJob(job)
+                            handleSelectJob(job)
                             onNavigate('execution')
                           }}
                           className="btn-contractor-secondary btn-table-action"
@@ -311,7 +326,7 @@ export default function ContractorDashboard({
                       {(['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO'].includes(job.status) || (Boolean(job.estimate) && job.status !== 'APPROVED' && job.status !== 'IN_PROGRESS' && job.status !== 'COMPLETED')) && (
                         <button
                           onClick={() => {
-                            onSelectJob(job)
+                            handleSelectJob(job)
                             onNavigate('approvals')
                           }}
                           className="btn-contractor-secondary btn-table-action"

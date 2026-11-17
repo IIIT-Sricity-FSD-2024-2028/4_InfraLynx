@@ -1,16 +1,31 @@
 import { useState, useEffect, useRef } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
-import { contractorApi } from '../../services/api.js'
+import {
+  selectAllContractorJobs,
+  selectContractorSelectedJob,
+  setSelectedJob,
+  startWorkOrder,
+  submitJobCompletion,
+  respondToOverrunInquiry,
+} from '../../store/contractor/contractorSlice.js'
 import './styles/WorkExecution.css'
 
 export default function WorkExecution({
-  jobs = [],
-  selectedJob,
+  jobs: propsJobs,
+  selectedJob: propsSelectedJob,
   onSelectJob,
   onStartWork,
   onSubmitCompletion,
   onNavigate,
 }) {
+  const dispatch = useDispatch()
+  const reduxJobs = useSelector(selectAllContractorJobs)
+  const reduxSelectedJob = useSelector(selectContractorSelectedJob)
+
+  const jobs = propsJobs || reduxJobs || []
+  const selectedJob = propsSelectedJob || reduxSelectedJob
+
   const [activeJobId, setActiveJobId] = useState(() => {
     if (selectedJob?.id) return selectedJob.id
     const readyJob = jobs.find((j) => j.status === 'IN_PROGRESS' || j.status === 'APPROVED' || j.status === 'COMPLETED')
@@ -25,6 +40,11 @@ export default function WorkExecution({
 
   const currentJob = jobs.find((j) => j.id === activeJobId) || selectedJob || jobs[0]
 
+  // Derived financial state from currentJob (computed, not user-editable)
+  const initialEst = Number(
+    currentJob?.estimatedCost || currentJob?.estimated_cost || currentJob?.estimateAmount || 0
+  )
+
   // Form states - Starts completely empty (no prefilled dummy values)
   const [actualWork, setActualWork] = useState('')
   const [labourDeployed, setLabourDeployed] = useState('')
@@ -34,6 +54,23 @@ export default function WorkExecution({
   const [completionRemarks, setCompletionRemarks] = useState('')
   const [submittedMessage, setSubmittedMessage] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Actual expense and overrun reason (editable on completion form)
+  const [actualExpense, setActualExpense] = useState(() => initialEst)
+  const [overrunReason, setOverrunReason] = useState('')
+
+  // Overrun rebuttal state (for Finance/COO inquiry response box)
+  const [rebuttalInput, setRebuttalInput] = useState('')
+  const [rebuttalSending, setRebuttalSending] = useState(false)
+  const [rebuttalSuccess, setRebuttalSuccess] = useState(null)
+
+  // Reset actualExpense when job changes
+  useEffect(() => {
+    setActualExpense(initialEst)
+    setOverrunReason('')
+    setRebuttalInput('')
+    setRebuttalSuccess(null)
+  }, [currentJob?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fileInputRef = useRef(null)
 
@@ -67,14 +104,18 @@ export default function WorkExecution({
       alert('Please enter a detailed response/rebuttal to the inquiry.')
       return
     }
-    const woId = currentJob.backendWoId || currentJob.work_order_id || currentJob.id
+    const backendWoId = currentJob.backendWoId || currentJob.work_order_id || currentJob.id
     try {
       setRebuttalSending(true)
-      await contractorApi.respondToOverrun(woId, rebuttalInput.trim())
-      setRebuttalSuccess('Response submitted to Finance/COO for review.')
-      setRebuttalInput('')
-    } catch (err) {
-      alert(`Failed to send rebuttal: ${err.message}`)
+      const result = await dispatch(
+        respondToOverrunInquiry({ backendWoId, rebuttal: rebuttalInput.trim() })
+      )
+      if (respondToOverrunInquiry.rejected.match(result)) {
+        alert(`Failed to send rebuttal: ${result.payload}`)
+      } else {
+        setRebuttalSuccess('Response submitted to Finance/COO for review.')
+        setRebuttalInput('')
+      }
     } finally {
       setRebuttalSending(false)
     }
@@ -124,7 +165,7 @@ export default function WorkExecution({
   const isAssigned = !isInProgress && !isCompleted
   const canShowForm = (isInProgress || isCompleted) && !isAwaitingApproval && !isUnestimated
 
-  function handleStart() {
+  async function handleStart() {
     if (!currentJob) return
     if (isAwaitingApproval) {
       alert('Cannot start work: Department Head approval is required before commencing work.')
@@ -132,10 +173,19 @@ export default function WorkExecution({
     }
     if (isUnestimated) {
       alert('Cannot start work: You must first submit an AMC estimate and receive Department Head approval.')
-      onNavigate('estimate')
+      if (onNavigate) onNavigate('estimate')
       return
     }
-    onStartWork(currentJob.id)
+    if (onStartWork) {
+      await onStartWork(currentJob.id)
+    } else {
+      const backendWoId = currentJob.backendWoId || currentJob.workOrderId || currentJob.workOrderCode || currentJob.id
+      const result = await dispatch(startWorkOrder({ jobId: currentJob.id, backendWoId }))
+      if (startWorkOrder.rejected.match(result)) {
+        alert(result.payload || 'Cannot start work: Department Head approval is required.')
+        return
+      }
+    }
     setSubmittedMessage(`Work Order ${currentJob.workOrderId || currentJob.id} is now IN PROGRESS. Field crew dispatched.`)
   }
 
@@ -148,17 +198,41 @@ export default function WorkExecution({
       return
     }
 
+    if (Number(actualExpense) > initialEst && !overrunReason.trim()) {
+      alert('Please provide a justification and overrun reason for expenditure exceeding the approved estimate.')
+      return
+    }
+
     const completionData = {
       actualWorkSummary: actualWork,
       actualLabourDetails: labourDeployed,
       afterPhoto: afterPhoto,
       completionRemarks,
       completedAt: new Date().toISOString(),
+      actualCost: Number(actualExpense),
+      overrunReason: overrunReason.trim(),
     }
 
     try {
       setIsSubmitting(true)
-      await onSubmitCompletion(currentJob.id, completionData)
+      if (onSubmitCompletion) {
+        await onSubmitCompletion(currentJob.id, completionData)
+      } else {
+        const backendWoId = currentJob.backendWoId || currentJob.workOrderId || currentJob.workOrderCode || currentJob.id
+        const complaintId = currentJob.complaintId || currentJob.complaintCode || currentJob.id
+        const result = await dispatch(
+          submitJobCompletion({
+            jobId: currentJob.id,
+            backendWoId,
+            complaintId,
+            completionData,
+            estimatedCost: initialEst,
+          })
+        )
+        if (submitJobCompletion.rejected.match(result)) {
+          throw new Error(result.payload || 'Completion submission failed')
+        }
+      }
       setSubmittedMessage(
         `Work Order ${currentJob.workOrderId || currentJob.id} marked as COMPLETED! Forwarded to RWA for verification and Finance for payment authorization.`
       )
@@ -218,7 +292,10 @@ export default function WorkExecution({
             onChange={(e) => {
               setActiveJobId(e.target.value)
               const sel = jobs.find((j) => j.id === e.target.value)
-              if (sel) onSelectJob(sel)
+              if (sel) {
+                dispatch(setSelectedJob(sel))
+                if (onSelectJob) onSelectJob(sel)
+              }
             }}
             className="execution-select"
           >
