@@ -1,13 +1,19 @@
+// Finance overview dashboard: metric cards and recent invoices
 import React from 'react'
+import { useSelector } from 'react-redux'
+import { selectAllInvoices } from '../../store/finance/invoicesSlice.js'
 import './styles/FinanceDashboard.css'
 
-export default function FinanceDashboard({ invoices = [], onNavigate, onOpenInvoice }) {
-  const pendingInvoices = invoices.filter((i) => i.auditStatus === 'PENDING_AUDIT')
-  const flaggedInvoices = invoices.filter((i) => i.auditStatus === 'VARIANCE_FLAGGED')
+export default function FinanceDashboard({ onNavigate, onOpenInvoice }) {
+  const invoices = useSelector(selectAllInvoices) || []
+
+  // Calculated overview metrics
+  const pendingInvoices    = invoices.filter((i) => i.auditStatus === 'PENDING_AUDIT')
+  const flaggedInvoices    = invoices.filter((i) => i.auditStatus === 'VARIANCE_FLAGGED')
   const authorizedInvoices = invoices.filter((i) => i.auditStatus === 'AUTHORIZED' || i.auditStatus === 'PAID')
-  const totalBilledMTD = invoices.reduce((acc, i) => acc + (i.billedAmount || 0), 0)
+  const totalBilledMTD     = invoices.reduce((acc, i) => acc + (i.billedAmount || 0), 0)
   const totalVarianceAmount = invoices.reduce((acc, i) => acc + (i.varianceAmount || 0), 0)
-  const totalAuthorized = authorizedInvoices.reduce((acc, i) => acc + (i.billedAmount || 0), 0)
+  const totalAuthorized    = authorizedInvoices.reduce((acc, i) => acc + (i.billedAmount || 0), 0)
 
   const MetricCard = ({ color, label, badge, value, caption }) => (
     <div className={`finance-metric-card ${color}`}>

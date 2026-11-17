@@ -1,21 +1,32 @@
+// 3-way reconciliation audit modal: invoice details, reconciliation report, payments, and variance
 import React, { useState, useEffect } from 'react'
-import { financeApi } from '../../services/api.js'
+import { useDispatch, useSelector } from 'react-redux'
+import {
+  fetch3WayCheck,
+  selectSelectedInvoice,
+  selectReconciliationReport,
+} from '../../store/finance/invoicesSlice.js'
 import './styles/InvoiceAudit.css'
 
 export default function InvoiceAuditModal({
-  invoice,
   onClose,
   onAuthorizeInvoice,
   onFlagVariance,
   onReleasePayment,
 }) {
-  const [varianceReasonInput, setVarianceReasonInput] = useState('')
-  const [showVarianceForm, setShowVarianceForm] = useState(false)
-  const [reconciliationReport, setReconciliationReport] = useState(null)
-  const [paymentMode, setPaymentMode] = useState('RTGS / Township Escrow')
-  const [paymentReference, setPaymentReference] = useState('')
-  const [isReleasing, setIsReleasing] = useState(false)
+  const dispatch = useDispatch()
 
+  const invoice = useSelector(selectSelectedInvoice)
+  const reconciliationReport = useSelector(selectReconciliationReport)
+
+  // ── Local UI-only state ────────────────────────────────────────────────────
+  const [varianceReasonInput, setVarianceReasonInput] = useState('')
+  const [showVarianceForm, setShowVarianceForm]       = useState(false)
+  const [paymentMode, setPaymentMode]                 = useState('RTGS / Township Escrow')
+  const [paymentReference, setPaymentReference]       = useState('')
+  const [isReleasing, setIsReleasing]                 = useState(false)
+
+  // Reset local form state when a different invoice is opened
   useEffect(() => {
     if (invoice) {
       setPaymentMode(invoice.paymentMode || 'RTGS / Township Escrow')
@@ -29,26 +40,23 @@ export default function InvoiceAuditModal({
     }
   }, [invoice?.rawId, invoice?.id])
 
+  // Dispatch 3-way check thunk whenever the selected invoice changes (Rule 7 / Rule 8)
   useEffect(() => {
-    if (!invoice) { setReconciliationReport(null); return }
-    let isMounted = true
+    if (!invoice) return
     const targetId = invoice.rawId || invoice.id
-    financeApi.get3WayCheck(targetId)
-      .then((report) => { if (isMounted) setReconciliationReport(report) })
-      .catch((err) => console.warn('[InvoiceAuditModal] 3-way check:', err.message))
-    return () => { isMounted = false }
-  }, [invoice?.rawId, invoice?.id])
+    dispatch(fetch3WayCheck(targetId))
+  }, [invoice?.rawId, invoice?.id, dispatch])
 
   if (!invoice) return null
 
   const currentStatus = invoice.auditStatus || invoice.status || 'PENDING_AUDIT'
 
-  async function handleAuthorizeClick(inv, keepOpen = true) {
-    if (inv.rwaVerified === false) {
+  async function handleAuthorizeClick(keepOpen = true) {
+    if (invoice.rwaVerified === false) {
       alert('Cannot authorize payment: RWA / Citizen on-ground verification is mandatory prior to financial payment authorization.')
       return
     }
-    if (onAuthorizeInvoice) await onAuthorizeInvoice(inv.rawId || inv.id, keepOpen)
+    if (onAuthorizeInvoice) await onAuthorizeInvoice(invoice.rawId || invoice.id, keepOpen)
   }
 
   async function handleDisbursePaymentClick() {
@@ -126,7 +134,7 @@ export default function InvoiceAuditModal({
             </div>
           </div>
 
-          {/* Reconciliation Banner */}
+          {/* Reconciliation Banner — from Redux (Rule 6) */}
           {reconciliationReport && (() => {
             const isMatch = reconciliationReport.compliance?.reconciliationStatus === 'MATCH'
             return (
@@ -225,7 +233,7 @@ export default function InvoiceAuditModal({
             </div>
           </div>
 
-          {/* Line Items */}
+          {/* Line Items — from reconciliationReport in Redux, fallback to invoice.items */}
           <div>
             <h4 className="line-items-header">Contractual Rate Card Itemization</h4>
             <table className="line-items-table">
@@ -241,10 +249,10 @@ export default function InvoiceAuditModal({
               </thead>
               <tbody>
                 {(reconciliationReport?.itemsBreakdown || invoice.items || []).map((item, idx) => {
-                  const rate = Number(item.amcRate ?? item.rate ?? 0)
-                  const estQty = Number(item.estimatedQty ?? item.quantity ?? 1)
+                  const rate      = Number(item.amcRate ?? item.rate ?? 0)
+                  const estQty    = Number(item.estimatedQty ?? item.quantity ?? 1)
                   const billedQty = Number(item.billedQty ?? item.quantity ?? 1)
-                  const total = Number(item.total ?? item.amount ?? rate * billedQty ?? 0)
+                  const total     = Number(item.total ?? item.amount ?? rate * billedQty ?? 0)
                   const isVerified = item.rateCardVerified !== false
                   return (
                     <tr key={idx}>
@@ -312,7 +320,7 @@ export default function InvoiceAuditModal({
             <>
               <button onClick={() => setShowVarianceForm(true)} className="btn-modal-flag">Flag Variance Discrepancy</button>
               <button
-                onClick={() => handleAuthorizeClick(invoice, true)}
+                onClick={() => handleAuthorizeClick(true)}
                 disabled={invoice.rwaVerified === false}
                 className={`btn-audit-action btn-modal-auth ${invoice.rwaVerified === false ? 'locked' : ''}`}
                 title={invoice.rwaVerified === false ? 'Locked: Awaiting RWA Ground Verification' : 'Authorize payment and open payment release'}
