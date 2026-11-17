@@ -1,12 +1,36 @@
-import React, { useState } from 'react'
-import { useTIMS } from '../../context/TIMSContext.jsx'
+// Displays empanelled AMC contractor cards and the master rate schedule
+import React, { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import {
+  fetchContractors,
+  fetchAmcRates,
+  selectAllContractors,
+  selectAllAmcRates,
+  selectMasterDataStatus,
+} from '../../store/master/masterDataSlice.js'
 import './styles/RateCardViewer.css'
 
 export default function RateCardViewer() {
-  const { contractors = [], amcRateCards = [] } = useTIMS()
+  const dispatch = useDispatch()
+
+  const contractors      = useSelector(selectAllContractors) || []
+  const amcRateCards     = useSelector(selectAllAmcRates) || []
+  const masterDataStatus = useSelector(selectMasterDataStatus)
+
+  // ── Local UI-only filter state ─────────────────────────────────────────────
   const [selectedDept, setSelectedDept] = useState('ALL')
 
-  const filteredRateCards = selectedDept === 'ALL' ? amcRateCards : amcRateCards.filter((rc) => rc.department === selectedDept)
+  // Fetch master data if not already loaded (avoids duplicate fetch if portal already loaded it)
+  useEffect(() => {
+    if (masterDataStatus === 'idle') {
+      dispatch(fetchContractors())
+      dispatch(fetchAmcRates())
+    }
+  }, [masterDataStatus, dispatch])
+
+  const filteredRateCards = selectedDept === 'ALL'
+    ? amcRateCards
+    : amcRateCards.filter((rc) => rc.department === selectedDept)
 
   return (
     <div className="rate-card-root">
