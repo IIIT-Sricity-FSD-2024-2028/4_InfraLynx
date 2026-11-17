@@ -7,13 +7,16 @@
  * - Multi-level filtering (by status pills and civic subcategories).
  * - Quick action buttons routing directly to Triage, Work Order creation, and Tracker views.
  *
- * Key React Concepts:
- * - Derived State (useMemo): Calculates statistics and filtered arrays without redundant re-renders.
- * - Controlled Search & Filter Inputs: Local state updates trigger instant filtered view updates.
- * - Component Communication: Prop callbacks (onNavigate, onSelectComplaint) notify parent ClerkPortal.
+ * Redux Integration:
+ * - Receives complaints as a prop from ClerkPortal (which reads them from Redux via useSelector).
+ * - Falls back to Redux store directly via useSelector if no prop is provided.
+ * - Does NOT fetch data independently — all data flows from Redux store through ClerkPortal.
  */
 import { useState, useMemo } from 'react'
-import { useTIMS } from '../../context/TIMSContext.jsx'
+import { useSelector }       from 'react-redux'
+import { useTIMS }           from '../../context/TIMSContext.jsx'
+import { selectAllClerkComplaints } from '../../store/clerk/complaintsSlice.js'
+import { selectAuthUser }           from '../../store/auth/authSlice.js'
 import { isComplaintInClerkDepartment } from './ClerkPortal.jsx'
 import './styles/ClerkDashboard.css'
 
@@ -47,17 +50,22 @@ export default function ClerkDashboard({
   successNotice,                       // Active green toast notification banner object (id & message)
   onDismissNotice,                     // Callback function to close the success toast notification
 }) {
-  // --- 1. Global Context Consumption (TIMSContext) ---
-  // Retrieves logged-in Clerk profile (currentUser) and fallback global complaints
-  const { complaints: contextComplaints = [], currentUser } = useTIMS()
+  // --- 1. Session State from Redux Store ---
+  const reduxUser = useSelector(selectAuthUser)
+  const { currentUser: contextUser } = useTIMS()
+  const currentUser = reduxUser || contextUser
 
-  // --- 2. Derived Department Complaints (useMemo) ---
-  // Uses complaints passed via props (from ClerkPortal); otherwise falls back to context complaints
-  // and filters them strictly to the Desk Clerk's assigned department (e.g. Civil only)
+  // --- 2. Redux fallback: if no prop provided, read directly from Redux store ---
+  // Normally ClerkPortal passes complaints as a prop (already filtered for dept).
+  // This useSelector is the fallback so the component never fetches data itself.
+  const reduxComplaints = useSelector(selectAllClerkComplaints)
+
+  // --- 3. Derived Department Complaints (useMemo) ---
+  // Priority: prop from ClerkPortal (already dept-filtered) > Redux store (needs filtering)
   const complaints = useMemo(() => {
     if (propComplaints) return propComplaints
-    return contextComplaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
-  }, [propComplaints, contextComplaints, currentUser])
+    return reduxComplaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
+  }, [propComplaints, reduxComplaints, currentUser])
 
   // --- 3. Component Local State Management (useState) ---
   const [searchQuery, setSearchQuery]           = useState('')      // Controlled input for live search (ID, title, block, street)

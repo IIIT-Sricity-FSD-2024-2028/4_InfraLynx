@@ -1,4 +1,12 @@
 import { useState, useMemo } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
+import { selectAllComplaints } from '../../store/rwa/complaintsSlice.js'
+import {
+  selectSuccessNotice,
+  dismissNotice,
+  navigateTo,
+  selectComplaint,
+} from '../../store/rwa/uiSlice.js'
 import './styles/RwaDashboard.css'
 
 const STATUS_BADGE_MAP = {
@@ -13,14 +21,11 @@ const STATUS_BADGE_MAP = {
   VERIFIED: { label: 'Closed & Verified', cls: 'closed' },
 }
 
-export default function RwaDashboard({
-  complaints = [],
-  currentUser,
-  onNavigate,
-  onSelectComplaint,
-  successNotice,
-  onDismissNotice,
-}) {
+export default function RwaDashboard({ currentUser }) {
+  const dispatch = useDispatch()
+  const complaints = useSelector(selectAllComplaints)
+  const successNotice = useSelector(selectSuccessNotice)
+
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('ALL')
   const [selectedStatus, setSelectedStatus] = useState('ALL')
@@ -102,15 +107,15 @@ export default function RwaDashboard({
               onClick={() => {
                 const found = complaints.find((c) => c.id === successNotice.id)
                 if (found) {
-                  onSelectComplaint(found)
-                  onNavigate('track')
+                  dispatch(selectComplaint(found))
+                  dispatch(navigateTo('track'))
                 }
               }}
               className="notice-btn-track"
             >
               Track Live Status →
             </button>
-            <button onClick={onDismissNotice} className="notice-btn-dismiss" title="Dismiss">
+            <button onClick={() => dispatch(dismissNotice())} className="notice-btn-dismiss" title="Dismiss">
               ✕
             </button>
           </div>
@@ -134,7 +139,7 @@ export default function RwaDashboard({
 
         <button
           id="btn-quick-report"
-          onClick={() => onNavigate('report')}
+          onClick={() => dispatch(navigateTo('report'))}
           className="btn-report-quick"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -165,8 +170,8 @@ export default function RwaDashboard({
                 ['PENDING_VERIFICATION', 'COMPLETED', 'WORK_COMPLETED'].includes(normStatus(c.status))
               )
               if (pendingOne) {
-                onSelectComplaint(pendingOne)
-                onNavigate('verify')
+                dispatch(selectComplaint(pendingOne))
+                dispatch(navigateTo('verify'))
               }
             }}
             className="attention-btn"
@@ -333,8 +338,8 @@ export default function RwaDashboard({
                   <div className="card-actions">
                     <button
                       onClick={() => {
-                        onSelectComplaint(c)
-                        onNavigate('track')
+                        dispatch(selectComplaint(c))
+                        dispatch(navigateTo('track'))
                       }}
                       className="btn-track"
                     >
@@ -344,8 +349,8 @@ export default function RwaDashboard({
                     {isPending && (
                       <button
                         onClick={() => {
-                          onSelectComplaint(c)
-                          onNavigate('verify')
+                          dispatch(selectComplaint(c))
+                          dispatch(navigateTo('verify'))
                         }}
                         className="btn-verify-now"
                       >

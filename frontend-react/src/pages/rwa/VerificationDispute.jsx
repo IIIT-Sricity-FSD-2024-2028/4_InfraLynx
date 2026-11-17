@@ -1,15 +1,20 @@
 import { useState } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
+import { selectAllComplaints } from '../../store/rwa/complaintsSlice.js'
+import { confirmFix } from '../../store/rwa/verificationSlice.js'
+import {
+  selectSelectedComplaint,
+  navigateTo,
+  selectComplaint,
+} from '../../store/rwa/uiSlice.js'
 import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
 import './styles/VerificationDispute.css'
 
-export default function VerificationDispute({
-  complaints = [],
-  selectedComplaint,
-  currentUser,
-  onNavigate,
-  onSelectComplaint,
-  onConfirmFix,
-}) {
+export default function VerificationDispute({ currentUser }) {
+  const dispatch = useDispatch()
+  const complaints = useSelector(selectAllComplaints)
+  const selectedComplaint = useSelector(selectSelectedComplaint)
+
   const normStatus = (s) => (s || '').toUpperCase().replace(/[\s_-]+/g, '_')
 
   // Eligible complaints: strictly tickets awaiting verification
@@ -33,23 +38,28 @@ export default function VerificationDispute({
     if (!activeComplaint) return
     const ticketId = activeComplaint.complaint_code || activeComplaint.id
     try {
-      if (onConfirmFix) {
-        await onConfirmFix(ticketId, {
-          rating,
-          remarks: confirmRemarks.trim() || `Verified satisfactory resolution by ${currentUser?.name || 'Dr. Arvind Swaminathan'} (${currentUser?.title || 'RWA Secretary'}).`,
+      await dispatch(
+        confirmFix({
+          id: ticketId,
+          payload: {
+            rating,
+            remarks:
+              confirmRemarks.trim() ||
+              `Verified satisfactory resolution by ${currentUser?.name || 'Dr. Arvind Swaminathan'} (${currentUser?.title || 'RWA Secretary'}).`,
+          },
         })
-      }
+      ).unwrap()
+
       setActionDoneMessage({
         type: 'success',
         title: 'Fix Confirmed & Verified!',
         text: `Complaint ${ticketId} verified by ${currentUser?.name || 'Dr. Arvind Swaminathan'} and is now CLOSED. Finance has been notified to process contractor payment.`,
       })
+
       const nextPending = eligibleComplaints.find(
         (c) => c.id !== activeComplaint.id && c.complaint_code !== ticketId
       )
-      if (onSelectComplaint) {
-        onSelectComplaint(nextPending || null)
-      }
+      dispatch(selectComplaint(nextPending || null))
     } catch (err) {
       alert(`Failed to confirm resolution: ${err.message}`)
     }
@@ -64,7 +74,7 @@ export default function VerificationDispute({
           <div className="action-result-title">{actionDoneMessage.title}</div>
           <div className="action-result-text">{actionDoneMessage.text}</div>
         </div>
-        <button onClick={() => onNavigate('dashboard')} className="btn-result-return">
+        <button onClick={() => dispatch(navigateTo('dashboard'))} className="btn-result-return">
           Return to Dashboard →
         </button>
       </div>
@@ -77,7 +87,7 @@ export default function VerificationDispute({
       <div className="verification-root">
         <div className="verification-header-row">
           <div>
-            <button onClick={() => onNavigate('dashboard')} className="btn-back">
+            <button onClick={() => dispatch(navigateTo('dashboard'))} className="btn-back">
               ← Back to Dashboard
             </button>
             <h1 className="verification-title">Verification Workspace</h1>
@@ -97,7 +107,7 @@ export default function VerificationDispute({
           <p style={{ color: 'var(--text-soft)', maxWidth: 520, margin: '8px auto 20px', fontSize: 13.5 }}>
             All completed repairs have been verified and processed. New tickets will appear here as soon as contractors complete field work.
           </p>
-          <button onClick={() => onNavigate('dashboard')} className="btn-result-return">
+          <button onClick={() => dispatch(navigateTo('dashboard'))} className="btn-result-return">
             ← Return to Dashboard
           </button>
         </div>
@@ -122,7 +132,7 @@ export default function VerificationDispute({
       {/* Header */}
       <div className="verification-header-row">
         <div>
-          <button onClick={() => onNavigate('dashboard')} className="btn-back">
+          <button onClick={() => dispatch(navigateTo('dashboard'))} className="btn-back">
             ← Back to Dashboard
           </button>
           <h1 className="verification-title">Verification Workspace</h1>
@@ -137,8 +147,10 @@ export default function VerificationDispute({
           <select
             value={activeComplaint.id}
             onChange={(e) => {
-              const c = eligibleComplaints.find((item) => item.id === e.target.value || item.complaint_code === e.target.value)
-              if (c) onSelectComplaint(c)
+              const c = eligibleComplaints.find(
+                (item) => item.id === e.target.value || item.complaint_code === e.target.value
+              )
+              if (c) dispatch(selectComplaint(c))
               setActionDoneMessage(null)
             }}
             className="ticket-inspect-select"

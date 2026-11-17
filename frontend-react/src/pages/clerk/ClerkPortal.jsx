@@ -8,19 +8,32 @@
  *   3. Create Work Order: Assign empanelled AMC contractor, set priority, dispatch WO.
  *   4. WO Tracker: Full lifecycle tracker from reported to closed.
  *
- * Key React Concepts:
- * - Component Composition & Conditional Rendering: Switches child views based on currentScreen.
- * - State Hoisting & Shared State: Manages complaints data, selected complaint, and success notices across sibling views.
- * - Side Effects: useEffect fetches fresh complaints on initial load and screen transitions.
- * - Props Passing & Callback Invocation: Child views notify parent of updates via callback props.
+ * Redux Integration:
+ * - fetchComplaints thunk is dispatched here on mount and on every screen change.
+ * - All complaints data is read from Redux store via useSelector (never fetched directly).
+ * - Child components receive only callbacks and selectedComplaint — complaint list comes from Redux.
+ * - patchComplaint action is dispatched to update a single complaint in Redux after triage/WO actions.
  */
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { useTIMS } from '../../context/TIMSContext.jsx'
-import { complaintApi } from '../../services/api.js'
-import ClerkDashboard from './ClerkDashboard.jsx'
-import TriageValidation from './TriageValidation.jsx'
-import WorkOrderCreate from './WorkOrderCreate.jsx'
-import ClerkTracker from './ClerkTracker.jsx'
+import { useDispatch, useSelector }                  from 'react-redux'
+import { useTIMS }                                   from '../../context/TIMSContext.jsx'
+import {
+  fetchComplaints,
+  patchComplaint,
+  selectAllClerkComplaints,
+  selectClerkComplaintsStatus,
+} from '../../store/clerk/complaintsSlice.js'
+import {
+  fetchWorkOrders,
+} from '../../store/clerk/workOrdersSlice.js'
+import {
+  selectAuthUser,
+  logoutUser,
+} from '../../store/auth/authSlice.js'
+import ClerkDashboard    from './ClerkDashboard.jsx'
+import TriageValidation  from './TriageValidation.jsx'
+import WorkOrderCreate   from './WorkOrderCreate.jsx'
+import ClerkTracker      from './ClerkTracker.jsx'
 import './styles/ClerkPortal.css'
 
 /**
@@ -29,7 +42,7 @@ import './styles/ClerkPortal.css'
  */
 export function isComplaintInClerkDepartment(complaint, user) {
   if (!user || user.role !== 'DESK_CLERK') return true
-  const deptId = user.department_id
+  const deptId   = user.department_id
   const deptName = (user.department_name || '').toLowerCase()
   if (!deptId && !deptName) return true
 
@@ -39,68 +52,91 @@ export function isComplaintInClerkDepartment(complaint, user) {
   const cCat = (complaint.category || complaint.department_name || '').toLowerCase()
   if (deptName && cCat) {
     if (deptName.includes(cCat) || cCat.includes(deptName)) return true
-    if (deptName.includes('electr') && cCat.includes('electr')) return true
-    if (deptName.includes('water') && (cCat.includes('water') || cCat.includes('sanitat') || cCat.includes('plumb') || cCat.includes('drain'))) return true
-    if (deptName.includes('civil') && (cCat.includes('civil') || cCat.includes('road'))) return true
+    if (deptName.includes('electr')    && cCat.includes('electr'))  return true
+    if (deptName.includes('water')     && (cCat.includes('water') || cCat.includes('sanitat') || cCat.includes('plumb') || cCat.includes('drain'))) return true
+    if (deptName.includes('civil')     && (cCat.includes('civil') || cCat.includes('road')))  return true
     if (deptName.includes('horticult') && (cCat.includes('horticult') || cCat.includes('garden'))) return true
   }
 
   return Boolean(deptId && cDeptId && String(cDeptId) === String(deptId))
 }
 
-export default function ClerkPortal({ 
+export default function ClerkPortal({
   onExitToLanding, // Callback to return user to public landing page on sign out
 }) {
-  // --- 1. Global Session State & Portal Navigation ---
-  const { currentUser } = useTIMS()                                 // Logged-in Clerk profile (role, department, id, name)
-  const [complaints, setComplaints]               = useState([])    // Master complaints array loaded from PostgreSQL backend API
-  const [currentScreen, setCurrentScreen]         = useState('dashboard') // Tab router state: 'dashboard' | 'triage' | 'workorder' | 'tracker'
-  const [selectedComplaint, setSelectedComplaint] = useState(null)  // Currently active complaint selected for triage or work order creation
-  const [successNotice, setSuccessNotice]         = useState(null)  // Temporary green notification toast object { id, message }
+  // ── 1. Redux Dispatch & Selectors ──────────────────────────────────────────
+  const dispatch = useDispatch()
 
-    // --- 2. Data Fetching & Sync (Side Effects) ---
-  // Fetches latest complaints from backend API
-  const loadComplaints = useCallback(async () => {
-    try {
-      const data = await complaintApi.getComplaints()
-      if (Array.isArray(data)) setComplaints(data)
-    } catch (err) {
-      console.warn('[ClerkPortal] Error loading complaints:', err.message)
-    }
-  }, [])
+  // All complaints data comes from Redux store (not local state or direct fetch)
+  const allComplaints     = useSelector(selectAllClerkComplaints)
+  const complaintsStatus  = useSelector(selectClerkComplaintsStatus)
 
-  useEffect(() => { loadComplaints() }, [loadComplaints, currentScreen])
+  // ── 2. Redux Authentication State (Rule 9: auth handled through Redux) ─────
+  const reduxUser = useSelector(selectAuthUser)
+  const { currentUser: contextUser } = useTIMS()
+  const currentUser = reduxUser || contextUser
 
-    // --- 3. Filtered State & Badge Counts (Memoized) ---
-  // Restricts visible complaints strictly to the clerk assigned civic department
-  const departmentComplaints = useMemo(() => (
-    complaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
-  ), [complaints, currentUser])
+  // ── 3. Local UI State (screen routing, selected complaint, toast) ───────────
+  const [currentScreen,     setCurrentScreen]     = useState('dashboard')
+  const [selectedComplaint, setSelectedComplaint] = useState(null)
+  const [successNotice,     setSuccessNotice]     = useState(null)
 
-  const pendingTriageCount = useMemo(() => (
-    departmentComplaints.filter(c => c.status === 'REPORTED' || c.status === 'UNDER_REVIEW').length
-  ), [departmentComplaints])
+  // ── 4. Data Loading via Redux Thunk ────────────────────────────────────────
+  // Dispatch fetchComplaints & fetchWorkOrders on mount and on tab transitions.
+  // Repository is called first (DB updated/queried) -> Redux store updated from response.
+  useEffect(() => {
+    dispatch(fetchComplaints())
+    dispatch(fetchWorkOrders())
+  }, [dispatch, currentScreen])
 
-  const awaitingDeptHeadCount = useMemo(() => (
-    departmentComplaints.filter(c => c.status === 'AWAITING_DEPT_HEAD').length
-  ), [departmentComplaints])
+  // ── 5. Department Filtering (Memoized Derived State) ───────────────────────
+  // Data is READ from Redux store (allComplaints), then filtered for this clerk's dept
+  const departmentComplaints = useMemo(() =>
+    allComplaints.filter(c => isComplaintInClerkDepartment(c, currentUser)),
+    [allComplaints, currentUser]
+  )
 
-    // --- 4. Navigation & Action Handlers ---
-  // Smooth screen transitions
+  const pendingTriageCount = useMemo(() =>
+    departmentComplaints.filter(c => c.status === 'REPORTED' || c.status === 'UNDER_REVIEW').length,
+    [departmentComplaints]
+  )
+
+  const awaitingDeptHeadCount = useMemo(() =>
+    departmentComplaints.filter(c => c.status === 'AWAITING_DEPT_HEAD').length,
+    [departmentComplaints]
+  )
+
+  // ── 6. Navigation & Callback Handlers ──────────────────────────────────────
+
   const handleNavigate = useCallback((screen) => {
     setCurrentScreen(screen)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
 
+  /**
+   * Called by TriageValidation when a complaint status changes (validate/reject).
+   * Dispatches patchComplaint to update that single item in Redux store,
+   * then re-fetches all complaints to stay in sync with the DB.
+   */
   const handleComplaintUpdated = useCallback((updated) => {
     if (!updated) return
-    const targetId = updated.id || updated.complaintCode || updated.complaint_code
-    const match = (c) => c.id === targetId || c.complaint_code === targetId || c.complaintCode === targetId
-    setComplaints(prev => prev.map(c => match(c) ? { ...c, ...updated } : c))
-    setSelectedComplaint(prev => prev && match(prev) ? { ...prev, ...updated } : prev)
-    loadComplaints()
-  }, [loadComplaints])
+    const id = updated.id || updated.complaintCode || updated.complaint_code
+    // Update Redux store with the new data from DB response
+    dispatch(patchComplaint({ id, changes: updated }))
+    // Update selectedComplaint to reflect the new state
+    setSelectedComplaint(prev =>
+      prev && (prev.id === id || prev.complaint_code === id)
+        ? { ...prev, ...updated }
+        : prev
+    )
+    // Re-fetch to ensure full sync with DB
+    dispatch(fetchComplaints())
+  }, [dispatch])
 
+  /**
+   * Called by WorkOrderCreate after a work order is successfully dispatched.
+   * Patches the complaint status in Redux, shows a success toast, returns to dashboard.
+   */
   const handleWorkOrderCreated = useCallback((complaint) => {
     setSelectedComplaint(complaint)
     const woId = complaint.work_order_number || complaint.id
@@ -109,16 +145,29 @@ export default function ClerkPortal({
       id: complaint.id,
       message: `Work Order ${woId} assigned & dispatched to ${contractor} for "${complaint.title}" (${complaint.id}).`,
     })
-    loadComplaints()
+    // Update Redux state with the new complaint status from DB response
+    dispatch(patchComplaint({ id: complaint.id, changes: complaint }))
+    dispatch(fetchComplaints())
     handleNavigate('dashboard')
-  }, [loadComplaints, handleNavigate])
+  }, [dispatch, handleNavigate])
+
+  /**
+   * Rule 9: Sign out handled through Redux logoutUser thunk.
+   * Calls authApi.logout() -> clears backend session -> clears Redux store -> returns to landing.
+   */
+  const handleSignOut = useCallback(async () => {
+    await dispatch(logoutUser())
+    if (onExitToLanding) {
+      onExitToLanding()
+    }
+  }, [dispatch, onExitToLanding])
 
   const deptDisplay = currentUser?.department_name || 'Operations'
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard', badge: pendingTriageCount > 0 ? pendingTriageCount : null },
-    { id: 'triage', label: 'Triage & Validate' },
+    { id: 'dashboard', label: 'Dashboard',         badge: pendingTriageCount    > 0 ? pendingTriageCount    : null },
+    { id: 'triage',    label: 'Triage & Validate' },
     { id: 'workorder', label: 'Create Work Order' },
-    { id: 'tracker', label: 'WO Tracker', badge: awaitingDeptHeadCount > 0 ? awaitingDeptHeadCount : null },
+    { id: 'tracker',   label: 'WO Tracker',        badge: awaitingDeptHeadCount > 0 ? awaitingDeptHeadCount : null },
   ]
 
   return (
@@ -144,9 +193,14 @@ export default function ClerkPortal({
               <div className="clerk-user-name">{currentUser?.name}</div>
               <div className="clerk-user-role">{deptDisplay} Desk</div>
             </div>
-            {onExitToLanding && (
-              <button onClick={onExitToLanding} className="clerk-btn-exit">Exit Portal &#8599;</button>
+            {/* Show loading indicator while complaints are being fetched */}
+            {complaintsStatus === 'loading' && (
+              <span style={{ fontSize: 12, color: '#6b7280' }}>Syncing...</span>
             )}
+            {onExitToLanding && (
+              <button onClick={onExitToLanding} className="clerk-btn-exit" style={{ marginRight: 6 }}>Exit Portal &#8599;</button>
+            )}
+            <button onClick={handleSignOut} className="clerk-btn-exit" title="Sign out through Redux">Sign Out &#8599;</button>
           </div>
         </div>
 
@@ -168,6 +222,7 @@ export default function ClerkPortal({
 
       <main className="clerk-main-container">
         {currentScreen === 'dashboard' && (
+          // complaints prop: filtered slice of Redux store for this clerk's dept
           <ClerkDashboard
             complaints={departmentComplaints}
             onNavigate={handleNavigate}
@@ -177,6 +232,7 @@ export default function ClerkPortal({
           />
         )}
         {currentScreen === 'triage' && (
+          // onComplaintUpdated: dispatches Redux action when status changes
           <TriageValidation
             complaints={departmentComplaints}
             selectedComplaint={selectedComplaint}
@@ -186,6 +242,7 @@ export default function ClerkPortal({
           />
         )}
         {currentScreen === 'workorder' && (
+          // onWorkOrderCreated: dispatches Redux action after WO dispatch
           <WorkOrderCreate
             selectedComplaint={selectedComplaint}
             onNavigate={handleNavigate}
@@ -193,6 +250,7 @@ export default function ClerkPortal({
           />
         )}
         {currentScreen === 'tracker' && (
+          // complaints: read from Redux store (passed as prop for dept filtering)
           <ClerkTracker
             complaints={departmentComplaints}
             selectedComplaint={selectedComplaint}
