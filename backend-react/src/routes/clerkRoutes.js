@@ -1,5 +1,5 @@
 /**
- * clerkRoutes.js — TIMS Desk Clerk API Routes (Member 2)
+ * clerkRoutes.js ï¿½ TIMS Desk Clerk API Routes (Member 2)
  *
  * Base path: /api/v1/clerk
  *
@@ -7,26 +7,26 @@
  * All action routes require role DESK_CLERK or TOWNSHIP_COO.
  *
  * Complaint Triage & Validation:
- *   GET    /api/v1/clerk/triage-queue           — Fetch pending complaints awaiting triage & review
- *   GET    /api/v1/clerk/complaints/:id         — Fetch complaint details with duplicate checks
- *   GET    /api/v1/clerk/duplicate-check        — Find possible duplicates within 100m radius
- *   POST   /api/v1/clerk/duplicate-link/:id     — Link duplicate complaint to a master complaint
- *   PATCH  /api/v1/clerk/complaints/:id/triage  — Open for review (REPORTED -> UNDER_REVIEW)
- *   POST   /api/v1/clerk/validate/:id           — Validate or reject complaint
- *   PATCH  /api/v1/clerk/complaints/:id/validate — Approve (UNDER_REVIEW -> VALIDATED)
- *   POST   /api/v1/clerk/reject/:id             — Reject complaint with reason
- *   PATCH  /api/v1/clerk/complaints/:id/reject  — Reject complaint with reason
- *   POST   /api/v1/clerk/reroute/:id            — Reroute complaint to correct department
- *   PATCH  /api/v1/clerk/complaints/:id/reroute — Reroute complaint to correct department
- *   GET    /api/v1/clerk/contractors            — Fetch eligible contractors with valid AMC
- *   POST   /api/v1/clerk/escalate/:id           — Escalate SLA breaches or delayed work
+ *   GET    /api/v1/clerk/triage-queue           ï¿½ Fetch pending complaints awaiting triage & review
+ *   GET    /api/v1/clerk/complaints/:id         ï¿½ Fetch complaint details with duplicate checks
+ *   GET    /api/v1/clerk/duplicate-check        ï¿½ Find possible duplicates within 100m radius
+ *   POST   /api/v1/clerk/duplicate-link/:id     ï¿½ Link duplicate complaint to a master complaint
+ *   PATCH  /api/v1/clerk/complaints/:id/triage  ï¿½ Open for review (REPORTED -> UNDER_REVIEW)
+ *   POST   /api/v1/clerk/validate/:id           ï¿½ Validate or reject complaint
+ *   PATCH  /api/v1/clerk/complaints/:id/validate ï¿½ Approve (UNDER_REVIEW -> VALIDATED)
+ *   POST   /api/v1/clerk/reject/:id             ï¿½ Reject complaint with reason
+ *   PATCH  /api/v1/clerk/complaints/:id/reject  ï¿½ Reject complaint with reason
+ *   POST   /api/v1/clerk/reroute/:id            ï¿½ Reroute complaint to correct department
+ *   PATCH  /api/v1/clerk/complaints/:id/reroute ï¿½ Reroute complaint to correct department
+ *   GET    /api/v1/clerk/contractors            ï¿½ Fetch eligible contractors with valid AMC
+ *   POST   /api/v1/clerk/escalate/:id           ï¿½ Escalate SLA breaches or delayed work
  *
  * Work Orders:
- *   POST   /api/v1/clerk/work-orders            — Create Work Order from validated complaint
- *   GET    /api/v1/clerk/work-orders            — Track Work Orders (status, priority, delayed, unassigned)
- *   GET    /api/v1/clerk/work-orders/:id        — Get single Work Order detail
- *   POST   /api/v1/clerk/work-orders/:id/assign — Assign contractor to Work Order
- *   POST   /api/v1/clerk/work-orders/:id/reassign — Reassign contractor
+ *   POST   /api/v1/clerk/work-orders            ï¿½ Create Work Order from validated complaint
+ *   GET    /api/v1/clerk/work-orders            ï¿½ Track Work Orders (status, priority, delayed, unassigned)
+ *   GET    /api/v1/clerk/work-orders/:id        ï¿½ Get single Work Order detail
+ *   POST   /api/v1/clerk/work-orders/:id/assign ï¿½ Assign contractor to Work Order
+ *   POST   /api/v1/clerk/work-orders/:id/reassign ï¿½ Reassign contractor
  */
 
 import express from 'express';
@@ -39,6 +39,7 @@ import {
   validateComplaint,
   rejectComplaint,
   rerouteComplaint,
+  recallComplaint,
   getEligibleContractors,
   escalateComplaint,
   createWorkOrder,
@@ -268,5 +269,7 @@ router.post(
   requireRole(...CLERK_ROLES),
   reassignContractor
 );
+
+router.post('/complaints/:id/recall', authenticate, requireRole('DESK_CLERK', 'TOWNSHIP_COO'), recallComplaint);
 
 export default router;

@@ -1,15 +1,31 @@
 import { useState, useEffect, useRef } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
+import {
+  selectAllContractorJobs,
+  selectContractorSelectedJob,
+  setSelectedJob,
+  startWorkOrder,
+  submitJobCompletion,
+  respondToOverrunInquiry,
+} from '../../store/contractor/contractorSlice.js'
 import './styles/WorkExecution.css'
 
 export default function WorkExecution({
-  jobs = [],
-  selectedJob,
+  jobs: propsJobs,
+  selectedJob: propsSelectedJob,
   onSelectJob,
   onStartWork,
   onSubmitCompletion,
   onNavigate,
 }) {
+  const dispatch = useDispatch()
+  const reduxJobs = useSelector(selectAllContractorJobs)
+  const reduxSelectedJob = useSelector(selectContractorSelectedJob)
+
+  const jobs = propsJobs || reduxJobs || []
+  const selectedJob = propsSelectedJob || reduxSelectedJob
+
   const [activeJobId, setActiveJobId] = useState(() => {
     if (selectedJob?.id) return selectedJob.id
     const readyJob = jobs.find((j) => j.status === 'IN_PROGRESS' || j.status === 'APPROVED' || j.status === 'COMPLETED')
@@ -24,6 +40,11 @@ export default function WorkExecution({
 
   const currentJob = jobs.find((j) => j.id === activeJobId) || selectedJob || jobs[0]
 
+  // Derived financial state from currentJob (computed, not user-editable)
+  const initialEst = Number(
+    currentJob?.estimatedCost || currentJob?.estimated_cost || currentJob?.estimateAmount || 0
+  )
+
   // Form states - Starts completely empty (no prefilled dummy values)
   const [actualWork, setActualWork] = useState('')
   const [labourDeployed, setLabourDeployed] = useState('')
@@ -33,6 +54,23 @@ export default function WorkExecution({
   const [completionRemarks, setCompletionRemarks] = useState('')
   const [submittedMessage, setSubmittedMessage] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Actual expense and overrun reason (editable on completion form)
+  const [actualExpense, setActualExpense] = useState(() => initialEst)
+  const [overrunReason, setOverrunReason] = useState('')
+
+  // Overrun rebuttal state (for Finance/COO inquiry response box)
+  const [rebuttalInput, setRebuttalInput] = useState('')
+  const [rebuttalSending, setRebuttalSending] = useState(false)
+  const [rebuttalSuccess, setRebuttalSuccess] = useState(null)
+
+  // Reset actualExpense when job changes
+  useEffect(() => {
+    setActualExpense(initialEst)
+    setOverrunReason('')
+    setRebuttalInput('')
+    setRebuttalSuccess(null)
+  }, [currentJob?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fileInputRef = useRef(null)
 
@@ -57,6 +95,29 @@ export default function WorkExecution({
   function handleTriggerFileInput() {
     if (fileInputRef.current) {
       fileInputRef.current.click()
+    }
+  }
+
+
+  async function handleSendRebuttal() {
+    if (!rebuttalInput.trim()) {
+      alert('Please enter a detailed response/rebuttal to the inquiry.')
+      return
+    }
+    const backendWoId = currentJob.backendWoId || currentJob.work_order_id || currentJob.id
+    try {
+      setRebuttalSending(true)
+      const result = await dispatch(
+        respondToOverrunInquiry({ backendWoId, rebuttal: rebuttalInput.trim() })
+      )
+      if (respondToOverrunInquiry.rejected.match(result)) {
+        alert(`Failed to send rebuttal: ${result.payload}`)
+      } else {
+        setRebuttalSuccess('Response submitted to Finance/COO for review.')
+        setRebuttalInput('')
+      }
+    } finally {
+      setRebuttalSending(false)
     }
   }
 
@@ -104,7 +165,7 @@ export default function WorkExecution({
   const isAssigned = !isInProgress && !isCompleted
   const canShowForm = (isInProgress || isCompleted) && !isAwaitingApproval && !isUnestimated
 
-  function handleStart() {
+  async function handleStart() {
     if (!currentJob) return
     if (isAwaitingApproval) {
       alert('Cannot start work: Department Head approval is required before commencing work.')
@@ -112,10 +173,19 @@ export default function WorkExecution({
     }
     if (isUnestimated) {
       alert('Cannot start work: You must first submit an AMC estimate and receive Department Head approval.')
-      onNavigate('estimate')
+      if (onNavigate) onNavigate('estimate')
       return
     }
-    onStartWork(currentJob.id)
+    if (onStartWork) {
+      await onStartWork(currentJob.id)
+    } else {
+      const backendWoId = currentJob.backendWoId || currentJob.workOrderId || currentJob.workOrderCode || currentJob.id
+      const result = await dispatch(startWorkOrder({ jobId: currentJob.id, backendWoId }))
+      if (startWorkOrder.rejected.match(result)) {
+        alert(result.payload || 'Cannot start work: Department Head approval is required.')
+        return
+      }
+    }
     setSubmittedMessage(`Work Order ${currentJob.workOrderId || currentJob.id} is now IN PROGRESS. Field crew dispatched.`)
   }
 
@@ -128,17 +198,41 @@ export default function WorkExecution({
       return
     }
 
+    if (Number(actualExpense) > initialEst && !overrunReason.trim()) {
+      alert('Please provide a justification and overrun reason for expenditure exceeding the approved estimate.')
+      return
+    }
+
     const completionData = {
       actualWorkSummary: actualWork,
       actualLabourDetails: labourDeployed,
       afterPhoto: afterPhoto,
       completionRemarks,
       completedAt: new Date().toISOString(),
+      actualCost: Number(actualExpense),
+      overrunReason: overrunReason.trim(),
     }
 
     try {
       setIsSubmitting(true)
-      await onSubmitCompletion(currentJob.id, completionData)
+      if (onSubmitCompletion) {
+        await onSubmitCompletion(currentJob.id, completionData)
+      } else {
+        const backendWoId = currentJob.backendWoId || currentJob.workOrderId || currentJob.workOrderCode || currentJob.id
+        const complaintId = currentJob.complaintId || currentJob.complaintCode || currentJob.id
+        const result = await dispatch(
+          submitJobCompletion({
+            jobId: currentJob.id,
+            backendWoId,
+            complaintId,
+            completionData,
+            estimatedCost: initialEst,
+          })
+        )
+        if (submitJobCompletion.rejected.match(result)) {
+          throw new Error(result.payload || 'Completion submission failed')
+        }
+      }
       setSubmittedMessage(
         `Work Order ${currentJob.workOrderId || currentJob.id} marked as COMPLETED! Forwarded to RWA for verification and Finance for payment authorization.`
       )
@@ -198,7 +292,10 @@ export default function WorkExecution({
             onChange={(e) => {
               setActiveJobId(e.target.value)
               const sel = jobs.find((j) => j.id === e.target.value)
-              if (sel) onSelectJob(sel)
+              if (sel) {
+                dispatch(setSelectedJob(sel))
+                if (onSelectJob) onSelectJob(sel)
+              }
             }}
             className="execution-select"
           >
@@ -479,6 +576,92 @@ export default function WorkExecution({
         </h3>
 
         <form onSubmit={handleComplete} className="execution-form">
+
+          {/* Overrun Inquiry Banner (If Finance/COO flagged this job) */}
+          {currentJob.inquiry_remark && (
+            <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8, padding: 14, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#c2410c', fontWeight: 700, fontSize: 14 }}>
+                ⚠️ Official Expenditure Inquiry from {currentJob.inquiry_by || 'Finance'} ({currentJob.inquiry_by_role || 'Executive'}):
+              </div>
+              <p style={{ margin: '6px 0 10px 0', color: '#9a3412', fontSize: 13, fontStyle: 'italic' }}>
+                &quot;{currentJob.inquiry_remark}&quot;
+              </p>
+              {rebuttalSuccess ? (
+                <div style={{ color: '#166534', background: '#dcfce7', padding: '6px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
+                  ✓ {rebuttalSuccess}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <textarea
+                    rows={2}
+                    placeholder="Enter your explanation / itemized cost justification..."
+                    value={rebuttalInput}
+                    onChange={(e) => setRebuttalInput(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #fdba74', fontSize: 13 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSendRebuttal}
+                    disabled={rebuttalSending}
+                    style={{ alignSelf: 'flex-start', background: '#ea580c', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 6, fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
+                  >
+                    {rebuttalSending ? 'Submitting...' : 'Submit Response to Finance →'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Actual Amount Used & Budget Overrun Fields */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div className="execution-form-group">
+              <label className="execution-label">
+                Approved Estimate Amount (Asked)
+              </label>
+              <input
+                type="text"
+                disabled
+                value={`₹${initialEst.toLocaleString()}`}
+                className="execution-input"
+                style={{ background: '#f1f5f9', fontWeight: 600 }}
+              />
+            </div>
+
+            <div className="execution-form-group">
+              <label className="execution-label">
+                Actual Expenditure (Amount Used) <span className="execution-req">*</span>
+              </label>
+              <input
+                type="number"
+                disabled={isCompleted}
+                value={actualExpense}
+                onChange={(e) => setActualExpense(Number(e.target.value))}
+                className="execution-input"
+                style={{ fontWeight: 700, color: Number(actualExpense) > initialEst ? '#dc2626' : '#1e293b' }}
+              />
+            </div>
+          </div>
+
+          {Number(actualExpense) > initialEst && (
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: 12, marginBottom: 16 }}>
+              <div style={{ color: '#991b1b', fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
+                ⚠️ Budget Overrun Detected (+₹{(Number(actualExpense) - initialEst).toLocaleString()} variance)
+              </div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#7f1d1d', marginBottom: 4 }}>
+                Contractor Justification &amp; Overrun Reason *
+              </label>
+              <textarea
+                rows={2}
+                required
+                disabled={isCompleted}
+                placeholder="Explain unexpected subsurface damage, extra materials, or rate changes requiring higher expenditure..."
+                value={overrunReason}
+                onChange={(e) => setOverrunReason(e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #fca5a5', fontSize: 13, boxSizing: 'border-box' }}
+              />
+            </div>
+          )}
+
           {/* 1. Actual Work Performed */}
           <div className="execution-form-group">
             <label className="execution-label">

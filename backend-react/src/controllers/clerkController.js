@@ -21,6 +21,12 @@ import {
   reassignContractor,
   getWorkOrders,
   getWorkOrderById,
+  openBidding,
+  getWorkOrderBids,
+  autoSelectBestBid,
+  addOverrunInquiry,
+  respondToOverrunInquiry,
+  resolveOverrunInquiry,
   formatWorkOrderResponse,
 } from './workOrderController.js';
 
@@ -31,6 +37,12 @@ export {
   reassignContractor,
   getWorkOrders,
   getWorkOrderById,
+  openBidding,
+  getWorkOrderBids,
+  autoSelectBestBid,
+  addOverrunInquiry,
+  respondToOverrunInquiry,
+  resolveOverrunInquiry,
 };
 
 /**
@@ -813,6 +825,58 @@ export const escalateComplaint = async (req, res, next) => {
         complaint: complaint ? formatComplaintDetail(db.findById('complaints', complaint.id)) : null,
         workOrder: workOrder ? formatWorkOrderResponse(db.findById('work_orders', workOrder.id)) : null,
       },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * @desc   Recall an accidentally rejected or misrouted complaint back to Triage
+ * @route  POST /api/v1/clerk/complaints/:id/recall
+ * @access Private (DESK_CLERK, TOWNSHIP_COO)
+ */
+export const recallComplaint = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { reason = 'Accidental misrouting or rejection recalled by Desk Clerk' } = req.body;
+
+    const complaint = db.findOne('complaints', (c) => c.id === id || c.complaint_code === id);
+    if (!complaint) {
+      return next(new AppError(`Complaint "${id}" not found.`, 404, 'NOT_FOUND'));
+    }
+
+    const now = new Date().toISOString();
+    const updated = db.update('complaints', complaint.id, {
+      status: 'REPORTED',
+      rejection_reason: null,
+      updated_at: now,
+      history: [
+        ...(complaint.history || []),
+        {
+          stage: 'RECALLED',
+          timestamp: now,
+          actor: `${req.user.name} (Desk Clerk)`,
+          note: `Recalled back to active triage. Reason: "${reason}"`,
+        },
+      ],
+    });
+
+    db.logAudit({
+      township_id: complaint.township_id,
+      user_id: req.user.id,
+      action: 'COMPLAINT_RECALLED',
+      entity_type: 'complaints',
+      entity_id: complaint.id,
+      old_value: JSON.stringify({ status: complaint.status }),
+      new_value: JSON.stringify({ status: 'REPORTED', reason }),
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Complaint ${complaint.complaint_code || complaint.id} successfully recalled to triage queue.`,
+      data: formatComplaintDetail(updated),
     });
   } catch (err) {
     next(err);

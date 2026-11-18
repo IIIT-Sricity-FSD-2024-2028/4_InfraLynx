@@ -26,7 +26,53 @@ export default function InvoiceAuditModal({
   const [paymentReference, setPaymentReference]       = useState('')
   const [isReleasing, setIsReleasing]                 = useState(false)
 
-  // Reset local form state when a different invoice is opened
+  const [flaggedItems, setFlaggedItems] = useState({})
+  const [inquiryRemarkInput, setInquiryRemarkInput] = useState('')
+  const [inquirySentMsg, setInquirySentMsg] = useState(null)
+  const [showInquiryForm, setShowInquiryForm] = useState(false)
+  const [overrunResolutionMsg, setOverrunResolutionMsg] = useState(null)
+
+  const isOverrun = Number(invoice.billedAmount || 0) > Number(invoice.estimateAmount || 0) || Number(invoice.varianceAmount || 0) > 0
+  const woId = invoice.workOrderId || invoice.rawId || invoice.id
+
+  async function handleFlagItem(item) {
+    const reason = prompt(`Enter remark for flagging line item "${item.description || 'Service Item'}":`)
+    if (!reason) return
+    try {
+      await financeApi.flagLineItem(invoice.rawId || invoice.id, item.id || item.description, reason)
+      setFlaggedItems((prev) => ({ ...prev, [item.id || item.description]: reason }))
+      alert(`Line item "${item.description}" flagged for review.`)
+    } catch (err) {
+      alert(`Failed to flag item: ${err.message}`)
+    }
+  }
+
+  async function handleSendOverrunInquiry() {
+    if (!inquiryRemarkInput.trim()) {
+      alert('Please enter an inquiry remark explaining why the amount is questioned.')
+      return
+    }
+    try {
+      await financeApi.addOverrunInquiry(woId, inquiryRemarkInput.trim())
+      setInquirySentMsg(`Inquiry sent to contractor: "${inquiryRemarkInput.trim()}"`)
+      setInquiryRemarkInput('')
+      setShowInquiryForm(false)
+    } catch (err) {
+      alert(`Failed to issue inquiry: ${err.message}`)
+    }
+  }
+
+  async function handleSettleOverrun(action) {
+    const finalAmount = action === 'ACCEPT' ? invoice.billedAmount : invoice.estimateAmount
+    try {
+      await financeApi.resolveOverrunInquiry(woId, { action, final_amount: finalAmount })
+      setOverrunResolutionMsg(`Overrun settled: ${action === 'ACCEPT' ? 'Accepted billed amount' : 'Capped at approved estimate'}.`)
+    } catch (err) {
+      alert(`Failed to settle overrun: ${err.message}`)
+    }
+  }
+
+
   useEffect(() => {
     if (invoice) {
       setPaymentMode(invoice.paymentMode || 'RTGS / Township Escrow')
@@ -275,6 +321,119 @@ export default function InvoiceAuditModal({
               </tbody>
             </table>
           </div>
+
+
+          {/* Budget Overrun Inquest & Inquiry Workflow */}
+          {isOverrun && (
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: 16, marginTop: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 18 }}>⚠️</span>
+                  <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#991b1b' }}>
+                    Budget Overrun Inquest (Amount Used &gt; Amount Asked)
+                  </h4>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', background: '#fee2e2', padding: '3px 8px', borderRadius: 12 }}>
+                  +₹{Number(invoice.varianceAmount || (Number(invoice.billedAmount) - Number(invoice.estimateAmount))).toLocaleString('en-IN')} Overrun
+                </span>
+              </div>
+
+              <div style={{ fontSize: 13, color: '#7f1d1d', marginBottom: 12 }}>
+                <strong>Contractor&apos;s Submitted Reason:</strong>{' '}
+                <span style={{ fontStyle: 'italic' }}>
+                  &quot;{invoice.varianceReason || invoice.overrunReason || invoice.workOrder?.contractor_reason || 'Extra excavation and material reinforcement required during execution'}&quot;
+                </span>
+              </div>
+
+              {inquirySentMsg && (
+                <div style={{ background: '#dcfce7', border: '1px solid #86efac', color: '#166534', padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, marginBottom: 10 }}>
+                  ✓ {inquirySentMsg}
+                </div>
+              )}
+
+              {overrunResolutionMsg && (
+                <div style={{ background: '#ecfdf5', border: '1px solid #6ee7b7', color: '#047857', padding: '8px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, marginBottom: 10 }}>
+                  ✓ {overrunResolutionMsg}
+                </div>
+              )}
+
+              {showInquiryForm ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: '#ffffff', padding: 12, borderRadius: 6, border: '1px solid #fca5a5' }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#991b1b' }}>
+                    Official Inquiry to Contractor (Asking why high amount):
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={inquiryRemarkInput}
+                    onChange={(e) => setInquiryRemarkInput(e.target.value)}
+                    placeholder="e.g. Please provide GST bills and rate card justification for the 25% surplus billed..."
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 4, border: '1px solid #cbd5e1', fontSize: 13 }}
+                  />
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button type="button" onClick={() => setShowInquiryForm(false)} style={{ padding: '5px 12px', borderRadius: 4, background: '#f1f5f9', border: '1px solid #cbd5e1', fontSize: 12, cursor: 'pointer' }}>
+                      Cancel
+                    </button>
+                    <button type="button" onClick={handleSendOverrunInquiry} style={{ padding: '5px 14px', borderRadius: 4, background: '#dc2626', color: '#fff', border: 'none', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+                      Dispatch Inquiry to Contractor →
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowInquiryForm(true)}
+                    style={{
+                      background: '#fff',
+                      border: '1px solid #f87171',
+                      color: '#b91c1c',
+                      padding: '6px 12px',
+                      borderRadius: 6,
+                      fontWeight: 600,
+                      fontSize: 12,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    💬 Ask Contractor: Why High Amount?
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSettleOverrun('ACCEPT')}
+                    style={{
+                      background: '#16a34a',
+                      border: 'none',
+                      color: '#fff',
+                      padding: '6px 12px',
+                      borderRadius: 6,
+                      fontWeight: 600,
+                      fontSize: 12,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ✓ Accept Overrun Amount
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSettleOverrun('SETTLE_ESTIMATE')}
+                    style={{
+                      background: '#d97706',
+                      border: 'none',
+                      color: '#fff',
+                      padding: '6px 12px',
+                      borderRadius: 6,
+                      fontWeight: 600,
+                      fontSize: 12,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ⚖️ Cap at Approved Estimate (₹{Number(invoice.estimateAmount || 0).toLocaleString('en-IN')})
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Variance Note */}
           {currentStatus === 'VARIANCE_FLAGGED' && invoice.varianceReason && (

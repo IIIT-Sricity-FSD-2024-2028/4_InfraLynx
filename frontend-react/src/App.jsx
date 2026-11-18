@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { TIMSProvider, useTIMS } from './context/TIMSContext.jsx'
 import { authApi } from './services/api.js'
+import ProtectedRoute from './components/common/ProtectedRoute.jsx'
 import Nav from './components/landing/Nav.jsx'
 import Hero from './components/landing/Hero.jsx'
 import Features from './components/landing/Features.jsx'
@@ -16,120 +18,47 @@ import ContractorPortal from './pages/contractor/index.jsx'
 import CooPortal from './pages/coo/CooPortal.jsx'
 import SuperAdminPortal from './pages/superadmin/index.jsx'
 
-/**
- * Route mapper: maps URL pathname / query to internal portal keys
- */
-function getPortalFromLocation() {
-  const path = window.location.pathname.replace(/^\/+/, '').toLowerCase()
-  if (path === 'rwa') return 'rwa'
-  if (path === 'finance') return 'finance'
-  if (path === 'clerk') return 'clerk'
-  if (path === 'dept-head' || path === 'dept_head' || path === 'depthead') return 'dept_head'
-  if (path === 'contractor') return 'contractor'
-  if (path === 'coo') return 'coo'
-  if (path === 'superadmin' || path === 'super-admin' || path === 'super_admin') return 'superadmin'
-
-  // Also check query param ?portal=xxx or hash #/xxx
-  const searchParams = new URLSearchParams(window.location.search)
-  const portalParam = searchParams.get('portal')
-  if (portalParam) return portalParam.toLowerCase()
-
-  const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase()
-  if (['rwa', 'finance', 'clerk', 'dept_head', 'contractor', 'coo', 'superadmin'].includes(hash)) return hash
-
-  return 'landing'
-}
-
-function updateUrlForPortal(portalKey) {
-  if (portalKey === 'landing') {
-    if (window.location.pathname !== '/') {
-      window.history.replaceState(null, '', '/')
-    }
-  } else {
-    const targetPath = portalKey === 'dept_head' ? '/dept-head' : `/${portalKey}`
-    if (window.location.pathname !== targetPath) {
-      window.history.pushState(null, '', targetPath)
-    }
-  }
+function LandingView({ onOpenAuth, onOpenSignUp, currentUser, onLogout, onGoToPortal }) {
+  return (
+    <div className="page-shell" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Nav
+        onOpenAuth={onOpenAuth}
+        onOpenSignUp={onOpenSignUp}
+        currentUser={currentUser}
+        onLogout={onLogout}
+        onGoToPortal={onGoToPortal}
+      />
+      <main style={{ flex: 1 }}>
+        <Hero onOpenAuth={onOpenAuth} />
+        <Roles onOpenAuth={onOpenAuth} />
+        <Features />
+        <Pricing onOpenAuth={onOpenAuth} />
+        <Contact />
+      </main>
+      <Footer onOpenAuth={onOpenAuth} />
+    </div>
+  )
 }
 
 function AppContent() {
   const { currentUser, logout, setCurrentUser } = useTIMS()
+  const navigate = useNavigate()
+  const location = useLocation()
+
   const [authOpen, setAuthOpen] = useState(false)
   const [authRole, setAuthRole] = useState(null)
   const [authNotice, setAuthNotice] = useState(null)
   const [signUpOpen, setSignUpOpen] = useState(false)
-  const [viewMode, setViewMode] = useState('landing')
 
-  // Enforce tab-isolated authentication and protected routing
-  const verifyRouteAccess = useCallback((targetPortal) => {
-    if (!targetPortal || targetPortal === 'landing') {
-      setViewMode('landing')
-      return
-    }
-
-    const isAuthed = authApi.isAuthenticated()
-    const cachedUser = authApi.getCachedUser()
-
-    // If attempting to access a portal without an active authenticated session in THIS tab
-    if (!isAuthed || !cachedUser) {
-      setViewMode('landing')
-      updateUrlForPortal('landing')
-      setAuthRole(targetPortal)
+  // Listen for redirected state from ProtectedRoute
+  useEffect(() => {
+    if (location.state?.authRequired) {
       setAuthNotice(
-        'Authentication Required: This browser tab does not have an active session. For your security, please sign in with your password.'
+        `Authentication Required: Please sign in to access the ${location.state.portalName || 'selected portal'}.`
       )
       setAuthOpen(true)
-      return
     }
-
-    // Role-based authorization check
-    const userRole = (cachedUser.role || '').toUpperCase()
-    const portalRoleMap = {
-      rwa: ['RWA', 'TOWNSHIP_COO'],
-      finance: ['FINANCE_CLERK', 'TOWNSHIP_COO'],
-      clerk: ['DESK_CLERK', 'TOWNSHIP_COO'],
-      dept_head: ['DEPARTMENT_HEAD', 'TOWNSHIP_COO'],
-      contractor: ['FIELD_CONTRACTOR', 'TOWNSHIP_COO'],
-      coo: ['TOWNSHIP_COO'],
-      superadmin: ['SUPER_ADMIN'],
-    }
-
-    const permittedRoles = portalRoleMap[targetPortal] || []
-    if (permittedRoles.length > 0 && !permittedRoles.includes(userRole)) {
-      alert(`Access Restricted: Your account role (${userRole}) is not authorized for the ${targetPortal} portal.`)
-      setViewMode('landing')
-      updateUrlForPortal('landing')
-      return
-    }
-
-    setViewMode(targetPortal)
-    updateUrlForPortal(targetPortal)
-  }, [])
-
-  // Check URL on initial load and handle browser back/forward buttons
-  useEffect(() => {
-    const initialPortal = getPortalFromLocation()
-    if (initialPortal !== 'landing') {
-      verifyRouteAccess(initialPortal)
-    }
-
-    const handlePopState = () => {
-      const portal = getPortalFromLocation()
-      verifyRouteAccess(portal)
-    }
-
-    window.addEventListener('popstate', handlePopState)
-    return () => window.removeEventListener('popstate', handlePopState)
-  }, [verifyRouteAccess])
-
-  // If user logs out or session expires, reset viewMode to landing
-  useEffect(() => {
-    if (!currentUser && viewMode !== 'landing') {
-      setViewMode('landing')
-      updateUrlForPortal('landing')
-    }
-  }, [currentUser, viewMode])
+  }, [location.state])
 
   function handleOpenAuth(role = null) {
     setAuthRole(typeof role === 'string' ? role : null)
@@ -148,29 +77,43 @@ function AppContent() {
       }
     }
     const r = (roleStr || '').toLowerCase()
-    let target = 'rwa'
-    if (r === 'finance' || r === 'finance_clerk') target = 'finance'
-    else if (r === 'clerk' || r === 'desk_clerk') target = 'clerk'
-    else if (r === 'dept_head' || r === 'department_head') target = 'dept_head'
-    else if (r === 'contractor' || r === 'field_contractor') target = 'contractor'
-    else if (r === 'coo' || r === 'township_coo') target = 'coo'
-    else if (r === 'super_admin' || r === 'superadmin') target = 'superadmin'
+    let target = '/rwa'
+    if (r === 'finance' || r === 'finance_clerk') target = '/finance'
+    else if (r === 'clerk' || r === 'desk_clerk') target = '/clerk'
+    else if (r === 'dept_head' || r === 'department_head') target = '/dept-head'
+    else if (r === 'contractor' || r === 'field_contractor') target = '/contractor'
+    else if (r === 'coo' || r === 'township_coo') target = '/coo'
+    else if (r === 'super_admin' || r === 'superadmin') target = '/superadmin'
 
-    setViewMode(target)
-    updateUrlForPortal(target)
     setAuthOpen(false)
     setAuthNotice(null)
+    navigate(target)
   }
 
   async function handleSecureLogout() {
     await logout()
-    setViewMode('landing')
-    updateUrlForPortal('landing')
+    navigate('/')
+  }
+
+  function handleGoToPortal() {
+    if (currentUser) {
+      const r = (currentUser.role || '').toLowerCase()
+      let target = '/rwa'
+      if (r === 'township_coo') target = '/coo'
+      else if (r === 'finance_clerk') target = '/finance'
+      else if (r === 'desk_clerk') target = '/clerk'
+      else if (r === 'department_head') target = '/dept-head'
+      else if (r === 'field_contractor') target = '/contractor'
+      else if (r === 'super_admin') target = '/superadmin'
+      navigate(target)
+    } else {
+      handleOpenAuth()
+    }
   }
 
   return (
     <>
-      {/* Session notice banner if redirected from pasted URL */}
+      {/* Session notice banner */}
       {authNotice && !authOpen && (
         <div
           style={{
@@ -208,90 +151,112 @@ function AppContent() {
         </div>
       )}
 
-      {viewMode === 'rwa' && (
-        <RwaPortal onExitToLanding={handleSecureLogout} />
-      )}
+      {/* Standard React-Router v6+ Routes */}
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <LandingView
+              onOpenAuth={handleOpenAuth}
+              onOpenSignUp={() => setSignUpOpen(true)}
+              currentUser={currentUser}
+              onLogout={handleSecureLogout}
+              onGoToPortal={handleGoToPortal}
+            />
+          }
+        />
 
-      {viewMode === 'finance' && (
-        <FinancePortal onExitToLanding={handleSecureLogout} />
-      )}
+        <Route
+          path="/rwa"
+          element={
+            <ProtectedRoute allowedRoles={['RWA', 'TOWNSHIP_COO']} portalName="RWA Resident Portal">
+              <RwaPortal onExitToLanding={handleSecureLogout} />
+            </ProtectedRoute>
+          }
+        />
 
-      {viewMode === 'clerk' && (
-        <ClerkPortal onExitToLanding={handleSecureLogout} />
-      )}
+        <Route
+          path="/clerk"
+          element={
+            <ProtectedRoute allowedRoles={['DESK_CLERK', 'TOWNSHIP_COO']} portalName="Desk Clerk Triage Portal">
+              <ClerkPortal onExitToLanding={handleSecureLogout} />
+            </ProtectedRoute>
+          }
+        />
 
-      {viewMode === 'dept_head' && (
-        <DeptHeadPortal onExitToLanding={handleSecureLogout} />
-      )}
+        <Route
+          path="/contractor"
+          element={
+            <ProtectedRoute allowedRoles={['FIELD_CONTRACTOR', 'TOWNSHIP_COO']} portalName="Contractor Work Portal">
+              <ContractorPortal onExitToLanding={handleSecureLogout} />
+            </ProtectedRoute>
+          }
+        />
 
-      {viewMode === 'contractor' && (
-        <ContractorPortal onExitToLanding={handleSecureLogout} />
-      )}
+        <Route
+          path="/dept-head"
+          element={
+            <ProtectedRoute allowedRoles={['DEPARTMENT_HEAD', 'TOWNSHIP_COO']} portalName="Department Head Portal">
+              <DeptHeadPortal onExitToLanding={handleSecureLogout} />
+            </ProtectedRoute>
+          }
+        />
 
-      {viewMode === 'coo' && (
-        <CooPortal onExitToLanding={handleSecureLogout} />
-      )}
+        <Route
+          path="/finance"
+          element={
+            <ProtectedRoute allowedRoles={['FINANCE_CLERK', 'TOWNSHIP_COO']} portalName="Finance & Audit Portal">
+              <FinancePortal onExitToLanding={handleSecureLogout} />
+            </ProtectedRoute>
+          }
+        />
 
-      {viewMode === 'superadmin' && (
-        <SuperAdminPortal onExitToLanding={handleSecureLogout} />
-      )}
+        <Route
+          path="/coo"
+          element={
+            <ProtectedRoute allowedRoles={['TOWNSHIP_COO']} portalName="Township COO Executive Portal">
+              <CooPortal onExitToLanding={handleSecureLogout} />
+            </ProtectedRoute>
+          }
+        />
 
-      {viewMode === 'landing' && (
-        <div className="page-shell" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-          <Nav
-            onOpenAuth={handleOpenAuth}
-            onOpenSignUp={() => setSignUpOpen(true)}
-            currentUser={currentUser}
-            onLogout={handleSecureLogout}
-            onGoToPortal={() => {
-              if (currentUser) {
-                const target =
-                  currentUser.role === 'TOWNSHIP_COO' ? 'coo' :
-                    currentUser.role === 'FINANCE_CLERK' ? 'finance' :
-                      currentUser.role === 'DESK_CLERK' ? 'clerk' :
-                        currentUser.role === 'DEPARTMENT_HEAD' ? 'dept_head' :
-                          currentUser.role === 'FIELD_CONTRACTOR' ? 'contractor' :
-                            currentUser.role === 'SUPER_ADMIN' ? 'superadmin' : 'rwa'
-                setViewMode(target)
-                updateUrlForPortal(target)
-              } else {
-                handleOpenAuth()
-              }
+        <Route
+          path="/superadmin"
+          element={
+            <ProtectedRoute allowedRoles={['SUPER_ADMIN']} portalName="Platform Super Admin Console">
+              <SuperAdminPortal onExitToLanding={handleSecureLogout} />
+            </ProtectedRoute>
+          }
+        />
 
-            }}
-          />
-          <main style={{ flex: 1 }}>
-            <Hero onOpenAuth={handleOpenAuth} />
-            <Roles />
-            <Features />
-          </main>
-          <Footer />
+        {/* Fallback wildcard */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
 
-          <AuthModal
-            isOpen={authOpen}
-            onClose={() => {
-              setAuthOpen(false)
-              setAuthNotice(null)
-            }}
-            initialRole={authRole}
-            onLoginSuccess={handleLoginSuccess}
-            onOpenSignUp={() => setSignUpOpen(true)}
-          />
+      {/* Auth Modals */}
+      <AuthModal
+        isOpen={authOpen}
+        onClose={() => {
+          setAuthOpen(false)
+          setAuthNotice(null)
+        }}
+        initialRole={authRole}
+        onLoginSuccess={handleLoginSuccess}
+        onOpenSignUp={() => setSignUpOpen(true)}
+      />
 
-          <SignUpModal
-            isOpen={signUpOpen}
-            onClose={() => setSignUpOpen(false)}
-            onOpenLogin={() => {
-              setSignUpOpen(false)
-              handleOpenAuth()
-            }}
-            onSignUpSuccess={(newUser) => {
-              setSignUpOpen(false)
-              handleLoginSuccess(newUser)
-            }}
-          />
-        </div>
-      )}
+      <SignUpModal
+        isOpen={signUpOpen}
+        onClose={() => setSignUpOpen(false)}
+        onOpenLogin={() => {
+          setSignUpOpen(false)
+          handleOpenAuth()
+        }}
+        onSignUpSuccess={(newUser) => {
+          setSignUpOpen(false)
+          handleLoginSuccess(newUser)
+        }}
+      />
     </>
   )
 }

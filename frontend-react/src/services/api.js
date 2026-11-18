@@ -3,8 +3,8 @@
  * Centralized HTTP client connecting React frontend to Express.js / PostgreSQL backend
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
-const SERVER_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000/api/v1';
+const SERVER_BASE = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:5000';
 
 export const TOKEN_KEY = 'tims_auth_token';
 export const USER_KEY = 'tims_auth_user';

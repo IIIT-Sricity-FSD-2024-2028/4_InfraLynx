@@ -1,12 +1,30 @@
 import { useState, useMemo } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import {
+  selectAllContractorJobs,
+  selectContractorSelectedJob,
+  setSelectedJob,
+} from '../../store/contractor/contractorSlice.js'
 import './styles/ApprovalStatus.css'
 
 export default function ApprovalStatus({
-  jobs = [],
-  selectedJob,
+  jobs: propsJobs,
+  selectedJob: propsSelectedJob,
   onSelectJob,
   onNavigate,
 }) {
+  const dispatch = useDispatch()
+  const reduxJobs = useSelector(selectAllContractorJobs)
+  const reduxSelectedJob = useSelector(selectContractorSelectedJob)
+
+  const jobs = propsJobs || reduxJobs || []
+  const selectedJob = propsSelectedJob || reduxSelectedJob
+
+  const handleSelectJob = (job) => {
+    dispatch(setSelectedJob(job))
+    if (onSelectJob) onSelectJob(job)
+  }
+
   const [filter, setFilter] = useState('ALL') // ALL | PENDING | APPROVED | REVISION
 
   // Jobs that have had estimates submitted or are in approval lifecycle
@@ -49,7 +67,7 @@ export default function ApprovalStatus({
         <button
           onClick={() => {
             const nextPending = jobs.find((j) => j.status === 'ASSIGNED')
-            if (nextPending) onSelectJob(nextPending)
+            if (nextPending) handleSelectJob(nextPending)
             onNavigate('estimate')
           }}
           className="btn-contractor-primary"
@@ -220,7 +238,7 @@ export default function ApprovalStatus({
                 {isRevision && (
                   <button
                     onClick={() => {
-                      onSelectJob(job)
+                      handleSelectJob(job)
                       onNavigate('estimate')
                     }}
                     className="btn-contractor-primary"
@@ -233,7 +251,7 @@ export default function ApprovalStatus({
                 {isReadyForExecution && (
                   <button
                     onClick={() => {
-                      onSelectJob(job)
+                      handleSelectJob(job)
                       onNavigate('execution')
                     }}
                     className="btn-contractor-primary"
@@ -246,7 +264,7 @@ export default function ApprovalStatus({
                 {isInProgress && (
                   <button
                     onClick={() => {
-                      onSelectJob(job)
+                      handleSelectJob(job)
                       onNavigate('execution')
                     }}
                     className="btn-contractor-primary"
@@ -259,7 +277,7 @@ export default function ApprovalStatus({
                 {isCompleted && (
                   <button
                     onClick={() => {
-                      onSelectJob(job)
+                      handleSelectJob(job)
                       onNavigate('execution')
                     }}
                     className="btn-contractor-secondary"

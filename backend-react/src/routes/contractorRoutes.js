@@ -13,6 +13,9 @@ import {
   getJobById,
   submitSiteInspection,
   submitEstimate,
+  recallEstimate,
+  amendSiteInspection,
+  appealDispute,
   updateJobStatus,
   uploadEvidence,
 } from '../controllers/contractorController.js';
@@ -74,6 +77,18 @@ router.post(
 );
 
 /**
+ * @route  POST /api/v1/contractor/jobs/:id/recall-estimate
+ * @desc   Recall an unapproved estimate to fix errors before review
+ * @access Private (FIELD_CONTRACTOR, TOWNSHIP_COO)
+ */
+router.post(
+  '/jobs/:id/recall-estimate',
+  authenticate,
+  requireRole(...CONTRACTOR_ROLES),
+  recallEstimate
+);
+
+/**
  * @route  PATCH /api/v1/contractor/jobs/:id/status
  * @desc   Update job progress (ASSIGNED -> IN_PROGRESS -> COMPLETED)
  * @body   { status: 'IN_PROGRESS' | 'COMPLETED', remarks?: string }
@@ -98,5 +113,8 @@ router.post(
   requireRole(...CONTRACTOR_ROLES),
   uploadEvidence
 );
+
+router.post('/jobs/:id/amend-inspection', authenticate, requireRole('FIELD_CONTRACTOR', 'TOWNSHIP_COO'), amendSiteInspection);
+router.post('/jobs/:id/appeal', authenticate, requireRole('FIELD_CONTRACTOR', 'TOWNSHIP_COO'), appealDispute);
 
 export default router;

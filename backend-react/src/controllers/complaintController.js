@@ -8,7 +8,7 @@ import path from 'path';
 import config from '../config/env.js';
 import db from '../config/db.js';
 import { generateComplaintCode } from '../utils/generateId.js';
-import { calculateSlaDeadline, evaluateSlaStatus } from '../services/slaService.js';
+import { calculateSlaDeadline, calculateResponseSlaDeadline, evaluateSlaStatus, pauseSla, resumeSla } from '../services/slaService.js';
 import { verifyComplaint as verifyService } from '../services/verificationService.js';
 import { AppError } from '../middleware/error.js';
 
@@ -44,7 +44,8 @@ const findDepartmentByCategory = (category = '') => {
 /**
  * Format complaint with full evidence and SLA status for response
  */
-const formatComplaintResponse = (complaint) => {
+const formatComplaintResponse = (complaint, options = {}) => {
+  const { listMode = false } = options;
   const allEvidence = db.findAll('complaint_evidence', (e) => e.complaint_id === complaint.id || e.complaint_id === complaint.complaint_code);
   const wo = db.findOne('work_orders', (w) => w.complaint_id === complaint.id || w.complaint_id === complaint.complaint_code);
   const woEvidence = wo ? db.findAll('work_evidence', (we) => we.work_order_id === wo.id) : [];
@@ -137,6 +138,10 @@ const formatComplaintResponse = (complaint) => {
     afterPhotos: resolvedAfter,
     sla_deadline: complaint.sla_deadline,
     slaDeadline: complaint.sla_deadline,
+    sla_stage: complaint.sla_stage || 'RESPONSE',
+    sla_response_deadline: complaint.sla_response_deadline || null,
+    sla_paused_at: complaint.sla_paused_at || null,
+    sla_paused_duration_ms: complaint.sla_paused_duration_ms || 0,
     sla_health: slaHealth,
   };
 };
@@ -191,6 +196,7 @@ export const createComplaint = async (req, res, next) => {
     const complaintCode = generateComplaintCode();
     const now = new Date().toISOString();
     const slaDeadline = calculateSlaDeadline(chosenSeverity, now);
+    const slaResponseDeadline = calculateResponseSlaDeadline(chosenSeverity, now, req.user.township_id);
 
     // Process photo URLs from files upload or body payload
     const uploadedFileUrls = (req.files || []).map((file) => `/uploads/${file.filename}`);
@@ -239,6 +245,9 @@ export const createComplaint = async (req, res, next) => {
       severity: chosenSeverity,
       status: 'REPORTED',
       sla_deadline: slaDeadline,
+      sla_stage: 'RESPONSE',
+      sla_response_deadline: slaResponseDeadline,
+      sla_status: 'ON_TIME',
       sector: locSector,
       block: locBlock,
       street: locStreet,
@@ -329,7 +338,7 @@ export const getComplaints = async (req, res, next) => {
       return true;
     });
 
-    const formatted = complaints.map(formatComplaintResponse);
+    const formatted = complaints.map((c) => formatComplaintResponse(c, { listMode: true }));
 
     res.status(200).json({
       success: true,
@@ -391,9 +400,256 @@ export const verifyComplaint = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Update/Edit an existing complaint (RWA Mistake Correction)
+ * @route   PUT /api/v1/complaints/:id
+ * @access  Private (RWA, TOWNSHIP_COO, DESK_CLERK)
+ */
+export const updateComplaint = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const complaint = db.findOne('complaints', (c) => c.id === id || c.complaint_code === id);
+
+    if (!complaint) {
+      return next(new AppError(`Complaint with identifier '${id}' not found.`, 404, 'NOT_FOUND'));
+    }
+
+    if (req.user.township_id && complaint.township_id !== req.user.township_id) {
+      return next(new AppError('Cross-township modification forbidden.', 403, 'FORBIDDEN'));
+    }
+
+    // Human fallibility safeguard: only allow editing before work begins
+    const editableStatuses = ['REPORTED', 'UNDER_REVIEW'];
+    if (!editableStatuses.includes((complaint.status || '').toUpperCase())) {
+      return next(
+        new AppError(
+          `Cannot edit complaint in status '${complaint.status}'. Work order has already been initiated. Please contact Desk Clerk.`,
+          400,
+          'IMMUTABLE_STAGE'
+        )
+      );
+    }
+
+    const {
+      title,
+      description,
+      category,
+      subcategory,
+      subCategory,
+      severity,
+      location = {},
+      landmark,
+      photos,
+    } = req.body;
+
+    const now = new Date().toISOString();
+    const updates = {};
+    const oldSnapshot = {
+      title: complaint.title,
+      description: complaint.description,
+      category: complaint.category,
+      severity: complaint.severity,
+      location_details: complaint.location_details,
+    };
+
+    if (title) updates.title = title.trim();
+    if (description) updates.description = description.trim();
+    if (category) {
+      updates.category = category;
+      const dept = findDepartmentByCategory(category);
+      if (dept) updates.department_id = dept.id;
+    }
+    if (subcategory || subCategory) updates.subcategory = subcategory || subCategory;
+    if (severity) {
+      updates.severity = severity.toUpperCase();
+      updates.sla_deadline = calculateSlaDeadline(updates.severity, complaint.created_at || now, complaint.township_id);
+    }
+
+    if (location && typeof location === 'object') {
+      if (location.sector) updates.sector = location.sector;
+      if (location.block) updates.block = location.block;
+      if (location.street) updates.street = location.street;
+      if (location.landmark || landmark) {
+        updates.location_details = `${updates.block || complaint.block || ''}, ${updates.street || complaint.street || ''} (${location.landmark || landmark})`;
+      }
+    } else if (landmark) {
+      updates.location_details = `${complaint.block || ''}, ${complaint.street || ''} (${landmark})`;
+    }
+
+    if (Array.isArray(photos)) {
+      updates.beforePhotos = photos;
+    }
+
+    updates.last_edited_at = now;
+    updates.updated_at = now;
+
+    const editHistory = complaint.edit_history || [];
+    editHistory.push({
+      edited_at: now,
+      edited_by: `${req.user.name} (${req.user.role})`,
+      previous_state: oldSnapshot,
+    });
+    updates.edit_history = editHistory;
+
+    const history = complaint.history || [];
+    history.push({
+      stage: 'EDITED',
+      timestamp: now,
+      actor: `${req.user.name} (${req.user.role})`,
+      note: `Ticket details updated by reporter/manager.`,
+    });
+    updates.history = history;
+
+    const updated = db.update('complaints', complaint.id, updates);
+
+    db.logAudit({
+      township_id: complaint.township_id,
+      entity_type: 'COMPLAINT',
+      entity_id: complaint.id,
+      actor_id: req.user.id,
+      actor_role: req.user.role,
+      action: 'COMPLAINT_EDITED',
+      from_state: JSON.stringify(oldSnapshot),
+      to_state: JSON.stringify(updates),
+      notes: `Ticket ${complaint.complaint_code || complaint.id} updated by ${req.user.name}`,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Complaint updated successfully.',
+      data: formatComplaintResponse(updated),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Cancel a complaint before execution starts (RWA Mistake / False Alarm Correction)
+ * @route   POST /api/v1/complaints/:id/cancel
+ * @access  Private (RWA, TOWNSHIP_COO, DESK_CLERK)
+ */
+export const cancelComplaint = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { reason = 'Cancelled by resident' } = req.body;
+
+    const complaint = db.findOne('complaints', (c) => c.id === id || c.complaint_code === id);
+
+    if (!complaint) {
+      return next(new AppError(`Complaint with identifier '${id}' not found.`, 404, 'NOT_FOUND'));
+    }
+
+    if (req.user.township_id && complaint.township_id !== req.user.township_id) {
+      return next(new AppError('Cross-township cancellation forbidden.', 403, 'FORBIDDEN'));
+    }
+
+    // Cannot cancel if repair work has physically started or completed
+    const nonCancellable = ['IN_PROGRESS', 'COMPLETED', 'PENDING_VERIFICATION', 'VERIFIED'];
+    if (nonCancellable.includes((complaint.status || '').toUpperCase())) {
+      return next(
+        new AppError(
+          `Cannot cancel complaint in status '${complaint.status}'. Work execution has commenced. Please contact Desk Clerk.`,
+          400,
+          'CANCELLATION_BLOCKED'
+        )
+      );
+    }
+
+    const now = new Date().toISOString();
+    const updated = db.update('complaints', complaint.id, {
+      status: 'CLOSED',
+      cancellation_reason: reason,
+      cancelled_at: now,
+      cancelled_by: req.user.id,
+      rejection_reason: `Cancelled by reporter: ${reason}`,
+      updated_at: now,
+      history: [
+        ...(complaint.history || []),
+        {
+          stage: 'CANCELLED',
+          timestamp: now,
+          actor: `${req.user.name} (${req.user.role})`,
+          note: `Complaint cancelled by user. Reason: "${reason}"`,
+        },
+      ],
+    });
+
+    db.logAudit({
+      township_id: complaint.township_id,
+      entity_type: 'COMPLAINT',
+      entity_id: complaint.id,
+      actor_id: req.user.id,
+      actor_role: req.user.role,
+      action: 'COMPLAINT_CANCELLED',
+      from_state: complaint.status,
+      to_state: 'CLOSED',
+      notes: `Ticket cancelled: ${reason}`,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Complaint cancelled successfully.',
+      data: formatComplaintResponse(updated),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+/**
+ * @desc   Pause complaint SLA clock (for citizen clarification / external hold)
+ * @route  POST /api/v1/complaints/:id/pause
+ * @access Private (RWA, DESK_CLERK, TOWNSHIP_COO)
+ */
+export const pauseComplaint = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { reason = 'Awaiting citizen clarification' } = req.body;
+    const paused = pauseSla('complaints', id, reason, req.user);
+    if (!paused) {
+      return next(new AppError(`Complaint "${id}" not found.`, 404, 'NOT_FOUND'));
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Complaint SLA clock paused.',
+      data: formatComplaintResponse(paused),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc   Resume complaint SLA clock and extend deadline
+ * @route  POST /api/v1/complaints/:id/resume
+ * @access Private (RWA, DESK_CLERK, TOWNSHIP_COO)
+ */
+export const resumeComplaint = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const resumed = resumeSla('complaints', id, req.user);
+    if (!resumed) {
+      return next(new AppError(`Complaint "${id}" not found.`, 404, 'NOT_FOUND'));
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Complaint SLA clock resumed and deadline extended.',
+      data: formatComplaintResponse(resumed),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export default {
   createComplaint,
   getComplaints,
   getComplaintById,
+  updateComplaint,
+  cancelComplaint,
   verifyComplaint,
+  pauseComplaint,
+  resumeComplaint,
 };

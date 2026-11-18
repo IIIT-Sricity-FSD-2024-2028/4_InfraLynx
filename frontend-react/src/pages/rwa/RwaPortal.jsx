@@ -23,6 +23,8 @@ import RwaDashboard from './RwaDashboard.jsx'
 import ReportIssue from './ReportIssue.jsx'
 import ComplaintTracker from './ComplaintTracker.jsx'
 import VerificationDispute from './VerificationDispute.jsx'
+import EditReportModal from './EditReportModal.jsx'
+import CancelReportModal from './CancelReportModal.jsx'
 import './styles/RwaPortal.css'
 
 export default function RwaPortal({ onExitToLanding }) {
@@ -172,6 +174,44 @@ export default function RwaPortal({ onExitToLanding }) {
           />
         )}
       </main>
+
+
+      {/* RWA Edit & Cancel Modals */}
+      <EditReportModal
+        isOpen={Boolean(editingComplaint)}
+        complaint={editingComplaint}
+        onClose={() => setEditingComplaint(null)}
+        onSuccess={(updated) => {
+          setComplaints((prev) => prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)))
+          if (selectedComplaint && selectedComplaint.id === updated.id) {
+            setSelectedComplaint(updated)
+          }
+          setSuccessNotice({
+            id: updated.id,
+            title: updated.title,
+            message: `Complaint ${updated.complaint_code || updated.id} updated successfully!`,
+          })
+          setEditingComplaint(null)
+        }}
+      />
+
+      <CancelReportModal
+        isOpen={Boolean(cancellingComplaint)}
+        complaint={cancellingComplaint}
+        onClose={() => setCancellingComplaint(null)}
+        onSuccess={(cancelled) => {
+          setComplaints((prev) => prev.map((c) => (c.id === cancelled.id ? { ...c, ...cancelled, status: 'CLOSED' } : c)))
+          if (selectedComplaint && selectedComplaint.id === cancelled.id) {
+            setSelectedComplaint({ ...selectedComplaint, ...cancelled, status: 'CLOSED' })
+          }
+          setSuccessNotice({
+            id: cancelled.id,
+            title: cancelled.title,
+            message: `Complaint ${cancelled.complaint_code || cancelled.id} has been cancelled.`,
+          })
+          setCancellingComplaint(null)
+        }}
+      />
 
       {/* Minimal Civic Footer */}
       <footer className="rwa-footer">

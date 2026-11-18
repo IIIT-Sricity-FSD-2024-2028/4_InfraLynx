@@ -1,6 +1,18 @@
 import { verifyToken } from '../utils/auth.js';
 import db from '../config/db.js';
 
+// In-memory active user cache with TTL to prevent repetitive remote queries to Neon DB
+const userCache = new Map();
+const USER_CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
+export const invalidateUserCache = (userId) => {
+  if (userId) {
+    userCache.delete(userId);
+  } else {
+    userCache.clear();
+  }
+};
+
 /**
  * Authentication Middleware
  * Extracts Bearer token from Authorization header, validates JWT,
@@ -45,43 +57,51 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
-    // Query database to ensure user still exists and is ACTIVE
-    const userQuery = `
-      SELECT 
-        u.id, 
-        u.name, 
-        u.email, 
-        u.username, 
-        u.role, 
-        u.township_id, 
-        u.department_id, 
-        u.contractor_id, 
-        u.phone, 
-        u.sector, 
-        u.status,
-        t.name AS township_name,
-        d.name AS department_name,
-        c.company_name AS contractor_name
-      FROM users u
-      LEFT JOIN townships t ON u.township_id = t.id
-      LEFT JOIN departments d ON u.department_id = d.id
-      LEFT JOIN contractors c ON u.contractor_id = c.id
-      WHERE u.id = $1
-    `;
+    // Check in-memory user cache first to avoid remote database round-trips
+    let user;
+    const cached = userCache.get(decoded.id);
+    if (cached && cached.expiresAt > Date.now()) {
+      user = cached.user;
+    } else {
+      // Query database to ensure user still exists and is ACTIVE
+      const userQuery = `
+        SELECT 
+          u.id, 
+          u.name, 
+          u.email, 
+          u.username, 
+          u.role, 
+          u.township_id, 
+          u.department_id, 
+          u.contractor_id, 
+          u.phone, 
+          u.sector, 
+          u.status,
+          t.name AS township_name,
+          d.name AS department_name,
+          c.company_name AS contractor_name
+        FROM users u
+        LEFT JOIN townships t ON u.township_id = t.id
+        LEFT JOIN departments d ON u.department_id = d.id
+        LEFT JOIN contractors c ON u.contractor_id = c.id
+        WHERE u.id = $1
+      `;
 
-    const result = await db.query(userQuery, [decoded.id]);
+      const result = await db.query(userQuery, [decoded.id]);
 
-    if (result.rowCount === 0) {
-      return res.status(401).json({
-        success: false,
-        error: {
-          message: 'User belonging to this token no longer exists.',
-          statusCode: 401,
-        },
-      });
+      if (result.rowCount === 0) {
+        return res.status(401).json({
+          success: false,
+          error: {
+            message: 'User belonging to this token no longer exists.',
+            statusCode: 401,
+          },
+        });
+      }
+
+      user = result.rows[0];
+      userCache.set(decoded.id, { user, expiresAt: Date.now() + USER_CACHE_TTL_MS });
     }
-
-    const user = result.rows[0];
 
     if (user.status !== 'ACTIVE') {
       return res.status(403).json({

@@ -1,4 +1,15 @@
-// Central Redux store for TIMS frontend
+/**
+ * Redux Store - Central store for the TIMS frontend
+ *
+ * Slice <-> Repository mapping (one-to-one):
+ *   auth             <- auth/authSlice             <- authController / authApi (Login/Logout/Session)
+ *   complaints       <- rwa/complaintsSlice        <- complaintController / complaintApi (RWA portal)
+ *   verification     <- rwa/verificationSlice      <- complaintController verify (RWA portal)
+ *   rwaUi            <- rwa/uiSlice                <- UI navigation state (RWA portal)
+ *   clerkComplaints  <- clerk/complaintsSlice      <- clerkController / complaintApi (Clerk portal)
+ *   clerkWorkOrders  <- clerk/workOrdersSlice      <- workOrderController / clerkApi (Clerk portal)
+ *   contractor       <- contractor/contractorSlice <- contractorController / contractorApi (Field Contractor portal)
+ */
 import { configureStore } from '@reduxjs/toolkit'
 import authReducer from './auth/authSlice.js'
 import complaintsReducer from './rwa/complaintsSlice.js'
@@ -10,25 +21,24 @@ import financeInvoicesReducer from './finance/invoicesSlice.js'
 import financeRateCardsReducer from './finance/rateCardsSlice.js'
 import masterDataReducer from './master/masterDataSlice.js'
 
+// Contractor slice (Repository: contractorController / contractorApi) - Member 3
+import contractorReducer from './contractor/contractorSlice.js'
+
 export const store = configureStore({
   reducer: {
-    // Auth slice
-    auth: authReducer,
+    // Authentication
+    auth:             authReducer,
 
-    // RWA portal slices
-    complaints: complaintsReducer,
-    verification: verificationReducer,
-    rwaUi: uiReducer,
+    // RWA portal
+    complaints:       complaintsReducer,
+    verification:     verificationReducer,
+    rwaUi:            uiReducer,
 
-    // Clerk portal slices
-    clerkComplaints: clerkComplaintsReducer,
-    clerkWorkOrders: clerkWorkOrdersReducer,
+    // Clerk portal
+    clerkComplaints:  clerkComplaintsReducer,
+    clerkWorkOrders:  clerkWorkOrdersReducer,
 
-    // Finance portal slices
-    financeInvoices: financeInvoicesReducer,
-    financeRateCards: financeRateCardsReducer,
-
-    // Master data slice
-    masterData: masterDataReducer,
+    // Field Contractor portal
+    contractor:       contractorReducer,
   },
 })
