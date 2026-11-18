@@ -4,6 +4,8 @@ import {
   selectAllContractorJobs,
   setSelectedJob,
 } from '../../store/contractor/contractorSlice.js'
+import { getSlaEvaluation } from '../../utils/slaUtils.js'
+import { workOrderApi } from '../../services/api.js'
 import './styles/AssignedWorkOrders.css'
 
 export default function AssignedWorkOrders({
@@ -20,15 +22,25 @@ export default function AssignedWorkOrders({
     if (onSelectJob) onSelectJob(job)
   }
 
-  const [filter, setFilter] = useState('ALL') // ALL | ASSIGNED | IN_PROGRESS | COMPLETED | REOPENED
+  const [filter, setFilter] = useState('ALL') // ALL | ASSIGNED | IN_PROGRESS | COMPLETED | REOPENED | TENDERS
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Bidding modal state
+  const [selectedBiddingJob, setSelectedBiddingJob] = useState(null)
+  const [bidAmount, setBidAmount] = useState('4500')
+  const [bidDays, setBidDays] = useState('2')
+  const [bidJustification, setBidJustification] = useState('Certified AMC rate with rapid mobilization')
+  const [isSubmittingBid, setIsSubmittingBid] = useState(false)
+  const [bidNotice, setBidNotice] = useState(null)
 
   // Filter jobs based on selected status tab and search term
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
       // Status filtering
       let matchesStatus = true
-      if (filter === 'ASSIGNED') {
+      if (filter === 'TENDERS') {
+        matchesStatus = Boolean(job.bidding_open)
+      } else if (filter === 'ASSIGNED') {
         const hasEst = Boolean(job.estimate) || Number(job.estimateAmount || job.estimated_cost || 0) > 0 || ['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO', 'ESCALATED_TO_COO'].includes(job.status)
         matchesStatus = (job.status === 'ASSIGNED' || job.status === 'WORK_ORDER_CREATED') && !hasEst
       } else if (filter === 'PENDING_APPROVAL') {
@@ -58,21 +70,8 @@ export default function AssignedWorkOrders({
     })
   }, [jobs, filter, searchQuery])
 
-  function getSlaInfo(deadlineIso) {
-    if (!deadlineIso) return { text: 'N/A', isBreached: false, isUrgent: false }
-    const deadline = new Date(deadlineIso).getTime()
-    const now = Date.now()
-    const diffHours = (deadline - now) / (1000 * 3600)
-
-    if (diffHours <= 0) {
-      return { text: `Breached`, isBreached: true, isUrgent: false }
-    }
-    const hours = Math.floor(diffHours)
-    return {
-      text: `${hours}h remaining`,
-      isBreached: false,
-      isUrgent: hours <= 6,
-    }
+  function getSlaInfo(deadlineIso, status, completedAt) {
+    return getSlaEvaluation(deadlineIso, status, completedAt)
   }
 
   return (
@@ -115,6 +114,11 @@ export default function AssignedWorkOrders({
       <div className="assigned-wo-tabs">
         {[
           { id: 'ALL', label: 'All Jobs', count: jobs.length },
+          {
+            id: 'TENDERS',
+            label: '⚡ Open Tenders (Bidding)',
+            count: jobs.filter((j) => Boolean(j.bidding_open)).length,
+          },
           {
             id: 'ASSIGNED',
             label: 'Assigned',
@@ -203,7 +207,7 @@ export default function AssignedWorkOrders({
             </thead>
             <tbody>
               {filteredJobs.map((job) => {
-                const sla = getSlaInfo(job.slaDeadline)
+                const sla = getSlaInfo(job.slaDeadline || job.sla_deadline, job.status, job.completedAt || job.completed_at)
                 return (
                   <tr key={job.id}>
                     <td>
@@ -366,6 +370,19 @@ export default function AssignedWorkOrders({
                           </button>
                         )}
 
+                        {job.bidding_open && (
+                          <button
+                            onClick={() => {
+                              setSelectedBiddingJob(job)
+                              setBidNotice(null)
+                            }}
+                            className="btn-contractor-primary assigned-wo-action-btn"
+                            style={{ background: '#7c3aed', borderColor: '#6d28d9' }}
+                          >
+                            Submit Tender Bid 📝
+                          </button>
+                        )}
+
                         {(['AWAITING_DEPT_HEAD', 'ESTIMATE_SUBMITTED', 'PENDING_APPROVAL', 'AWAITING_COO', 'ESCALATED_TO_COO'].includes(job.status) ||
                           ((Boolean(job.estimate) || Number(job.estimateAmount || job.estimated_cost || 0) > 0) &&
                             job.status !== 'APPROVED' &&
@@ -388,6 +405,124 @@ export default function AssignedWorkOrders({
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Contractor Bid Submission Modal */}
+      {selectedBiddingJob && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#ffffff', borderRadius: 12, padding: 24, maxWidth: 480, width: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 18, color: '#1e293b' }}>
+                📝 Submit Competitive Bid
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSelectedBiddingJob(null)}
+                style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#64748b' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{ fontSize: 13, color: '#64748b', marginTop: 0 }}>
+              Work Order: <strong>{selectedBiddingJob.workOrderId || selectedBiddingJob.id}</strong> — {selectedBiddingJob.title}
+            </p>
+
+            {bidNotice && (
+              <div style={{ background: '#ecfdf5', color: '#065f46', padding: '10px 14px', borderRadius: 6, fontSize: 13, marginBottom: 14 }}>
+                {bidNotice}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+                  Bid Amount (₹) *
+                </label>
+                <input
+                  type="number"
+                  value={bidAmount}
+                  onChange={(e) => setBidAmount(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }}
+                  placeholder="e.g. 4500"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+                  Estimated Turnaround (Days) *
+                </label>
+                <input
+                  type="number"
+                  value={bidDays}
+                  onChange={(e) => setBidDays(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }}
+                  placeholder="e.g. 2"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+                  Technical Justification &amp; Methodology
+                </label>
+                <textarea
+                  rows={3}
+                  value={bidJustification}
+                  onChange={(e) => setBidJustification(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
+                  placeholder="Describe parts availability, team readiness, and quality guarantees..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const woId = selectedBiddingJob.backendWoId || selectedBiddingJob.workOrderId || selectedBiddingJob.id
+                    try {
+                      setIsSubmittingBid(true)
+                      await workOrderApi.retractBid(woId, selectedBiddingJob.contractor_id || 'c0000000-0000-0000-0000-000000000001')
+                      setBidNotice('Bid retracted successfully.')
+                    } catch (err) {
+                      alert('Could not retract bid: ' + err.message)
+                    } finally {
+                      setIsSubmittingBid(false)
+                    }
+                  }}
+                  disabled={isSubmittingBid}
+                  style={{ background: '#f8fafc', border: '1px solid #cbd5e1', color: '#64748b', padding: '8px 14px', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
+                >
+                  ↩️ Retract Bid
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const woId = selectedBiddingJob.backendWoId || selectedBiddingJob.workOrderId || selectedBiddingJob.id
+                    try {
+                      setIsSubmittingBid(true)
+                      await workOrderApi.submitBid(woId, {
+                        bid_amount: Number(bidAmount),
+                        estimated_days: Number(bidDays),
+                        justification: bidJustification,
+                      })
+                      setBidNotice('✓ Bid submitted successfully! The algorithm will evaluate your cost and rating.')
+                      setTimeout(() => setSelectedBiddingJob(null), 1500)
+                    } catch (err) {
+                      alert('Failed to submit bid: ' + err.message)
+                    } finally {
+                      setIsSubmittingBid(false)
+                    }
+                  }}
+                  disabled={isSubmittingBid || !bidAmount}
+                  style={{ background: '#7c3aed', color: '#ffffff', border: 'none', padding: '8px 18px', borderRadius: 6, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+                >
+                  {isSubmittingBid ? 'Submitting...' : 'Submit Quote 🚀'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

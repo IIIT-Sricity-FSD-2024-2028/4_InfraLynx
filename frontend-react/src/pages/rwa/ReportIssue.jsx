@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useDispatch } from 'react-redux'
+import { useForm } from 'react-hook-form'
 import { submitComplaint } from '../../store/rwa/complaintsSlice.js'
 import { navigateTo, selectComplaint, setSuccessNotice } from '../../store/rwa/uiSlice.js'
 import './styles/ReportIssue.css'
@@ -54,19 +55,32 @@ const CATEGORY_DATA = {
 export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
   const dispatch = useDispatch()
   const [submitting, setSubmitting] = useState(false)
-
-  // Form State — stays local (purely UI, not shared)
-  const [category, setCategory] = useState('Civil')
-  const [subCategory, setSubCategory] = useState(CATEGORY_DATA.Civil.subcategories[0].name)
-  const [sector, setSector] = useState(currentUser?.sector || 'Sector 54')
-  const [block, setBlock] = useState('Block B')
-  const [street, setStreet] = useState('Gulmohar Marg')
-  const [assetName, setAssetName] = useState(CATEGORY_DATA.Civil.subcategories[0].defaultAsset)
-  const [landmark, setLandmark] = useState('')
-  const [description, setDescription] = useState('')
   const [photos, setPhotos] = useState([])
-
   const fileInputRef = useRef(null)
+
+  // React Hook Form for robust standardized form validation
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      category: 'Civil',
+      subCategory: CATEGORY_DATA.Civil.subcategories[0].name,
+      sector: currentUser?.sector || 'Sector 54',
+      block: 'Block B',
+      street: 'Gulmohar Marg',
+      assetName: CATEGORY_DATA.Civil.subcategories[0].defaultAsset,
+      landmark: '',
+      description: '',
+    },
+  })
+
+  const currentCategory = watch('category')
+  const currentSubCategory = watch('subCategory')
 
   function handleTriggerFileInput() {
     if (fileInputRef.current) fileInputRef.current.click()
@@ -85,49 +99,41 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
   }
 
   function handleCategoryChange(newCat) {
-    setCategory(newCat)
+    setValue('category', newCat)
     const firstSub = CATEGORY_DATA[newCat].subcategories[0]
-    setSubCategory(firstSub.name)
-    setAssetName(firstSub.defaultAsset)
+    setValue('subCategory', firstSub.name)
+    setValue('assetName', firstSub.defaultAsset)
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    if (!description.trim()) {
-      alert('Please enter an issue description.')
-      return
-    }
-
+  const onSubmit = async (data) => {
     try {
       setSubmitting(true)
 
-      // Dispatch Redux thunk instead of calling prop callback
       const created = await dispatch(
         submitComplaint({
-          title: `${category}: ${subCategory}`,
-          category,
-          subCategory,
+          title: `${data.category}: ${data.subCategory}`,
+          category: data.category,
+          subCategory: data.subCategory,
           location: {
-            sector,
-            block,
-            street,
-            assetId: assetName.split(' ')[0] || 'ASSET-01',
-            assetName,
-            landmark: landmark.trim() || `Near ${block} entrance`,
+            sector: data.sector,
+            block: data.block,
+            street: data.street,
+            assetId: data.assetName.split(' ')[0] || 'ASSET-01',
+            assetName: data.assetName,
+            landmark: data.landmark.trim() || `Near ${data.block} entrance`,
           },
-          description,
+          description: data.description,
           photos,
         })
       ).unwrap()
 
       // Reset form
-      setDescription('')
+      reset()
       setPhotos([])
 
       if (onComplaintSubmitted) {
         onComplaintSubmitted(created)
       } else {
-        // Fallback: dispatch to dashboard
         dispatch(selectComplaint(created))
         dispatch(
           setSuccessNotice({
@@ -163,7 +169,7 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="report-form">
+      <form onSubmit={handleSubmit(onSubmit)} className="report-form">
         {/* Step 1: Category Picker */}
         <div>
           <label className="form-label">
@@ -172,7 +178,7 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
           <div className="category-grid">
             {Object.keys(CATEGORY_DATA).map((catKey) => {
               const cat = CATEGORY_DATA[catKey]
-              const isSelected = category === catKey
+              const isSelected = currentCategory === catKey
               return (
                 <div
                   key={catKey}
@@ -194,16 +200,16 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
             2. Issue Subcategory <span className="form-required">*</span>
           </label>
           <select
-            value={subCategory}
+            value={currentSubCategory}
             onChange={(e) => {
               const chosen = e.target.value
-              setSubCategory(chosen)
-              const match = CATEGORY_DATA[category].subcategories.find((s) => s.name === chosen)
-              if (match) setAssetName(match.defaultAsset)
+              setValue('subCategory', chosen)
+              const match = CATEGORY_DATA[currentCategory].subcategories.find((s) => s.name === chosen)
+              if (match) setValue('assetName', match.defaultAsset)
             }}
             className="form-select"
           >
-            {CATEGORY_DATA[category].subcategories.map((sub) => (
+            {CATEGORY_DATA[currentCategory].subcategories.map((sub) => (
               <option key={sub.id} value={sub.name}>
                 {sub.name}
               </option>
@@ -214,13 +220,13 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
         {/* Step 3: Location Hierarchy */}
         <div>
           <label className="form-label">
-            3. Location & Asset Hierarchy <span className="form-required">*</span>
+            3. Location &amp; Asset Hierarchy <span className="form-required">*</span>
           </label>
           <div className="location-grid">
             {/* Sector */}
             <div>
               <span className="location-field-label">Sector</span>
-              <select value={sector} onChange={(e) => setSector(e.target.value)} className="form-select">
+              <select {...register('sector')} className="form-select">
                 <option value="Sector 54">Sector 54 (Golf Course Road Hub)</option>
                 <option value="Sector 53">Sector 53 (DLF Phase 5)</option>
                 <option value="Sector 42">Sector 42 (CyberCity Connect)</option>
@@ -231,8 +237,8 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
             {/* Block */}
             <div>
               <span className="location-field-label">Block</span>
-              <select value={block} onChange={(e) => setBlock(e.target.value)} className="form-select">
-                <option value="Block A">Block A (The Aralias & Villas)</option>
+              <select {...register('block')} className="form-select">
+                <option value="Block A">Block A (The Aralias &amp; Villas)</option>
                 <option value="Block B">Block B (The Magnolias Towers)</option>
                 <option value="Block C">Block C (Cyber Terraces)</option>
                 <option value="Block D">Block D (Commercial Galleria)</option>
@@ -244,11 +250,11 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
               <span className="location-field-label">Street / Road</span>
               <input
                 type="text"
-                value={street}
-                onChange={(e) => setStreet(e.target.value)}
+                {...register('street', { required: 'Street is required' })}
                 placeholder="e.g. Gulmohar Marg, Palm Avenue, Amaltas Drive"
                 className="location-input"
               />
+              {errors.street && <span style={{ color: '#ef4444', fontSize: 12 }}>{errors.street.message}</span>}
             </div>
 
             {/* Asset Identifier */}
@@ -256,8 +262,7 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
               <span className="location-field-label">Asset Reference</span>
               <input
                 type="text"
-                value={assetName}
-                onChange={(e) => setAssetName(e.target.value)}
+                {...register('assetName', { required: 'Asset is required' })}
                 placeholder="e.g. CIV-RD-204"
                 className="location-input mono"
               />
@@ -268,8 +273,7 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
             <span className="location-field-label">Nearby Landmark</span>
             <input
               type="text"
-              value={landmark}
-              onChange={(e) => setLandmark(e.target.value)}
+              {...register('landmark')}
               placeholder="e.g. Opposite Community Hall Gate 2, near transformer pillar"
               className="location-input"
             />
@@ -279,15 +283,19 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
         {/* Step 4: Description */}
         <div>
           <label className="form-label">
-            4. Detailed Description & Citizen Observation <span className="form-required">*</span>
+            4. Detailed Description &amp; Citizen Observation <span className="form-required">*</span>
           </label>
           <textarea
             rows={4}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            {...register('description', { required: 'Please enter an issue description (minimum 5 characters)', minLength: { value: 5, message: 'Description must be at least 5 characters' } })}
             placeholder="Describe the nature of the issue, symptoms observed, extent of damage, and any immediate hazard..."
             className="form-textarea"
           />
+          {errors.description && (
+            <span style={{ color: '#ef4444', fontSize: 12, display: 'block', marginTop: 4 }}>
+              {errors.description.message}
+            </span>
+          )}
         </div>
 
         {/* Step 5: Photo Upload */}
@@ -310,7 +318,7 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
           <div onClick={handleTriggerFileInput} className="dropzone">
             <div className="dropzone-icon">📷</div>
             <div className="dropzone-title">
-              Click to browse or drag & drop inspection photos
+              Click to browse or drag &amp; drop inspection photos
             </div>
             <div className="dropzone-sub">
               Supports JPG, PNG, WEBP up to 10MB
@@ -328,7 +336,7 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
                       e.stopPropagation()
                       setPhotos((prev) => prev.filter((_, i) => i !== idx))
                     }}
-                    className="btn-delete-thumb"
+                    className="thumbnail-remove"
                   >
                     ×
                   </button>
@@ -338,8 +346,8 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
           )}
         </div>
 
-        {/* Submit Bar */}
-        <div className="form-actions">
+        {/* Step 6: Action Footer */}
+        <div className="form-footer">
           <button
             type="button"
             onClick={() => dispatch(navigateTo('dashboard'))}
@@ -347,14 +355,13 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
           >
             Cancel
           </button>
-
           <button
             id="btn-submit-complaint"
             type="submit"
-            className="btn-submit"
             disabled={submitting}
+            className="btn-submit"
           >
-            {submitting ? 'Submitting Report...' : 'Submit Official Complaint'}
+            {submitting ? 'Submitting to Triage...' : 'Submit Infrastructure Ticket →'}
           </button>
         </div>
       </form>

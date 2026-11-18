@@ -8,6 +8,7 @@ import {
   selectAllClerkComplaints,
 } from '../../store/clerk/complaintsSlice.js'
 import { selectAuthUser } from '../../store/auth/authSlice.js'
+import { clerkApi } from '../../services/api.js'
 import { isComplaintInClerkDepartment } from './ClerkPortal.jsx'
 import './styles/TriageValidation.css'
 
@@ -62,10 +63,11 @@ export default function TriageValidation({
     return reduxComplaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
   }, [propComplaints, reduxComplaints, currentUser])
 
-  // Form states for rejection workflow
+  // Form states for rejection & error-recovery workflow
   const [isRejecting, setIsRejecting]           = useState(false)
   const [rejectionReason, setRejectionReason]   = useState('Duplicate Complaint')
   const [rejectionRemarks, setRejectionRemarks] = useState('')
+  const [recallReason, setRecallReason]         = useState('')
   const [isSubmitting, setIsSubmitting]         = useState(false)
 
   // Synchronize the currently active complaint with live state
@@ -163,6 +165,36 @@ export default function TriageValidation({
     } catch (err) {
       console.error('[TriageValidation] Rejection failed:', err)
       alert('Rejection failed: ' + (err.message || 'Server error'))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  /**
+   * Recall complaint: Clerks can correct mistakes by un-rejecting an accidentally rejected ticket
+   */
+  async function handleRecall() {
+    if (!active || isSubmitting || !recallReason.trim()) return
+    setIsSubmitting(true)
+    try {
+      const result = await clerkApi.recallComplaint(active.id, recallReason.trim())
+      const historyEntry = {
+        stage: 'RECALLED_TO_TRIAGE',
+        timestamp: new Date().toISOString(),
+        actor: `${currentUser?.name || 'Staff'} (Desk Clerk)`,
+        note: `Accidental rejection corrected by Desk Clerk: "${recallReason.trim()}". Ticket restored to triage.`,
+      }
+      const updated = {
+        ...(result || active),
+        status: 'REPORTED',
+        rejection_reason: null,
+        history: [...(active.history || []), historyEntry],
+      }
+      if (onComplaintUpdated) onComplaintUpdated(updated)
+      setRecallReason('')
+      alert(`Ticket ${active.complaint_code || active.id} restored to active triage!`)
+    } catch (err) {
+      alert('Failed to recall ticket: ' + (err.message || 'Server error'))
     } finally {
       setIsSubmitting(false)
     }
@@ -387,6 +419,45 @@ export default function TriageValidation({
               </div>
             </form>
           )}
+        </div>
+      )}
+
+      {/* Rejection Recall Box (Actor Error Correction) */}
+      {active.status === 'REJECTED' && (
+        <div className="tv-decision-card" style={{ borderLeft: '4px solid #f59e0b', background: '#fffbeb', marginBottom: 24, padding: 20, borderRadius: 8 }}>
+          <h2 className="tv-decision-title" style={{ color: '#b45309', margin: '0 0 6px 0', fontSize: 16 }}>
+            ↩️ Rejection Correction / Recall
+          </h2>
+          <p className="tv-decision-desc" style={{ color: '#92400e', margin: '0 0 14px 0', fontSize: 13 }}>
+            Was this ticket rejected by mistake? Clerks can recall and reinstate accidentally rejected complaints back to active triage.
+          </p>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <input
+              type="text"
+              placeholder="Reason for recall (e.g. Accidental rejection, verified as valid Electrical issue)..."
+              value={recallReason}
+              onChange={(e) => setRecallReason(e.target.value)}
+              className="tv-input"
+              style={{ flex: 1, padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 14 }}
+            />
+            <button
+              onClick={handleRecall}
+              disabled={isSubmitting || !recallReason.trim()}
+              className="tv-btn-validate"
+              style={{
+                background: '#d97706',
+                color: '#fff',
+                padding: '10px 18px',
+                borderRadius: 6,
+                fontWeight: 600,
+                border: 'none',
+                cursor: (isSubmitting || !recallReason.trim()) ? 'not-allowed' : 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {isSubmitting ? 'Restoring...' : '↩️ Reinstate Ticket'}
+            </button>
+          </div>
         </div>
       )}
 

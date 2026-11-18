@@ -64,67 +64,138 @@ export function sanitizeInput(str) {
     .replace(/'/g, '&#x27;');
 }
 
+// In-flight GET request deduplication map
+const pendingRequests = new Map();
+
+// Short-TTL cache for static/semi-static master data (15 seconds)
+const getCache = new Map();
+const CACHE_TTL_MS = 15000;
+
+function isCacheable(endpoint, method) {
+  if (method && method.toUpperCase() !== 'GET') return false;
+  return (
+    endpoint.includes('/master/contractors') ||
+    endpoint.includes('/master/amc-rates') ||
+    endpoint.includes('/master/departments') ||
+    endpoint.includes('/subscription-plans') ||
+    endpoint.includes('/super-admin/config')
+  );
+}
+
+export function clearApiCache() {
+  getCache.clear();
+}
+
 /**
- * Low-level API request helper
+ * Low-level API request helper with fast connection, deduplication, and cache
  */
 export async function apiRequest(endpoint, options = {}) {
-  // Use sessionStorage (tab-isolated) to prevent token leakage across tabs or browsers
-  let token = sessionStorage.getItem(TOKEN_KEY);
-
-  // If token is expired, immediately purge it
-  if (token && !isTokenValid(token)) {
-    sessionStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(USER_KEY);
-    token = null;
-    window.dispatchEvent(new Event('tims_auth_session_expired'));
-    throw new Error('Your session has expired. Please sign in again.');
+  const method = (options.method || 'GET').toUpperCase();
+  
+  // Clear cache on write operations
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    getCache.clear();
   }
 
-  const defaultHeaders = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-
-  // If sending FormData (file uploads), do NOT set Content-Type header (browser will set multipart boundary)
-  if (options.body instanceof FormData) {
-    delete defaultHeaders['Content-Type'];
+  // Check cache for eligible GET requests
+  const cacheKey = `${method}:${endpoint}`;
+  if (isCacheable(endpoint, method)) {
+    const cached = getCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+      return cached.data;
+    }
   }
 
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+  // Deduplicate identical in-flight GET requests
+  if (method === 'GET' && pendingRequests.has(cacheKey)) {
+    return pendingRequests.get(cacheKey);
+  }
 
-  try {
-    const res = await fetch(url, {
-      ...options,
-      headers: {
-        ...defaultHeaders,
-        ...options.headers,
-      },
-    });
+  const reqPromise = (async () => {
+    // Use sessionStorage (tab-isolated) to prevent token leakage across tabs or browsers
+    let token = sessionStorage.getItem(TOKEN_KEY);
 
-    // Handle 401 Unauthorized globally: purge session and notify app
-    if (res.status === 401) {
+    // If token is expired, immediately purge it
+    if (token && !isTokenValid(token)) {
       sessionStorage.removeItem(TOKEN_KEY);
       sessionStorage.removeItem(USER_KEY);
-      window.dispatchEvent(new Event('tims_auth_unauthorized'));
+      token = null;
+      window.dispatchEvent(new Event('tims_auth_session_expired'));
+      throw new Error('Your session has expired. Please sign in again.');
     }
 
-    const data = await res.json().catch(() => ({}));
+    const defaultHeaders = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
 
-    if (!res.ok) {
-      const errorMessage = data?.error?.message || data?.message || `Request failed with status ${res.status}`;
-      const err = new Error(errorMessage);
-      err.status = res.status;
-      err.code = data?.error?.code;
+    // If sending FormData (file uploads), do NOT set Content-Type header (browser will set multipart boundary)
+    if (options.body instanceof FormData) {
+      delete defaultHeaders['Content-Type'];
+    }
+
+    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+
+    // 15-second AbortController timeout to prevent hanging connections
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    try {
+      const res = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          ...defaultHeaders,
+          ...options.headers,
+        },
+      });
+
+      clearTimeout(timeoutId);
+
+      // Handle 401 Unauthorized globally: purge session and notify app
+      if (res.status === 401) {
+        sessionStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem(USER_KEY);
+        window.dispatchEvent(new Event('tims_auth_unauthorized'));
+      }
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const errorMessage = data?.error?.message || data?.message || `Request failed with status ${res.status}`;
+        const err = new Error(errorMessage);
+        err.status = res.status;
+        err.code = data?.error?.code;
+        throw err;
+      }
+
+      // Populate short TTL cache
+      if (isCacheable(endpoint, method)) {
+        getCache.set(cacheKey, { timestamp: Date.now(), data });
+      }
+
+      return data;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        throw new Error('Request timed out. Please check backend server performance and try again.');
+      }
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        throw new Error('Cannot connect to backend server. Make sure the backend is running on port 5000.');
+      }
       throw err;
+    } finally {
+      if (method === 'GET') {
+        pendingRequests.delete(cacheKey);
+      }
     }
+  })();
 
-    return data;
-  } catch (err) {
-    if (err.name === 'TypeError' && err.message.includes('fetch')) {
-      throw new Error('Cannot connect to backend server. Make sure the backend is running on port 5000.');
-    }
-    throw err;
+  if (method === 'GET') {
+    pendingRequests.set(cacheKey, reqPromise);
   }
+
+  return reqPromise;
 }
 
 /**
@@ -318,6 +389,45 @@ export const complaintApi = {
     return res.data;
   },
 
+  async editComplaint(id, payload) {
+    const res = await apiRequest(`/complaints/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async updateComplaint(id, payload) {
+    const res = await apiRequest(`/complaints/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async cancelComplaint(id, payload) {
+    const res = await apiRequest(`/complaints/${id}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async pauseSla(id, reason) {
+    const res = await apiRequest(`/complaints/${id}/pause`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+    return res.data;
+  },
+
+  async resumeSla(id) {
+    const res = await apiRequest(`/complaints/${id}/resume`, {
+      method: 'POST',
+    });
+    return res.data;
+  },
+
   async verifyComplaint(id, payload) {
     const res = await apiRequest(`/complaints/${id}/verify`, {
       method: 'POST',
@@ -392,6 +502,14 @@ export const clerkApi = {
     const res = await apiRequest(`/clerk/complaints/${id}/reject`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async recallComplaint(id, reason = '') {
+    const res = await apiRequest(`/clerk/complaints/${id}/recall`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
     });
     return res.data;
   },
@@ -561,6 +679,86 @@ export const contractorApi = {
     });
     return res.data;
   },
+
+  async amendInspection(workOrderId, payload) {
+    const res = await apiRequest(`/contractor/jobs/${workOrderId}/amend-inspection`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async respondToOverrun(workOrderId, rebuttal) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/overrun-response`, {
+      method: 'POST',
+      body: JSON.stringify({ rebuttal }),
+    });
+    return res.data;
+  },
+};
+
+/**
+ * Work Order & Bidding API Service
+ */
+export const workOrderApi = {
+  async openBidding(workOrderId) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/open-bidding`, {
+      method: 'POST',
+    });
+    return res.data;
+  },
+
+  async getBids(workOrderId) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/bids`);
+    return res.data || [];
+  },
+
+  async submitBid(workOrderId, payload) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/bids`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async retractBid(workOrderId, contractorId) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/bids/retract`, {
+      method: 'POST',
+      body: JSON.stringify({ contractor_id: contractorId }),
+    });
+    return res.data;
+  },
+
+  async autoSelectBid(workOrderId) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/auto-select-bid`, {
+      method: 'POST',
+    });
+    return res.data;
+  },
+
+  async addOverrunInquiry(workOrderId, remark) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/overrun-inquiry`, {
+      method: 'POST',
+      body: JSON.stringify({ remark }),
+    });
+    return res.data;
+  },
+
+  async respondToOverrun(workOrderId, rebuttal) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/overrun-response`, {
+      method: 'POST',
+      body: JSON.stringify({ rebuttal }),
+    });
+    return res.data;
+  },
+
+  async resolveOverrun(workOrderId, payload) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/overrun-resolve`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
 };
 
 /**
@@ -582,6 +780,30 @@ export const financeApi = {
   async get3WayCheck(id) {
     const res = await apiRequest(`/finance/invoices/${id}/3-way-check`);
     return res.data;
+  },
+
+  async addOverrunInquiry(workOrderId, remark) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/overrun-inquiry`, {
+      method: 'POST',
+      body: JSON.stringify({ remark }),
+    });
+    return res.data;
+  },
+
+  async flagItem(invoiceId, itemId, reason) {
+    const res = await apiRequest(`/finance/invoices/${invoiceId}/flag-item`, {
+      method: 'POST',
+      body: JSON.stringify({ itemId, reason }),
+    });
+    return res.data;
+  },
+
+  async flagLineItem(invoiceId, itemId, reason) {
+    return this.flagItem(invoiceId, itemId, reason);
+  },
+
+  async resolveOverrunInquiry(workOrderId, payload) {
+    return workOrderApi.resolveOverrun(workOrderId, payload);
   },
 
   async authorizeInvoice(id, payload = {}) {
@@ -838,6 +1060,7 @@ export default {
   authApi,
   complaintApi,
   clerkApi,
+  workOrderApi,
   contractorApi,
   deptHeadApi,
   financeApi,

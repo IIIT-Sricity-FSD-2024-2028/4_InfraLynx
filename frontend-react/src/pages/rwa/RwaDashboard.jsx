@@ -21,7 +21,7 @@ const STATUS_BADGE_MAP = {
   VERIFIED: { label: 'Closed & Verified', cls: 'closed' },
 }
 
-export default function RwaDashboard({ currentUser }) {
+export default function RwaDashboard({ currentUser, onEdit, onCancel }) {
   const dispatch = useDispatch()
   const complaints = useSelector(selectAllComplaints)
   const successNotice = useSelector(selectSuccessNotice)
@@ -335,7 +335,7 @@ export default function RwaDashboard({ currentUser }) {
                   </div>
 
                   {/* Actions */}
-                  <div className="card-actions">
+                  <div className="card-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                     <button
                       onClick={() => {
                         dispatch(selectComplaint(c))
@@ -345,6 +345,26 @@ export default function RwaDashboard({ currentUser }) {
                     >
                       Track Details →
                     </button>
+
+                    {!['CLOSED', 'CANCELLED', 'REJECTED'].includes((c.status || '').toUpperCase()) && (
+                      <button
+                        onClick={() => onEdit && onEdit(c)}
+                        className="btn-track"
+                        style={{ background: '#f8fafc', color: '#1e293b', border: '1px solid #cbd5e1' }}
+                      >
+                        ✏️ Edit
+                      </button>
+                    )}
+
+                    {!['CLOSED', 'CANCELLED', 'REJECTED', 'IN_PROGRESS', 'PENDING_VERIFICATION'].includes((c.status || '').toUpperCase()) && (
+                      <button
+                        onClick={() => onCancel && onCancel(c)}
+                        className="btn-track"
+                        style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }}
+                      >
+                        ❌ Cancel
+                      </button>
+                    )}
 
                     {isPending && (
                       <button
