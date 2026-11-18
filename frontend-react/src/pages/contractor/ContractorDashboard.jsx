@@ -5,6 +5,7 @@ import {
   fetchContractorJobs,
   setSelectedJob,
 } from '../../store/contractor/contractorSlice.js'
+import { getSlaEvaluation } from '../../utils/slaUtils.js'
 import './styles/ContractorDashboard.css'
 
 export default function ContractorDashboard({
@@ -42,23 +43,8 @@ export default function ContractorDashboard({
   )
 
   // Calculate SLA countdown status for each active job
-  function getSlaInfo(deadlineIso) {
-    if (!deadlineIso) return { text: 'No SLA', isBreached: false, isUrgent: false }
-    const deadline = new Date(deadlineIso).getTime()
-    const now = Date.now()
-    const diffHours = (deadline - now) / (1000 * 3600)
-
-    if (diffHours <= 0) {
-      const breachedHoursAgo = Math.abs(Math.floor(diffHours))
-      return { text: `Breached (${breachedHoursAgo}h ago)`, isBreached: true, isUrgent: false }
-    }
-    const hours = Math.floor(diffHours)
-    const minutes = Math.floor((diffHours - hours) * 60)
-    return {
-      text: `${hours}h ${minutes}m left`,
-      isBreached: false,
-      isUrgent: hours <= 6,
-    }
+  function getSlaInfo(deadlineIso, status, completedAt) {
+    return getSlaEvaluation(deadlineIso, status, completedAt)
   }
 
   return (
@@ -202,7 +188,7 @@ export default function ContractorDashboard({
             </thead>
             <tbody>
               {jobs.map((job) => {
-                const sla = getSlaInfo(job.slaDeadline)
+                const sla = getSlaInfo(job.slaDeadline || job.sla_deadline, job.status, job.completedAt || job.completed_at)
                 return (
                   <tr key={job.id}>
                     <td>

@@ -240,6 +240,11 @@ export default function ClerkDashboard({
                         Triage &amp; Validate &#10003;
                       </button>
                     )}
+                    {isRejected && (
+                      <button onClick={() => { onSelectComplaint(c); onNavigate('triage') }} className="cd-btn-triage" style={{ background: '#d97706', borderColor: '#b45309' }}>
+                        ↩️ Review / Recall
+                      </button>
+                    )}
                     {c.status === 'VALIDATED' && (
                       <button onClick={() => { onSelectComplaint(c); onNavigate('workorder') }} className="cd-btn-wo">
                         Create Work Order &#8594;

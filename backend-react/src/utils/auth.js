@@ -2,7 +2,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import config from '../config/env.js';
 
-const SALT_ROUNDS = 12;
+// Salt rounds: 10 is the secure, industry-standard balance for pure-JS bcryptjs in Node.js
+// (Avoids 1200ms+ synchronous event-loop freezes caused by 12 rounds in pure JS)
+const SALT_ROUNDS = 10;
 
 /**
  * Hash a plain text password using bcrypt

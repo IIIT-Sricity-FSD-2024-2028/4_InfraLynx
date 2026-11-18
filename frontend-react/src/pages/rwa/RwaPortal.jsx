@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 
@@ -36,6 +36,10 @@ export default function RwaPortal({ onExitToLanding }) {
   const successNotice = useSelector(selectSuccessNotice)
   const selectedComplaint = useSelector(selectSelectedComplaint)
   const pendingVerificationCount = useSelector(selectPendingVerificationCount)
+
+  // ── Modal state ──────────────────────────────────────────────────────────
+  const [editingComplaint, setEditingComplaint] = useState(null)
+  const [cancellingComplaint, setCancellingComplaint] = useState(null)
 
   // ── Fetch complaints on mount ────────────────────────────────────────────
   useEffect(() => {
@@ -152,6 +156,8 @@ export default function RwaPortal({ onExitToLanding }) {
             currentUser={currentUser}
             onComplaintSubmitted={handleComplaintSubmitted}
             onDismissNotice={handleDismissNotice}
+            onEdit={(c) => setEditingComplaint(c)}
+            onCancel={(c) => setCancellingComplaint(c)}
           />
         )}
 
@@ -165,6 +171,8 @@ export default function RwaPortal({ onExitToLanding }) {
         {currentScreen === 'track' && (
           <ComplaintTracker
             currentUser={currentUser}
+            onEdit={(c) => setEditingComplaint(c)}
+            onCancel={(c) => setCancellingComplaint(c)}
           />
         )}
 
@@ -175,22 +183,23 @@ export default function RwaPortal({ onExitToLanding }) {
         )}
       </main>
 
-
       {/* RWA Edit & Cancel Modals */}
       <EditReportModal
         isOpen={Boolean(editingComplaint)}
         complaint={editingComplaint}
         onClose={() => setEditingComplaint(null)}
         onSuccess={(updated) => {
-          setComplaints((prev) => prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)))
-          if (selectedComplaint && selectedComplaint.id === updated.id) {
-            setSelectedComplaint(updated)
+          dispatch(fetchComplaints())
+          if (updated) {
+            dispatch(selectComplaint(updated))
           }
-          setSuccessNotice({
-            id: updated.id,
-            title: updated.title,
-            message: `Complaint ${updated.complaint_code || updated.id} updated successfully!`,
-          })
+          dispatch(
+            setSuccessNotice({
+              id: updated.id,
+              title: updated.title,
+              message: `Complaint ${updated.complaint_code || updated.id} updated successfully!`,
+            })
+          )
           setEditingComplaint(null)
         }}
       />
@@ -200,15 +209,17 @@ export default function RwaPortal({ onExitToLanding }) {
         complaint={cancellingComplaint}
         onClose={() => setCancellingComplaint(null)}
         onSuccess={(cancelled) => {
-          setComplaints((prev) => prev.map((c) => (c.id === cancelled.id ? { ...c, ...cancelled, status: 'CLOSED' } : c)))
-          if (selectedComplaint && selectedComplaint.id === cancelled.id) {
-            setSelectedComplaint({ ...selectedComplaint, ...cancelled, status: 'CLOSED' })
+          dispatch(fetchComplaints())
+          if (cancelled) {
+            dispatch(selectComplaint({ ...cancelled, status: 'CLOSED' }))
           }
-          setSuccessNotice({
-            id: cancelled.id,
-            title: cancelled.title,
-            message: `Complaint ${cancelled.complaint_code || cancelled.id} has been cancelled.`,
-          })
+          dispatch(
+            setSuccessNotice({
+              id: cancelled?.id,
+              title: cancelled?.title,
+              message: `Complaint ${cancelled?.complaint_code || cancelled?.id || ''} has been cancelled.`,
+            })
+          )
           setCancellingComplaint(null)
         }}
       />

@@ -6,6 +6,7 @@ import {
   selectSelectedInvoice,
   selectReconciliationReport,
 } from '../../store/finance/invoicesSlice.js'
+import { financeApi } from '../../services/api.js'
 import './styles/InvoiceAudit.css'
 
 export default function InvoiceAuditModal({
@@ -16,30 +17,110 @@ export default function InvoiceAuditModal({
 }) {
   const dispatch = useDispatch()
 
-  const invoice = useSelector(selectSelectedInvoice)
+  // ── Redux state (Rule 6: shared data from Redux) ──────────────────────────
+  const invoice              = useSelector(selectSelectedInvoice)
   const reconciliationReport = useSelector(selectReconciliationReport)
 
-  // ── Local UI-only state ────────────────────────────────────────────────────
+  // ── Local UI-only state ───────────────────────────────────────────────────
+  // Variance flagging (Raman's finance flow)
   const [varianceReasonInput, setVarianceReasonInput] = useState('')
   const [showVarianceForm, setShowVarianceForm]       = useState(false)
   const [paymentMode, setPaymentMode]                 = useState('RTGS / Township Escrow')
   const [paymentReference, setPaymentReference]       = useState('')
   const [isReleasing, setIsReleasing]                 = useState(false)
 
-  const [flaggedItems, setFlaggedItems] = useState({})
-  const [inquiryRemarkInput, setInquiryRemarkInput] = useState('')
-  const [inquirySentMsg, setInquirySentMsg] = useState(null)
-  const [showInquiryForm, setShowInquiryForm] = useState(false)
+  // Overrun inquest workflow (Finance / COO asking contractor why high amount)
+  const [flaggedItems, setFlaggedItems]               = useState({})
+  const [inquiryRemarkInput, setInquiryRemarkInput]   = useState('')
+  const [inquirySentMsg, setInquirySentMsg]           = useState(null)
+  const [showInquiryForm, setShowInquiryForm]         = useState(false)
   const [overrunResolutionMsg, setOverrunResolutionMsg] = useState(null)
 
-  const isOverrun = Number(invoice.billedAmount || 0) > Number(invoice.estimateAmount || 0) || Number(invoice.varianceAmount || 0) > 0
+  // ── Reset local state when selected invoice changes ───────────────────────
+  useEffect(() => {
+    if (invoice) {
+      setPaymentMode(invoice.paymentMode || 'RTGS / Township Escrow')
+      setPaymentReference(
+        invoice.paymentReference ||
+        invoice.bankReference ||
+        `UTR-HDFC-${Math.floor(10000000000 + Math.random() * 90000000000)}`
+      )
+      setShowVarianceForm(false)
+      setVarianceReasonInput('')
+      // Reset overrun inquest state for new invoice
+      setShowInquiryForm(false)
+      setInquiryRemarkInput('')
+      setInquirySentMsg(null)
+      setOverrunResolutionMsg(null)
+      setFlaggedItems({})
+    }
+  }, [invoice?.rawId, invoice?.id])
+
+  // ── Dispatch 3-way check thunk whenever selected invoice changes (Rule 7/8) ──
+  useEffect(() => {
+    if (!invoice) return
+    const targetId = invoice.rawId || invoice.id
+    dispatch(fetch3WayCheck(targetId))
+  }, [invoice?.rawId, invoice?.id, dispatch])
+
+  if (!invoice) return null
+
+  const currentStatus = invoice.auditStatus || invoice.status || 'PENDING_AUDIT'
+
+  // Overrun detection: billed > estimated OR explicit varianceAmount > 0
+  const isOverrun =
+    Number(invoice.billedAmount || 0) > Number(invoice.estimateAmount || 0) ||
+    Number(invoice.varianceAmount || 0) > 0
   const woId = invoice.workOrderId || invoice.rawId || invoice.id
 
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  async function handleAuthorizeClick(keepOpen = true) {
+    if (invoice.rwaVerified === false) {
+      alert(
+        'Cannot authorize payment: RWA / Citizen on-ground verification is mandatory prior to financial payment authorization.'
+      )
+      return
+    }
+    if (onAuthorizeInvoice) await onAuthorizeInvoice(invoice.rawId || invoice.id, keepOpen)
+  }
+
+  async function handleDisbursePaymentClick() {
+    if (!invoice || !onReleasePayment) return
+    setIsReleasing(true)
+    try {
+      await onReleasePayment(invoice.rawId || invoice.id, {
+        paymentMode,
+        paymentReference:
+          paymentReference.trim() ||
+          `UTR-HDFC-${Math.floor(10000000000 + Math.random() * 90000000000)}`,
+      })
+    } catch (err) {
+      console.warn('[InvoiceAuditModal] Disburse error:', err.message)
+    } finally {
+      setIsReleasing(false)
+    }
+  }
+
+  function handleFlagClick(e) {
+    e.preventDefault()
+    if (!varianceReasonInput.trim()) return
+    if (onFlagVariance) onFlagVariance(invoice.rawId || invoice.id, varianceReasonInput)
+    setVarianceReasonInput('')
+    setShowVarianceForm(false)
+  }
+
   async function handleFlagItem(item) {
-    const reason = prompt(`Enter remark for flagging line item "${item.description || 'Service Item'}":`)
+    const reason = prompt(
+      `Enter remark for flagging line item "${item.description || 'Service Item'}":`
+    )
     if (!reason) return
     try {
-      await financeApi.flagLineItem(invoice.rawId || invoice.id, item.id || item.description, reason)
+      await financeApi.flagLineItem(
+        invoice.rawId || invoice.id,
+        item.id || item.description,
+        reason
+      )
       setFlaggedItems((prev) => ({ ...prev, [item.id || item.description]: reason }))
       alert(`Line item "${item.description}" flagged for review.`)
     } catch (err) {
@@ -63,69 +144,20 @@ export default function InvoiceAuditModal({
   }
 
   async function handleSettleOverrun(action) {
-    const finalAmount = action === 'ACCEPT' ? invoice.billedAmount : invoice.estimateAmount
+    const finalAmount =
+      action === 'ACCEPT' ? invoice.billedAmount : invoice.estimateAmount
     try {
       await financeApi.resolveOverrunInquiry(woId, { action, final_amount: finalAmount })
-      setOverrunResolutionMsg(`Overrun settled: ${action === 'ACCEPT' ? 'Accepted billed amount' : 'Capped at approved estimate'}.`)
+      setOverrunResolutionMsg(
+        `Overrun settled: ${
+          action === 'ACCEPT'
+            ? 'Accepted billed amount'
+            : 'Capped at approved estimate'
+        }.`
+      )
     } catch (err) {
       alert(`Failed to settle overrun: ${err.message}`)
     }
-  }
-
-
-  useEffect(() => {
-    if (invoice) {
-      setPaymentMode(invoice.paymentMode || 'RTGS / Township Escrow')
-      setPaymentReference(
-        invoice.paymentReference ||
-        invoice.bankReference ||
-        `UTR-HDFC-${Math.floor(10000000000 + Math.random() * 90000000000)}`
-      )
-      setShowVarianceForm(false)
-      setVarianceReasonInput('')
-    }
-  }, [invoice?.rawId, invoice?.id])
-
-  // Dispatch 3-way check thunk whenever the selected invoice changes (Rule 7 / Rule 8)
-  useEffect(() => {
-    if (!invoice) return
-    const targetId = invoice.rawId || invoice.id
-    dispatch(fetch3WayCheck(targetId))
-  }, [invoice?.rawId, invoice?.id, dispatch])
-
-  if (!invoice) return null
-
-  const currentStatus = invoice.auditStatus || invoice.status || 'PENDING_AUDIT'
-
-  async function handleAuthorizeClick(keepOpen = true) {
-    if (invoice.rwaVerified === false) {
-      alert('Cannot authorize payment: RWA / Citizen on-ground verification is mandatory prior to financial payment authorization.')
-      return
-    }
-    if (onAuthorizeInvoice) await onAuthorizeInvoice(invoice.rawId || invoice.id, keepOpen)
-  }
-
-  async function handleDisbursePaymentClick() {
-    if (!invoice || !onReleasePayment) return
-    setIsReleasing(true)
-    try {
-      await onReleasePayment(invoice.rawId || invoice.id, {
-        paymentMode,
-        paymentReference: paymentReference.trim() || `UTR-HDFC-${Math.floor(10000000000 + Math.random() * 90000000000)}`,
-      })
-    } catch (err) {
-      console.warn('[InvoiceAuditModal] Disburse error:', err.message)
-    } finally {
-      setIsReleasing(false)
-    }
-  }
-
-  function handleFlagClick(e) {
-    e.preventDefault()
-    if (!varianceReasonInput.trim()) return
-    if (onFlagVariance) onFlagVariance(invoice.rawId || invoice.id, varianceReasonInput)
-    setVarianceReasonInput('')
-    setShowVarianceForm(false)
   }
 
   return (
@@ -135,7 +167,7 @@ export default function InvoiceAuditModal({
         <div className="audit-modal-header">
           <div>
             <div className="audit-modal-subtitle">Municipal Invoice Audit &amp; Settlement</div>
-            <h3>{invoice.id} — {invoice.title}</h3>
+            <h3>{invoice.id} – {invoice.title}</h3>
           </div>
           <div className="audit-modal-header-actions">
             {currentStatus === 'AUTHORIZED' && <span className="audit-badge-authorized">Authorized for Release ✓</span>}
@@ -172,7 +204,8 @@ export default function InvoiceAuditModal({
           {/* Work Order Summary Bar */}
           <div className="wo-summary-bar">
             <div>
-              <strong>Work Order:</strong> {invoice.workOrderId} · Status: <strong>{invoice.workOrder?.status || 'COMPLETED'}</strong>
+              <strong>Work Order:</strong> {invoice.workOrderId} · Status:{' '}
+              <strong>{invoice.workOrder?.status || 'COMPLETED'}</strong>
             </div>
             <div className="wo-summary-amounts">
               <span><strong>Money Estimated:</strong> <span className="wo-est-text">₹{Number(invoice.estimateAmount || 0).toLocaleString('en-IN')}</span></span>
@@ -180,7 +213,7 @@ export default function InvoiceAuditModal({
             </div>
           </div>
 
-          {/* Reconciliation Banner — from Redux (Rule 6) */}
+          {/* Reconciliation Banner – from Redux (Rule 6) */}
           {reconciliationReport && (() => {
             const isMatch = reconciliationReport.compliance?.reconciliationStatus === 'MATCH'
             return (
@@ -208,7 +241,8 @@ export default function InvoiceAuditModal({
                 <div>
                   <h4 className="payout-card-title">Release Payment</h4>
                   <p className="payout-card-subtitle">
-                    To <strong>{invoice.contractor?.name || 'Empanelled Contractor'}</strong> · Bank A/C <code>{invoice.contractor?.accountNumber || 'HDFC0004928192831'}</code>
+                    To <strong>{invoice.contractor?.name || 'Empanelled Contractor'}</strong> · Bank A/C{' '}
+                    <code>{invoice.contractor?.accountNumber || 'HDFC0004928192831'}</code>
                   </p>
                 </div>
                 <div className="payout-card-amount">₹{Number(invoice.billedAmount || 0).toLocaleString('en-IN')}</div>
@@ -279,7 +313,7 @@ export default function InvoiceAuditModal({
             </div>
           </div>
 
-          {/* Line Items — from reconciliationReport in Redux, fallback to invoice.items */}
+          {/* Line Items – from reconciliationReport in Redux, fallback to invoice.items */}
           <div>
             <h4 className="line-items-header">Contractual Rate Card Itemization</h4>
             <table className="line-items-table">
@@ -291,6 +325,7 @@ export default function InvoiceAuditModal({
                   <th>Est. Qty</th>
                   <th>Billed Qty</th>
                   <th className="text-right">Total Billed</th>
+                  <th>Flag</th>
                 </tr>
               </thead>
               <tbody>
@@ -300,8 +335,9 @@ export default function InvoiceAuditModal({
                   const billedQty = Number(item.billedQty ?? item.quantity ?? 1)
                   const total     = Number(item.total ?? item.amount ?? rate * billedQty ?? 0)
                   const isVerified = item.rateCardVerified !== false
+                  const isFlagged  = Boolean(flaggedItems[item.id || item.description])
                   return (
-                    <tr key={idx}>
+                    <tr key={idx} style={isFlagged ? { background: '#fef9c3' } : {}}>
                       <td className="item-service-title">
                         {item.description || 'Maintenance Service'}
                         {item.rateCardVerified !== undefined && (
@@ -309,19 +345,44 @@ export default function InvoiceAuditModal({
                             {isVerified ? 'AMC Match ✓' : 'Rate Over Ceiling ⚠️'}
                           </span>
                         )}
+                        {isFlagged && (
+                          <span style={{ marginLeft: 6, fontSize: 11, color: '#b45309', fontWeight: 700 }}>
+                            🚩 Flagged
+                          </span>
+                        )}
                       </td>
                       <td>{item.unit || 'job'}</td>
                       <td className="item-mono-cell">₹{rate.toLocaleString('en-IN')}</td>
                       <td className="item-qty-cell">{estQty}</td>
-                      <td className={`item-qty-cell ${billedQty > estQty ? 'exceeded' : ''}`}>{billedQty} {billedQty > estQty && '⚠️'}</td>
+                      <td className={`item-qty-cell ${billedQty > estQty ? 'exceeded' : ''}`}>
+                        {billedQty} {billedQty > estQty && '⚠️'}
+                      </td>
                       <td className="item-total-cell">₹{total.toLocaleString('en-IN')}</td>
+                      <td>
+                        {!isFlagged && currentStatus === 'PENDING_AUDIT' && (
+                          <button
+                            type="button"
+                            onClick={() => handleFlagItem(item)}
+                            style={{
+                              fontSize: 11,
+                              padding: '2px 8px',
+                              borderRadius: 4,
+                              background: '#fef2f2',
+                              border: '1px solid #fca5a5',
+                              color: '#b91c1c',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            🚩 Flag
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   )
                 })}
               </tbody>
             </table>
           </div>
-
 
           {/* Budget Overrun Inquest & Inquiry Workflow */}
           {isOverrun && (
@@ -383,16 +444,7 @@ export default function InvoiceAuditModal({
                   <button
                     type="button"
                     onClick={() => setShowInquiryForm(true)}
-                    style={{
-                      background: '#fff',
-                      border: '1px solid #f87171',
-                      color: '#b91c1c',
-                      padding: '6px 12px',
-                      borderRadius: 6,
-                      fontWeight: 600,
-                      fontSize: 12,
-                      cursor: 'pointer',
-                    }}
+                    style={{ background: '#fff', border: '1px solid #f87171', color: '#b91c1c', padding: '6px 12px', borderRadius: 6, fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
                   >
                     💬 Ask Contractor: Why High Amount?
                   </button>
@@ -400,16 +452,7 @@ export default function InvoiceAuditModal({
                   <button
                     type="button"
                     onClick={() => handleSettleOverrun('ACCEPT')}
-                    style={{
-                      background: '#16a34a',
-                      border: 'none',
-                      color: '#fff',
-                      padding: '6px 12px',
-                      borderRadius: 6,
-                      fontWeight: 600,
-                      fontSize: 12,
-                      cursor: 'pointer',
-                    }}
+                    style={{ background: '#16a34a', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: 6, fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
                   >
                     ✓ Accept Overrun Amount
                   </button>
@@ -417,16 +460,7 @@ export default function InvoiceAuditModal({
                   <button
                     type="button"
                     onClick={() => handleSettleOverrun('SETTLE_ESTIMATE')}
-                    style={{
-                      background: '#d97706',
-                      border: 'none',
-                      color: '#fff',
-                      padding: '6px 12px',
-                      borderRadius: 6,
-                      fontWeight: 600,
-                      fontSize: 12,
-                      cursor: 'pointer',
-                    }}
+                    style={{ background: '#d97706', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: 6, fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
                   >
                     ⚖️ Cap at Approved Estimate (₹{Number(invoice.estimateAmount || 0).toLocaleString('en-IN')})
                   </button>

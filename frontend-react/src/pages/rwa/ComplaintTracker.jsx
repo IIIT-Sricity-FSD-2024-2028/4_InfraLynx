@@ -7,6 +7,7 @@ import {
   selectComplaint,
 } from '../../store/rwa/uiSlice.js'
 import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
+import { getSlaEvaluation } from '../../utils/slaUtils.js'
 import './styles/ComplaintTracker.css'
 
 const STATUS_MAP = {
@@ -57,7 +58,7 @@ const STATUS_MAP = {
   },
 }
 
-export default function ComplaintTracker({ currentUser }) {
+export default function ComplaintTracker({ currentUser, onEdit, onCancel }) {
   const dispatch = useDispatch()
   const complaints = useSelector(selectAllComplaints)
   const selectedComplaint = useSelector(selectSelectedComplaint)
@@ -70,14 +71,12 @@ export default function ComplaintTracker({ currentUser }) {
   }, [complaints, selectedComplaint])
 
   const slaInfo = useMemo(() => {
-    if (!activeComplaint?.slaDeadline) return { text: 'N/A', status: 'normal' }
-    const diff = new Date(activeComplaint.slaDeadline).getTime() - Date.now()
-    if (diff <= 0) return { text: 'Breached', status: 'breached' }
-    const hours = Math.floor(diff / (1000 * 3600))
-    const mins = Math.floor((diff % (1000 * 3600)) / (1000 * 60))
-    if (hours < 6) return { text: `${hours}h ${mins}m remaining (Urgent)`, status: 'urgent' }
-    return { text: `${hours}h ${mins}m remaining`, status: 'normal' }
-  }, [activeComplaint?.slaDeadline])
+    return getSlaEvaluation(
+      activeComplaint?.slaDeadline || activeComplaint?.sla_deadline,
+      activeComplaint?.status,
+      activeComplaint?.verified_at || activeComplaint?.completed_at
+    )
+  }, [activeComplaint?.slaDeadline, activeComplaint?.sla_deadline, activeComplaint?.status, activeComplaint?.verified_at, activeComplaint?.completed_at])
 
   if (!activeComplaint) {
     return (
@@ -124,23 +123,69 @@ export default function ComplaintTracker({ currentUser }) {
           </div>
         </div>
 
-        {/* Quick Ticket Switcher */}
-        <div className="ticket-switcher">
-          <span className="switcher-label">Switch Ticket:</span>
-          <select
-            value={activeComplaint.id}
-            onChange={(e) => {
-              const found = complaints.find((c) => c.id === e.target.value)
-              if (found) dispatch(selectComplaint(found))
-            }}
-            className="switcher-select"
-          >
-            {complaints.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.complaint_code || c.id} — {c.title || `${c.category} (${c.status})`}
-              </option>
-            ))}
-          </select>
+        {/* Quick Actions & Ticket Switcher */}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          {!['CLOSED', 'CANCELLED', 'REJECTED'].includes((activeComplaint.status || '').toUpperCase()) && (
+            <button
+              onClick={() => onEdit && onEdit(activeComplaint)}
+              className="btn-track-edit"
+              style={{
+                padding: '6px 12px',
+                borderRadius: 6,
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                color: '#1e293b',
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              ✏️ Edit Report
+            </button>
+          )}
+
+          {!['CLOSED', 'CANCELLED', 'REJECTED', 'IN_PROGRESS', 'PENDING_VERIFICATION'].includes((activeComplaint.status || '').toUpperCase()) && (
+            <button
+              onClick={() => onCancel && onCancel(activeComplaint)}
+              className="btn-track-cancel"
+              style={{
+                padding: '6px 12px',
+                borderRadius: 6,
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                color: '#991b1b',
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              ❌ Cancel Ticket
+            </button>
+          )}
+
+          <div className="ticket-switcher">
+            <span className="switcher-label">Switch Ticket:</span>
+            <select
+              value={activeComplaint.id}
+              onChange={(e) => {
+                const found = complaints.find((c) => c.id === e.target.value)
+                if (found) dispatch(selectComplaint(found))
+              }}
+              className="switcher-select"
+            >
+              {complaints.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.complaint_code || c.id} — {c.title || `${c.category} (${c.status})`}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

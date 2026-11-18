@@ -45,10 +45,10 @@ export default function ContractorPortal({ onExitToLanding }) {
   // Navigation tab state: 'dashboard' | 'workorders' | 'inspection' | 'estimate' | 'approvals' | 'execution'
   const [currentScreen, setCurrentScreen] = useState('dashboard')
 
-  // ── Fetch jobs on mount and whenever the active screen changes ────────────
+  // ── Fetch jobs on mount ──────────────────────────────────────────────────
   useEffect(() => {
     dispatch(fetchContractorJobs())
-  }, [dispatch, currentScreen])
+  }, [dispatch])
 
   // ── Navigation handlers ───────────────────────────────────────────────────
   function handleNavigate(screen) {
