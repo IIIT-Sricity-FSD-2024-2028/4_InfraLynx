@@ -1,14 +1,18 @@
+// Invoice list view with filtering, search, and inline action buttons
 import React, { useState } from 'react'
+import { useSelector } from 'react-redux'
+import { selectAllInvoices } from '../../store/finance/invoicesSlice.js'
 import './styles/InvoiceAudit.css'
 
 export default function InvoiceAudit({
-  invoices = [],
   onOpenInvoice,
   onAuthorizeInvoice,
 }) {
-  const [selectedDept, setSelectedDept] = useState('ALL')
+  const invoices = useSelector(selectAllInvoices) || []
+
+  const [selectedDept, setSelectedDept]     = useState('ALL')
   const [selectedStatus, setSelectedStatus] = useState('ALL')
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery]       = useState('')
 
   const filteredInvoices = (invoices || []).filter((inv) => {
     if (selectedDept !== 'ALL' && inv.department !== selectedDept) return false
@@ -83,10 +87,10 @@ export default function InvoiceAudit({
               <tr><td colSpan="6" className="audit-empty-row">No invoices match the selected filter criteria.</td></tr>
             ) : filteredInvoices.map((inv) => {
               const status = inv.auditStatus || inv.status || 'PENDING_AUDIT'
-              const isPending = status === 'PENDING_AUDIT'
+              const isPending    = status === 'PENDING_AUDIT'
               const isAuthorized = status === 'AUTHORIZED'
-              const isPaid = status === 'PAID'
-              const isFlagged = status === 'VARIANCE_FLAGGED'
+              const isPaid       = status === 'PAID'
+              const isFlagged    = status === 'VARIANCE_FLAGGED'
               return (
                 <tr key={inv.id}>
                   <td>
@@ -111,10 +115,10 @@ export default function InvoiceAudit({
                     }
                   </td>
                   <td>
-                    {isPending && <span className="status-badge pending">Pending Audit</span>}
-                    {isFlagged && <span className="status-badge flagged">Variance Flagged</span>}
+                    {isPending    && <span className="status-badge pending">Pending Audit</span>}
+                    {isFlagged    && <span className="status-badge flagged">Variance Flagged</span>}
                     {isAuthorized && <span className="status-badge authorized">Authorized ✓</span>}
-                    {isPaid && <span className="status-badge paid">Disbursed ✓</span>}
+                    {isPaid       && <span className="status-badge paid">Disbursed ✓</span>}
                   </td>
                   <td className="inv-table-actions-cell">
                     <div className="inv-table-actions-group">

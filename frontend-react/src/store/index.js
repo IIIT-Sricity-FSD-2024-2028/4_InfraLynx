@@ -11,18 +11,15 @@
  *   contractor       <- contractor/contractorSlice <- contractorController / contractorApi (Field Contractor portal)
  */
 import { configureStore } from '@reduxjs/toolkit'
-
-// Authentication slice (Repository: authController / authApi)
 import authReducer from './auth/authSlice.js'
-
-// RWA slices (Repository: complaintController)
-import complaintsReducer   from './rwa/complaintsSlice.js'
+import complaintsReducer from './rwa/complaintsSlice.js'
 import verificationReducer from './rwa/verificationSlice.js'
-import uiReducer           from './rwa/uiSlice.js'
-
-// Clerk slices (Repository: clerkController & workOrderController)
+import uiReducer from './rwa/uiSlice.js'
 import clerkComplaintsReducer from './clerk/complaintsSlice.js'
 import clerkWorkOrdersReducer from './clerk/workOrdersSlice.js'
+import financeInvoicesReducer from './finance/invoicesSlice.js'
+import financeRateCardsReducer from './finance/rateCardsSlice.js'
+import masterDataReducer from './master/masterDataSlice.js'
 
 // Contractor slice (Repository: contractorController / contractorApi) - Member 3
 import contractorReducer from './contractor/contractorSlice.js'
