@@ -695,6 +695,21 @@ export const contractorApi = {
     });
     return res.data;
   },
+
+  async submitBid(workOrderId, payload) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/bids`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async retractBid(workOrderId, contractorId) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/bids/${contractorId}`, {
+      method: 'DELETE',
+    });
+    return res.data;
+  },
 };
 
 /**

@@ -3,9 +3,10 @@ import { useDispatch, useSelector } from 'react-redux'
 import {
   selectAllContractorJobs,
   setSelectedJob,
+  submitContractorBid,
+  retractContractorBid,
 } from '../../store/contractor/contractorSlice.js'
 import { getSlaEvaluation } from '../../utils/slaUtils.js'
-import { workOrderApi } from '../../services/api.js'
 import './styles/AssignedWorkOrders.css'
 
 export default function AssignedWorkOrders({
@@ -482,7 +483,7 @@ export default function AssignedWorkOrders({
                     const woId = selectedBiddingJob.backendWoId || selectedBiddingJob.workOrderId || selectedBiddingJob.id
                     try {
                       setIsSubmittingBid(true)
-                      await workOrderApi.retractBid(woId, selectedBiddingJob.contractor_id || 'c0000000-0000-0000-0000-000000000001')
+                      const result = await dispatch(retractContractorBid({ workOrderId: woId, contractorId: selectedBiddingJob.contractor_id || 'c0000000-0000-0000-0000-000000000001' })); if (retractContractorBid.rejected.match(result)) throw new Error(result.payload || 'Could not retract bid');
                       setBidNotice('Bid retracted successfully.')
                     } catch (err) {
                       alert('Could not retract bid: ' + err.message)
@@ -502,11 +503,7 @@ export default function AssignedWorkOrders({
                     const woId = selectedBiddingJob.backendWoId || selectedBiddingJob.workOrderId || selectedBiddingJob.id
                     try {
                       setIsSubmittingBid(true)
-                      await workOrderApi.submitBid(woId, {
-                        bid_amount: Number(bidAmount),
-                        estimated_days: Number(bidDays),
-                        justification: bidJustification,
-                      })
+                      const result = await dispatch(submitContractorBid({ workOrderId: woId, bidData: { bid_amount: Number(bidAmount), estimated_days: Number(bidDays), justification: bidJustification } })); if (submitContractorBid.rejected.match(result)) throw new Error(result.payload || 'Failed to submit bid');
                       setBidNotice('✓ Bid submitted successfully! The algorithm will evaluate your cost and rating.')
                       setTimeout(() => setSelectedBiddingJob(null), 1500)
                     } catch (err) {

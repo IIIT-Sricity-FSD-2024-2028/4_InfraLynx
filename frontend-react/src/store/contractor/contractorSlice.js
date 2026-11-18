@@ -430,6 +430,40 @@ export const respondToOverrunInquiry = createAsyncThunk(
   }
 )
 
+/**
+ * [CREATE] Submit contractor bid for tender/open-bidding work order.
+ * Repository: contractorApi.submitBid() -> POST /api/v1/work-orders/:id/bids
+ */
+export const submitContractorBid = createAsyncThunk(
+  'contractor/submitBid',
+  async ({ workOrderId, bidData }, { rejectWithValue, dispatch }) => {
+    try {
+      const res = await contractorApi.submitBid(workOrderId, bidData)
+      dispatch(fetchContractorJobs())
+      return { workOrderId, serverResponse: res }
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to submit bid')
+    }
+  }
+)
+
+/**
+ * [DELETE] Retract contractor bid from tender work order.
+ * Repository: contractorApi.retractBid() -> DELETE /api/v1/work-orders/:id/bids/:contractorId
+ */
+export const retractContractorBid = createAsyncThunk(
+  'contractor/retractBid',
+  async ({ workOrderId, contractorId }, { rejectWithValue, dispatch }) => {
+    try {
+      const res = await contractorApi.retractBid(workOrderId, contractorId)
+      dispatch(fetchContractorJobs())
+      return { workOrderId, serverResponse: res }
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to retract bid')
+    }
+  }
+)
+
 // ---------------------------------------------------------------------------
 // Slice
 // ---------------------------------------------------------------------------
@@ -660,6 +694,22 @@ const contractorSlice = createSlice({
         state.lastActionMessage = 'Overrun rebuttal submitted to Finance/COO for review.'
       })
       .addCase(respondToOverrunInquiry.rejected, (state, action) => {
+        state.error = action.payload
+      })
+
+      // -- submitContractorBid ----------------------------------------------
+      .addCase(submitContractorBid.fulfilled, (state) => {
+        state.lastActionMessage = 'Bid submitted successfully to township work order.'
+      })
+      .addCase(submitContractorBid.rejected, (state, action) => {
+        state.error = action.payload
+      })
+
+      // -- retractContractorBid ---------------------------------------------
+      .addCase(retractContractorBid.fulfilled, (state) => {
+        state.lastActionMessage = 'Bid retracted successfully.'
+      })
+      .addCase(retractContractorBid.rejected, (state, action) => {
         state.error = action.payload
       })
   },
