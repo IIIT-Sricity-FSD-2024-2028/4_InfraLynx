@@ -1,102 +1,85 @@
+// Finance portal shell: tab navigation and modal host
 import React, { useState, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+
 import FinanceDashboard from './FinanceDashboard.jsx'
 import InvoiceAudit from './InvoiceAudit.jsx'
 import InvoiceAuditModal from './InvoiceAuditModal.jsx'
 import RateCardViewer from './RateCardViewer.jsx'
-import { financeApi } from '../../services/api.js'
-import { useTIMS } from '../../context/TIMSContext.jsx'
+
+import {
+  fetchInvoices,
+  authorizeInvoice,
+  flagVariance,
+  releasePayment,
+  setSelectedInvoice,
+  clearSelectedInvoice,
+  clearInvoiceNotice,
+  selectSelectedInvoice,
+  selectInvoiceNotice,
+  selectPendingAuditCount,
+} from '../../store/finance/invoicesSlice.js'
+
+import { fetchContractors, fetchAmcRates } from '../../store/master/masterDataSlice.js'
+import { fetchRateCards } from '../../store/finance/rateCardsSlice.js'
+import { selectAuthUser } from '../../store/auth/authSlice.js'
+
 import './styles/FinancePortal.css'
 
 export default function FinancePortal({ onExitToLanding }) {
-  const { currentUser, refreshComplaints } = useTIMS()
+  const dispatch = useDispatch()
+  const currentUser = useSelector(selectAuthUser)
+  const activeInvoiceModal = useSelector(selectSelectedInvoice)
+  const notice = useSelector(selectInvoiceNotice)
+  const pendingAuditCount = useSelector(selectPendingAuditCount)
+
   const [currentScreen, setCurrentScreen] = useState('dashboard')
-  const [invoices, setInvoices] = useState([])
-  const [activeInvoiceModal, setActiveInvoiceModal] = useState(null)
-  const [notice, setNotice] = useState(null)
 
-  const loadInvoices = async () => {
-    try {
-      const data = await financeApi.getInvoices()
-      if (Array.isArray(data)) setInvoices(data)
-    } catch (err) {
-      console.warn('[FinancePortal] Invoices fetch error:', err.message)
-    }
-  }
-
-  useEffect(() => { loadInvoices() }, [currentScreen])
-
-  // Keep activeInvoiceModal in sync when invoices list updates
+  // Load finance and master data on mount
   useEffect(() => {
-    if (activeInvoiceModal) {
-      const updated = invoices.find(
-        (i) => (i.rawId && i.rawId === activeInvoiceModal.rawId) || i.id === activeInvoiceModal.id
-      )
-      if (updated && (updated.auditStatus !== activeInvoiceModal.auditStatus || updated.status !== activeInvoiceModal.status)) {
-        setActiveInvoiceModal(updated)
-      }
-    }
-  }, [invoices])
+    dispatch(fetchInvoices())
+    dispatch(fetchContractors())
+    dispatch(fetchAmcRates())
+    dispatch(fetchRateCards())
+  }, [dispatch])
 
-  const pendingAuditCount = invoices.filter((i) => i.auditStatus === 'PENDING_AUDIT').length
+  // Re-fetch invoices when switching screens
+  useEffect(() => {
+    dispatch(fetchInvoices())
+  }, [currentScreen, dispatch])
 
   function handleNavigate(screen) {
     setCurrentScreen(screen)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const safeRefresh = async () => {
-    try { if (refreshComplaints) await refreshComplaints() } catch (_) {}
-  }
-
+  // Authorize invoice via Redux thunk
   async function handleAuthorizeInvoice(invoiceId, keepOpen = false) {
-    const inv = invoices.find((i) => i.id === invoiceId || i.rawId === invoiceId)
-    if (inv?.rwaVerified === false) {
-      alert('Cannot authorize invoice: RWA / Citizen on-ground verification is mandatory prior to financial payment authorization.')
+    const action = await dispatch(authorizeInvoice({ id: invoiceId, rawId: invoiceId }))
+    if (authorizeInvoice.rejected.match(action)) {
+      alert(action.payload || 'Authorization failed.')
       return false
     }
-    try {
-      await financeApi.authorizeInvoice(inv?.rawId || invoiceId)
-    } catch (err) {
-      alert(err.message || 'Authorization failed.')
-      return false
-    }
-    await loadInvoices()
-    await safeRefresh()
-    setActiveInvoiceModal((prev) => prev ? { ...prev, auditStatus: 'AUTHORIZED', status: 'AUTHORIZED' } : null)
-    if (!keepOpen) setActiveInvoiceModal(null)
-    setNotice(`Invoice ${inv?.id || invoiceId} (₹${inv?.billedAmount?.toLocaleString('en-IN')}) successfully authorized! You can now disburse escrow payment.`)
+    if (!keepOpen) dispatch(clearSelectedInvoice())
     return true
   }
 
+  // Release payment via Redux thunk
   async function handleReleasePayment(invoiceId, paymentConfig) {
-    const inv = invoices.find((i) => i.id === invoiceId || i.rawId === invoiceId)
-    try {
-      const result = await financeApi.releasePayment(inv?.rawId || invoiceId, paymentConfig)
-      await loadInvoices()
-      await safeRefresh()
-      setActiveInvoiceModal((prev) => prev
-        ? { ...prev, auditStatus: 'PAID', status: 'PAID', paymentMode: paymentConfig.paymentMode, paymentReference: paymentConfig.paymentReference, bankReference: paymentConfig.paymentReference, disbursedAt: new Date().toISOString() }
-        : null
-      )
-      setNotice(`✓ Payment of ₹${Number(inv?.billedAmount || 0).toLocaleString('en-IN')} disbursed for ${inv?.id || invoiceId}! Bank UTR: ${paymentConfig.paymentReference}`)
-      return result
-    } catch (err) {
-      alert(err.message || 'Payment release failed. Please try again.')
-      throw err
+    const action = await dispatch(releasePayment({ id: invoiceId, rawId: invoiceId, paymentConfig }))
+    if (releasePayment.rejected.match(action)) {
+      alert(action.payload || 'Payment release failed. Please try again.')
+      throw new Error(action.payload || 'Payment release failed')
     }
+    return action.payload?.result
   }
 
+  // Flag variance via Redux thunk
   async function handleFlagVariance(invoiceId, reason) {
-    const inv = invoices.find((i) => i.id === invoiceId || i.rawId === invoiceId)
-    try {
-      await financeApi.flagVariance(inv?.rawId || invoiceId, reason)
-    } catch (err) {
-      alert(err.message || 'Failed to flag variance.')
-      return
+    const action = await dispatch(flagVariance({ id: invoiceId, rawId: invoiceId, reason }))
+    if (flagVariance.rejected.match(action)) {
+      alert(action.payload || 'Failed to flag variance.')
     }
-    await loadInvoices()
-    setActiveInvoiceModal(null)
-    setNotice(`Variance discrepancy flagged for ${inv?.id || invoiceId}. Clarification request sent to Contractor & Department Head.`)
   }
 
   const TABS = [
@@ -147,31 +130,28 @@ export default function FinancePortal({ onExitToLanding }) {
         {notice && (
           <div className="finance-notice-banner">
             <span>✓ {notice}</span>
-            <button onClick={() => setNotice(null)} className="finance-notice-close">✕</button>
+            <button onClick={() => dispatch(clearInvoiceNotice())} className="finance-notice-close">✕</button>
           </div>
         )}
+
         {currentScreen === 'dashboard' && (
           <FinanceDashboard
-            invoices={invoices}
             onNavigate={handleNavigate}
-            onOpenInvoice={setActiveInvoiceModal}
+            onOpenInvoice={(inv) => dispatch(setSelectedInvoice(inv))}
             onAuthorizeInvoice={handleAuthorizeInvoice}
           />
         )}
         {currentScreen === 'audit' && (
           <InvoiceAudit
-            invoices={invoices}
-            onOpenInvoice={setActiveInvoiceModal}
+            onOpenInvoice={(inv) => dispatch(setSelectedInvoice(inv))}
             onAuthorizeInvoice={handleAuthorizeInvoice}
           />
         )}
         {currentScreen === 'rates' && <RateCardViewer />}
 
-        {/* Global Invoice Audit & Details Modal */}
         {activeInvoiceModal && (
           <InvoiceAuditModal
-            invoice={activeInvoiceModal}
-            onClose={() => setActiveInvoiceModal(null)}
+            onClose={() => dispatch(clearSelectedInvoice())}
             onAuthorizeInvoice={handleAuthorizeInvoice}
             onFlagVariance={handleFlagVariance}
             onReleasePayment={handleReleasePayment}

@@ -1,12 +1,18 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { authApi, systemApi, masterApi, complaintApi } from '../services/api.js'
+import { authApi, systemApi, complaintApi } from '../services/api.js'
 import {
   loginUser,
   logoutUser,
   clearAuth,
   selectAuthUser,
 } from '../store/auth/authSlice.js'
+import {
+  fetchContractors,
+  fetchAmcRates,
+  selectAllContractors,
+  selectAllAmcRates,
+} from '../store/master/masterDataSlice.js'
 
 const INITIAL_CURRENT_USER = null
 
@@ -16,6 +22,10 @@ export function TIMSProvider({ children }) {
   const dispatch = useDispatch()
   const reduxUser = useSelector(selectAuthUser)
 
+  // Master data now lives in Redux — read via selectors (Rule 6, Rule 10)
+  const reduxContractors  = useSelector(selectAllContractors)
+  const reduxAmcRateCards = useSelector(selectAllAmcRates)
+
   const [currentUser, setCurrentUser] = useState(() => {
     return reduxUser || authApi.getCachedUser() || INITIAL_CURRENT_USER
   })
@@ -24,9 +34,6 @@ export function TIMSProvider({ children }) {
   useEffect(() => {
     setCurrentUser(reduxUser)
   }, [reduxUser])
-
-  const [contractors, setContractors] = useState([])
-  const [amcRateCards, setAmcRateCards] = useState([])
 
   const [backendStatus, setBackendStatus] = useState({
     connected: false,
@@ -87,37 +94,17 @@ export function TIMSProvider({ children }) {
     }
   }, [])
 
-  // Sync live contractors & rate cards from backend PostgreSQL API
-  const refreshMasterData = useCallback(async () => {
-    try {
-      const data = await masterApi.getContractors()
-      if (Array.isArray(data) && data.length > 0) {
-        setContractors(data)
-      }
-    } catch (err) {
-      console.warn('[TIMSContext] Master contractors notice:', err.message)
-    }
-
-    try {
-      const rates = await masterApi.getAmcRates()
-      if (Array.isArray(rates) && rates.length > 0) {
-        setAmcRateCards(rates)
-      }
-    } catch (err) {
-      console.warn('[TIMSContext] Master AMC rates notice:', err.message)
-    }
-  }, [])
+  // Dispatch master data thunks through Redux
+  const refreshMasterData = useCallback(() => {
+    dispatch(fetchContractors())
+    dispatch(fetchAmcRates())
+  }, [dispatch])
 
   useEffect(() => {
     refreshMasterData()
   }, [backendStatus.connected, currentUser?.id, refreshMasterData])
 
-  /**
-   * Login: Dispatches loginUser Redux thunk.
-   * Rule 4 & 5: Backend database validates credentials first,
-   * then Redux state is updated with returned user from DB response.
-   * Rule 9: Login handled through Redux.
-   */
+  // Login: Dispatches loginUser Redux thunk
   const login = useCallback(async (emailOrUsername, password) => {
     const action = await dispatch(loginUser({ emailOrUsername, password }))
     if (loginUser.rejected.match(action)) {
@@ -128,11 +115,7 @@ export function TIMSProvider({ children }) {
     return { success: true, user }
   }, [dispatch])
 
-  /**
-   * Logout: Dispatches logoutUser Redux thunk.
-   * Rule 4 & 5: Backend session invalidated first, then Redux state is cleared.
-   * Rule 9: Logout handled through Redux.
-   */
+  // Logout: Dispatches logoutUser Redux thunk
   const logout = useCallback(async () => {
     await dispatch(logoutUser())
     setCurrentUser(null)
@@ -155,8 +138,9 @@ export function TIMSProvider({ children }) {
   const value = {
     currentUser,
     setCurrentUser,
-    contractors,
-    amcRateCards,
+    // Master data bridged from Redux store for backward-compat with non-finance consumers
+    contractors:  reduxContractors,
+    amcRateCards: reduxAmcRateCards,
     backendStatus,
     login,
     logout,

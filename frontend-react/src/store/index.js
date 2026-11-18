@@ -9,39 +9,44 @@
  *   clerkComplaints  <- clerk/complaintsSlice      <- clerkController / complaintApi (Clerk portal)
  *   clerkWorkOrders  <- clerk/workOrdersSlice      <- workOrderController / clerkApi (Clerk portal)
  *   contractor       <- contractor/contractorSlice <- contractorController / contractorApi (Field Contractor portal)
+ *   financeInvoices  <- finance/invoicesSlice      <- financeController / financeApi (Finance portal)
+ *   financeRateCards <- finance/rateCardsSlice     <- financeController / financeApi (Finance portal)
+ *   masterData       <- master/masterDataSlice     <- masterController / masterApi (Master data)
  */
 import { configureStore } from '@reduxjs/toolkit'
-
-// Authentication slice (Repository: authController / authApi)
 import authReducer from './auth/authSlice.js'
-
-// RWA slices (Repository: complaintController)
-import complaintsReducer   from './rwa/complaintsSlice.js'
+import complaintsReducer from './rwa/complaintsSlice.js'
 import verificationReducer from './rwa/verificationSlice.js'
-import uiReducer           from './rwa/uiSlice.js'
-
-// Clerk slices (Repository: clerkController & workOrderController)
+import uiReducer from './rwa/uiSlice.js'
 import clerkComplaintsReducer from './clerk/complaintsSlice.js'
 import clerkWorkOrdersReducer from './clerk/workOrdersSlice.js'
-
-// Contractor slice (Repository: contractorController / contractorApi) - Member 3
 import contractorReducer from './contractor/contractorSlice.js'
+import financeInvoicesReducer from './finance/invoicesSlice.js'
+import financeRateCardsReducer from './finance/rateCardsSlice.js'
+import masterDataReducer from './master/masterDataSlice.js'
 
 export const store = configureStore({
   reducer: {
-    // Authentication
-    auth:             authReducer,
+    // Auth slice
+    auth: authReducer,
 
-    // RWA portal
-    complaints:       complaintsReducer,
-    verification:     verificationReducer,
-    rwaUi:            uiReducer,
+    // RWA portal slices
+    complaints: complaintsReducer,
+    verification: verificationReducer,
+    rwaUi: uiReducer,
 
-    // Clerk portal
-    clerkComplaints:  clerkComplaintsReducer,
-    clerkWorkOrders:  clerkWorkOrdersReducer,
+    // Clerk portal slices
+    clerkComplaints: clerkComplaintsReducer,
+    clerkWorkOrders: clerkWorkOrdersReducer,
 
-    // Field Contractor portal
-    contractor:       contractorReducer,
+    // Field Contractor portal slice
+    contractor: contractorReducer,
+
+    // Finance portal slices
+    financeInvoices: financeInvoicesReducer,
+    financeRateCards: financeRateCardsReducer,
+
+    // Master data slice
+    masterData: masterDataReducer,
   },
 })
