@@ -1,10 +1,23 @@
-import { useState, useEffect } from 'react';
-import { deptHeadApi } from '../../services/api.js';
+import { useState, useEffect, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  fetchDeptWorkOrders,
+  escalateDeptWorkOrder,
+  selectDeptWorkOrders,
+  selectDeptWorkOrdersStatus,
+  selectDeptWorkOrdersProcessing,
+} from '../../store/depthead/deptHeadSlice.js';
 
 export default function WorkOrders({ onSelectComplaint }) {
-  const [workOrders, setWorkOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const rawWorkOrders = useSelector(selectDeptWorkOrders);
+  const workOrdersStatus = useSelector(selectDeptWorkOrdersStatus);
+  const reduxProcessing = useSelector(selectDeptWorkOrdersProcessing);
+
+  const [localProcessing, setLocalProcessing] = useState(false);
+  const processing = reduxProcessing || localProcessing;
+  const loading = workOrdersStatus === 'loading' && rawWorkOrders.length === 0;
+  const error = workOrdersStatus === 'failed' ? 'Failed to load work orders' : null;
   
   const [filters, setFilters] = useState({
     status: '',
@@ -14,50 +27,36 @@ export default function WorkOrders({ onSelectComplaint }) {
   const [showEscalateModal, setShowEscalateModal] = useState(false);
   const [selectedWO, setSelectedWO] = useState(null);
   const [escalateReason, setEscalateReason] = useState('');
-  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    fetchWorkOrders();
-  }, [filters]);
+    const { sla, ...apiFilters } = filters;
+    dispatch(fetchDeptWorkOrders(apiFilters));
+  }, [dispatch, filters.status, filters.search]);
 
-  const fetchWorkOrders = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      // We pass the other filters to backend, SLA is processed locally
-      const { sla, ...apiFilters } = filters;
-      const res = await deptHeadApi.getWorkOrders(apiFilters);
-      let data = res || [];
-      
-      if (sla === 'overdue') {
-        data = data.filter(wo => wo.sla_deadline && new Date(wo.sla_deadline) < new Date() && wo.status !== 'COMPLETED' && wo.status !== 'CLOSED');
-      } else if (sla === 'on-track') {
-        data = data.filter(wo => !wo.sla_deadline || new Date(wo.sla_deadline) >= new Date() || wo.status === 'COMPLETED' || wo.status === 'CLOSED');
-      }
-      
-      setWorkOrders(data);
-    } catch (err) {
-      setError(err.message || 'Failed to load work orders');
-    } finally {
-      setLoading(false);
+  const workOrders = useMemo(() => {
+    let data = rawWorkOrders || [];
+    if (filters.sla === 'overdue') {
+      data = data.filter(wo => wo.sla_deadline && new Date(wo.sla_deadline) < new Date() && wo.status !== 'COMPLETED' && wo.status !== 'CLOSED');
+    } else if (filters.sla === 'on-track') {
+      data = data.filter(wo => !wo.sla_deadline || new Date(wo.sla_deadline) >= new Date() || wo.status === 'COMPLETED' || wo.status === 'CLOSED');
     }
-  };
+    return data;
+  }, [rawWorkOrders, filters.sla]);
 
   const handleEscalate = async (e) => {
     e.preventDefault();
     if (!escalateReason.trim() || !selectedWO) return;
 
     try {
-      setProcessing(true);
-      await deptHeadApi.escalateWorkOrder(selectedWO.id, escalateReason);
+      setLocalProcessing(true);
+      await dispatch(escalateDeptWorkOrder({ id: selectedWO.id, reason: escalateReason })).unwrap();
       setShowEscalateModal(false);
       setEscalateReason('');
       setSelectedWO(null);
-      await fetchWorkOrders();
     } catch (err) {
-      alert(err.message || 'Failed to escalate work order');
+      alert(err || 'Failed to escalate work order');
     } finally {
-      setProcessing(false);
+      setLocalProcessing(false);
     }
   };
 
@@ -127,7 +126,7 @@ export default function WorkOrders({ onSelectComplaint }) {
               style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--line-strong)', outline: 'none', width: '150px' }}
             />
           </div>
-          <button onClick={fetchWorkOrders} className="button button-ghost" style={{ fontSize: '13px' }}>
+          <button onClick={() => { const { sla, ...apiFilters } = filters; dispatch(fetchDeptWorkOrders(apiFilters)); }} className="button button-ghost" style={{ fontSize: '13px' }}>
             Refresh Data
           </button>
         </div>

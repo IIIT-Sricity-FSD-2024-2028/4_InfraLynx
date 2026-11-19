@@ -12,6 +12,7 @@
  *   financeInvoices  <- finance/invoicesSlice      <- financeController / financeApi (Finance portal)
  *   financeRateCards <- finance/rateCardsSlice     <- financeController / financeApi (Finance portal)
  *   masterData       <- master/masterDataSlice     <- masterController / masterApi (Master data)
+ *   deptHead         <- depthead/deptHeadSlice     <- deptHeadController / deptHeadApi (Department Head portal)
  */
 import { configureStore } from '@reduxjs/toolkit'
 import authReducer from './auth/authSlice.js'
@@ -24,6 +25,7 @@ import contractorReducer from './contractor/contractorSlice.js'
 import financeInvoicesReducer from './finance/invoicesSlice.js'
 import financeRateCardsReducer from './finance/rateCardsSlice.js'
 import masterDataReducer from './master/masterDataSlice.js'
+import deptHeadReducer from './depthead/deptHeadSlice.js'
 
 export const store = configureStore({
   reducer: {
@@ -48,5 +50,8 @@ export const store = configureStore({
 
     // Master data slice
     masterData: masterDataReducer,
+
+    // Department Head portal slice
+    deptHead: deptHeadReducer,
   },
 })

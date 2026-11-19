@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react';
-import { deptHeadApi } from '../../services/api.js';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  fetchDeptWorkOrderById,
+  fetchDeptComplaintById,
+  processApprovalDecision,
+  selectDeptApprovalsProcessing,
+} from '../../store/depthead/deptHeadSlice.js';
 
 export default function WorkOrderDetails({ complaint, onBack }) {
+  const dispatch = useDispatch();
+  const reduxProcessing = useSelector(selectDeptApprovalsProcessing);
+
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -9,7 +18,8 @@ export default function WorkOrderDetails({ complaint, onBack }) {
   const [showModal, setShowModal] = useState(false);
   const [modalAction, setModalAction] = useState('REQUEST_REVISION'); // or 'REJECT'
   const [reason, setReason] = useState('');
-  const [processing, setProcessing] = useState(false);
+  const [localProcessing, setLocalProcessing] = useState(false);
+  const processing = reduxProcessing || localProcessing;
 
   useEffect(() => {
     if (complaint?.id) {
@@ -21,25 +31,26 @@ export default function WorkOrderDetails({ complaint, onBack }) {
     try {
       setLoading(true);
       setError(null);
-      // Attempt to load as work order first
+      // Attempt to load as work order first via Redux thunk
       try {
-        const res = await deptHeadApi.getWorkOrderById(complaint.id);
-        if (res?.data) {
-          setDetails(res.data);
+        const woAction = await dispatch(fetchDeptWorkOrderById(complaint.id));
+        if (fetchDeptWorkOrderById.fulfilled.match(woAction) && woAction.payload) {
+          setDetails(woAction.payload);
           return;
         }
       } catch (woErr) {
         // Fall through to load complaint details
       }
 
-      // If no direct work order, fetch full complaint record
+      // If no direct work order, fetch full complaint record via Redux thunk
       try {
-        const compRes = await deptHeadApi.getComplaintById(complaint.id);
-        if (compRes?.data) {
+        const compAction = await dispatch(fetchDeptComplaintById(complaint.id));
+        if (fetchDeptComplaintById.fulfilled.match(compAction) && compAction.payload) {
+          const compData = compAction.payload;
           setDetails({
-            complaint: compRes.data,
-            workOrder: compRes.data.work_order || null,
-            contractor: compRes.data.contractor || null,
+            complaint: compData,
+            workOrder: compData.work_order || null,
+            contractor: compData.contractor || null,
           });
           return;
         }
@@ -64,14 +75,15 @@ export default function WorkOrderDetails({ complaint, onBack }) {
 
   const handleApprove = async () => {
     try {
-      setProcessing(true);
-      const res = await deptHeadApi.processApproval(details?.workOrder?.id || complaint.id, { action: 'APPROVE' });
-      alert(res?.message || 'Estimate approved successfully.');
+      setLocalProcessing(true);
+      const targetId = details?.workOrder?.id || complaint.id;
+      const res = await dispatch(processApprovalDecision({ id: targetId, action: 'APPROVE' })).unwrap();
+      alert(res?.res?.message || res?.message || 'Estimate approved successfully.');
       onBack();
     } catch (err) {
-      alert(err.message || 'Failed to approve');
+      alert(err || 'Failed to approve');
     } finally {
-      setProcessing(false);
+      setLocalProcessing(false);
     }
   };
 
@@ -79,18 +91,20 @@ export default function WorkOrderDetails({ complaint, onBack }) {
     e.preventDefault();
     if ((modalAction === 'REJECT' || modalAction === 'REQUEST_REVISION') && !reason.trim()) return;
     try {
-      setProcessing(true);
-      const res = await deptHeadApi.processApproval(details?.workOrder?.id || complaint.id, { 
+      setLocalProcessing(true);
+      const targetId = details?.workOrder?.id || complaint.id;
+      const res = await dispatch(processApprovalDecision({ 
+        id: targetId, 
         action: modalAction, 
         notes: reason 
-      });
-      alert(res?.message || (modalAction === 'FORWARD_TO_COO' ? 'Estimate successfully forwarded to Township COO.' : 'Estimate processed successfully.'));
+      })).unwrap();
+      alert(res?.res?.message || res?.message || (modalAction === 'FORWARD_TO_COO' ? 'Estimate successfully forwarded to Township COO.' : 'Estimate processed successfully.'));
       setShowModal(false);
       onBack();
     } catch (err) {
-      alert(err.message || `Failed to process ${modalAction.toLowerCase()}`);
+      alert(err || `Failed to process ${modalAction.toLowerCase()}`);
     } finally {
-      setProcessing(false);
+      setLocalProcessing(false);
     }
   };
 

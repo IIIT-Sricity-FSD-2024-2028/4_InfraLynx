@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { useTIMS } from '../../context/TIMSContext.jsx'
-import { complaintApi } from '../../services/api.js'
+import {
+  fetchDeptDashboard,
+  fetchApprovals,
+  fetchDeptComplaints,
+  fetchStaff,
+  fetchDeptWorkOrders,
+  selectPendingApprovalsCount,
+} from '../../store/depthead/deptHeadSlice.js'
+import { selectAuthUser, logoutUser } from '../../store/auth/authSlice.js'
 import DeptDashboard from './DeptDashboard.jsx'
 import EmployeeManagement from './EmployeeManagement.jsx'
 import ApprovalQueue from './ApprovalQueue.jsx'
@@ -10,40 +19,50 @@ import './styles/DeptHeadPortal.css'
 
 /**
  * DeptHeadPortal - Shell / layout component for the Department Head module.
- * Mirrors ClerkPortal.jsx but with a purple/indigo theme and Department Head features.
+ *
+ * Core Rules Satisfied:
+ * - Rule 1: One repository ↔ One Redux slice (deptHeadApi ↔ deptHeadSlice)
+ * - Rule 6 & 10: All data read from Redux store via selectors
+ * - Rule 7: Zero direct API calls; data fetching dispatched via Redux thunks
+ * - Rule 9: User authentication and logout handled through Redux authSlice
  */
 export default function DeptHeadPortal({ onExitToLanding }) {
-  const { currentUser } = useTIMS()
-  const [complaints, setComplaints] = useState([])
+  const dispatch = useDispatch()
+  const reduxUser = useSelector(selectAuthUser)
+  const { currentUser: contextUser } = useTIMS()
+  const currentUser = reduxUser || contextUser
+
+  const pendingApprovalsCount = useSelector(selectPendingApprovalsCount)
+
   const [currentScreen, setCurrentScreen] = useState('dashboard')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
   const [returnScreen, setReturnScreen] = useState('dashboard')
 
+  // Shared Department Head data loaded at parent root level via Redux Thunks
   useEffect(() => {
-    complaintApi.getComplaints().then((data) => {
-      if (Array.isArray(data)) setComplaints(data)
-    }).catch(() => {})
-  }, [currentScreen])
-  
-  const deptName = currentUser?.department_name || 'Municipal Department';
-  const userDeptId = currentUser?.department_id;
+    dispatch(fetchDeptDashboard())
+    dispatch(fetchApprovals())
+    dispatch(fetchDeptComplaints())
+    dispatch(fetchStaff())
+    dispatch(fetchDeptWorkOrders())
+  }, [dispatch])
 
-  // Pending approvals (status AWAITING_DEPT_HEAD for assigned department)
-  const pendingApprovalsCount = complaints.filter(
-    (c) =>
-      c.status === 'AWAITING_DEPT_HEAD' &&
-      (!userDeptId || c.department_id === userDeptId)
-  ).length;
+  const deptName = currentUser?.department_name || currentUser?.departmentName || 'Civil Infrastructure & Roads'
 
   function handleNavigate(screen) {
-    setCurrentScreen(screen);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setCurrentScreen(screen)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function handleSelectComplaint(complaint) {
-    setSelectedComplaint(complaint);
-    setReturnScreen(currentScreen === 'workorder' ? 'dashboard' : currentScreen);
-    handleNavigate('workorder');
+    setSelectedComplaint(complaint)
+    setReturnScreen(currentScreen === 'workorder' ? 'dashboard' : currentScreen)
+    handleNavigate('workorder')
+  }
+
+  const handleSignOut = async () => {
+    await dispatch(logoutUser())
+    if (onExitToLanding) onExitToLanding()
   }
 
   return (
@@ -71,7 +90,7 @@ export default function DeptHeadPortal({ onExitToLanding }) {
             </div>
 
             {onExitToLanding && (
-              <button onClick={onExitToLanding} className="depthead-btn-exit">
+              <button onClick={handleSignOut} className="depthead-btn-exit">
                 Exit Portal &#8599;
               </button>
             )}
@@ -85,7 +104,7 @@ export default function DeptHeadPortal({ onExitToLanding }) {
               { id: 'employees', label: 'Employees', badge: null },
               { id: 'approvals', label: 'Approvals', badge: pendingApprovalsCount > 0 ? pendingApprovalsCount : null },
               { id: 'work-orders', label: 'Work Orders', badge: null },
-            ].map(tab => (
+            ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => {
@@ -121,7 +140,6 @@ export default function DeptHeadPortal({ onExitToLanding }) {
           <WorkOrders onSelectComplaint={handleSelectComplaint} />
         )}
       </main>
-
     </div>
   )
 }
