@@ -1,14 +1,29 @@
 import { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTIMS } from '../../context/TIMSContext.jsx';
-import { deptHeadApi } from '../../services/api.js';
+import {
+  fetchStaff,
+  createStaff,
+  updateStaff,
+  updateStaffStatus,
+  selectDeptStaff,
+  selectDeptStaffStatus,
+  selectDeptStaffProcessing,
+} from '../../store/depthead/deptHeadSlice.js';
 
 export default function EmployeeManagement() {
   const { currentUser } = useTIMS();
   const departmentName = currentUser?.department || currentUser?.departmentName || 'Civil & Electrical Infrastructure';
   
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const employees = useSelector(selectDeptStaff);
+  const staffStatus = useSelector(selectDeptStaffStatus);
+  const reduxProcessing = useSelector(selectDeptStaffProcessing);
+
+  const [localProcessing, setLocalProcessing] = useState(false);
+  const processing = reduxProcessing || localProcessing;
+  const loading = staffStatus === 'loading' && employees.length === 0;
+  const error = staffStatus === 'failed' ? 'Failed to load employees' : null;
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -17,47 +32,33 @@ export default function EmployeeManagement() {
   const [newEmpName, setNewEmpName] = useState('');
   const [newEmpEmail, setNewEmpEmail] = useState('');
   const [newEmpPhone, setNewEmpPhone] = useState('');
-  
-  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    fetchEmployees();
-  }, []);
-
-  const fetchEmployees = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const staff = await deptHeadApi.getStaff();
-      setEmployees(staff || []);
-    } catch (err) {
-      setError(err.message || 'Failed to load employees');
-    } finally {
-      setLoading(false);
+    if (staffStatus === 'idle') {
+      dispatch(fetchStaff());
     }
-  };
+  }, [dispatch, staffStatus]);
 
   const handleAddEmployee = async (e) => {
     e.preventDefault();
     if (!newEmpName.trim() || !newEmpEmail.trim()) return;
 
     try {
-      setProcessing(true);
-      await deptHeadApi.createStaff({
+      setLocalProcessing(true);
+      await dispatch(createStaff({
         name: newEmpName.trim(),
         email: newEmpEmail.trim(),
         phone: newEmpPhone.trim(),
         password: 'Password@123',
-      });
+      })).unwrap();
       setShowAddModal(false);
       setNewEmpName('');
       setNewEmpEmail('');
       setNewEmpPhone('');
-      await fetchEmployees();
     } catch (err) {
-      alert(err.message || 'Failed to create employee');
+      alert(err || 'Failed to create employee');
     } finally {
-      setProcessing(false);
+      setLocalProcessing(false);
     }
   };
 
@@ -66,29 +67,30 @@ export default function EmployeeManagement() {
     if (!selectedEmp) return;
 
     try {
-      setProcessing(true);
-      await deptHeadApi.updateStaff(selectedEmp.id, {
-        name: newEmpName.trim(),
-        email: newEmpEmail.trim(),
-        phone: newEmpPhone.trim(),
-      });
+      setLocalProcessing(true);
+      await dispatch(updateStaff({
+        id: selectedEmp.id,
+        payload: {
+          name: newEmpName.trim(),
+          email: newEmpEmail.trim(),
+          phone: newEmpPhone.trim(),
+        },
+      })).unwrap();
       setShowEditModal(false);
       setSelectedEmp(null);
-      await fetchEmployees();
     } catch (err) {
-      alert(err.message || 'Failed to update employee');
+      alert(err || 'Failed to update employee');
     } finally {
-      setProcessing(false);
+      setLocalProcessing(false);
     }
   };
 
   const toggleStatus = async (emp) => {
     try {
       const nextStatus = emp.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
-      await deptHeadApi.updateStaffStatus(emp.id, nextStatus);
-      await fetchEmployees();
+      await dispatch(updateStaffStatus({ id: emp.id, status: nextStatus })).unwrap();
     } catch (err) {
-      alert(err.message || 'Failed to update status');
+      alert(err || 'Failed to update status');
     }
   };
 
@@ -114,7 +116,7 @@ export default function EmployeeManagement() {
         <div style={{ background: '#fef2f2', borderLeft: '4px solid #ef4444', padding: '16px', marginBottom: '24px' }}>
           <p style={{ color: '#b91c1c', fontWeight: 'bold' }}>Error</p>
           <p style={{ color: '#dc2626', fontSize: '14px', marginTop: '4px' }}>{error}</p>
-          <button onClick={fetchEmployees} className="button button-ghost" style={{ marginTop: '12px' }}>Retry</button>
+          <button onClick={() => dispatch(fetchStaff({ force: true }))} className="button button-ghost" style={{ marginTop: '12px' }}>Retry</button>
         </div>
       )}
 

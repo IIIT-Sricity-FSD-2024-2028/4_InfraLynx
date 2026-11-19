@@ -1,13 +1,25 @@
 import { useState, useEffect } from 'react';
-import { deptHeadApi } from '../../services/api.js';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  fetchDeptDashboard,
+  fetchDeptComplaints,
+  selectDeptDashboard,
+  selectDeptDashboardStatus,
+  selectDeptDashboardError,
+  selectDeptComplaints,
+  selectDeptComplaintsStatus,
+} from '../../store/depthead/deptHeadSlice.js';
 import ComplaintDetailsModal from './ComplaintDetailsModal.jsx';
 
 export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
-  const [data, setData] = useState(null);
-  const [civilComplaints, setCivilComplaints] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
+  const dispatch = useDispatch();
+  const rawDashboard = useSelector(selectDeptDashboard);
+  const dashboardStatus = useSelector(selectDeptDashboardStatus);
+  const dashboardError = useSelector(selectDeptDashboardError);
+
+  const reduxComplaints = useSelector(selectDeptComplaints);
+  const complaintsStatus = useSelector(selectDeptComplaintsStatus);
+
   const [hoveredCard, setHoveredCard] = useState(null);
 
   // Complaints list filtering & modal states
@@ -18,46 +30,37 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
   const [refreshingComplaints, setRefreshingComplaints] = useState(false);
 
   useEffect(() => {
-    fetchDashboard();
-  }, []);
-
-  const fetchDashboard = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await deptHeadApi.getDashboard();
-      const summary = res.summary || res;
-      
-      let complaints = res.complaints || [];
-      if (complaints.length === 0) {
-        try {
-          const cRes = await deptHeadApi.getComplaints();
-          complaints = cRes || [];
-        } catch (cErr) {
-          console.warn('Fallback getComplaints error:', cErr.message);
-        }
-      }
-
-      setCivilComplaints(complaints);
-      setData({
-        ...summary,
-        departmentName: res.departmentName || summary.departmentName || 'Civil Infrastructure & Roads',
-        recentActivity: res.recentActivity || [],
-      });
-    } catch (err) {
-      setError(err.message || 'Failed to load dashboard data');
-    } finally {
-      setLoading(false);
+    if (dashboardStatus === 'idle') {
+      dispatch(fetchDeptDashboard());
     }
+  }, [dispatch, dashboardStatus]);
+
+  const summary = rawDashboard?.summary || rawDashboard || {};
+  const data = rawDashboard ? {
+    ...summary,
+    departmentName: rawDashboard.departmentName || summary.departmentName || 'Civil Infrastructure & Roads',
+    recentActivity: rawDashboard.recentActivity || [],
+  } : null;
+
+  const civilComplaints = (reduxComplaints && reduxComplaints.length > 0)
+    ? reduxComplaints
+    : (rawDashboard?.complaints || []);
+
+  const loading = (dashboardStatus === 'loading' || dashboardStatus === 'idle') && !data;
+  const error = dashboardError;
+
+  const fetchDashboard = () => {
+    dispatch(fetchDeptDashboard({ force: true }));
+    dispatch(fetchDeptComplaints());
   };
 
   const handleRefreshComplaints = async () => {
     try {
       setRefreshingComplaints(true);
-      const res = await deptHeadApi.getComplaints();
-      setCivilComplaints(res || []);
-    } catch (err) {
-      console.warn('Refresh complaints error:', err.message);
+      await Promise.all([
+        dispatch(fetchDeptDashboard({ force: true })),
+        dispatch(fetchDeptComplaints()),
+      ]);
     } finally {
       setRefreshingComplaints(false);
     }

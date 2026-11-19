@@ -1,44 +1,44 @@
 import { useState, useEffect } from 'react';
-import { deptHeadApi } from '../../services/api.js';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  fetchApprovals,
+  processApprovalDecision,
+  selectDeptApprovals,
+  selectDeptApprovalsStatus,
+  selectDeptApprovalsProcessing,
+} from '../../store/depthead/deptHeadSlice.js';
 
 export default function ApprovalQueue({ onSelectComplaint }) {
-  const [approvals, setApprovals] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const approvals = useSelector(selectDeptApprovals);
+  const approvalsStatus = useSelector(selectDeptApprovalsStatus);
+  const reduxProcessing = useSelector(selectDeptApprovalsProcessing);
+
+  const [localProcessing, setLocalProcessing] = useState(false);
+  const processing = reduxProcessing || localProcessing;
+  const loading = approvalsStatus === 'loading' && approvals.length === 0;
+  const error = approvalsStatus === 'failed' ? 'Failed to load pending approvals' : null;
   
   const [showModal, setShowModal] = useState(false);
   const [modalAction, setModalAction] = useState('REQUEST_REVISION'); // or 'REJECT'
   const [reason, setReason] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
-  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    fetchApprovals();
-  }, []);
-
-  const fetchApprovals = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await deptHeadApi.getApprovals();
-      setApprovals(res || []);
-    } catch (err) {
-      setError(err.message || 'Failed to load pending approvals');
-    } finally {
-      setLoading(false);
+    if (approvalsStatus === 'idle') {
+      dispatch(fetchApprovals());
     }
-  };
+  }, [dispatch, approvalsStatus]);
 
   const handleApprove = async (item) => {
     try {
-      setProcessing(true);
-      const res = await deptHeadApi.processApproval(item.id, { action: 'APPROVE' });
-      alert(res?.message || 'Estimate approved successfully.');
-      await fetchApprovals();
+      setLocalProcessing(true);
+      const actionResult = await dispatch(processApprovalDecision({ id: item.id, action: 'APPROVE' })).unwrap();
+      alert(actionResult?.res?.message || actionResult?.message || 'Estimate approved successfully.');
     } catch (err) {
-      alert(err.message || 'Failed to approve estimate');
+      alert(err || 'Failed to approve estimate');
     } finally {
-      setProcessing(false);
+      setLocalProcessing(false);
     }
   };
 
@@ -47,20 +47,20 @@ export default function ApprovalQueue({ onSelectComplaint }) {
     if ((modalAction === 'REJECT' || modalAction === 'REQUEST_REVISION') && !reason.trim()) return;
     
     try {
-      setProcessing(true);
-      const res = await deptHeadApi.processApproval(selectedItem.id, { 
+      setLocalProcessing(true);
+      const actionResult = await dispatch(processApprovalDecision({ 
+        id: selectedItem.id, 
         action: modalAction, 
         notes: reason 
-      });
-      alert(res?.message || (modalAction === 'FORWARD_TO_COO' ? 'Estimate successfully forwarded to Township COO.' : 'Estimate processed successfully.'));
+      })).unwrap();
+      alert(actionResult?.res?.message || actionResult?.message || (modalAction === 'FORWARD_TO_COO' ? 'Estimate successfully forwarded to Township COO.' : 'Estimate processed successfully.'));
       setShowModal(false);
       setReason('');
       setSelectedItem(null);
-      await fetchApprovals();
     } catch (err) {
-      alert(err.message || `Failed to process ${modalAction.toLowerCase()}`);
+      alert(err || `Failed to process ${modalAction.toLowerCase()}`);
     } finally {
-      setProcessing(false);
+      setLocalProcessing(false);
     }
   };
 
@@ -77,7 +77,7 @@ export default function ApprovalQueue({ onSelectComplaint }) {
       <div style={{ background: '#fef2f2', borderLeft: '4px solid #ef4444', padding: '16px', margin: '16px' }}>
         <p style={{ color: '#b91c1c', fontWeight: 'bold' }}>Error loading queue</p>
         <p style={{ color: '#dc2626', fontSize: '14px', marginTop: '4px' }}>{error}</p>
-        <button onClick={fetchApprovals} className="button button-ghost" style={{ marginTop: '12px' }}>
+        <button onClick={() => dispatch(fetchApprovals({ force: true }))} className="button button-ghost" style={{ marginTop: '12px' }}>
           Retry
         </button>
       </div>
