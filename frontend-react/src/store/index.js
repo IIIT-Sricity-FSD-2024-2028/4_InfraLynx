@@ -1,19 +1,17 @@
-/**
- * Redux Store - Central store for the TIMS frontend
- *
- * Slice <-> Repository mapping (one-to-one):
- *   auth             <- auth/authSlice             <- authController / authApi (Login/Logout/Session)
- *   complaints       <- rwa/complaintsSlice        <- complaintController / complaintApi (RWA portal)
- *   verification     <- rwa/verificationSlice      <- complaintController verify (RWA portal)
- *   rwaUi            <- rwa/uiSlice                <- UI navigation state (RWA portal)
- *   clerkComplaints  <- clerk/complaintsSlice      <- clerkController / complaintApi (Clerk portal)
- *   clerkWorkOrders  <- clerk/workOrdersSlice      <- workOrderController / clerkApi (Clerk portal)
- *   contractor       <- contractor/contractorSlice <- contractorController / contractorApi (Field Contractor portal)
- *   financeInvoices  <- finance/invoicesSlice      <- financeController / financeApi (Finance portal)
- *   financeRateCards <- finance/rateCardsSlice     <- financeController / financeApi (Finance portal)
- *   masterData       <- master/masterDataSlice     <- masterController / masterApi (Master data)
- *   deptHead         <- depthead/deptHeadSlice     <- deptHeadController / deptHeadApi (Department Head portal)
- */
+// Redux Store - Central store for the TIMS frontend
+// Slice <-> Repository mapping (one-to-one):
+//   auth             <- auth/authSlice             <- authController / authApi (Login/Logout/Session)
+//   complaints       <- rwa/complaintsSlice        <- complaintController / complaintApi (RWA portal)
+//   verification     <- rwa/verificationSlice      <- complaintController verify (RWA portal)
+//   rwaUi            <- rwa/uiSlice                <- UI navigation state (RWA portal)
+//   clerkComplaints  <- clerk/complaintsSlice      <- clerkController / complaintApi (Clerk portal)
+//   clerkWorkOrders  <- clerk/workOrdersSlice      <- workOrderController / clerkApi (Clerk portal)
+//   contractor       <- contractor/contractorSlice <- contractorController / contractorApi (Field Contractor portal)
+//   financeInvoices  <- finance/invoicesSlice      <- financeController / financeApi (Finance portal)
+//   financeRateCards <- finance/rateCardsSlice     <- financeController / financeApi (Finance portal)
+//   masterData       <- master/masterDataSlice     <- masterController / masterApi (Master data)
+//   deptHead         <- depthead/deptHeadSlice     <- deptHeadController / deptHeadApi (Department Head portal)
+//   coo              <- coo/cooSlice               <- cooController / cooApi (Township COO portal)
 import { configureStore } from '@reduxjs/toolkit'
 import authReducer from './auth/authSlice.js'
 import complaintsReducer from './rwa/complaintsSlice.js'
@@ -26,6 +24,7 @@ import financeInvoicesReducer from './finance/invoicesSlice.js'
 import financeRateCardsReducer from './finance/rateCardsSlice.js'
 import masterDataReducer from './master/masterDataSlice.js'
 import deptHeadReducer from './depthead/deptHeadSlice.js'
+import cooReducer from './coo/cooSlice.js'
 
 export const store = configureStore({
   reducer: {
@@ -53,5 +52,8 @@ export const store = configureStore({
 
     // Department Head portal slice
     deptHead: deptHeadReducer,
+
+    // Township COO portal slice
+    coo: cooReducer,
   },
 })

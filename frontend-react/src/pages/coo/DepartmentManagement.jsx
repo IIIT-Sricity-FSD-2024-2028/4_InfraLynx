@@ -1,10 +1,19 @@
 import { useState } from 'react';
-import { cooApi } from '../../services/api.js';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  updateCooDepartment,
+  fetchCooDeptStaff,
+  selectCooDeptStaff,
+  selectCooActionStatus,
+} from '../../store/coo/cooSlice.js';
 
-export default function DepartmentManagement({ departments, departmentHeads, onRefresh }) {
+export default function DepartmentManagement({ departments, departmentHeads }) {
+  const dispatch = useDispatch();
+  const staffList = useSelector(selectCooDeptStaff);
+  const actionStatus = useSelector(selectCooActionStatus);
+
   const [modalMode, setModalMode] = useState(null); // 'EDIT' | 'VIEW_STAFF'
   const [selectedDept, setSelectedDept] = useState(null);
-  const [staffList, setStaffList] = useState([]);
   const [loadingStaff, setLoadingStaff] = useState(false);
 
   // Form states
@@ -12,7 +21,8 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
   const [formDescription, setFormDescription] = useState('');
   const [formCode, setFormCode] = useState('');
   const [formBudget, setFormBudget] = useState(1500000);
-  const [submitting, setSubmitting] = useState(false);
+
+  const submitting = actionStatus === 'loading';
 
   function openEditModal(dept) {
     setSelectedDept(dept);
@@ -27,35 +37,28 @@ export default function DepartmentManagement({ departments, departmentHeads, onR
     setSelectedDept(dept);
     setModalMode('VIEW_STAFF');
     setLoadingStaff(true);
-    try {
-      const staff = await cooApi.getDepartmentStaff(dept.id);
-      setStaffList(staff);
-    } catch (err) {
-      alert(`Failed to load staff: ${err.message}`);
-    } finally {
-      setLoadingStaff(false);
-    }
+    await dispatch(fetchCooDeptStaff(dept.id));
+    setLoadingStaff(false);
   }
 
   async function handleSubmitDepartment(e) {
     e.preventDefault();
     if (!formName.trim() || !selectedDept) return;
 
-    try {
-      setSubmitting(true);
-      await cooApi.updateDepartment(selectedDept.id, {
+    const result = await dispatch(updateCooDepartment({
+      id: selectedDept.id,
+      payload: {
         name: formName.trim(),
         description: formDescription.trim(),
         code: formCode.trim(),
         budget: Number(formBudget),
-      });
+      },
+    }));
+    if (!result.error) {
       alert(`Department '${formName}' updated successfully!`);
       setModalMode(null);
-      onRefresh();
-    } catch (err) {
-      alert(`Operation failed: ${err.message}`);
-    } finally {
-      setSubmitting(false);
+    } else {
+      alert(`Operation failed: ${result.payload}`);
     }
   }
 
