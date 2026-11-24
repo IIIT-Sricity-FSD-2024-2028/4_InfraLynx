@@ -1,14 +1,24 @@
 import { useState } from 'react';
-import { cooApi } from '../../services/api.js';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  createCooDeptHead,
+  assignDeptHead,
+  unassignCooDeptHead,
+  fetchCooDeptStaff,
+  selectCooDeptStaff,
+  selectCooActionStatus,
+} from '../../store/coo/cooSlice.js';
 
-export default function DepartmentHeadManagement({ departmentHeads, departments, onRefresh }) {
+export default function DepartmentHeadManagement({ departmentHeads, departments }) {
+  const dispatch = useDispatch();
+  const staffList = useSelector(selectCooDeptStaff);
+  const actionStatus = useSelector(selectCooActionStatus);
+
   const [selectedHead, setSelectedHead] = useState(null);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [targetDeptId, setTargetDeptId] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [staffModalDept, setStaffModalDept] = useState(null);
-  const [staffList, setStaffList] = useState([]);
   const [loadingStaff, setLoadingStaff] = useState(false);
 
   // Create form states
@@ -18,6 +28,8 @@ export default function DepartmentHeadManagement({ departmentHeads, departments,
   const [formPhone, setFormPhone] = useState('');
   const [formDeptId, setFormDeptId] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  const submitting = actionStatus === 'loading';
 
   function openCreateModal() {
     setFormName('');
@@ -40,22 +52,18 @@ export default function DepartmentHeadManagement({ departmentHeads, departments,
       return;
     }
 
-    try {
-      setSubmitting(true);
-      await cooApi.createDepartmentHead({
-        name: formName.trim(),
-        email: formEmail.trim(),
-        password: formPassword,
-        phone: formPhone.trim() || undefined,
-        departmentId: formDeptId || undefined,
-      });
+    const result = await dispatch(createCooDeptHead({
+      name: formName.trim(),
+      email: formEmail.trim(),
+      password: formPassword,
+      phone: formPhone.trim() || undefined,
+      departmentId: formDeptId || undefined,
+    }));
+    if (!result.error) {
       alert(`Department Head '${formName}' created successfully! They can now log in using email '${formEmail.trim()}'.`);
       setCreateModalOpen(false);
-      onRefresh();
-    } catch (err) {
-      alert(`Creation failed: ${err.message}`);
-    } finally {
-      setSubmitting(false);
+    } else {
+      alert(`Creation failed: ${result.payload}`);
     }
   }
 
@@ -71,16 +79,12 @@ export default function DepartmentHeadManagement({ departmentHeads, departments,
       alert('Please select a department.');
       return;
     }
-    try {
-      setSubmitting(true);
-      await cooApi.assignDepartmentHead(targetDeptId, selectedHead.id);
+    const result = await dispatch(assignDeptHead({ deptId: targetDeptId, headId: selectedHead.id }));
+    if (!result.error) {
       alert(`Department Head '${selectedHead.name}' successfully assigned!`);
       setAssignModalOpen(false);
-      onRefresh();
-    } catch (err) {
-      alert(`Assignment failed: ${err.message}`);
-    } finally {
-      setSubmitting(false);
+    } else {
+      alert(`Assignment failed: ${result.payload}`);
     }
   }
 
@@ -89,15 +93,11 @@ export default function DepartmentHeadManagement({ departmentHeads, departments,
     if (!confirm(`Are you sure you want to unassign '${head.name}' from '${head.assignedDepartment.name}'? This will make the department vacant.`)) {
       return;
     }
-    try {
-      setSubmitting(true);
-      await cooApi.unassignDepartmentHead(head.id);
+    const result = await dispatch(unassignCooDeptHead(head.id));
+    if (!result.error) {
       alert(`Department Head '${head.name}' has been unassigned and placed on standby.`);
-      onRefresh();
-    } catch (err) {
-      alert(`Unassignment failed: ${err.message}`);
-    } finally {
-      setSubmitting(false);
+    } else {
+      alert(`Unassignment failed: ${result.payload}`);
     }
   }
 
@@ -108,14 +108,8 @@ export default function DepartmentHeadManagement({ departmentHeads, departments,
     }
     setStaffModalDept(head.assignedDepartment);
     setLoadingStaff(true);
-    try {
-      const staff = await cooApi.getDepartmentStaff(head.assignedDepartment.id);
-      setStaffList(staff);
-    } catch (err) {
-      alert(`Failed to load staff: ${err.message}`);
-    } finally {
-      setLoadingStaff(false);
-    }
+    await dispatch(fetchCooDeptStaff(head.assignedDepartment.id));
+    setLoadingStaff(false);
   }
 
   return (

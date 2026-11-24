@@ -1,25 +1,27 @@
 import { useState, useEffect } from 'react';
-import { cooApi } from '../../services/api.js';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  fetchCooWorkOrderById,
+  selectCooSelectedWorkOrder,
+  selectCooStatus,
+} from '../../store/coo/cooSlice.js';
 
 export default function WorkOrderDetailsModal({ workOrderId, onClose }) {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState(null);
+  const dispatch = useDispatch();
+  const data = useSelector(selectCooSelectedWorkOrder);
+  const cooStatus = useSelector(selectCooStatus);
+
+  const loading = cooStatus === 'loading';
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    async function loadDetails() {
-      try {
-        setLoading(true);
-        const res = await cooApi.getWorkOrderById(workOrderId);
-        setData(res);
-      } catch (err) {
-        setError(err.message || 'Failed to fetch work order details.');
-      } finally {
-        setLoading(false);
-      }
+    if (workOrderId) {
+      setError(null);
+      dispatch(fetchCooWorkOrderById(workOrderId))
+        .unwrap()
+        .catch((err) => setError(err || 'Failed to fetch work order details.'));
     }
-    if (workOrderId) loadDetails();
-  }, [workOrderId]);
+  }, [workOrderId, dispatch]);
 
   return (
     <div className="coo-modal-overlay" onClick={onClose}>

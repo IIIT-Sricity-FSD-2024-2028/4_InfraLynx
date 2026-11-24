@@ -1,6 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTIMS } from '../../context/TIMSContext.jsx';
-import { cooApi, masterApi } from '../../services/api.js';
+import {
+  fetchCooDashboard,
+  fetchCooDepartments,
+  fetchCooDeptHeads,
+  fetchCooWorkOrders,
+  updateCooDepartment,
+  assignDeptHead,
+  createCooDeptHead,
+  unassignCooDeptHead,
+  fetchCooDeptStaff,
+  escalateCooWorkOrder,
+  fetchCooWorkOrderById,
+  selectCooDashboard,
+  selectCooDepartments,
+  selectCooDeptHeads,
+  selectCooWorkOrders,
+  selectCooStatus,
+} from '../../store/coo/cooSlice.js';
+import { selectAllContractors } from '../../store/master/masterDataSlice.js';
 import CooDashboard from './CooDashboard.jsx';
 import DepartmentManagement from './DepartmentManagement.jsx';
 import DepartmentHeadManagement from './DepartmentHeadManagement.jsx';
@@ -9,20 +28,20 @@ import WorkOrderDetailsModal from './WorkOrderDetailsModal.jsx';
 import './styles/CooPortal.css';
 
 export default function CooPortal({ onExitToLanding }) {
-  const { currentUser, contractors: fallbackContractors = [] } = useTIMS();
+  const { currentUser } = useTIMS();
+  const dispatch = useDispatch();
 
-  // Navigation tab state
-  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'departments' | 'department_heads' | 'work_orders'
+  // Read server data from Redux store
+  const dashboardData = useSelector(selectCooDashboard);
+  const departments = useSelector(selectCooDepartments);
+  const departmentHeads = useSelector(selectCooDeptHeads);
+  const workOrders = useSelector(selectCooWorkOrders);
+  const contractors = useSelector(selectAllContractors);
+  const cooStatus = useSelector(selectCooStatus);
+  const loading = cooStatus === 'loading';
 
-  // Data states
-  const [loading, setLoading] = useState(true);
-  const [dashboardData, setDashboardData] = useState(null);
-  const [departments, setDepartments] = useState([]);
-  const [departmentHeads, setDepartmentHeads] = useState([]);
-  const [workOrders, setWorkOrders] = useState([]);
-  const [contractors, setContractors] = useState(fallbackContractors);
-
-  // Filters for work orders tab
+  // Local UI-only state
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [woFilters, setWoFilters] = useState({
     departmentId: 'ALL',
     contractorId: 'ALL',
@@ -31,47 +50,20 @@ export default function CooPortal({ onExitToLanding }) {
     slaStatus: 'ALL',
     search: '',
   });
-
-  // Modal inspection
   const [inspectWorkOrderId, setInspectWorkOrderId] = useState(null);
 
-  // Load all COO data from backend
-  const loadCooData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const [dash, depts, heads, wos, cnts] = await Promise.allSettled([
-        cooApi.getDashboard(),
-        cooApi.getDepartments(),
-        cooApi.getDepartmentHeads(),
-        cooApi.getWorkOrders(woFilters),
-        masterApi.getContractors(),
-      ]);
-
-      if (dash.status === 'fulfilled') setDashboardData(dash.value);
-      if (depts.status === 'fulfilled') setDepartments(depts.value);
-      if (heads.status === 'fulfilled') setDepartmentHeads(heads.value);
-      if (wos.status === 'fulfilled') setWorkOrders(wos.value);
-      if (cnts.status === 'fulfilled') setContractors(cnts.value);
-    } catch (err) {
-      console.warn('Error loading COO portal data:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [woFilters]);
-
+  // Initial data load
   useEffect(() => {
-    loadCooData();
-  }, [loadCooData]);
+    dispatch(fetchCooDashboard());
+    dispatch(fetchCooDepartments());
+    dispatch(fetchCooDeptHeads());
+    dispatch(fetchCooWorkOrders(woFilters));
+  }, [dispatch]);
 
-  // When filters change specifically
-  const handleFilterChange = async (newFilters) => {
+  // Re-fetch work orders when filters change
+  const handleFilterChange = (newFilters) => {
     setWoFilters(newFilters);
-    try {
-      const filtered = await cooApi.getWorkOrders(newFilters);
-      setWorkOrders(filtered);
-    } catch (err) {
-      console.warn('Filter work orders note:', err);
-    }
+    dispatch(fetchCooWorkOrders(newFilters));
   };
 
   return (
@@ -172,7 +164,6 @@ export default function CooPortal({ onExitToLanding }) {
           <DepartmentManagement
             departments={departments}
             departmentHeads={departmentHeads}
-            onRefresh={loadCooData}
           />
         )}
 
@@ -180,7 +171,6 @@ export default function CooPortal({ onExitToLanding }) {
           <DepartmentHeadManagement
             departmentHeads={departmentHeads}
             departments={departments}
-            onRefresh={loadCooData}
           />
         )}
 
