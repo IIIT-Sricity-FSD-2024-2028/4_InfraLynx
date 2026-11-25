@@ -10,11 +10,11 @@ export const confirmFix = createAsyncThunk(
     try {
       const updated = await complaintApi.verifyComplaint(id, payload)
       const resolved = updated?.data || updated
-      // Optimistically update the complaint in complaintsSlice
+      // Update complaint in complaintsSlice using the verified DB response
       dispatch(
         updateComplaintStatus({
           id,
-          changes: { ...resolved, status: 'CLOSED' },
+          changes: { ...resolved, status: resolved?.status || 'CLOSED' },
         })
       )
       return { id, resolved }

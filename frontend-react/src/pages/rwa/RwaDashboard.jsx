@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { selectAllComplaints } from '../../store/rwa/complaintsSlice.js'
 import {
@@ -6,6 +6,12 @@ import {
   dismissNotice,
   navigateTo,
   selectComplaint,
+  selectRwaSearchQuery,
+  selectRwaCategoryFilter,
+  selectRwaStatusFilter,
+  setRwaSearchQuery,
+  setRwaCategoryFilter,
+  setRwaStatusFilter,
 } from '../../store/rwa/uiSlice.js'
 import './styles/RwaDashboard.css'
 
@@ -26,9 +32,9 @@ export default function RwaDashboard({ currentUser, onEdit, onCancel }) {
   const complaints = useSelector(selectAllComplaints)
   const successNotice = useSelector(selectSuccessNotice)
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('ALL')
-  const [selectedStatus, setSelectedStatus] = useState('ALL')
+  const searchQuery      = useSelector(selectRwaSearchQuery)
+  const selectedCategory = useSelector(selectRwaCategoryFilter)
+  const selectedStatus   = useSelector(selectRwaStatusFilter)
 
   const normStatus = (s) => (s || '').toUpperCase().replace(/[\s_-]+/g, '_')
 
@@ -223,7 +229,7 @@ export default function RwaDashboard({ currentUser, onEdit, onCancel }) {
             type="text"
             placeholder="Search by ticket ID, asset, or street..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => dispatch(setRwaSearchQuery(e.target.value))}
             className="search-input"
           />
           <svg className="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -237,7 +243,7 @@ export default function RwaDashboard({ currentUser, onEdit, onCancel }) {
           {['ALL', 'CIVIL', 'ELECTRICAL', 'WATER', 'HORTICULTURE'].map((cat) => (
             <button
               key={cat}
-              onClick={() => setSelectedCategory(cat)}
+              onClick={() => dispatch(setRwaCategoryFilter(cat))}
               className={`btn-filter-category ${selectedCategory === cat ? 'active' : ''}`}
             >
               {cat === 'ALL' ? 'All Categories' : cat.charAt(0) + cat.slice(1).toLowerCase()}
@@ -255,7 +261,7 @@ export default function RwaDashboard({ currentUser, onEdit, onCancel }) {
           ].map((st) => (
             <button
               key={st.id}
-              onClick={() => setSelectedStatus(st.id)}
+              onClick={() => dispatch(setRwaStatusFilter(st.id))}
               className={`btn-filter-status ${selectedStatus === st.id ? 'active' : ''}`}
             >
               {st.label}

@@ -2,10 +2,19 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useForm } from 'react-hook-form'
 import { useTIMS } from '../../context/TIMSContext.jsx'
-import { createWorkOrder } from '../../store/clerk/workOrdersSlice.js'
+import {
+  createWorkOrder,
+  fetchBids,
+  openBidding,
+  submitBid,
+  autoSelectBid,
+  selectWorkOrderBids,
+  selectBidsLoading,
+  selectIsAutoSelecting,
+  selectBiddingSuccessMsg,
+} from '../../store/clerk/workOrdersSlice.js'
 import { selectAllClerkComplaints } from '../../store/clerk/complaintsSlice.js'
 import { selectAuthUser } from '../../store/auth/authSlice.js'
-import { workOrderApi } from '../../services/api.js'
 import './styles/WorkOrderCreate.css'
 
 const PRIORITIES = ['Emergency', 'High', 'Medium', 'Low']
@@ -28,11 +37,11 @@ export default function WorkOrderCreate({
   // Dispatch mode: 'DIRECT' | 'BIDDING'
   const [dispatchMode, setDispatchMode] = useState('DIRECT')
 
-  // Bidding state for when bidding is active
-  const [bids, setBids] = useState([])
-  const [loadingBids, setLoadingBids] = useState(false)
-  const [biddingSuccessMsg, setBiddingSuccessMsg] = useState(null)
-  const [isAutoSelecting, setIsAutoSelecting] = useState(false)
+  // Bidding state from Redux store
+  const bids              = useSelector(selectWorkOrderBids)
+  const loadingBids       = useSelector(selectBidsLoading)
+  const isAutoSelecting   = useSelector(selectIsAutoSelecting)
+  const biddingSuccessMsg = useSelector(selectBiddingSuccessMsg)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // React Hook Form
@@ -95,19 +104,15 @@ export default function WorkOrderCreate({
     }
   }, [filteredContractors, active, setValue])
 
-  // Load existing bids if this work order has bidding open
+  // Load existing bids via Redux thunk if this work order has bidding open
   const loadBids = useCallback(async (woId) => {
     if (!woId) return
-    setLoadingBids(true)
     try {
-      const bidList = await workOrderApi.getBids(woId)
-      setBids(Array.isArray(bidList) ? bidList : [])
+      await dispatch(fetchBids(woId))
     } catch (err) {
-      console.warn('[WorkOrderCreate] Could not load bids:', err.message)
-    } finally {
-      setLoadingBids(false)
+      console.warn('[WorkOrderCreate] Could not load bids:', err?.message)
     }
-  }, [])
+  }, [dispatch])
 
   useEffect(() => {
     if (active?.workOrderId || active?.work_order_id) {
@@ -176,15 +181,12 @@ export default function WorkOrderCreate({
         const woData = result.payload
         const woId = woData?.id || active.id
 
-        // Call backend open-bidding endpoint
+        // Call backend open-bidding endpoint via Redux thunk
         try {
-          await workOrderApi.openBidding(woId)
+          await dispatch(openBidding(woId)).unwrap()
         } catch (bidErr) {
-          console.warn('[WorkOrderCreate] openBidding note:', bidErr.message)
+          console.warn('[WorkOrderCreate] openBidding note:', bidErr)
         }
-
-        setBiddingSuccessMsg(`Work Order opened for multi-contractor bidding! Contractors can now submit quotes.`)
-        await loadBids(woId)
       }
     } catch (err) {
       alert('Error creating work order: ' + (err.message || 'Server error'))
@@ -193,39 +195,35 @@ export default function WorkOrderCreate({
     }
   }
 
-  // Simulate or Add Competing Contractor Bid
+  // Simulate or Add Competing Contractor Bid via Redux thunk
   async function handleSimulateBid(contractorObj, amount, days, justification) {
     const woId = active?.backendWoId || active?.work_order_id || active?.workOrderId || active?.id
     if (!woId) return
 
     try {
-      await workOrderApi.submitBid(woId, {
-        contractor_id: contractorObj.id,
-        bid_amount: amount,
-        estimated_days: days,
-        justification,
-      })
-      await loadBids(woId)
+      await dispatch(submitBid({
+        workOrderId: woId,
+        payload: {
+          contractor_id: contractorObj.id,
+          bid_amount: amount,
+          estimated_days: days,
+          justification,
+        },
+      })).unwrap()
     } catch (err) {
-      alert(`Could not submit bid: ${err.message}`)
+      alert(`Could not submit bid: ${typeof err === 'string' ? err : err?.message}`)
     }
   }
 
-  // Auto-Select Best Contractor based on low cost & better rating
+  // Auto-Select Best Contractor via Redux thunk
   async function handleAutoSelectBest() {
     const woId = active?.backendWoId || active?.work_order_id || active?.workOrderId || active?.id
     if (!woId) return
 
     try {
-      setIsAutoSelecting(true)
-      const res = await workOrderApi.autoSelectBid(woId)
-      const selected = res?.selectedBid || bids[0]
-      setBiddingSuccessMsg(`🎉 Auto-selected best contractor: ${selected?.contractor?.name || 'Top Vendor'} based on composite score (50% Cost + 35% Rating + 15% Timeline)!`)
-      await loadBids(woId)
+      await dispatch(autoSelectBid(woId)).unwrap()
     } catch (err) {
-      alert(`Auto-selection notice: ${err.message}`)
-    } finally {
-      setIsAutoSelecting(false)
+      alert(`Auto-selection notice: ${typeof err === 'string' ? err : err?.message}`)
     }
   }
 

@@ -12,10 +12,18 @@
  * - Falls back to Redux store directly via useSelector if no prop is provided.
  * - Does NOT fetch data independently — all data flows from Redux store through ClerkPortal.
  */
-import { useState, useMemo } from 'react'
-import { useSelector }       from 'react-redux'
+import { useMemo } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { useTIMS }           from '../../context/TIMSContext.jsx'
-import { selectAllClerkComplaints } from '../../store/clerk/complaintsSlice.js'
+import {
+  selectAllClerkComplaints,
+  selectClerkSearchQuery,
+  selectClerkStatusFilter,
+  selectClerkCategoryFilter,
+  setClerkSearchQuery,
+  setClerkStatusFilter,
+  setClerkCategoryFilter,
+} from '../../store/clerk/complaintsSlice.js'
 import { selectAuthUser }           from '../../store/auth/authSlice.js'
 import { isComplaintInClerkDepartment } from './ClerkPortal.jsx'
 import './styles/ClerkDashboard.css'
@@ -67,10 +75,11 @@ export default function ClerkDashboard({
     return reduxComplaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
   }, [propComplaints, reduxComplaints, currentUser])
 
-  // --- 3. Component Local State Management (useState) ---
-  const [searchQuery, setSearchQuery]           = useState('')      // Controlled input for live search (ID, title, block, street)
-  const [selectedStatus, setSelectedStatus]     = useState('ALL')   // Active status filter pill ('ALL', 'TRIAGE', 'ACTIVE', 'COMPLETED', 'CLOSED')
-  const [selectedCategory, setSelectedCategory] = useState('ALL')   // Active civic subcategory filter pill
+  // --- 3. Filter State from Redux Store ---
+  const dispatch         = useDispatch()
+  const searchQuery      = useSelector(selectClerkSearchQuery)
+  const selectedStatus   = useSelector(selectClerkStatusFilter)
+  const selectedCategory = useSelector(selectClerkCategoryFilter)
 
   // Display label of the clerk's assigned department (defaults to 'Operations' if unassigned)
   const deptDisplay = currentUser?.department_name || 'Operations'
@@ -168,23 +177,23 @@ export default function ClerkDashboard({
             type="text"
             placeholder="Search by ID, title, location..."
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+            onChange={e => dispatch(setClerkSearchQuery(e.target.value))}
             className="cd-search-input"
           />
         </div>
         <div className="cd-filter-group">
-          <button onClick={() => setSelectedCategory('ALL')} className={`cd-filter-btn${selectedCategory === 'ALL' ? ' active' : ''}`}>
+          <button onClick={() => dispatch(setClerkCategoryFilter('ALL'))} className={`cd-filter-btn${selectedCategory === 'ALL' ? ' active' : ''}`}>
             All Subcategories
           </button>
           {subcategoryOptions.map(sub => (
-            <button key={sub} onClick={() => setSelectedCategory(sub)} className={`cd-filter-btn${selectedCategory === sub ? ' active' : ''}`}>
+            <button key={sub} onClick={() => dispatch(setClerkCategoryFilter(sub))} className={`cd-filter-btn${selectedCategory === sub ? ' active' : ''}`}>
               {sub}
             </button>
           ))}
         </div>
         <div className="cd-filter-group">
           {STATUS_FILTERS.map(st => (
-            <button key={st.id} onClick={() => setSelectedStatus(st.id)} className={`cd-filter-btn${selectedStatus === st.id ? ' active' : ''}`}>
+            <button key={st.id} onClick={() => dispatch(setClerkStatusFilter(st.id))} className={`cd-filter-btn${selectedStatus === st.id ? ' active' : ''}`}>
               {st.label}
             </button>
           ))}

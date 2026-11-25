@@ -127,6 +127,30 @@ export const rejectComplaint = createAsyncThunk(
   }
 )
 
+/**
+ * [UPDATE / RECALL] Thunk: Recall an accidentally rejected complaint back to triage.
+ * Repository: clerkApi.recallComplaint(id, reason) -> POST /api/v1/clerk/complaints/:id/recall
+ * DB is updated first; Redux state is updated with the returned database response.
+ */
+export const recallComplaint = createAsyncThunk(
+  'clerkComplaints/recall',
+  async ({ id, reason, historyEntry }, { rejectWithValue }) => {
+    try {
+      const res = await clerkApi.recallComplaint(id, reason)
+      const updated = res?.data || res || {}
+      return {
+        id,
+        ...updated,
+        status: updated.status || 'REPORTED',
+        rejection_reason: null,
+        _historyEntry: historyEntry,
+      }
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to recall complaint')
+    }
+  }
+)
+
 // ─── Slice ───────────────────────────────────────────────────────────────────
 
 const complaintsSlice = createSlice({
@@ -136,8 +160,25 @@ const complaintsSlice = createSlice({
     status: 'idle',         // 'idle' | 'loading' | 'succeeded' | 'failed'
     error: null,            // Error message if operation fails
     lastUpdatedId: null,    // ID of the most recently mutated ticket
+    filters: {
+      searchQuery: '',      // Live search input (ID, title, street, block)
+      selectedStatus: 'ALL',// Status filter pill ('ALL', 'TRIAGE', 'ACTIVE', 'COMPLETED', 'CLOSED')
+      selectedCategory: 'ALL', // Subcategory filter pill
+    },
   },
   reducers: {
+    setClerkSearchQuery(state, action) {
+      state.filters.searchQuery = action.payload
+    },
+    setClerkStatusFilter(state, action) {
+      state.filters.selectedStatus = action.payload
+    },
+    setClerkCategoryFilter(state, action) {
+      state.filters.selectedCategory = action.payload
+    },
+    resetClerkFilters(state) {
+      state.filters = { searchQuery: '', selectedStatus: 'ALL', selectedCategory: 'ALL' }
+    },
     /**
      * Patch a complaint's fields in the Redux store from a server response
      */
@@ -220,10 +261,32 @@ const complaintsSlice = createSlice({
           state.lastUpdatedId = id
         }
       })
+
+      // ── recallComplaint ──────────────────────────────────────────────────
+      .addCase(recallComplaint.fulfilled, (state, action) => {
+        const { id, _historyEntry, ...rest } = action.payload
+        const idx = state.items.findIndex(c => c.id === id || c.complaint_code === id)
+        if (idx !== -1) {
+          const prev = state.items[idx]
+          state.items[idx] = {
+            ...prev,
+            ...rest,
+            history: _historyEntry ? [...(prev.history || []), _historyEntry] : prev.history,
+          }
+          state.lastUpdatedId = id
+        }
+      })
   },
 })
 
-export const { patchComplaint, removeComplaint } = complaintsSlice.actions
+export const {
+  setClerkSearchQuery,
+  setClerkStatusFilter,
+  setClerkCategoryFilter,
+  resetClerkFilters,
+  patchComplaint,
+  removeComplaint,
+} = complaintsSlice.actions
 
 // ─── Selectors ───────────────────────────────────────────────────────────────
 
@@ -231,5 +294,8 @@ export const selectAllClerkComplaints   = (state) => state.clerkComplaints.items
 export const selectClerkComplaintsStatus = (state) => state.clerkComplaints.status
 export const selectClerkComplaintsError  = (state) => state.clerkComplaints.error
 export const selectLastUpdatedId         = (state) => state.clerkComplaints.lastUpdatedId
+export const selectClerkSearchQuery      = (state) => state.clerkComplaints.filters.searchQuery
+export const selectClerkStatusFilter     = (state) => state.clerkComplaints.filters.selectedStatus
+export const selectClerkCategoryFilter   = (state) => state.clerkComplaints.filters.selectedCategory
 
 export default complaintsSlice.reducer

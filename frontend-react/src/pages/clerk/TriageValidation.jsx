@@ -5,10 +5,10 @@ import {
   triageComplaint,
   validateComplaint,
   rejectComplaint,
+  recallComplaint,
   selectAllClerkComplaints,
 } from '../../store/clerk/complaintsSlice.js'
 import { selectAuthUser } from '../../store/auth/authSlice.js'
-import { clerkApi } from '../../services/api.js'
 import { isComplaintInClerkDepartment } from './ClerkPortal.jsx'
 import './styles/TriageValidation.css'
 
@@ -171,22 +171,28 @@ export default function TriageValidation({
   }
 
   /**
-   * Recall complaint: Clerks can correct mistakes by un-rejecting an accidentally rejected ticket
+   * Recall complaint: Dispatches recallComplaint thunk — DB updated first, then Redux updated from response.
    */
   async function handleRecall() {
     if (!active || isSubmitting || !recallReason.trim()) return
     setIsSubmitting(true)
     try {
-      const result = await clerkApi.recallComplaint(active.id, recallReason.trim())
       const historyEntry = {
         stage: 'RECALLED_TO_TRIAGE',
         timestamp: new Date().toISOString(),
         actor: `${currentUser?.name || 'Staff'} (Desk Clerk)`,
         note: `Accidental rejection corrected by Desk Clerk: "${recallReason.trim()}". Ticket restored to triage.`,
       }
+      const result = await dispatch(
+        recallComplaint({
+          id: active.id,
+          reason: recallReason.trim(),
+          historyEntry,
+        })
+      ).unwrap()
       const updated = {
         ...(result || active),
-        status: 'REPORTED',
+        status: result?.status || 'REPORTED',
         rejection_reason: null,
         history: [...(active.history || []), historyEntry],
       }
@@ -194,7 +200,7 @@ export default function TriageValidation({
       setRecallReason('')
       alert(`Ticket ${active.complaint_code || active.id} restored to active triage!`)
     } catch (err) {
-      alert('Failed to recall ticket: ' + (err.message || 'Server error'))
+      alert('Failed to recall ticket: ' + (typeof err === 'string' ? err : err?.message || 'Server error'))
     } finally {
       setIsSubmitting(false)
     }

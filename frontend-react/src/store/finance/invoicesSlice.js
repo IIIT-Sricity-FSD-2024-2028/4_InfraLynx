@@ -86,6 +86,51 @@ export const releasePayment = createAsyncThunk(
   }
 )
 
+// Flag a specific invoice line item for review
+export const flagLineItem = createAsyncThunk(
+  'financeInvoices/flagLineItem',
+  async ({ invoiceId, itemKey, reason }, { dispatch, rejectWithValue }) => {
+    try {
+      const result = await financeApi.flagLineItem(invoiceId, itemKey, reason)
+      dispatch(fetchInvoices())
+      return { invoiceId, itemKey, reason, result }
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to flag line item')
+    }
+  }
+)
+
+// Send overrun inquiry to contractor
+export const addOverrunInquiry = createAsyncThunk(
+  'financeInvoices/addOverrunInquiry',
+  async ({ woId, remark }, { dispatch, rejectWithValue }) => {
+    try {
+      const result = await financeApi.addOverrunInquiry(woId, remark)
+      dispatch(fetchInvoices())
+      return { woId, remark, result }
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to issue inquiry')
+    }
+  }
+)
+
+// Resolve overrun inquiry (ACCEPT or CAP_ESTIMATE)
+export const resolveOverrunInquiry = createAsyncThunk(
+  'financeInvoices/resolveOverrunInquiry',
+  async ({ woId, action, finalAmount }, { dispatch, rejectWithValue }) => {
+    try {
+      const result = await financeApi.resolveOverrunInquiry(woId, {
+        action,
+        final_amount: finalAmount,
+      })
+      dispatch(fetchInvoices())
+      return { woId, action, finalAmount, result }
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to settle overrun')
+    }
+  }
+)
+
 const invoicesSlice = createSlice({
   name: 'financeInvoices',
   initialState: {
@@ -97,15 +142,29 @@ const invoicesSlice = createSlice({
     error: null,
     actionError: null,
     notice: null,
+    flaggedItems: {},
+    inquirySentMsg: null,
+    overrunResolutionMsg: null,
+    filters: {
+      selectedDept: 'ALL',
+      selectedStatus: 'ALL',
+      searchQuery: '',
+    },
   },
   reducers: {
     setSelectedInvoice(state, action) {
       state.selectedInvoice = action.payload
       state.reconciliationReport = null
+      state.flaggedItems = {}
+      state.inquirySentMsg = null
+      state.overrunResolutionMsg = null
     },
     clearSelectedInvoice(state) {
       state.selectedInvoice = null
       state.reconciliationReport = null
+      state.flaggedItems = {}
+      state.inquirySentMsg = null
+      state.overrunResolutionMsg = null
     },
     clearInvoiceNotice(state) {
       state.notice = null
@@ -114,6 +173,15 @@ const invoicesSlice = createSlice({
       if (state.selectedInvoice) {
         state.selectedInvoice = { ...state.selectedInvoice, ...action.payload }
       }
+    },
+    setInvoiceDeptFilter(state, action) {
+      state.filters.selectedDept = action.payload
+    },
+    setInvoiceStatusFilter(state, action) {
+      state.filters.selectedStatus = action.payload
+    },
+    setInvoiceSearchQuery(state, action) {
+      state.filters.searchQuery = action.payload
     },
   },
   extraReducers: (builder) => {
@@ -240,6 +308,28 @@ const invoicesSlice = createSlice({
         state.actionStatus = 'failed'
         state.actionError = action.payload
       })
+
+      // flagLineItem
+      .addCase(flagLineItem.fulfilled, (state, action) => {
+        const { itemKey, reason } = action.payload
+        state.flaggedItems[itemKey] = reason
+      })
+
+      // addOverrunInquiry
+      .addCase(addOverrunInquiry.fulfilled, (state, action) => {
+        const { remark } = action.payload
+        state.inquirySentMsg = `Inquiry sent to contractor: "${remark}"`
+      })
+
+      // resolveOverrunInquiry
+      .addCase(resolveOverrunInquiry.fulfilled, (state, action) => {
+        const { action: resAction } = action.payload
+        state.overrunResolutionMsg = `Overrun settled: ${
+          resAction === 'ACCEPT'
+            ? 'Accepted billed amount'
+            : 'Capped at approved estimate'
+        }.`
+      })
   },
 })
 
@@ -248,6 +338,9 @@ export const {
   clearSelectedInvoice,
   clearInvoiceNotice,
   patchSelectedInvoice,
+  setInvoiceDeptFilter,
+  setInvoiceStatusFilter,
+  setInvoiceSearchQuery,
 } = invoicesSlice.actions
 
 export const selectAllInvoices          = (state) => state.financeInvoices?.items || []
@@ -258,6 +351,12 @@ export const selectReconciliationReport = (state) => state.financeInvoices?.reco
 export const selectInvoiceNotice        = (state) => state.financeInvoices?.notice || null
 export const selectActionStatus         = (state) => state.financeInvoices?.actionStatus || 'idle'
 export const selectActionError          = (state) => state.financeInvoices?.actionError || null
+export const selectFlaggedItems         = (state) => state.financeInvoices?.flaggedItems || {}
+export const selectInquirySentMsg       = (state) => state.financeInvoices?.inquirySentMsg || null
+export const selectOverrunResolutionMsg = (state) => state.financeInvoices?.overrunResolutionMsg || null
+export const selectInvoiceDeptFilter    = (state) => state.financeInvoices?.filters?.selectedDept || 'ALL'
+export const selectInvoiceStatusFilter  = (state) => state.financeInvoices?.filters?.selectedStatus || 'ALL'
+export const selectInvoiceSearchQuery   = (state) => state.financeInvoices?.filters?.searchQuery || ''
 export const selectPendingAuditCount    = (state) =>
   (state.financeInvoices?.items || []).filter((i) => i.auditStatus === 'PENDING_AUDIT').length
 

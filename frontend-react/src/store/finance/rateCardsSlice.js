@@ -21,8 +21,13 @@ const rateCardsSlice = createSlice({
     items: [],
     status: 'idle',
     error: null,
+    selectedDept: 'ALL',
   },
-  reducers: {},
+  reducers: {
+    setRateCardDeptFilter(state, action) {
+      state.selectedDept = action.payload
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchRateCards.pending, (state) => {
@@ -40,8 +45,11 @@ const rateCardsSlice = createSlice({
   },
 })
 
-export const selectAllRateCards    = (state) => state.financeRateCards?.items || []
-export const selectRateCardsStatus = (state) => state.financeRateCards?.status || 'idle'
-export const selectRateCardsError  = (state) => state.financeRateCards?.error || null
+export const { setRateCardDeptFilter } = rateCardsSlice.actions
+
+export const selectAllRateCards        = (state) => state.financeRateCards?.items || []
+export const selectRateCardsStatus     = (state) => state.financeRateCards?.status || 'idle'
+export const selectRateCardsError      = (state) => state.financeRateCards?.error || null
+export const selectRateCardDeptFilter  = (state) => state.financeRateCards?.selectedDept || 'ALL'
 
 export default rateCardsSlice.reducer

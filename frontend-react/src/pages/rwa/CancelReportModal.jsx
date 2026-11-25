@@ -1,8 +1,9 @@
 import React from 'react';
+import { useDispatch } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { complaintApi } from '../../services/api.js';
+import { cancelComplaint } from '../../store/rwa/complaintsSlice.js';
 
 const cancelSchema = z.object({
   reasonCategory: z.enum([
@@ -29,6 +30,7 @@ const REASON_LABELS = {
 };
 
 export default function CancelReportModal({ isOpen, complaint, onClose, onSuccess }) {
+  const dispatch = useDispatch();
   if (!isOpen || !complaint) return null;
 
   const {
@@ -47,17 +49,22 @@ export default function CancelReportModal({ isOpen, complaint, onClose, onSucces
   const onSubmit = async (data) => {
     try {
       const fullReason = `${REASON_LABELS[data.reasonCategory] || data.reasonCategory}: ${data.remarks.trim()}`;
-      const res = await complaintApi.cancelComplaint(complaint.id, {
-        reason: fullReason,
-        remarks: data.remarks.trim(),
-        category: data.reasonCategory,
-      });
+      const res = await dispatch(
+        cancelComplaint({
+          id: complaint.id,
+          payload: {
+            reason: fullReason,
+            remarks: data.remarks.trim(),
+            category: data.reasonCategory,
+          },
+        })
+      ).unwrap();
 
       reset();
       if (onSuccess) onSuccess(res);
       onClose();
     } catch (err) {
-      alert(`Failed to cancel complaint: ${err.message}`);
+      alert(`Failed to cancel complaint: ${typeof err === 'string' ? err : err?.message}`);
     }
   };
 
