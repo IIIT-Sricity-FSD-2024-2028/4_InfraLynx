@@ -1,23 +1,24 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { authApi } from '../../services/api.js';
+import { useSelector } from 'react-redux';
+import { selectAuthUser, selectIsAuthenticated } from '../../store/auth/authSlice.js';
 
 /**
  * ProtectedRoute — Role-Based Access Control wrapper for React Router
- * Enforces session authentication and verified role authorization.
+ * Reads authenticated user and session status strictly from the Redux store.
  */
 export default function ProtectedRoute({ children, allowedRoles = [], portalName = 'Portal' }) {
   const location = useLocation();
-  const isAuthed = authApi.isAuthenticated();
-  const cachedUser = authApi.getCachedUser();
+  const isAuthed = useSelector(selectIsAuthenticated);
+  const currentUser = useSelector(selectAuthUser);
 
   // 1. Unauthenticated -> Redirect to landing with return location
-  if (!isAuthed || !cachedUser) {
+  if (!isAuthed || !currentUser) {
     return <Navigate to="/" state={{ from: location, authRequired: true, portalName }} replace />;
   }
 
   // 2. Role validation
-  const userRole = (cachedUser.role || '').toUpperCase();
+  const userRole = (currentUser.role || '').toUpperCase();
   const normalizedAllowed = allowedRoles.map((r) => r.toUpperCase());
 
   // TOWNSHIP_COO has executive override across municipal operational portals

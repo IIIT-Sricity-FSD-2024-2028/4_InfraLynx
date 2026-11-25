@@ -1,5 +1,5 @@
 // Displays empanelled AMC contractor cards and the master rate schedule
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   fetchContractors,
@@ -8,6 +8,10 @@ import {
   selectAllAmcRates,
   selectMasterDataStatus,
 } from '../../store/master/masterDataSlice.js'
+import {
+  selectRateCardDeptFilter,
+  setRateCardDeptFilter,
+} from '../../store/finance/rateCardsSlice.js'
 import './styles/RateCardViewer.css'
 
 export default function RateCardViewer() {
@@ -17,8 +21,8 @@ export default function RateCardViewer() {
   const amcRateCards     = useSelector(selectAllAmcRates) || []
   const masterDataStatus = useSelector(selectMasterDataStatus)
 
-  // ── Local UI-only filter state ─────────────────────────────────────────────
-  const [selectedDept, setSelectedDept] = useState('ALL')
+  // ── Filter state from Redux store ──────────────────────────────────────────
+  const selectedDept = useSelector(selectRateCardDeptFilter)
 
   // Fetch master data if not already loaded (avoids duplicate fetch if portal already loaded it)
   useEffect(() => {
@@ -73,7 +77,7 @@ export default function RateCardViewer() {
             <h3>Master AMC Schedule of Rates</h3>
             <p>Mandatory ceiling rates used by Field Contractors for estimates and Finance for invoice audits.</p>
           </div>
-          <select value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)} className="rate-dept-select">
+          <select value={selectedDept} onChange={(e) => dispatch(setRateCardDeptFilter(e.target.value))} className="rate-dept-select">
             <option value="ALL">All Departments</option>
             <option value="Electrical">Electrical</option>
             <option value="Civil">Civil</option>

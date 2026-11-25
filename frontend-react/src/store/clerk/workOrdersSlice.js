@@ -18,7 +18,7 @@
  *   Rule 11: Redux store remains synchronized with database
  */
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import { clerkApi } from '../../services/api.js'
+import { clerkApi, workOrderApi } from '../../services/api.js'
 
 // ─── Async Thunks (CRUD) ─────────────────────────────────────────────────────
 
@@ -92,6 +92,74 @@ export const escalateWorkOrder = createAsyncThunk(
   }
 )
 
+/**
+ * [READ BIDS] Thunk: Fetch competitive contractor bids for a work order.
+ * Repository: workOrderApi.getBids(workOrderId)
+ */
+export const fetchBids = createAsyncThunk(
+  'clerkWorkOrders/fetchBids',
+  async (workOrderId, { rejectWithValue }) => {
+    try {
+      const bidList = await workOrderApi.getBids(workOrderId)
+      return Array.isArray(bidList) ? bidList : []
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to load bids')
+    }
+  }
+)
+
+/**
+ * [UPDATE - OPEN BIDDING] Thunk: Open a work order for multi-contractor bidding.
+ * Repository: workOrderApi.openBidding(workOrderId)
+ */
+export const openBidding = createAsyncThunk(
+  'clerkWorkOrders/openBidding',
+  async (workOrderId, { dispatch, rejectWithValue }) => {
+    try {
+      const res = await workOrderApi.openBidding(workOrderId)
+      dispatch(fetchBids(workOrderId))
+      return res
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to open bidding')
+    }
+  }
+)
+
+/**
+ * [CREATE BID] Thunk: Submit a contractor bid on an open work order.
+ * Repository: workOrderApi.submitBid(workOrderId, payload)
+ */
+export const submitBid = createAsyncThunk(
+  'clerkWorkOrders/submitBid',
+  async ({ workOrderId, payload }, { dispatch, rejectWithValue }) => {
+    try {
+      const res = await workOrderApi.submitBid(workOrderId, payload)
+      dispatch(fetchBids(workOrderId))
+      return res
+    } catch (err) {
+      return rejectWithValue(err.message || 'Could not submit bid')
+    }
+  }
+)
+
+/**
+ * [UPDATE - AUTO SELECT BID] Thunk: Auto-select best contractor bid.
+ * Repository: workOrderApi.autoSelectBid(workOrderId)
+ */
+export const autoSelectBid = createAsyncThunk(
+  'clerkWorkOrders/autoSelectBid',
+  async (workOrderId, { dispatch, rejectWithValue }) => {
+    try {
+      const res = await workOrderApi.autoSelectBid(workOrderId)
+      dispatch(fetchBids(workOrderId))
+      dispatch(fetchWorkOrders())
+      return res
+    } catch (err) {
+      return rejectWithValue(err.message || 'Auto-selection failed')
+    }
+  }
+)
+
 // ─── Slice ───────────────────────────────────────────────────────────────────
 
 const workOrdersSlice = createSlice({
@@ -102,10 +170,21 @@ const workOrdersSlice = createSlice({
     status: 'idle',     // 'idle' | 'loading' | 'succeeded' | 'failed'
     error: null,
     lastCreated: null,
+    bids: [],           // Competitive bids for the active work order
+    bidsLoading: false,
+    isAutoSelecting: false,
+    biddingSuccessMsg: null,
   },
   reducers: {
     setSelectedWorkOrder(state, action) {
       state.selectedWO = action.payload
+    },
+    setBiddingSuccessMsg(state, action) {
+      state.biddingSuccessMsg = action.payload
+    },
+    clearBiddingState(state) {
+      state.bids = []
+      state.biddingSuccessMsg = null
     },
   },
   extraReducers: (builder) => {
@@ -152,10 +231,45 @@ const workOrdersSlice = createSlice({
           state.items[idx] = { ...state.items[idx], ...rest, escalated: true }
         }
       })
+
+      // ── fetchBids ────────────────────────────────────────────────────────
+      .addCase(fetchBids.pending, (state) => {
+        state.bidsLoading = true
+      })
+      .addCase(fetchBids.fulfilled, (state, action) => {
+        state.bidsLoading = false
+        state.bids = action.payload
+      })
+      .addCase(fetchBids.rejected, (state) => {
+        state.bidsLoading = false
+      })
+
+      // ── openBidding ──────────────────────────────────────────────────────
+      .addCase(openBidding.fulfilled, (state) => {
+        state.biddingSuccessMsg =
+          'Work Order opened for multi-contractor bidding! Contractors can now submit quotes.'
+      })
+
+      // ── autoSelectBid ────────────────────────────────────────────────────
+      .addCase(autoSelectBid.pending, (state) => {
+        state.isAutoSelecting = true
+      })
+      .addCase(autoSelectBid.fulfilled, (state, action) => {
+        state.isAutoSelecting = false
+        const selected = action.payload?.selectedBid || state.bids[0]
+        state.biddingSuccessMsg = `🎉 Auto-selected best contractor: ${selected?.contractor?.name || 'Top Vendor'} based on composite score (50% Cost + 35% Rating + 15% Timeline)!`
+      })
+      .addCase(autoSelectBid.rejected, (state) => {
+        state.isAutoSelecting = false
+      })
   },
 })
 
-export const { setSelectedWorkOrder } = workOrdersSlice.actions
+export const {
+  setSelectedWorkOrder,
+  setBiddingSuccessMsg,
+  clearBiddingState,
+} = workOrdersSlice.actions
 
 // ─── Selectors ───────────────────────────────────────────────────────────────
 
@@ -163,5 +277,9 @@ export const selectAllWorkOrders     = (state) => state.clerkWorkOrders.items
 export const selectWorkOrdersStatus   = (state) => state.clerkWorkOrders.status
 export const selectSelectedWorkOrder  = (state) => state.clerkWorkOrders.selectedWO
 export const selectLastCreatedWO      = (state) => state.clerkWorkOrders.lastCreated
+export const selectWorkOrderBids      = (state) => state.clerkWorkOrders.bids
+export const selectBidsLoading        = (state) => state.clerkWorkOrders.bidsLoading
+export const selectIsAutoSelecting    = (state) => state.clerkWorkOrders.isAutoSelecting
+export const selectBiddingSuccessMsg  = (state) => state.clerkWorkOrders.biddingSuccessMsg
 
 export default workOrdersSlice.reducer

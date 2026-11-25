@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { authApi, systemApi, complaintApi } from '../services/api.js'
+import { systemApi } from '../services/api.js'
 import {
   loginUser,
   logoutUser,
@@ -13,6 +13,7 @@ import {
   selectAllContractors,
   selectAllAmcRates,
 } from '../store/master/masterDataSlice.js'
+import { fetchComplaints as fetchRwaComplaints } from '../store/rwa/complaintsSlice.js'
 
 const INITIAL_CURRENT_USER = null
 
@@ -26,9 +27,7 @@ export function TIMSProvider({ children }) {
   const reduxContractors  = useSelector(selectAllContractors)
   const reduxAmcRateCards = useSelector(selectAllAmcRates)
 
-  const [currentUser, setCurrentUser] = useState(() => {
-    return reduxUser || authApi.getCachedUser() || INITIAL_CURRENT_USER
-  })
+  const [currentUser, setCurrentUser] = useState(() => reduxUser || INITIAL_CURRENT_USER)
 
   // Synchronize local state whenever Redux auth state updates
   useEffect(() => {
@@ -124,16 +123,16 @@ export function TIMSProvider({ children }) {
     } catch (_) {}
   }, [dispatch])
 
-  // Direct fetch helper for components needing live PostgreSQL complaints
+  // Dispatch Redux thunk for complaints refresh
   const refreshComplaints = useCallback(async () => {
     try {
-      const data = await complaintApi.getComplaints()
+      const data = await dispatch(fetchRwaComplaints()).unwrap()
       return Array.isArray(data) ? data : []
     } catch (err) {
-      console.warn('[TIMSContext] Complaints fetch notice:', err.message)
+      console.warn('[TIMSContext] Complaints fetch notice:', err)
       return []
     }
-  }, [])
+  }, [dispatch])
 
   const value = {
     currentUser,

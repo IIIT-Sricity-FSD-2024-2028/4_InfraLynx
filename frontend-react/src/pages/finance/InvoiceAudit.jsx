@@ -1,18 +1,27 @@
 // Invoice list view with filtering, search, and inline action buttons
-import React, { useState } from 'react'
-import { useSelector } from 'react-redux'
-import { selectAllInvoices } from '../../store/finance/invoicesSlice.js'
+import React from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import {
+  selectAllInvoices,
+  selectInvoiceDeptFilter,
+  selectInvoiceStatusFilter,
+  selectInvoiceSearchQuery,
+  setInvoiceDeptFilter,
+  setInvoiceStatusFilter,
+  setInvoiceSearchQuery,
+} from '../../store/finance/invoicesSlice.js'
 import './styles/InvoiceAudit.css'
 
 export default function InvoiceAudit({
   onOpenInvoice,
   onAuthorizeInvoice,
 }) {
+  const dispatch = useDispatch()
   const invoices = useSelector(selectAllInvoices) || []
 
-  const [selectedDept, setSelectedDept]     = useState('ALL')
-  const [selectedStatus, setSelectedStatus] = useState('ALL')
-  const [searchQuery, setSearchQuery]       = useState('')
+  const selectedDept   = useSelector(selectInvoiceDeptFilter)
+  const selectedStatus = useSelector(selectInvoiceStatusFilter)
+  const searchQuery    = useSelector(selectInvoiceSearchQuery)
 
   const filteredInvoices = (invoices || []).filter((inv) => {
     if (selectedDept !== 'ALL' && inv.department !== selectedDept) return false
@@ -47,16 +56,16 @@ export default function InvoiceAudit({
             type="text"
             placeholder="Search by Invoice ID, WO#, Contractor..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => dispatch(setInvoiceSearchQuery(e.target.value))}
             className="audit-search-input"
           />
-          <select value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)} className="audit-select-filter">
+          <select value={selectedDept} onChange={(e) => dispatch(setInvoiceDeptFilter(e.target.value))} className="audit-select-filter">
             <option value="ALL">All Departments</option>
             <option value="Civil">Civil Infrastructure</option>
             <option value="Electrical">Electrical Systems</option>
             <option value="Water">Water &amp; Sanitation</option>
           </select>
-          <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className="audit-select-filter">
+          <select value={selectedStatus} onChange={(e) => dispatch(setInvoiceStatusFilter(e.target.value))} className="audit-select-filter">
             <option value="ALL">All Audit Statuses</option>
             <option value="PENDING_AUDIT">Pending Audit</option>
             <option value="VARIANCE_FLAGGED">Variance Flagged</option>

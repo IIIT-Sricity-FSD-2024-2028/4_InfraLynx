@@ -1,8 +1,9 @@
 import React from 'react';
+import { useDispatch } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { complaintApi } from '../../services/api.js';
+import { updateComplaint } from '../../store/rwa/complaintsSlice.js';
 
 const editSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters long').max(150, 'Title is too long'),
@@ -17,6 +18,7 @@ const editSchema = z.object({
 });
 
 export default function EditReportModal({ isOpen, complaint, onClose, onSuccess }) {
+  const dispatch = useDispatch();
   if (!isOpen || !complaint) return null;
 
   const loc = complaint.location || {};
@@ -57,12 +59,14 @@ export default function EditReportModal({ isOpen, complaint, onClose, onSuccess 
         },
       };
 
-      const updated = await complaintApi.updateComplaint(complaint.id, payload);
+      const updated = await dispatch(
+        updateComplaint({ id: complaint.id, payload })
+      ).unwrap();
       reset(data);
       if (onSuccess) onSuccess(updated);
       onClose();
     } catch (err) {
-      alert(`Failed to update complaint: ${err.message}`);
+      alert(`Failed to update complaint: ${typeof err === 'string' ? err : err?.message}`);
     }
   };
 

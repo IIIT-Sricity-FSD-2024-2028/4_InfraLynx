@@ -3,10 +3,15 @@ import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   fetch3WayCheck,
+  flagLineItem,
+  addOverrunInquiry,
+  resolveOverrunInquiry,
   selectSelectedInvoice,
   selectReconciliationReport,
+  selectFlaggedItems,
+  selectInquirySentMsg,
+  selectOverrunResolutionMsg,
 } from '../../store/finance/invoicesSlice.js'
-import { financeApi } from '../../services/api.js'
 import './styles/InvoiceAudit.css'
 
 export default function InvoiceAuditModal({
@@ -29,12 +34,12 @@ export default function InvoiceAuditModal({
   const [paymentReference, setPaymentReference]       = useState('')
   const [isReleasing, setIsReleasing]                 = useState(false)
 
-  // Overrun inquest workflow (Finance / COO asking contractor why high amount)
-  const [flaggedItems, setFlaggedItems]               = useState({})
-  const [inquiryRemarkInput, setInquiryRemarkInput]   = useState('')
-  const [inquirySentMsg, setInquirySentMsg]           = useState(null)
-  const [showInquiryForm, setShowInquiryForm]         = useState(false)
-  const [overrunResolutionMsg, setOverrunResolutionMsg] = useState(null)
+  // Overrun inquest workflow (Finance / COO asking contractor why high amount) — stored in Redux
+  const flaggedItems         = useSelector(selectFlaggedItems)
+  const inquirySentMsg       = useSelector(selectInquirySentMsg)
+  const overrunResolutionMsg = useSelector(selectOverrunResolutionMsg)
+  const [inquiryRemarkInput, setInquiryRemarkInput] = useState('')
+  const [showInquiryForm, setShowInquiryForm]       = useState(false)
 
   // ── Reset local state when selected invoice changes ───────────────────────
   useEffect(() => {
@@ -47,12 +52,9 @@ export default function InvoiceAuditModal({
       )
       setShowVarianceForm(false)
       setVarianceReasonInput('')
-      // Reset overrun inquest state for new invoice
+      // Reset overrun inquest form state for new invoice
       setShowInquiryForm(false)
       setInquiryRemarkInput('')
-      setInquirySentMsg(null)
-      setOverrunResolutionMsg(null)
-      setFlaggedItems({})
     }
   }, [invoice?.rawId, invoice?.id])
 
@@ -116,15 +118,16 @@ export default function InvoiceAuditModal({
     )
     if (!reason) return
     try {
-      await financeApi.flagLineItem(
-        invoice.rawId || invoice.id,
-        item.id || item.description,
-        reason
-      )
-      setFlaggedItems((prev) => ({ ...prev, [item.id || item.description]: reason }))
+      await dispatch(
+        flagLineItem({
+          invoiceId: invoice.rawId || invoice.id,
+          itemKey: item.id || item.description,
+          reason,
+        })
+      ).unwrap()
       alert(`Line item "${item.description}" flagged for review.`)
     } catch (err) {
-      alert(`Failed to flag item: ${err.message}`)
+      alert(`Failed to flag item: ${typeof err === 'string' ? err : err?.message}`)
     }
   }
 
@@ -134,12 +137,16 @@ export default function InvoiceAuditModal({
       return
     }
     try {
-      await financeApi.addOverrunInquiry(woId, inquiryRemarkInput.trim())
-      setInquirySentMsg(`Inquiry sent to contractor: "${inquiryRemarkInput.trim()}"`)
+      await dispatch(
+        addOverrunInquiry({
+          woId,
+          remark: inquiryRemarkInput.trim(),
+        })
+      ).unwrap()
       setInquiryRemarkInput('')
       setShowInquiryForm(false)
     } catch (err) {
-      alert(`Failed to issue inquiry: ${err.message}`)
+      alert(`Failed to issue inquiry: ${typeof err === 'string' ? err : err?.message}`)
     }
   }
 
@@ -147,16 +154,15 @@ export default function InvoiceAuditModal({
     const finalAmount =
       action === 'ACCEPT' ? invoice.billedAmount : invoice.estimateAmount
     try {
-      await financeApi.resolveOverrunInquiry(woId, { action, final_amount: finalAmount })
-      setOverrunResolutionMsg(
-        `Overrun settled: ${
-          action === 'ACCEPT'
-            ? 'Accepted billed amount'
-            : 'Capped at approved estimate'
-        }.`
-      )
+      await dispatch(
+        resolveOverrunInquiry({
+          woId,
+          action,
+          finalAmount,
+        })
+      ).unwrap()
     } catch (err) {
-      alert(`Failed to settle overrun: ${err.message}`)
+      alert(`Failed to settle overrun: ${typeof err === 'string' ? err : err?.message}`)
     }
   }
 

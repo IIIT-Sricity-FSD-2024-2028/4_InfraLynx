@@ -30,6 +30,34 @@ export const submitComplaint = createAsyncThunk(
   }
 )
 
+export const updateComplaint = createAsyncThunk(
+  'complaints/update',
+  async ({ id, payload }, { dispatch, rejectWithValue }) => {
+    try {
+      const res = await complaintApi.updateComplaint(id, payload)
+      const updated = res?.data || res
+      dispatch(fetchComplaints())
+      return updated
+    } catch (err) {
+      return rejectWithValue(err.message)
+    }
+  }
+)
+
+export const cancelComplaint = createAsyncThunk(
+  'complaints/cancel',
+  async ({ id, payload }, { dispatch, rejectWithValue }) => {
+    try {
+      const res = await complaintApi.cancelComplaint(id, payload)
+      const cancelled = res?.data || res
+      dispatch(fetchComplaints())
+      return cancelled
+    } catch (err) {
+      return rejectWithValue(err.message)
+    }
+  }
+)
+
 // ─── Slice ───────────────────────────────────────────────────────────────────
 
 const complaintsSlice = createSlice({
@@ -40,7 +68,7 @@ const complaintsSlice = createSlice({
     error: null,
   },
   reducers: {
-    // Allow optimistic update from verificationSlice
+    // Update complaint in Redux after a successful DB response from verificationSlice
     updateComplaintStatus(state, action) {
       const { id, changes } = action.payload
       const idx = state.items.findIndex(
@@ -65,6 +93,28 @@ const complaintsSlice = createSlice({
       .addCase(fetchComplaints.rejected, (state, action) => {
         state.status = 'failed'
         state.error = action.payload
+      })
+      // updateComplaint
+      .addCase(updateComplaint.fulfilled, (state, action) => {
+        const updated = action.payload
+        if (!updated?.id) return
+        const idx = state.items.findIndex(
+          (c) => c.id === updated.id || c.complaint_code === updated.id
+        )
+        if (idx !== -1) {
+          state.items[idx] = { ...state.items[idx], ...updated }
+        }
+      })
+      // cancelComplaint
+      .addCase(cancelComplaint.fulfilled, (state, action) => {
+        const cancelled = action.payload
+        if (!cancelled?.id) return
+        const idx = state.items.findIndex(
+          (c) => c.id === cancelled.id || c.complaint_code === cancelled.id
+        )
+        if (idx !== -1) {
+          state.items[idx] = { ...state.items[idx], ...cancelled }
+        }
       })
   },
 })

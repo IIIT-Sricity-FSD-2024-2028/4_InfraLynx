@@ -6,6 +6,11 @@ const uiSlice = createSlice({
     currentScreen: 'dashboard', // 'dashboard' | 'report' | 'track' | 'verify'
     selectedComplaintId: null,  // string complaint ID
     successNotice: null,        // { id, title, message } | null
+    filters: {
+      searchQuery: '',
+      selectedCategory: 'ALL',
+      selectedStatus: 'ALL',
+    },
   },
   reducers: {
     navigateTo(state, action) {
@@ -22,17 +27,36 @@ const uiSlice = createSlice({
     dismissNotice(state) {
       state.successNotice = null
     },
+    setRwaSearchQuery(state, action) {
+      state.filters.searchQuery = action.payload
+    },
+    setRwaCategoryFilter(state, action) {
+      state.filters.selectedCategory = action.payload
+    },
+    setRwaStatusFilter(state, action) {
+      state.filters.selectedStatus = action.payload
+    },
   },
 })
 
-export const { navigateTo, selectComplaint, setSuccessNotice, dismissNotice } =
-  uiSlice.actions
+export const {
+  navigateTo,
+  selectComplaint,
+  setSuccessNotice,
+  dismissNotice,
+  setRwaSearchQuery,
+  setRwaCategoryFilter,
+  setRwaStatusFilter,
+} = uiSlice.actions
 
 // ─── Selectors ───────────────────────────────────────────────────────────────
 
 export const selectCurrentScreen = (state) => state.rwaUi.currentScreen
 export const selectSelectedComplaintId = (state) => state.rwaUi.selectedComplaintId
 export const selectSuccessNotice = (state) => state.rwaUi.successNotice
+export const selectRwaSearchQuery = (state) => state.rwaUi.filters.searchQuery
+export const selectRwaCategoryFilter = (state) => state.rwaUi.filters.selectedCategory
+export const selectRwaStatusFilter = (state) => state.rwaUi.filters.selectedStatus
 
 // Derived: returns full complaint object from complaints slice
 export const selectSelectedComplaint = (state) => {

@@ -13,7 +13,8 @@
  * - Side Effect Cleanup: useEffect with useRef cleanly unmounts any pending setTimeout handles to avoid memory leaks.
  */
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { authApi } from '../../services/api.js'
+import { useDispatch } from 'react-redux'
+import { registerTownship, setUserPassword } from '../../store/auth/authSlice.js'
 import './styles/SignUpModal.css'
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
@@ -93,6 +94,7 @@ export default function SignUpModal({
   onOpenLogin,      // Callback function to open the Login modal instead
   onSignUpSuccess,  // Callback notifying parent of newly provisioned township & credentials
 }) {
+  const dispatch = useDispatch()
   // --- 1. Component State & Controlled Form Hooks ---
   const [step, setStep]                                 = useState(1)           // Active wizard step (1: Details, 2: Plan, 3: Provisioned Credentials)
   const [loading, setLoading]                           = useState(false)       // Async submission loading state (disables buttons & shows spinner)
@@ -147,12 +149,12 @@ export default function SignUpModal({
     if (isStep1Valid) { setApiError(null); setStep(2) }
   }, [formData, isStep1Valid])
 
-    // Submits registration payload to backend auth API and activates township tier
+  // Submits registration payload via Redux thunk and activates township tier
   const handleActivateSubscription = useCallback(async () => {
     setLoading(true)
     setApiError(null)
     try {
-      const data = await authApi.registerTownship({
+      const data = await dispatch(registerTownship({
         townshipName: formData.townshipName.trim(),
         executiveName: formData.executiveName.trim(),
         email: formData.email.trim(),
@@ -160,19 +162,19 @@ export default function SignUpModal({
         address: formData.sector.trim(),
         password: formData.password,
         planLabel: 'Enterprise Municipal Plan',
-      })
+      })).unwrap()
       if (!data) throw new Error('Failed to retrieve registration data.')
       setCreatedData(data)
       setStep(3)
     } catch (err) {
-      console.warn('[SignUp Error]:', err.message)
-      setApiError(err.message || 'Server connection error during onboarding.')
+      console.warn('[SignUp Error]:', typeof err === 'string' ? err : err?.message)
+      setApiError((typeof err === 'string' ? err : err?.message) || 'Server connection error during onboarding.')
     } finally {
       setLoading(false)
     }
-  }, [formData])
+  }, [dispatch, formData])
 
-    // Optional: Allows freshly onboarded COO to update password immediately
+  // Optional: Allows freshly onboarded COO to update password via Redux thunk
   const handleUpdatePassword = useCallback(async (e) => {
     e.preventDefault()
     const pwdErr = validateField('password', newPassword)
@@ -181,17 +183,23 @@ export default function SignUpModal({
     setPasswordUpdateLoading(true)
     setPasswordUpdateMsg(null)
     try {
-      await authApi.setPassword(createdData?.user?.email || formData.email.trim(), newPassword)
+      await dispatch(setUserPassword({
+        emailOrNewPassword: createdData?.user?.email || formData.email.trim(),
+        maybeNewPassword: newPassword,
+      })).unwrap()
       setPasswordUpdateMsg({ type: 'success', text: 'Password successfully updated!' })
       setNewPassword('')
       if (pwdTimerRef.current) clearTimeout(pwdTimerRef.current)
       pwdTimerRef.current = setTimeout(() => setShowPasswordChange(false), 2000)
     } catch (err) {
-      setPasswordUpdateMsg({ type: 'error', text: err.message || 'Could not update password.' })
+      setPasswordUpdateMsg({
+        type: 'error',
+        text: (typeof err === 'string' ? err : err?.message) || 'Could not update password.',
+      })
     } finally {
       setPasswordUpdateLoading(false)
     }
-  }, [newPassword, createdData, formData.email])
+  }, [dispatch, newPassword, createdData, formData.email])
 
     // Launches the COO Directorate portal with the newly created account
   const handleLaunchDirectorate = useCallback(() => {

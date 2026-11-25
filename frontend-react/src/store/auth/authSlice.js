@@ -74,6 +74,39 @@ export const fetchCurrentUser = createAsyncThunk(
   }
 )
 
+/**
+ * Thunk: Register a new Township & Township COO account.
+ * Calls authApi.registerTownship(payload) -> POST /api/v1/auth/register-township.
+ * Database creates user & township first, then Redux auth state is updated.
+ */
+export const registerTownship = createAsyncThunk(
+  'auth/registerTownship',
+  async (payload, { rejectWithValue }) => {
+    try {
+      const data = await authApi.registerTownship(payload)
+      return data
+    } catch (err) {
+      return rejectWithValue(err.message || 'Township registration failed')
+    }
+  }
+)
+
+/**
+ * Thunk: Set or update authenticated user password.
+ * Calls authApi.setPassword(...) -> POST /api/v1/auth/set-password.
+ */
+export const setUserPassword = createAsyncThunk(
+  'auth/setUserPassword',
+  async ({ emailOrNewPassword, maybeNewPassword, currentPassword = '' }, { rejectWithValue }) => {
+    try {
+      const res = await authApi.setPassword(emailOrNewPassword, maybeNewPassword, currentPassword)
+      return res
+    } catch (err) {
+      return rejectWithValue(err.message || 'Could not update password')
+    }
+  }
+)
+
 // ─── Initial State ───────────────────────────────────────────────────────────
 
 const cachedUser = authApi.getCachedUser()
@@ -142,6 +175,24 @@ const authSlice = createSlice({
       .addCase(fetchCurrentUser.fulfilled, (state, action) => {
         state.user = action.payload
         state.isAuthenticated = Boolean(action.payload)
+      })
+
+      // ── registerTownship ─────────────────────────────────────────────────
+      .addCase(registerTownship.pending, (state) => {
+        state.status = 'loading'
+        state.error = null
+      })
+      .addCase(registerTownship.fulfilled, (state, action) => {
+        state.status = 'succeeded'
+        if (action.payload?.user) {
+          state.user = action.payload.user
+          state.isAuthenticated = true
+        }
+        state.error = null
+      })
+      .addCase(registerTownship.rejected, (state, action) => {
+        state.status = 'failed'
+        state.error = action.payload
       })
   },
 })
