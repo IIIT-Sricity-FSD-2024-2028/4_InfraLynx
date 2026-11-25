@@ -1,6 +1,10 @@
-import { useState, useCallback } from 'react'
-import { useTIMS } from '../../context/TIMSContext.jsx'
-import { superAdminApi } from '../../services/api.js'
+import { useState, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { selectAuthUser } from '../../store/auth/authSlice.js'
+import {
+  clearSuperAdminNotice,
+  selectSuperAdminNotice,
+} from '../../store/superadmin/superAdminSlice.js'
 import Overview from './sections/Overview.jsx'
 import TenantsSubscriptions from './sections/TenantsSubscriptions.jsx'
 import UsersAccess from './sections/UsersAccess.jsx'
@@ -14,16 +18,18 @@ const NAV_TABS = [
 ]
 
 export default function SuperAdminPortal({ onExitToLanding }) {
-  const { currentUser } = useTIMS()
+  const dispatch = useDispatch()
+  const currentUser = useSelector(selectAuthUser)
+  const toast = useSelector(selectSuperAdminNotice)
   const [activeTab, setActiveTab] = useState('overview')
-  const [toast, setToast] = useState(null)
 
-  const showToast = useCallback((message, type = 'success') => {
-    setToast({ message, type })
-    setTimeout(() => setToast(null), 3500)
-  }, [])
-
-  const sectionProps = { showToast, api: superAdminApi }
+  useEffect(() => {
+    if (!toast) return undefined
+    const timer = setTimeout(() => {
+      dispatch(clearSuperAdminNotice())
+    }, 3500)
+    return () => clearTimeout(timer)
+  }, [toast, dispatch])
 
   return (
     <div className="sa-shell">
@@ -92,10 +98,9 @@ export default function SuperAdminPortal({ onExitToLanding }) {
 
       {/* ── Main Content ──────────────────────────────────────────────── */}
       <main className="sa-main">
-        {activeTab === 'overview' && <Overview {...sectionProps} />}
-        {activeTab === 'tenants'  && <TenantsSubscriptions {...sectionProps} />}
-        {activeTab === 'users'    && <UsersAccess {...sectionProps} />}
-
+        {activeTab === 'overview' && <Overview />}
+        {activeTab === 'tenants'  && <TenantsSubscriptions />}
+        {activeTab === 'users'    && <UsersAccess />}
       </main>
 
       {/* ── Toast Notification ────────────────────────────────────────── */}
