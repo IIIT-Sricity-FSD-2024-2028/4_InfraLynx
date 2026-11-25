@@ -1,4 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import {
+  fetchSuperAdminOverview,
+  selectSuperAdminOverview,
+  selectSuperAdminOverviewStatus,
+  selectSuperAdminOverviewError,
+} from '../../../store/superadmin/superAdminSlice.js'
 
 const ROLE_LABELS = {
   RWA: 'RWA Rep', DESK_CLERK: 'Desk Clerk', FIELD_CONTRACTOR: 'Field Contractor',
@@ -18,37 +25,27 @@ const ACTION_COLORS = {
   USER_PASSWORD_RESET: '#b45309',
 }
 
-export default function Overview({ api }) {
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState(null)
+export default function Overview() {
+  const dispatch = useDispatch()
+  const data = useSelector(selectSuperAdminOverview)
+  const status = useSelector(selectSuperAdminOverviewStatus)
+  const error = useSelector(selectSuperAdminOverviewError)
+
+  const loading = status === 'loading' && !data
+  const refreshing = status === 'loading' && Boolean(data)
 
   useEffect(() => {
-    let mounted = true
-    setLoading(true)
-    api.getOverview()
-      .then((d) => { if (mounted) { setData(d); setLoading(false) } })
-      .catch((e) => { if (mounted) { setError(e.message); setLoading(false) } })
-    return () => { mounted = false }
-  }, [api])
+    dispatch(fetchSuperAdminOverview())
+  }, [dispatch])
 
-  async function refreshOverview() {
-    setRefreshing(true)
-    try {
-      setData(await api.getOverview())
-      setError(null)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setRefreshing(false)
-    }
+  function refreshOverview() {
+    dispatch(fetchSuperAdminOverview())
   }
 
   if (loading) return (
     <div className="sa-loading"><div className="sa-spinner" /> Loading platform overview…</div>
   )
-  if (error) return (
+  if (error && !data) return (
     <div className="sa-empty">
       <div className="sa-empty-icon">⚠️</div>
       <div className="sa-empty-title">Failed to load overview</div>

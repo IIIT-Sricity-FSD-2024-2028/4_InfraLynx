@@ -1,4 +1,23 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import {
+  fetchSuperAdminUsers,
+  fetchSuperAdminTenants,
+  fetchSuperAdminDepartments,
+  fetchSuperAdminContractors,
+  createSuperAdminUser,
+  updateSuperAdminUser,
+  updateSuperAdminUserStatus,
+  resetSuperAdminUserPassword,
+  setSelectedUser,
+  clearSelectedUser,
+  selectSuperAdminUsers,
+  selectSuperAdminSelectedUser,
+  selectSuperAdminUsersStatus,
+  selectSuperAdminTenants,
+  selectSuperAdminDepartments,
+  selectSuperAdminContractors,
+} from '../../../store/superadmin/superAdminSlice.js'
 
 const ROLE_OPTIONS = ['RWA', 'DESK_CLERK', 'FIELD_CONTRACTOR', 'DEPARTMENT_HEAD', 'FINANCE_CLERK', 'TOWNSHIP_COO', 'SUPER_ADMIN']
 const ROLE_LABELS = {
@@ -326,33 +345,28 @@ function UserDetailModal({ user, onClose, onStatusChange, onResetPassword, onUpd
 }
 
 // ── Main Component ───────────────────────────────────────────────────────────
-export default function UsersAccess({ api, showToast }) {
-  const [users, setUsers] = useState([])
-  const [townships, setTownships] = useState([])
-  const [departments, setDepartments] = useState([])
-  const [contractors, setContractors] = useState([])
-  const [loading, setLoading] = useState(true)
+export default function UsersAccess() {
+  const dispatch = useDispatch()
+  const users = useSelector(selectSuperAdminUsers)
+  const usersStatus = useSelector(selectSuperAdminUsersStatus)
+  const townships = useSelector(selectSuperAdminTenants)
+  const departments = useSelector(selectSuperAdminDepartments)
+  const contractors = useSelector(selectSuperAdminContractors)
+  const selectedUser = useSelector(selectSuperAdminSelectedUser)
+
+  const loading = usersStatus === 'loading' && users.length === 0
   const [search, setSearch] = useState('')
   const [filterRole, setFilterRole] = useState('')
   const [filterTownship, setFilterTownship] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [showCreate, setShowCreate] = useState(false)
-  const [selectedUser, setSelectedUser] = useState(null)
 
-  const loadAll = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [u, t, d, c] = await Promise.all([api.getUsers(), api.getTenants(), api.getDepartments(), api.getContractors()])
-      setUsers(Array.isArray(u) ? u : [])
-      setTownships(Array.isArray(t) ? t : [])
-      setDepartments(Array.isArray(d) ? d : [])
-      setContractors(Array.isArray(c) ? c : [])
-    } catch (e) {
-      showToast(e.message, 'error')
-    } finally { setLoading(false) }
-  }, [api, showToast])
-
-  useEffect(() => { loadAll() }, [loadAll])
+  useEffect(() => {
+    dispatch(fetchSuperAdminUsers())
+    dispatch(fetchSuperAdminTenants())
+    dispatch(fetchSuperAdminDepartments())
+    dispatch(fetchSuperAdminContractors())
+  }, [dispatch])
 
   const filtered = users.filter((u) => {
     const q = search.toLowerCase()
@@ -365,23 +379,22 @@ export default function UsersAccess({ api, showToast }) {
   })
 
   async function handleCreateUser(form) {
-    try { await api.createUser(form); showToast('User account created.', 'success'); setShowCreate(false); loadAll() }
-    catch (e) { showToast(e.message, 'error') }
+    const action = await dispatch(createSuperAdminUser(form))
+    if (createSuperAdminUser.fulfilled.match(action)) {
+      setShowCreate(false)
+    }
   }
 
   async function handleStatusChange(id, status, reason) {
-    try { await api.updateUserStatus(id, status, reason); showToast(`Account ${status.toLowerCase()}.`, 'success'); setSelectedUser(null); loadAll() }
-    catch (e) { showToast(e.message, 'error') }
+    await dispatch(updateSuperAdminUserStatus({ id, status, reason }))
   }
 
   async function handleResetPassword(id, new_password) {
-    try { await api.resetUserPassword(id, new_password); showToast('Password reset successfully.', 'success'); setSelectedUser(null) }
-    catch (e) { showToast(e.message, 'error') }
+    await dispatch(resetSuperAdminUserPassword({ id, new_password }))
   }
 
   async function handleUpdateRole(id, payload) {
-    try { await api.updateUser(id, payload); showToast('Role & assignment updated.', 'success'); setSelectedUser(null); loadAll() }
-    catch (e) { showToast(e.message, 'error') }
+    await dispatch(updateSuperAdminUser({ id, payload }))
   }
 
   return (
@@ -456,7 +469,7 @@ export default function UsersAccess({ api, showToast }) {
                     <td><span style={{ fontSize: 13, color: 'var(--text-soft)' }}>{u.township_name || <span style={{ color: 'var(--primary-dark)', fontWeight: 700 }}>Platform</span>}</span></td>
                     <td><span className={`sa-pill ${(u.status || 'active').toLowerCase()}`}>{u.status}</span></td>
                     <td><span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{u.last_login_at ? new Date(u.last_login_at).toLocaleDateString('en-IN') : '—'}</span></td>
-                    <td><button className="sa-btn sa-btn-ghost sa-btn-sm" onClick={() => setSelectedUser(u)}>Manage →</button></td>
+                    <td><button className="sa-btn sa-btn-ghost sa-btn-sm" onClick={() => dispatch(setSelectedUser(u))}>Manage →</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -471,7 +484,7 @@ export default function UsersAccess({ api, showToast }) {
       {selectedUser && (
         <UserDetailModal
           user={selectedUser}
-          onClose={() => setSelectedUser(null)}
+          onClose={() => dispatch(clearSelectedUser())}
           onStatusChange={handleStatusChange}
           onResetPassword={handleResetPassword}
           onUpdateRole={handleUpdateRole}

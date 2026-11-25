@@ -12,6 +12,7 @@
 //   masterData       <- master/masterDataSlice     <- masterController / masterApi (Master data)
 //   deptHead         <- depthead/deptHeadSlice     <- deptHeadController / deptHeadApi (Department Head portal)
 //   coo              <- coo/cooSlice               <- cooController / cooApi (Township COO portal)
+//   superAdmin       <- superadmin/superAdminSlice <- superAdminController / superAdminApi (Super Admin portal)
 import { configureStore } from '@reduxjs/toolkit'
 import authReducer from './auth/authSlice.js'
 import complaintsReducer from './rwa/complaintsSlice.js'
@@ -25,6 +26,7 @@ import financeRateCardsReducer from './finance/rateCardsSlice.js'
 import masterDataReducer from './master/masterDataSlice.js'
 import deptHeadReducer from './depthead/deptHeadSlice.js'
 import cooReducer from './coo/cooSlice.js'
+import superAdminReducer from './superadmin/superAdminSlice.js'
 
 export const store = configureStore({
   reducer: {
@@ -55,5 +57,8 @@ export const store = configureStore({
 
     // Township COO portal slice
     coo: cooReducer,
+
+    // Super Admin portal slice
+    superAdmin: superAdminReducer,
   },
 })

@@ -1,4 +1,16 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import {
+  fetchSuperAdminTenants,
+  createSuperAdminTenant,
+  updateSuperAdminTenant,
+  updateSuperAdminTenantStatus,
+  setSelectedTenant,
+  clearSelectedTenant,
+  selectSuperAdminTenants,
+  selectSuperAdminSelectedTenant,
+  selectSuperAdminTenantsStatus,
+} from '../../../store/superadmin/superAdminSlice.js'
 
 const PLAN_BADGE = { Enterprise: 'enterprise', Professional: 'professional', Starter: 'starter' }
 
@@ -351,23 +363,21 @@ function TenantDetailModal({ tenant, onClose, onUpdate, onStatusChange }) {
 }
 
 // ── Main Component ───────────────────────────────────────────────────────────
-export default function TenantsSubscriptions({ api, showToast }) {
-  const [tenants, setTenants] = useState([])
-  const [loading, setLoading] = useState(true)
+export default function TenantsSubscriptions() {
+  const dispatch = useDispatch()
+  const tenants = useSelector(selectSuperAdminTenants)
+  const tenantsStatus = useSelector(selectSuperAdminTenantsStatus)
+  const selectedTenant = useSelector(selectSuperAdminSelectedTenant)
+
+  const loading = tenantsStatus === 'loading' && tenants.length === 0
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterPlan, setFilterPlan] = useState('')
   const [showAdd, setShowAdd] = useState(false)
-  const [selectedTenant, setSelectedTenant] = useState(null)
 
-  const loadTenants = useCallback(() => {
-    setLoading(true)
-    api.getTenants()
-      .then((d) => { setTenants(Array.isArray(d) ? d : []); setLoading(false) })
-      .catch((e) => { showToast(e.message, 'error'); setLoading(false) })
-  }, [api, showToast])
-
-  useEffect(() => { loadTenants() }, [loadTenants])
+  useEffect(() => {
+    dispatch(fetchSuperAdminTenants())
+  }, [dispatch])
 
   const filtered = tenants.filter((t) => {
     const q = search.toLowerCase()
@@ -379,21 +389,18 @@ export default function TenantsSubscriptions({ api, showToast }) {
   })
 
   async function handleAddTenant(form) {
-    try { await api.createTenant(form); showToast('Tenant onboarded!', 'success'); setShowAdd(false); loadTenants() }
-    catch (e) { showToast(e.message, 'error') }
+    const action = await dispatch(createSuperAdminTenant(form))
+    if (createSuperAdminTenant.fulfilled.match(action)) {
+      setShowAdd(false)
+    }
   }
 
   async function handleUpdate(id, form) {
-    try { await api.updateTenant(id, form); showToast('Tenant updated.', 'success'); setSelectedTenant(null); loadTenants() }
-    catch (e) { showToast(e.message, 'error') }
+    await dispatch(updateSuperAdminTenant({ id, payload: form }))
   }
 
   async function handleStatusChange(id, status, reason) {
-    try {
-      await api.updateTenantStatus(id, status, reason)
-      showToast(`Tenant ${status === 'SUSPENDED' ? 'suspended' : 'reactivated'}.`, 'success')
-      setSelectedTenant(null); loadTenants()
-    } catch (e) { showToast(e.message, 'error') }
+    await dispatch(updateSuperAdminTenantStatus({ id, status, reason }))
   }
 
   return (
@@ -483,7 +490,7 @@ export default function TenantsSubscriptions({ api, showToast }) {
                       <td><span className="sa-td-mono" style={{ fontWeight: 700 }}>{t.userCount || 0}</span></td>
                       <td><span className="sa-td-mono">{t.complaintCount || 0}</span></td>
                       <td>
-                        <button className="sa-btn sa-btn-ghost sa-btn-sm" onClick={() => setSelectedTenant(t)}>Details →</button>
+                        <button className="sa-btn sa-btn-ghost sa-btn-sm" onClick={() => dispatch(setSelectedTenant(t))}>Details →</button>
                       </td>
                     </tr>
                   )
@@ -498,7 +505,7 @@ export default function TenantsSubscriptions({ api, showToast }) {
       {selectedTenant && (
         <TenantDetailModal
           tenant={selectedTenant}
-          onClose={() => setSelectedTenant(null)}
+          onClose={() => dispatch(clearSelectedTenant())}
           onUpdate={handleUpdate}
           onStatusChange={handleStatusChange}
         />
