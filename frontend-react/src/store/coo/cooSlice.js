@@ -154,6 +154,25 @@ const cooSlice = createSlice({
     error: null,
     actionError: null,
     notice: null,
+    // CooPortal UI
+    activeTab: 'dashboard',
+    woFilters: { departmentId: 'ALL', contractorId: 'ALL', status: 'ALL', priority: 'ALL', slaStatus: 'ALL', search: '' },
+    inspectWorkOrderId: null,
+    woError: null,
+    // DepartmentHeadManagement UI
+    selectedHead: null,
+    assignModalOpen: false,
+    createModalOpen: false,
+    targetDeptId: '',
+    staffModalDept: null,
+    loadingStaff: false,
+    deptHeadForm: { name: '', email: '', password: '', phone: '', deptId: '', showPassword: false },
+    // DepartmentManagement UI
+    deptModalMode: null,
+    selectedDept: null,
+    deptForm: { name: '', description: '', code: '', budget: 1500000 },
+    // TownshipWorkOrders UI
+    woSearch: '',
   },
   reducers: {
     // Set work order for details modal
@@ -168,6 +187,39 @@ const cooSlice = createSlice({
     clearCooNotice(state) {
       state.notice = null
     },
+    // CooPortal
+    setCooActiveTab(state, action) { state.activeTab = action.payload },
+    setCooWoFilters(state, action) { state.woFilters = action.payload },
+    setInspectWorkOrderId(state, action) { state.inspectWorkOrderId = action.payload },
+    setCooWoError(state, action) { state.woError = action.payload },
+    // DepartmentHeadManagement
+    setCooSelectedHead(state, action) { state.selectedHead = action.payload },
+    setCooAssignModalOpen(state, action) { state.assignModalOpen = action.payload },
+    setCooCreateModalOpen(state, action) { state.createModalOpen = action.payload },
+    setCooTargetDeptId(state, action) { state.targetDeptId = action.payload },
+    setCooStaffModalDept(state, action) { state.staffModalDept = action.payload },
+    setCooLoadingStaff(state, action) { state.loadingStaff = action.payload },
+    setCooLoadingStaffFalse(state) { state.loadingStaff = false },
+    setDeptHeadFormField(state, action) {
+      const { key, value } = action.payload
+      state.deptHeadForm[key] = value
+    },
+    resetDeptHeadForm(state) {
+      state.deptHeadForm = { name: '', email: '', password: '', phone: '', deptId: '', showPassword: false }
+    },
+    // DepartmentManagement
+    setCooDeptModalMode(state, action) { state.deptModalMode = action.payload },
+    setCooSelectedDept(state, action) { state.selectedDept = action.payload },
+    setDeptFormField(state, action) {
+      const { key, value } = action.payload
+      state.deptForm[key] = value
+    },
+    resetDeptForm(state, action) {
+      const dept = action.payload
+      state.deptForm = { name: dept?.name || '', description: dept?.description || '', code: dept?.code || '', budget: dept?.budget || 1500000 }
+    },
+    // TownshipWorkOrders
+    setCooWoSearch(state, action) { state.woSearch = action.payload },
   },
   extraReducers: (builder) => {
     // fetchCooDashboard
@@ -328,7 +380,29 @@ const cooSlice = createSlice({
   },
 })
 
-export const { setSelectedWorkOrder, clearSelectedWorkOrder, clearCooNotice } = cooSlice.actions
+export const {
+  setSelectedWorkOrder,
+  clearSelectedWorkOrder,
+  clearCooNotice,
+  setCooActiveTab,
+  setCooWoFilters,
+  setInspectWorkOrderId,
+  setCooWoError,
+  setCooSelectedHead,
+  setCooAssignModalOpen,
+  setCooCreateModalOpen,
+  setCooTargetDeptId,
+  setCooStaffModalDept,
+  setCooLoadingStaff,
+  setCooLoadingStaffFalse,
+  setDeptHeadFormField,
+  resetDeptHeadForm,
+  setCooDeptModalMode,
+  setCooSelectedDept,
+  setDeptFormField,
+  resetDeptForm,
+  setCooWoSearch,
+} = cooSlice.actions
 
 // Selectors — all use optional chaining + safe fallback
 export const selectCooDashboard         = (state) => state.coo?.dashboard || null
@@ -341,5 +415,24 @@ export const selectCooApprovals         = (state) => state.coo?.approvals || []
 export const selectCooStatus            = (state) => state.coo?.status || 'idle'
 export const selectCooActionStatus      = (state) => state.coo?.actionStatus || 'idle'
 export const selectCooNotice            = (state) => state.coo?.notice || null
+// UI selectors — CooPortal
+export const selectCooActiveTab         = (state) => state.coo?.activeTab || 'dashboard'
+export const selectCooWoFilters         = (state) => state.coo?.woFilters || { departmentId: 'ALL', contractorId: 'ALL', status: 'ALL', priority: 'ALL', slaStatus: 'ALL', search: '' }
+export const selectInspectWorkOrderId   = (state) => state.coo?.inspectWorkOrderId || null
+export const selectCooWoError           = (state) => state.coo?.woError || null
+// UI selectors — DepartmentHeadManagement
+export const selectCooSelectedHead      = (state) => state.coo?.selectedHead || null
+export const selectCooAssignModalOpen   = (state) => state.coo?.assignModalOpen || false
+export const selectCooCreateModalOpen   = (state) => state.coo?.createModalOpen || false
+export const selectCooTargetDeptId      = (state) => state.coo?.targetDeptId || ''
+export const selectCooStaffModalDept    = (state) => state.coo?.staffModalDept || null
+export const selectCooLoadingStaff      = (state) => state.coo?.loadingStaff || false
+export const selectDeptHeadForm         = (state) => state.coo?.deptHeadForm || { name: '', email: '', password: '', phone: '', deptId: '', showPassword: false }
+// UI selectors — DepartmentManagement
+export const selectCooDeptModalMode     = (state) => state.coo?.deptModalMode || null
+export const selectCooSelectedDept      = (state) => state.coo?.selectedDept || null
+export const selectCooDeptForm          = (state) => state.coo?.deptForm || { name: '', description: '', code: '', budget: 1500000 }
+// UI selectors — TownshipWorkOrders
+export const selectCooWoSearch          = (state) => state.coo?.woSearch || ''
 
 export default cooSlice.reducer

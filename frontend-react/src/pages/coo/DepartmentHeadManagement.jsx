@@ -1,76 +1,77 @@
-import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   createCooDeptHead,
   assignDeptHead,
   unassignCooDeptHead,
   fetchCooDeptStaff,
+  setCooSelectedHead,
+  setCooAssignModalOpen,
+  setCooCreateModalOpen,
+  setCooTargetDeptId,
+  setCooStaffModalDept,
+  setCooLoadingStaff,
+  setDeptHeadFormField,
+  resetDeptHeadForm,
   selectCooDeptStaff,
   selectCooActionStatus,
+  selectCooSelectedHead,
+  selectCooAssignModalOpen,
+  selectCooCreateModalOpen,
+  selectCooTargetDeptId,
+  selectCooStaffModalDept,
+  selectCooLoadingStaff,
+  selectDeptHeadForm,
 } from '../../store/coo/cooSlice.js';
 
 export default function DepartmentHeadManagement({ departmentHeads, departments }) {
   const dispatch = useDispatch();
-  const staffList = useSelector(selectCooDeptStaff);
-  const actionStatus = useSelector(selectCooActionStatus);
-
-  const [selectedHead, setSelectedHead] = useState(null);
-  const [assignModalOpen, setAssignModalOpen] = useState(false);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [targetDeptId, setTargetDeptId] = useState('');
-  const [staffModalDept, setStaffModalDept] = useState(null);
-  const [loadingStaff, setLoadingStaff] = useState(false);
-
-  // Create form states
-  const [formName, setFormName] = useState('');
-  const [formEmail, setFormEmail] = useState('');
-  const [formPassword, setFormPassword] = useState('');
-  const [formPhone, setFormPhone] = useState('');
-  const [formDeptId, setFormDeptId] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const staffList      = useSelector(selectCooDeptStaff);
+  const actionStatus   = useSelector(selectCooActionStatus);
+  const selectedHead   = useSelector(selectCooSelectedHead);
+  const assignModalOpen  = useSelector(selectCooAssignModalOpen);
+  const createModalOpen  = useSelector(selectCooCreateModalOpen);
+  const targetDeptId   = useSelector(selectCooTargetDeptId);
+  const staffModalDept = useSelector(selectCooStaffModalDept);
+  const loadingStaff   = useSelector(selectCooLoadingStaff);
+  const form           = useSelector(selectDeptHeadForm);
 
   const submitting = actionStatus === 'loading';
 
   function openCreateModal() {
-    setFormName('');
-    setFormEmail('');
-    setFormPassword('');
-    setFormPhone('');
-    setFormDeptId('');
-    setShowPassword(false);
-    setCreateModalOpen(true);
+    dispatch(resetDeptHeadForm());
+    dispatch(setCooCreateModalOpen(true));
   }
 
   async function handleCreateSubmit(e) {
     e.preventDefault();
-    if (!formName.trim() || !formEmail.trim() || !formPassword.trim()) {
+    if (!form.name.trim() || !form.email.trim() || !form.password.trim()) {
       alert('Please fill in Name, Email, and Password.');
       return;
     }
-    if (formPassword.length < 6) {
+    if (form.password.length < 6) {
       alert('Password must be at least 6 characters.');
       return;
     }
 
     const result = await dispatch(createCooDeptHead({
-      name: formName.trim(),
-      email: formEmail.trim(),
-      password: formPassword,
-      phone: formPhone.trim() || undefined,
-      departmentId: formDeptId || undefined,
+      name: form.name.trim(),
+      email: form.email.trim(),
+      password: form.password,
+      phone: form.phone.trim() || undefined,
+      departmentId: form.deptId || undefined,
     }));
     if (!result.error) {
-      alert(`Department Head '${formName}' created successfully! They can now log in using email '${formEmail.trim()}'.`);
-      setCreateModalOpen(false);
+      alert(`Department Head '${form.name}' created successfully! They can now log in using email '${form.email.trim()}'.`);
+      dispatch(setCooCreateModalOpen(false));
     } else {
       alert(`Creation failed: ${result.payload}`);
     }
   }
 
   function openAssignModal(head) {
-    setSelectedHead(head);
-    setTargetDeptId(head.assignedDepartment?.id || '');
-    setAssignModalOpen(true);
+    dispatch(setCooSelectedHead(head));
+    dispatch(setCooTargetDeptId(head.assignedDepartment?.id || ''));
+    dispatch(setCooAssignModalOpen(true));
   }
 
   async function handleAssignSubmit(e) {
@@ -82,7 +83,7 @@ export default function DepartmentHeadManagement({ departmentHeads, departments 
     const result = await dispatch(assignDeptHead({ deptId: targetDeptId, headId: selectedHead.id }));
     if (!result.error) {
       alert(`Department Head '${selectedHead.name}' successfully assigned!`);
-      setAssignModalOpen(false);
+      dispatch(setCooAssignModalOpen(false));
     } else {
       alert(`Assignment failed: ${result.payload}`);
     }
@@ -106,10 +107,10 @@ export default function DepartmentHeadManagement({ departmentHeads, departments 
       alert('This Department Head is not currently assigned to any department.');
       return;
     }
-    setStaffModalDept(head.assignedDepartment);
-    setLoadingStaff(true);
+    dispatch(setCooStaffModalDept(head.assignedDepartment));
+    dispatch(setCooLoadingStaff(true));
     await dispatch(fetchCooDeptStaff(head.assignedDepartment.id));
-    setLoadingStaff(false);
+    dispatch(setCooLoadingStaff(false));
   }
 
   return (
@@ -133,14 +134,10 @@ export default function DepartmentHeadManagement({ departmentHeads, departments 
           <div key={head.id} className="coo-panel depthead-card">
             <div className="coo-panel-header">
               <div className="depthead-header-inner">
-                <div className="depthead-avatar">
-                  {head.name[0]}
-                </div>
+                <div className="depthead-avatar">{head.name[0]}</div>
                 <div>
                   <h4 className="depthead-name">{head.name}</h4>
-                  <div className="depthead-role-label">
-                    Executive Department Head
-                  </div>
+                  <div className="depthead-role-label">Executive Department Head</div>
                 </div>
               </div>
               <span className={`status-pill ${head.status?.toLowerCase()}`}>
@@ -150,17 +147,13 @@ export default function DepartmentHeadManagement({ departmentHeads, departments 
 
             <div className="coo-panel-body depthead-card-body">
               <div className="depthead-info-box">
-                <span className="depthead-info-label">
-                  Assigned Civic Division
-                </span>
+                <span className="depthead-info-label">Assigned Civic Division</span>
                 {head.assignedDepartment ? (
                   <strong className="depthead-division-name">
                     {head.assignedDepartment.name} ({head.assignedDepartment.code})
                   </strong>
                 ) : (
-                  <span className="depthead-standby-tag">
-                    ⚠️ Standby / Unassigned
-                  </span>
+                  <span className="depthead-standby-tag">⚠️ Standby / Unassigned</span>
                 )}
               </div>
 
@@ -206,13 +199,13 @@ export default function DepartmentHeadManagement({ departmentHeads, departments 
 
       {/* ASSIGN / CHANGE DEPARTMENT MODAL */}
       {assignModalOpen && selectedHead && (
-        <div className="coo-modal-overlay" onClick={() => setAssignModalOpen(false)}>
+        <div className="coo-modal-overlay" onClick={() => dispatch(setCooAssignModalOpen(false))}>
           <div className="coo-modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="coo-modal-header">
               <h3 className="coo-modal-title">
                 Assign / Transfer Leadership: {selectedHead.name}
               </h3>
-              <button onClick={() => setAssignModalOpen(false)} className="coo-modal-close-btn">✕</button>
+              <button onClick={() => dispatch(setCooAssignModalOpen(false))} className="coo-modal-close-btn">✕</button>
             </div>
 
             <form onSubmit={handleAssignSubmit}>
@@ -222,12 +215,10 @@ export default function DepartmentHeadManagement({ departmentHeads, departments 
                 </p>
 
                 <div className="coo-form-group">
-                  <label className="coo-form-label">
-                    Target Department:
-                  </label>
+                  <label className="coo-form-label">Target Department:</label>
                   <select
                     value={targetDeptId}
-                    onChange={(e) => setTargetDeptId(e.target.value)}
+                    onChange={(e) => dispatch(setCooTargetDeptId(e.target.value))}
                     required
                     className="coo-select coo-input-full"
                   >
@@ -246,7 +237,7 @@ export default function DepartmentHeadManagement({ departmentHeads, departments 
               </div>
 
               <div className="coo-modal-footer">
-                <button type="button" onClick={() => setAssignModalOpen(false)} className="btn-coo-secondary">
+                <button type="button" onClick={() => dispatch(setCooAssignModalOpen(false))} className="btn-coo-secondary">
                   Cancel
                 </button>
                 <button type="submit" disabled={submitting} className="btn-coo-primary">
@@ -260,13 +251,11 @@ export default function DepartmentHeadManagement({ departmentHeads, departments 
 
       {/* CREATE DEPARTMENT HEAD MODAL */}
       {createModalOpen && (
-        <div className="coo-modal-overlay" onClick={() => setCreateModalOpen(false)}>
+        <div className="coo-modal-overlay" onClick={() => dispatch(setCooCreateModalOpen(false))}>
           <div className="coo-modal-box sm" onClick={(e) => e.stopPropagation()}>
             <div className="coo-modal-header">
-              <h3 className="coo-modal-title">
-                ➕ Create Executive Department Head
-              </h3>
-              <button onClick={() => setCreateModalOpen(false)} className="coo-modal-close-btn">✕</button>
+              <h3 className="coo-modal-title">➕ Create Executive Department Head</h3>
+              <button onClick={() => dispatch(setCooCreateModalOpen(false))} className="coo-modal-close-btn">✕</button>
             </div>
 
             <form onSubmit={handleCreateSubmit}>
@@ -276,14 +265,12 @@ export default function DepartmentHeadManagement({ departmentHeads, departments 
                 </p>
 
                 <div className="coo-form-group">
-                  <label className="coo-form-label">
-                    Official Full Name *
-                  </label>
+                  <label className="coo-form-label">Official Full Name *</label>
                   <input
                     type="text"
                     required
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
+                    value={form.name}
+                    onChange={(e) => dispatch(setDeptHeadFormField({ key: 'name', value: e.target.value }))}
                     placeholder="e.g. Er. Rajesh K. Sharma"
                     className="coo-input coo-input-full"
                   />
@@ -291,26 +278,22 @@ export default function DepartmentHeadManagement({ departmentHeads, departments 
 
                 <div className="coo-form-grid-2col coo-form-group">
                   <div>
-                    <label className="coo-form-label">
-                      Official Email *
-                    </label>
+                    <label className="coo-form-label">Official Email *</label>
                     <input
                       type="email"
                       required
-                      value={formEmail}
-                      onChange={(e) => setFormEmail(e.target.value)}
+                      value={form.email}
+                      onChange={(e) => dispatch(setDeptHeadFormField({ key: 'email', value: e.target.value }))}
                       placeholder="e.g. head.elec@infralynx.com"
                       className="coo-input coo-input-full"
                     />
                   </div>
                   <div>
-                    <label className="coo-form-label">
-                      Contact Phone
-                    </label>
+                    <label className="coo-form-label">Contact Phone</label>
                     <input
                       type="text"
-                      value={formPhone}
-                      onChange={(e) => setFormPhone(e.target.value)}
+                      value={form.phone}
+                      onChange={(e) => dispatch(setDeptHeadFormField({ key: 'phone', value: e.target.value }))}
                       placeholder="+91 99100 87654"
                       className="coo-input coo-input-full"
                     />
@@ -319,23 +302,21 @@ export default function DepartmentHeadManagement({ departmentHeads, departments 
 
                 <div className="coo-form-group">
                   <div className="coo-form-label-row">
-                    <label className="coo-form-label">
-                      Initial Login Password *
-                    </label>
+                    <label className="coo-form-label">Initial Login Password *</label>
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() => dispatch(setDeptHeadFormField({ key: 'showPassword', value: !form.showPassword }))}
                       className="depthead-toggle-btn"
                     >
-                      {showPassword ? 'Hide' : 'Show'}
+                      {form.showPassword ? 'Hide' : 'Show'}
                     </button>
                   </div>
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    type={form.showPassword ? 'text' : 'password'}
                     required
                     minLength={6}
-                    value={formPassword}
-                    onChange={(e) => setFormPassword(e.target.value)}
+                    value={form.password}
+                    onChange={(e) => dispatch(setDeptHeadFormField({ key: 'password', value: e.target.value }))}
                     placeholder="Minimum 6 characters (e.g. Head@2026)"
                     className="coo-input coo-input-full"
                   />
@@ -345,12 +326,10 @@ export default function DepartmentHeadManagement({ departmentHeads, departments 
                 </div>
 
                 <div className="coo-form-group">
-                  <label className="coo-form-label">
-                    Assign Municipal Department (One Head per Dept)
-                  </label>
+                  <label className="coo-form-label">Assign Municipal Department (One Head per Dept)</label>
                   <select
-                    value={formDeptId}
-                    onChange={(e) => setFormDeptId(e.target.value)}
+                    value={form.deptId}
+                    onChange={(e) => dispatch(setDeptHeadFormField({ key: 'deptId', value: e.target.value }))}
                     className="coo-select coo-input-full"
                   >
                     <option value="">-- Standby / Unassigned (Assign Later) --</option>
@@ -370,7 +349,7 @@ export default function DepartmentHeadManagement({ departmentHeads, departments 
               </div>
 
               <div className="coo-modal-footer">
-                <button type="button" onClick={() => setCreateModalOpen(false)} className="btn-coo-secondary">
+                <button type="button" onClick={() => dispatch(setCooCreateModalOpen(false))} className="btn-coo-secondary">
                   Cancel
                 </button>
                 <button type="submit" disabled={submitting} className="btn-coo-primary">
@@ -384,25 +363,21 @@ export default function DepartmentHeadManagement({ departmentHeads, departments 
 
       {/* STAFF DIRECTORY MODAL */}
       {staffModalDept && (
-        <div className="coo-modal-overlay" onClick={() => setStaffModalDept(null)}>
+        <div className="coo-modal-overlay" onClick={() => dispatch(setCooStaffModalDept(null))}>
           <div className="coo-modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="coo-modal-header">
               <div>
                 <span className="coo-modal-title-eyebrow">Department Subordinate Staff</span>
                 <h3 className="coo-modal-title">{staffModalDept.name} Staff ({staffList.length})</h3>
               </div>
-              <button onClick={() => setStaffModalDept(null)} className="coo-modal-close-btn">✕</button>
+              <button onClick={() => dispatch(setCooStaffModalDept(null))} className="coo-modal-close-btn">✕</button>
             </div>
 
             <div className="coo-modal-body">
               {loadingStaff ? (
-                <div className="coo-empty-placeholder">
-                  Loading subordinate workforce...
-                </div>
+                <div className="coo-empty-placeholder">Loading subordinate workforce...</div>
               ) : staffList.length === 0 ? (
-                <div className="coo-empty-placeholder">
-                  No officers currently assigned to this department.
-                </div>
+                <div className="coo-empty-placeholder">No officers currently assigned to this department.</div>
               ) : (
                 <div className="staff-roster-list">
                   {staffList.map((st) => (
@@ -413,9 +388,7 @@ export default function DepartmentHeadManagement({ departmentHeads, departments 
                           {st.email} · {st.phone || '+91 98000 00000'}
                         </div>
                       </div>
-                      <span className={`status-pill ${st.status?.toLowerCase()}`}>
-                        {st.role}
-                      </span>
+                      <span className={`status-pill ${st.status?.toLowerCase()}`}>{st.role}</span>
                     </div>
                   ))}
                 </div>
@@ -423,9 +396,7 @@ export default function DepartmentHeadManagement({ departmentHeads, departments 
             </div>
 
             <div className="coo-modal-footer">
-              <button onClick={() => setStaffModalDept(null)} className="btn-coo-secondary">
-                Close
-              </button>
+              <button onClick={() => dispatch(setCooStaffModalDept(null))} className="btn-coo-secondary">Close</button>
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTIMS } from '../../context/TIMSContext.jsx';
 import {
@@ -6,18 +6,17 @@ import {
   fetchCooDepartments,
   fetchCooDeptHeads,
   fetchCooWorkOrders,
-  updateCooDepartment,
-  assignDeptHead,
-  createCooDeptHead,
-  unassignCooDeptHead,
-  fetchCooDeptStaff,
-  escalateCooWorkOrder,
-  fetchCooWorkOrderById,
+  setCooActiveTab,
+  setCooWoFilters,
+  setInspectWorkOrderId,
   selectCooDashboard,
   selectCooDepartments,
   selectCooDeptHeads,
   selectCooWorkOrders,
   selectCooStatus,
+  selectCooActiveTab,
+  selectCooWoFilters,
+  selectInspectWorkOrderId,
 } from '../../store/coo/cooSlice.js';
 import { selectAllContractors } from '../../store/master/masterDataSlice.js';
 import CooDashboard from './CooDashboard.jsx';
@@ -31,26 +30,17 @@ export default function CooPortal({ onExitToLanding }) {
   const { currentUser } = useTIMS();
   const dispatch = useDispatch();
 
-  // Read server data from Redux store
-  const dashboardData = useSelector(selectCooDashboard);
-  const departments = useSelector(selectCooDepartments);
+  const dashboardData   = useSelector(selectCooDashboard);
+  const departments     = useSelector(selectCooDepartments);
   const departmentHeads = useSelector(selectCooDeptHeads);
-  const workOrders = useSelector(selectCooWorkOrders);
-  const contractors = useSelector(selectAllContractors);
-  const cooStatus = useSelector(selectCooStatus);
-  const loading = cooStatus === 'loading';
+  const workOrders      = useSelector(selectCooWorkOrders);
+  const contractors     = useSelector(selectAllContractors);
+  const cooStatus       = useSelector(selectCooStatus);
+  const activeTab       = useSelector(selectCooActiveTab);
+  const woFilters       = useSelector(selectCooWoFilters);
+  const inspectWorkOrderId = useSelector(selectInspectWorkOrderId);
 
-  // Local UI-only state
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [woFilters, setWoFilters] = useState({
-    departmentId: 'ALL',
-    contractorId: 'ALL',
-    status: 'ALL',
-    priority: 'ALL',
-    slaStatus: 'ALL',
-    search: '',
-  });
-  const [inspectWorkOrderId, setInspectWorkOrderId] = useState(null);
+  const loading = cooStatus === 'loading';
 
   // Initial data load
   useEffect(() => {
@@ -62,13 +52,13 @@ export default function CooPortal({ onExitToLanding }) {
 
   // Re-fetch work orders when filters change
   const handleFilterChange = (newFilters) => {
-    setWoFilters(newFilters);
+    dispatch(setCooWoFilters(newFilters));
     dispatch(fetchCooWorkOrders(newFilters));
   };
 
   return (
     <div className="coo-portal-root">
-      {/* ── Top Executive Header (Matching Landing Page Nav) ── */}
+      {/* ── Top Executive Header ── */}
       <header className="coo-header">
         <div className="coo-header-inner">
           <div className="coo-brand-group">
@@ -106,7 +96,7 @@ export default function CooPortal({ onExitToLanding }) {
       <nav className="coo-nav-bar">
         <div className="coo-nav-inner">
           <button
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() => dispatch(setCooActiveTab('dashboard'))}
             className={`coo-tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
           >
             <span>📊</span>
@@ -114,7 +104,7 @@ export default function CooPortal({ onExitToLanding }) {
           </button>
 
           <button
-            onClick={() => setActiveTab('departments')}
+            onClick={() => dispatch(setCooActiveTab('departments'))}
             className={`coo-tab-btn ${activeTab === 'departments' ? 'active' : ''}`}
           >
             <span>🏛️</span>
@@ -123,7 +113,7 @@ export default function CooPortal({ onExitToLanding }) {
           </button>
 
           <button
-            onClick={() => setActiveTab('department_heads')}
+            onClick={() => dispatch(setCooActiveTab('department_heads'))}
             className={`coo-tab-btn ${activeTab === 'department_heads' ? 'active' : ''}`}
           >
             <span>👤</span>
@@ -132,7 +122,7 @@ export default function CooPortal({ onExitToLanding }) {
           </button>
 
           <button
-            onClick={() => setActiveTab('work_orders')}
+            onClick={() => dispatch(setCooActiveTab('work_orders'))}
             className={`coo-tab-btn ${activeTab === 'work_orders' ? 'active' : ''}`}
           >
             <span>📋</span>
@@ -154,7 +144,7 @@ export default function CooPortal({ onExitToLanding }) {
           <CooDashboard
             dashboardData={dashboardData}
             onNavigateTab={(tab) => {
-              setActiveTab(tab);
+              dispatch(setCooActiveTab(tab));
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           />
@@ -179,7 +169,7 @@ export default function CooPortal({ onExitToLanding }) {
             workOrders={workOrders}
             departments={departments}
             contractors={contractors}
-            onViewDetails={(woId) => setInspectWorkOrderId(woId)}
+            onViewDetails={(woId) => dispatch(setInspectWorkOrderId(woId))}
             onFilterChange={handleFilterChange}
             filters={woFilters}
           />
@@ -190,7 +180,7 @@ export default function CooPortal({ onExitToLanding }) {
       {inspectWorkOrderId && (
         <WorkOrderDetailsModal
           workOrderId={inspectWorkOrderId}
-          onClose={() => setInspectWorkOrderId(null)}
+          onClose={() => dispatch(setInspectWorkOrderId(null))}
         />
       )}
     </div>

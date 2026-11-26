@@ -99,7 +99,9 @@ export function TIMSProvider({ children }) {
     dispatch(fetchAmcRates())
   }, [dispatch])
 
+  // Only fetch master data when backend is reachable AND a user is logged in
   useEffect(() => {
+    if (!backendStatus.connected || !currentUser) return
     refreshMasterData()
   }, [backendStatus.connected, currentUser?.id, refreshMasterData])
 

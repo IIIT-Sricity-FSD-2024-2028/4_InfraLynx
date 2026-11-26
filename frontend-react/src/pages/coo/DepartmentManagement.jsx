@@ -1,62 +1,61 @@
-import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   updateCooDepartment,
   fetchCooDeptStaff,
+  setCooDeptModalMode,
+  setCooSelectedDept,
+  setCooLoadingStaff,
+  setDeptFormField,
+  resetDeptForm,
   selectCooDeptStaff,
   selectCooActionStatus,
+  selectCooDeptModalMode,
+  selectCooSelectedDept,
+  selectCooLoadingStaff,
+  selectCooDeptForm,
 } from '../../store/coo/cooSlice.js';
 
 export default function DepartmentManagement({ departments, departmentHeads }) {
   const dispatch = useDispatch();
-  const staffList = useSelector(selectCooDeptStaff);
+  const staffList    = useSelector(selectCooDeptStaff);
   const actionStatus = useSelector(selectCooActionStatus);
-
-  const [modalMode, setModalMode] = useState(null); // 'EDIT' | 'VIEW_STAFF'
-  const [selectedDept, setSelectedDept] = useState(null);
-  const [loadingStaff, setLoadingStaff] = useState(false);
-
-  // Form states
-  const [formName, setFormName] = useState('');
-  const [formDescription, setFormDescription] = useState('');
-  const [formCode, setFormCode] = useState('');
-  const [formBudget, setFormBudget] = useState(1500000);
+  const modalMode    = useSelector(selectCooDeptModalMode);
+  const selectedDept = useSelector(selectCooSelectedDept);
+  const loadingStaff = useSelector(selectCooLoadingStaff);
+  const form         = useSelector(selectCooDeptForm);
 
   const submitting = actionStatus === 'loading';
 
   function openEditModal(dept) {
-    setSelectedDept(dept);
-    setFormName(dept.name);
-    setFormDescription(dept.description || '');
-    setFormCode(dept.code || '');
-    setFormBudget(dept.budget || 1500000);
-    setModalMode('EDIT');
+    dispatch(setCooSelectedDept(dept));
+    dispatch(resetDeptForm(dept));
+    dispatch(setCooDeptModalMode('EDIT'));
   }
 
   async function openStaffModal(dept) {
-    setSelectedDept(dept);
-    setModalMode('VIEW_STAFF');
-    setLoadingStaff(true);
+    dispatch(setCooSelectedDept(dept));
+    dispatch(setCooDeptModalMode('VIEW_STAFF'));
+    dispatch(setCooLoadingStaff(true));
     await dispatch(fetchCooDeptStaff(dept.id));
-    setLoadingStaff(false);
+    dispatch(setCooLoadingStaff(false));
   }
 
   async function handleSubmitDepartment(e) {
     e.preventDefault();
-    if (!formName.trim() || !selectedDept) return;
+    if (!form.name.trim() || !selectedDept) return;
 
     const result = await dispatch(updateCooDepartment({
       id: selectedDept.id,
       payload: {
-        name: formName.trim(),
-        description: formDescription.trim(),
-        code: formCode.trim(),
-        budget: Number(formBudget),
+        name: form.name.trim(),
+        description: form.description.trim(),
+        code: form.code.trim(),
+        budget: Number(form.budget),
       },
     }));
     if (!result.error) {
-      alert(`Department '${formName}' updated successfully!`);
-      setModalMode(null);
+      alert(`Department '${form.name}' updated successfully!`);
+      dispatch(setCooDeptModalMode(null));
     } else {
       alert(`Operation failed: ${result.payload}`);
     }
@@ -89,7 +88,7 @@ export default function DepartmentManagement({ departments, departmentHeads }) {
               <thead>
                 <tr>
                   <th>Code</th>
-                  <th>Department Name & Scope</th>
+                  <th>Department Name &amp; Scope</th>
                   <th>Department Head</th>
                   <th>Employee Count</th>
                   <th>Active WOs</th>
@@ -101,29 +100,19 @@ export default function DepartmentManagement({ departments, departmentHeads }) {
               <tbody>
                 {departments.map((dept) => (
                   <tr key={dept.id}>
-                    <td>
-                      <span className="dept-code-pill">
-                        {dept.code}
-                      </span>
-                    </td>
+                    <td><span className="dept-code-pill">{dept.code}</span></td>
                     <td className="dept-scope-cell">
                       <strong>{dept.name}</strong>
-                      <div className="dept-scope-desc">
-                        {dept.description}
-                      </div>
+                      <div className="dept-scope-desc">{dept.description}</div>
                     </td>
                     <td>
                       {dept.departmentHead ? (
                         <div>
                           <strong>{dept.departmentHead.name}</strong>
-                          <div className="coo-cell-subtext">
-                            {dept.departmentHead.email}
-                          </div>
+                          <div className="coo-cell-subtext">{dept.departmentHead.email}</div>
                         </div>
                       ) : (
-                        <span className="dept-head-vacant">
-                          ⚠️ Head Vacant
-                        </span>
+                        <span className="dept-head-vacant">⚠️ Head Vacant</span>
                       )}
                     </td>
                     <td>
@@ -165,26 +154,22 @@ export default function DepartmentManagement({ departments, departmentHeads }) {
 
       {/* MODAL: EDIT DEPARTMENT */}
       {modalMode === 'EDIT' && selectedDept && (
-        <div className="coo-modal-overlay" onClick={() => setModalMode(null)}>
+        <div className="coo-modal-overlay" onClick={() => dispatch(setCooDeptModalMode(null))}>
           <div className="coo-modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="coo-modal-header">
-              <h3 className="coo-modal-title">
-                Edit Department: {selectedDept.name}
-              </h3>
-              <button onClick={() => setModalMode(null)} className="coo-modal-close-btn">✕</button>
+              <h3 className="coo-modal-title">Edit Department: {selectedDept.name}</h3>
+              <button onClick={() => dispatch(setCooDeptModalMode(null))} className="coo-modal-close-btn">✕</button>
             </div>
 
             <form onSubmit={handleSubmitDepartment}>
               <div className="coo-modal-body">
                 <div className="coo-form-group">
-                  <label className="coo-form-label">
-                    Department Name *
-                  </label>
+                  <label className="coo-form-label">Department Name *</label>
                   <input
                     type="text"
                     required
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
+                    value={form.name}
+                    onChange={(e) => dispatch(setDeptFormField({ key: 'name', value: e.target.value }))}
                     placeholder="e.g. Civil Infrastructure & Roads"
                     className="coo-input coo-input-full"
                   />
@@ -192,38 +177,32 @@ export default function DepartmentManagement({ departments, departmentHeads }) {
 
                 <div className="coo-form-grid-2col coo-form-group">
                   <div>
-                    <label className="coo-form-label">
-                      Department Code (e.g. CIVL)
-                    </label>
+                    <label className="coo-form-label">Department Code (e.g. CIVL)</label>
                     <input
                       type="text"
-                      value={formCode}
-                      onChange={(e) => setFormCode(e.target.value)}
+                      value={form.code}
+                      onChange={(e) => dispatch(setDeptFormField({ key: 'code', value: e.target.value }))}
                       placeholder="e.g. ELEC, CIVL, WTR"
                       className="coo-input coo-input-full"
                     />
                   </div>
                   <div>
-                    <label className="coo-form-label">
-                      Annual Budget Cap (INR)
-                    </label>
+                    <label className="coo-form-label">Annual Budget Cap (INR)</label>
                     <input
                       type="number"
-                      value={formBudget}
-                      onChange={(e) => setFormBudget(e.target.value)}
+                      value={form.budget}
+                      onChange={(e) => dispatch(setDeptFormField({ key: 'budget', value: e.target.value }))}
                       className="coo-input coo-input-full"
                     />
                   </div>
                 </div>
 
                 <div className="coo-form-group">
-                  <label className="coo-form-label">
-                    Operational Scope & Description
-                  </label>
+                  <label className="coo-form-label">Operational Scope &amp; Description</label>
                   <textarea
                     rows={3}
-                    value={formDescription}
-                    onChange={(e) => setFormDescription(e.target.value)}
+                    value={form.description}
+                    onChange={(e) => dispatch(setDeptFormField({ key: 'description', value: e.target.value }))}
                     placeholder="Detailed civic infrastructure responsibilities, asset categories, and emergency coverage..."
                     className="coo-textarea"
                   />
@@ -231,7 +210,7 @@ export default function DepartmentManagement({ departments, departmentHeads }) {
               </div>
 
               <div className="coo-modal-footer">
-                <button type="button" onClick={() => setModalMode(null)} className="btn-coo-secondary">
+                <button type="button" onClick={() => dispatch(setCooDeptModalMode(null))} className="btn-coo-secondary">
                   Cancel
                 </button>
                 <button type="submit" disabled={submitting} className="btn-coo-primary">
@@ -243,36 +222,29 @@ export default function DepartmentManagement({ departments, departmentHeads }) {
         </div>
       )}
 
-
       {/* MODAL: VIEW DEPARTMENT STAFF */}
       {modalMode === 'VIEW_STAFF' && selectedDept && (
-        <div className="coo-modal-overlay" onClick={() => setModalMode(null)}>
+        <div className="coo-modal-overlay" onClick={() => dispatch(setCooDeptModalMode(null))}>
           <div className="coo-modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="coo-modal-header">
               <div>
                 <span className="coo-modal-title-eyebrow">Department Roster</span>
                 <h3 className="coo-modal-title">{selectedDept.name} Staff ({staffList.length})</h3>
               </div>
-              <button onClick={() => setModalMode(null)} className="coo-modal-close-btn">✕</button>
+              <button onClick={() => dispatch(setCooDeptModalMode(null))} className="coo-modal-close-btn">✕</button>
             </div>
 
             <div className="coo-modal-body">
               {loadingStaff ? (
-                <div className="coo-empty-placeholder">
-                  Loading staff directory...
-                </div>
+                <div className="coo-empty-placeholder">Loading staff directory...</div>
               ) : staffList.length === 0 ? (
-                <div className="coo-empty-placeholder">
-                  No officers currently assigned to this department.
-                </div>
+                <div className="coo-empty-placeholder">No officers currently assigned to this department.</div>
               ) : (
                 <div className="staff-roster-list">
                   {staffList.map((st) => (
                     <div key={st.id} className="staff-roster-item">
                       <div className="staff-roster-info">
-                        <div className="staff-roster-avatar">
-                          {st.name[0]}
-                        </div>
+                        <div className="staff-roster-avatar">{st.name[0]}</div>
                         <div>
                           <strong>{st.name}</strong>
                           <div className="coo-cell-subtext">
@@ -280,9 +252,7 @@ export default function DepartmentManagement({ departments, departmentHeads }) {
                           </div>
                         </div>
                       </div>
-                      <span className={`status-pill ${st.status?.toLowerCase()}`}>
-                        {st.role}
-                      </span>
+                      <span className={`status-pill ${st.status?.toLowerCase()}`}>{st.role}</span>
                     </div>
                   ))}
                 </div>
@@ -290,9 +260,7 @@ export default function DepartmentManagement({ departments, departmentHeads }) {
             </div>
 
             <div className="coo-modal-footer">
-              <button onClick={() => setModalMode(null)} className="btn-coo-secondary">
-                Close
-              </button>
+              <button onClick={() => dispatch(setCooDeptModalMode(null))} className="btn-coo-secondary">Close</button>
             </div>
           </div>
         </div>

@@ -1,4 +1,8 @@
-import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  setCooWoSearch,
+  selectCooWoSearch,
+} from '../../store/coo/cooSlice.js';
 
 export default function TownshipWorkOrders({
   workOrders,
@@ -8,7 +12,8 @@ export default function TownshipWorkOrders({
   onFilterChange,
   filters,
 }) {
-  const [search, setSearch] = useState(filters.search || '');
+  const dispatch = useDispatch();
+  const search = useSelector(selectCooWoSearch);
 
   function handleSearchSubmit(e) {
     e.preventDefault();
@@ -41,7 +46,7 @@ export default function TownshipWorkOrders({
               type="text"
               placeholder="Search by WO#, Complaint Title, Code, Vendor..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => dispatch(setCooWoSearch(e.target.value))}
               className="coo-input"
             />
 
@@ -108,13 +113,11 @@ export default function TownshipWorkOrders({
               <option value="OVERDUE">🚨 Overdue / Breached</option>
             </select>
 
-            <button type="submit" className="btn-coo-primary">
-              Filter
-            </button>
+            <button type="submit" className="btn-coo-primary">Filter</button>
             <button
               type="button"
               onClick={() => {
-                setSearch('');
+                dispatch(setCooWoSearch(''));
                 onFilterChange({
                   departmentId: 'ALL',
                   contractorId: 'ALL',
@@ -139,7 +142,7 @@ export default function TownshipWorkOrders({
             <table className="coo-table">
               <thead>
                 <tr>
-                  <th>Work Order & Task</th>
+                  <th>Work Order &amp; Task</th>
                   <th>Department</th>
                   <th>Contractor</th>
                   <th>Priority</th>
@@ -169,16 +172,12 @@ export default function TownshipWorkOrders({
                         </div>
                       </td>
                       <td>
-                        <span className="dept-scope-desc">
-                          {wo.department?.name || 'General Municipal'}
-                        </span>
+                        <span className="dept-scope-desc">{wo.department?.name || 'General Municipal'}</span>
                       </td>
                       <td>
                         <div>
                           <strong>{wo.contractor?.name || 'Unassigned'}</strong>
-                          <div className="coo-cell-subtext">
-                            {wo.contractor?.contactPerson}
-                          </div>
+                          <div className="coo-cell-subtext">{wo.contractor?.contactPerson}</div>
                         </div>
                       </td>
                       <td>
@@ -189,16 +188,12 @@ export default function TownshipWorkOrders({
                       <td>
                         <strong>₹{wo.estimatedCost?.toLocaleString('en-IN')}</strong>
                         {wo.actualCost && (
-                          <div className="coo-cell-subtext">
-                            Act: ₹{wo.actualCost?.toLocaleString('en-IN')}
-                          </div>
+                          <div className="coo-cell-subtext">Act: ₹{wo.actualCost?.toLocaleString('en-IN')}</div>
                         )}
                       </td>
                       <td>
                         {wo.isOverdue ? (
-                          <span className="wo-sla-overdue">
-                            🚨 Overdue
-                          </span>
+                          <span className="wo-sla-overdue">🚨 Overdue</span>
                         ) : (
                           <span className="wo-sla-target">
                             {wo.slaDeadline ? new Date(wo.slaDeadline).toLocaleDateString() : 'Active Target'}
@@ -206,9 +201,7 @@ export default function TownshipWorkOrders({
                         )}
                       </td>
                       <td>
-                        <span className={`status-pill ${wo.status?.toLowerCase()}`}>
-                          {wo.status}
-                        </span>
+                        <span className={`status-pill ${wo.status?.toLowerCase()}`}>{wo.status}</span>
                       </td>
                       <td className="align-right" onClick={(e) => e.stopPropagation()}>
                         <button

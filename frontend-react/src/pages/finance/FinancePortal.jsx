@@ -1,5 +1,5 @@
 // Finance portal shell: tab navigation and modal host
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import FinanceDashboard from './FinanceDashboard.jsx'
@@ -15,9 +15,11 @@ import {
   setSelectedInvoice,
   clearSelectedInvoice,
   clearInvoiceNotice,
+  setFinanceCurrentScreen,
   selectSelectedInvoice,
   selectInvoiceNotice,
   selectPendingAuditCount,
+  selectFinanceCurrentScreen,
 } from '../../store/finance/invoicesSlice.js'
 
 import { fetchContractors, fetchAmcRates } from '../../store/master/masterDataSlice.js'
@@ -32,8 +34,7 @@ export default function FinancePortal({ onExitToLanding }) {
   const activeInvoiceModal = useSelector(selectSelectedInvoice)
   const notice = useSelector(selectInvoiceNotice)
   const pendingAuditCount = useSelector(selectPendingAuditCount)
-
-  const [currentScreen, setCurrentScreen] = useState('dashboard')
+  const currentScreen = useSelector(selectFinanceCurrentScreen)
 
   // Load finance and master data on mount
   useEffect(() => {
@@ -49,7 +50,7 @@ export default function FinancePortal({ onExitToLanding }) {
   }, [currentScreen, dispatch])
 
   function handleNavigate(screen) {
-    setCurrentScreen(screen)
+    dispatch(setFinanceCurrentScreen(screen))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
