@@ -111,11 +111,72 @@ export const setUserPassword = createAsyncThunk(
 
 const cachedUser = authApi.getCachedUser()
 
+const defaultSignUpForm = {
+  townshipName: '',
+  executiveName: '',
+  email: '',
+  phone: '',
+  sector: '',
+  password: '',
+  confirmPassword: '',
+  agreeTerms: false,
+}
+
+const defaultContactForm = {
+  name: '',
+  role: '',
+  township: '',
+  sectors: '5 to 15 Sectors',
+  email: '',
+  domain: 'All Municipal Departments',
+  message: '',
+}
+
 const initialState = {
   user: cachedUser,
   isAuthenticated: Boolean(cachedUser && authApi.isAuthenticated()),
   status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
   error: null,
+  backendStatus: {
+    connected: false,
+    checking: true,
+    environment: null,
+    database: null,
+  },
+  appUi: {
+    authOpen: false,
+    authRole: null,
+    authNotice: null,
+    signUpOpen: false,
+  },
+  authModalUi: {
+    formData: { email: '', password: '' },
+    errors: {},
+    touched: {},
+    loading: false,
+    errorMsg: null,
+    submitted: false,
+    detectedPortal: 'rwa',
+    detectedUserName: '',
+  },
+  signUpModalUi: {
+    step: 1,
+    loading: false,
+    apiError: null,
+    formData: defaultSignUpForm,
+    touched: {},
+    showPasswordChange: false,
+    newPassword: '',
+    passwordUpdateMsg: null,
+    passwordUpdateLoading: false,
+    createdData: null,
+  },
+  landingUi: {
+    mobileMenuOpen: false,
+    activeActorId: 'rwa',
+    contactSubmitted: false,
+    contactForm: defaultContactForm,
+  },
 }
 
 // ─── Slice ───────────────────────────────────────────────────────────────────
@@ -133,6 +194,70 @@ const authSlice = createSlice({
       state.isAuthenticated = false
       state.status = 'idle'
       state.error = null
+    },
+    setBackendStatus(state, action) {
+      state.backendStatus = action.payload
+    },
+    setAppUiField(state, action) {
+      const { field, value } = action.payload
+      if (field in state.appUi) state.appUi[field] = value
+    },
+    openAuthModal(state, action) {
+      const role = action.payload
+      state.appUi.authRole = typeof role === 'string' ? role : null
+      state.appUi.authNotice = null
+      state.appUi.authOpen = true
+    },
+    closeAuthModal(state) {
+      state.appUi.authOpen = false
+      state.appUi.authNotice = null
+    },
+    setAuthModalUiField(state, action) {
+      const { field, value } = action.payload
+      if (field in state.authModalUi) state.authModalUi[field] = value
+    },
+    setAuthFormField(state, action) {
+      const { field, value } = action.payload
+      state.authModalUi.formData[field] = value
+    },
+    setAuthTouchedField(state, action) {
+      const field = action.payload
+      state.authModalUi.touched[field] = true
+    },
+    setAuthErrorField(state, action) {
+      const { field, error } = action.payload
+      state.authModalUi.errors[field] = error
+    },
+    resetAuthModalForm(state) {
+      state.authModalUi = {
+        formData: { email: '', password: '' },
+        errors: {},
+        touched: {},
+        loading: false,
+        errorMsg: null,
+        submitted: false,
+        detectedPortal: state.authModalUi.detectedPortal,
+        detectedUserName: state.authModalUi.detectedUserName,
+      }
+    },
+    setSignUpModalUiField(state, action) {
+      const { field, value } = action.payload
+      if (field in state.signUpModalUi) state.signUpModalUi[field] = value
+    },
+    setSignUpFormField(state, action) {
+      const { field, value } = action.payload
+      state.signUpModalUi.formData[field] = value
+    },
+    setSignUpTouchedField(state, action) {
+      state.signUpModalUi.touched[action.payload] = true
+    },
+    setLandingUiField(state, action) {
+      const { field, value } = action.payload
+      if (field in state.landingUi) state.landingUi[field] = value
+    },
+    setContactFormField(state, action) {
+      const { field, value } = action.payload
+      state.landingUi.contactForm[field] = value
     },
   },
   extraReducers: (builder) => {
@@ -197,7 +322,24 @@ const authSlice = createSlice({
   },
 })
 
-export const { setUser, clearAuth } = authSlice.actions
+export const {
+  setUser,
+  clearAuth,
+  setBackendStatus,
+  setAppUiField,
+  openAuthModal,
+  closeAuthModal,
+  setAuthModalUiField,
+  setAuthFormField,
+  setAuthTouchedField,
+  setAuthErrorField,
+  resetAuthModalForm,
+  setSignUpModalUiField,
+  setSignUpFormField,
+  setSignUpTouchedField,
+  setLandingUiField,
+  setContactFormField,
+} = authSlice.actions
 
 // ─── Selectors ───────────────────────────────────────────────────────────────
 
@@ -205,5 +347,10 @@ export const selectAuthUser = (state) => state.auth.user
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated
 export const selectAuthStatus = (state) => state.auth.status
 export const selectAuthError = (state) => state.auth.error
+export const selectBackendStatus = (state) => state.auth.backendStatus
+export const selectAppUi = (state) => state.auth.appUi
+export const selectAuthModalUi = (state) => state.auth.authModalUi
+export const selectSignUpModalUi = (state) => state.auth.signUpModalUi
+export const selectLandingUi = (state) => state.auth.landingUi
 
 export default authSlice.reducer

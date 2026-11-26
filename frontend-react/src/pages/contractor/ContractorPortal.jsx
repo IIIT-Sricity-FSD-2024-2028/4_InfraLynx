@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 import ContractorDashboard from './ContractorDashboard.jsx'
@@ -14,11 +14,13 @@ import {
   submitAmcEstimate,
   startWorkOrder,
   submitJobCompletion,
+  setContractorScreen,
   setSelectedJob,
   clearLastActionMessage,
   selectAllContractorJobs,
   selectContractorLoading,
   selectContractorSelectedJob,
+  selectContractorScreen,
   selectLastActionMessage,
   selectInspectionError,
   selectEstimateError,
@@ -36,14 +38,11 @@ export default function ContractorPortal({ onExitToLanding }) {
   const jobs        = useSelector(selectAllContractorJobs)
   const loading     = useSelector(selectContractorLoading)
   const selectedJob = useSelector(selectContractorSelectedJob)
+  const currentScreen = useSelector(selectContractorScreen)
   const successNotice = useSelector(selectLastActionMessage)
   const inspectionError   = useSelector(selectInspectionError)
   const estimateError     = useSelector(selectEstimateError)
   const statusUpdateError = useSelector(selectStatusUpdateError)
-
-  // ── Local UI-only state (not shared data, so stays local) ────────────────
-  // Navigation tab state: 'dashboard' | 'workorders' | 'inspection' | 'estimate' | 'approvals' | 'execution'
-  const [currentScreen, setCurrentScreen] = useState('dashboard')
 
   // ── Fetch jobs on mount ──────────────────────────────────────────────────
   useEffect(() => {
@@ -52,7 +51,7 @@ export default function ContractorPortal({ onExitToLanding }) {
 
   // ── Navigation handlers ───────────────────────────────────────────────────
   function handleNavigate(screen) {
-    setCurrentScreen(screen)
+    dispatch(setContractorScreen(screen))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 

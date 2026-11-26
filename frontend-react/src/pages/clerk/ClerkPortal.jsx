@@ -14,14 +14,21 @@
  * - Child components receive only callbacks and selectedComplaint — complaint list comes from Redux.
  * - patchComplaint action is dispatched to update a single complaint in Redux after triage/WO actions.
  */
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useMemo, useEffect, useCallback } from 'react'
 import { useDispatch, useSelector }                  from 'react-redux'
 import { useTIMS }                                   from '../../context/TIMSContext.jsx'
 import {
   fetchComplaints,
   patchComplaint,
+  setClerkScreen,
+  setClerkSelectedComplaint,
+  setClerkSuccessNotice,
+  clearClerkSuccessNotice,
   selectAllClerkComplaints,
   selectClerkComplaintsStatus,
+  selectClerkScreen,
+  selectClerkSelectedComplaint,
+  selectClerkSuccessNotice,
 } from '../../store/clerk/complaintsSlice.js'
 import {
   fetchWorkOrders,
@@ -76,10 +83,10 @@ export default function ClerkPortal({
   const { currentUser: contextUser } = useTIMS()
   const currentUser = reduxUser || contextUser
 
-  // ── 3. Local UI State (screen routing, selected complaint, toast) ───────────
-  const [currentScreen,     setCurrentScreen]     = useState('dashboard')
-  const [selectedComplaint, setSelectedComplaint] = useState(null)
-  const [successNotice,     setSuccessNotice]     = useState(null)
+  // ── 3. UI State from Redux Store ───────────────────────────────────────────
+  const currentScreen     = useSelector(selectClerkScreen)
+  const selectedComplaint = useSelector(selectClerkSelectedComplaint)
+  const successNotice     = useSelector(selectClerkSuccessNotice)
 
   // ── 4. Data Loading via Redux Thunk ────────────────────────────────────────
   // Dispatch fetchComplaints & fetchWorkOrders on mount and on tab transitions.
@@ -108,10 +115,14 @@ export default function ClerkPortal({
 
   // ── 6. Navigation & Callback Handlers ──────────────────────────────────────
 
+  const handleSelectComplaint = useCallback((complaint) => {
+    dispatch(setClerkSelectedComplaint(complaint))
+  }, [dispatch])
+
   const handleNavigate = useCallback((screen) => {
-    setCurrentScreen(screen)
+    dispatch(setClerkScreen(screen))
     window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [])
+  }, [dispatch])
 
   /**
    * Called by TriageValidation when a complaint status changes (validate/reject).
@@ -121,14 +132,8 @@ export default function ClerkPortal({
   const handleComplaintUpdated = useCallback((updated) => {
     if (!updated) return
     const id = updated.id || updated.complaintCode || updated.complaint_code
-    // Update Redux store with the new data from DB response
+    // Update Redux store (both items list & selectedComplaint) with new data from DB response
     dispatch(patchComplaint({ id, changes: updated }))
-    // Update selectedComplaint to reflect the new state
-    setSelectedComplaint(prev =>
-      prev && (prev.id === id || prev.complaint_code === id)
-        ? { ...prev, ...updated }
-        : prev
-    )
     // Re-fetch to ensure full sync with DB
     dispatch(fetchComplaints())
   }, [dispatch])
@@ -138,13 +143,13 @@ export default function ClerkPortal({
    * Patches the complaint status in Redux, shows a success toast, returns to dashboard.
    */
   const handleWorkOrderCreated = useCallback((complaint) => {
-    setSelectedComplaint(complaint)
+    dispatch(setClerkSelectedComplaint(complaint))
     const woId = complaint.work_order_number || complaint.id
     const contractor = complaint.assigned_contractor?.name || 'contractor'
-    setSuccessNotice({
+    dispatch(setClerkSuccessNotice({
       id: complaint.id,
       message: `Work Order ${woId} assigned & dispatched to ${contractor} for "${complaint.title}" (${complaint.id}).`,
-    })
+    }))
     // Update Redux state with the new complaint status from DB response
     dispatch(patchComplaint({ id: complaint.id, changes: complaint }))
     dispatch(fetchComplaints())
@@ -226,9 +231,9 @@ export default function ClerkPortal({
           <ClerkDashboard
             complaints={departmentComplaints}
             onNavigate={handleNavigate}
-            onSelectComplaint={setSelectedComplaint}
+            onSelectComplaint={handleSelectComplaint}
             successNotice={successNotice}
-            onDismissNotice={() => setSuccessNotice(null)}
+            onDismissNotice={() => dispatch(clearClerkSuccessNotice())}
           />
         )}
         {currentScreen === 'triage' && (
@@ -237,7 +242,7 @@ export default function ClerkPortal({
             complaints={departmentComplaints}
             selectedComplaint={selectedComplaint}
             onNavigate={handleNavigate}
-            onSelectComplaint={setSelectedComplaint}
+            onSelectComplaint={handleSelectComplaint}
             onComplaintUpdated={handleComplaintUpdated}
           />
         )}
@@ -255,7 +260,7 @@ export default function ClerkPortal({
             complaints={departmentComplaints}
             selectedComplaint={selectedComplaint}
             onNavigate={handleNavigate}
-            onSelectComplaint={setSelectedComplaint}
+            onSelectComplaint={handleSelectComplaint}
           />
         )}
       </main>

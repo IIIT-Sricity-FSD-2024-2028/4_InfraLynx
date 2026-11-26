@@ -1,5 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { useTIMS } from '../../context/TIMSContext.jsx'
+import {
+  setAuthModalUiField,
+  setAuthFormField,
+  setAuthTouchedField,
+  setAuthErrorField,
+  resetAuthModalForm,
+  selectAuthModalUi,
+} from '../../store/auth/authSlice.js'
 
 // Helper to map DB roles and emails to frontend portal keys
 function mapRoleToPortal(role, email = '') {
@@ -66,28 +75,23 @@ function validateField(name, value) {
 }
 
 export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess, onOpenSignUp }) {
+  const dispatch = useDispatch()
   const { login } = useTIMS()
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  })
-  const [errors, setErrors] = useState({})
-  const [touched, setTouched] = useState({})
-  const [loading, setLoading] = useState(false)
-  const [errorMsg, setErrorMsg] = useState(null)
-  const [submitted, setSubmitted] = useState(false)
-  const [detectedPortal, setDetectedPortal] = useState('rwa')
-  const [detectedUserName, setDetectedUserName] = useState('')
+  const {
+    formData,
+    errors,
+    touched,
+    loading,
+    errorMsg,
+    submitted,
+    detectedPortal,
+    detectedUserName,
+  } = useSelector(selectAuthModalUi)
 
   useEffect(() => {
     // Reset all form fields, errors, and validation states on open/close
-    setErrorMsg(null)
-    setErrors({})
-    setTouched({})
-    setSubmitted(false)
-    setLoading(false)
-    setFormData({ email: '', password: '' })
-  }, [isOpen])
+    dispatch(resetAuthModalForm())
+  }, [isOpen, dispatch])
 
   useEffect(() => {
     function handleKeyDown(e) {
@@ -106,16 +110,16 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
   if (!isOpen) return null
 
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    dispatch(setAuthFormField({ field, value }))
     if (touched[field]) {
-      setErrors((prev) => ({ ...prev, [field]: validateField(field, value) }))
+      dispatch(setAuthErrorField({ field, error: validateField(field, value) }))
     }
-    if (errorMsg) setErrorMsg(null)
+    if (errorMsg) dispatch(setAuthModalUiField({ field: 'errorMsg', value: null }))
   }
 
   const handleBlur = (field) => {
-    setTouched((prev) => ({ ...prev, [field]: true }))
-    setErrors((prev) => ({ ...prev, [field]: validateField(field, formData[field]) }))
+    dispatch(setAuthTouchedField(field))
+    dispatch(setAuthErrorField({ field, error: validateField(field, formData[field]) }))
   }
 
   async function handleSubmit(e) {
@@ -124,15 +128,17 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
     const emailErr = validateField('email', formData.email)
     const passErr = validateField('password', formData.password)
 
-    setTouched({ email: true, password: true })
-    setErrors({ email: emailErr, password: passErr })
+    dispatch(setAuthTouchedField('email'))
+    dispatch(setAuthTouchedField('password'))
+    dispatch(setAuthErrorField({ field: 'email', error: emailErr }))
+    dispatch(setAuthErrorField({ field: 'password', error: passErr }))
 
     if (emailErr || passErr) {
       return
     }
 
-    setLoading(true)
-    setErrorMsg(null)
+    dispatch(setAuthModalUiField({ field: 'loading', value: true }))
+    dispatch(setAuthModalUiField({ field: 'errorMsg', value: null }))
 
     // Normalize identifier: trimmed, and if email lowercase (RFC 5321 standard)
     // Passwords remain strictly case-sensitive for maximum security
@@ -144,14 +150,14 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
       const result = await login(trimmedIdentifier, password)
       const user = result?.user
       const portal = mapRoleToPortal(user?.role, trimmedIdentifier)
-      setDetectedPortal(portal)
-      setDetectedUserName(user?.name || user?.email || 'Authorized User')
-      setSubmitted(true)
+      dispatch(setAuthModalUiField({ field: 'detectedPortal', value: portal }))
+      dispatch(setAuthModalUiField({ field: 'detectedUserName', value: user?.name || user?.email || 'Authorized User' }))
+      dispatch(setAuthModalUiField({ field: 'submitted', value: true }))
 
       setTimeout(() => {
         onClose()
-        setSubmitted(false)
-        setLoading(false)
+        dispatch(setAuthModalUiField({ field: 'submitted', value: false }))
+        dispatch(setAuthModalUiField({ field: 'loading', value: false }))
         if (onLoginSuccess) {
           onLoginSuccess(portal)
         }
@@ -160,11 +166,11 @@ export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess
       console.warn('[AuthModal] Login attempt failed:', err.message)
       const rawMsg = err.message || ''
       if (rawMsg.toLowerCase().includes('not found') || rawMsg.toLowerCase().includes('user not found')) {
-        setErrorMsg('Email or Password incorrect')
+        dispatch(setAuthModalUiField({ field: 'errorMsg', value: 'Email or Password incorrect' }))
       } else {
-        setErrorMsg('Email or Password incorrect')
+        dispatch(setAuthModalUiField({ field: 'errorMsg', value: 'Email or Password incorrect' }))
       }
-      setLoading(false)
+      dispatch(setAuthModalUiField({ field: 'loading', value: false }))
     }
   }
 

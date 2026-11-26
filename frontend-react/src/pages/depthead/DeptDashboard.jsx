@@ -1,13 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   fetchDeptDashboard,
   fetchDeptComplaints,
+  setDeptDashboardUiField,
+  resetDeptDashboardFilters,
   selectDeptDashboard,
   selectDeptDashboardStatus,
   selectDeptDashboardError,
   selectDeptComplaints,
   selectDeptComplaintsStatus,
+  selectDeptDashboardUi,
 } from '../../store/depthead/deptHeadSlice.js';
 import ComplaintDetailsModal from './ComplaintDetailsModal.jsx';
 
@@ -20,14 +23,16 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
   const reduxComplaints = useSelector(selectDeptComplaints);
   const complaintsStatus = useSelector(selectDeptComplaintsStatus);
 
-  const [hoveredCard, setHoveredCard] = useState(null);
+  const {
+    hoveredCard,
+    statusFilter,
+    priorityFilter,
+    searchQuery,
+    selectedComplaintForModal,
+    refreshingComplaints,
+  } = useSelector(selectDeptDashboardUi);
 
-  // Complaints list filtering & modal states
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [priorityFilter, setPriorityFilter] = useState('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedComplaintForModal, setSelectedComplaintForModal] = useState(null);
-  const [refreshingComplaints, setRefreshingComplaints] = useState(false);
+  const setDashUi = (field, value) => dispatch(setDeptDashboardUiField({ field, value }));
 
   useEffect(() => {
     if (dashboardStatus === 'idle') {
@@ -56,13 +61,13 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
 
   const handleRefreshComplaints = async () => {
     try {
-      setRefreshingComplaints(true);
+      setDashUi('refreshingComplaints', true);
       await Promise.all([
         dispatch(fetchDeptDashboard({ force: true })),
         dispatch(fetchDeptComplaints()),
       ]);
     } finally {
-      setRefreshingComplaints(false);
+      setDashUi('refreshingComplaints', false);
     }
   };
 
@@ -244,7 +249,7 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
         {/* Total Civil Work Orders */}
         <div 
           style={cardStyle(1, '#3b82f6', 'rgba(59, 130, 246, 0.3)')}
-          onMouseEnter={() => setHoveredCard(1)} onMouseLeave={() => setHoveredCard(null)}
+          onMouseEnter={() => setDashUi('hoveredCard', 1)} onMouseLeave={() => setDashUi('hoveredCard', null)}
           onClick={() => onNavigate('work-orders')}
         >
           <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#3b82f6', transition: 'width 0.2s', ...(hoveredCard === 1 && { width: '8px' }) }} />
@@ -261,7 +266,7 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
         {/* In-Progress Work Orders */}
         <div 
           style={cardStyle(2, '#f59e0b', 'rgba(245, 158, 11, 0.3)')}
-          onMouseEnter={() => setHoveredCard(2)} onMouseLeave={() => setHoveredCard(null)}
+          onMouseEnter={() => setDashUi('hoveredCard', 2)} onMouseLeave={() => setDashUi('hoveredCard', null)}
           onClick={() => onNavigate('work-orders')}
         >
           <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#f59e0b', transition: 'width 0.2s', ...(hoveredCard === 2 && { width: '8px' }) }} />
@@ -275,7 +280,7 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
         {/* Completed Work Orders */}
         <div 
           style={cardStyle(3, '#10b981', 'rgba(16, 185, 129, 0.3)')}
-          onMouseEnter={() => setHoveredCard(3)} onMouseLeave={() => setHoveredCard(null)}
+          onMouseEnter={() => setDashUi('hoveredCard', 3)} onMouseLeave={() => setDashUi('hoveredCard', null)}
           onClick={() => onNavigate('work-orders')}
         >
           <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#10b981', transition: 'width 0.2s', ...(hoveredCard === 3 && { width: '8px' }) }} />
@@ -289,7 +294,7 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
         {/* Pending Estimate Approvals */}
         <div 
           style={cardStyle(4, '#8b5cf6', 'rgba(139, 92, 246, 0.3)')}
-          onMouseEnter={() => setHoveredCard(4)} onMouseLeave={() => setHoveredCard(null)}
+          onMouseEnter={() => setDashUi('hoveredCard', 4)} onMouseLeave={() => setDashUi('hoveredCard', null)}
           onClick={() => onNavigate('approvals')}
         >
           <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#8b5cf6', transition: 'width 0.2s', ...(hoveredCard === 4 && { width: '8px' }) }} />
@@ -308,7 +313,7 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
         {/* SLA-at-Risk & Overdue */}
         <div 
           style={cardStyle(5, '#ef4444', 'rgba(239, 68, 68, 0.3)')}
-          onMouseEnter={() => setHoveredCard(5)} onMouseLeave={() => setHoveredCard(null)}
+          onMouseEnter={() => setDashUi('hoveredCard', 5)} onMouseLeave={() => setDashUi('hoveredCard', null)}
           onClick={() => onNavigate('work-orders')}
         >
           <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#ef4444', transition: 'width 0.2s', ...(hoveredCard === 5 && { width: '8px' }) }} />
@@ -364,7 +369,7 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
         {/* Dynamic Status Breakdown Badges */}
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
           <div 
-            onClick={() => setStatusFilter('ALL')}
+            onClick={() => setDashUi('statusFilter', 'ALL')}
             style={{ 
               padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '700',
               background: statusFilter === 'ALL' ? '#1e293b' : '#f1f5f9',
@@ -375,7 +380,7 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
             All Civil Complaints ({totalCount})
           </div>
           <div 
-            onClick={() => setStatusFilter('REPORTED')}
+            onClick={() => setDashUi('statusFilter', 'REPORTED')}
             style={{ 
               padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '700',
               background: statusFilter === 'REPORTED' ? '#0369a1' : '#e0f2fe',
@@ -386,7 +391,7 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
             Pending / Open ({pendingCount})
           </div>
           <div 
-            onClick={() => setStatusFilter('IN_PROGRESS')}
+            onClick={() => setDashUi('statusFilter', 'IN_PROGRESS')}
             style={{ 
               padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '700',
               background: statusFilter === 'IN_PROGRESS' ? '#b45309' : '#fef3c7',
@@ -397,7 +402,7 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
             In-Progress ({inProgressCount})
           </div>
           <div 
-            onClick={() => setStatusFilter('COMPLETED')}
+            onClick={() => setDashUi('statusFilter', 'COMPLETED')}
             style={{ 
               padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '700',
               background: statusFilter === 'COMPLETED' ? '#15803d' : '#dcfce7',
@@ -408,7 +413,7 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
             Resolved / Closed ({resolvedCount})
           </div>
           <div 
-            onClick={() => setStatusFilter('REJECTED')}
+            onClick={() => setDashUi('statusFilter', 'REJECTED')}
             style={{ 
               padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '700',
               background: statusFilter === 'REJECTED' ? '#b91c1c' : '#fee2e2',
@@ -427,7 +432,7 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
               type="text" 
               placeholder="🔍 Search Complaint Code, description, location, or reporter..." 
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => setDashUi('searchQuery', e.target.value)}
               style={{ width: '100%', padding: '9px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '13px' }}
             />
           </div>
@@ -437,7 +442,7 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
               <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>Status:</span>
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => setDashUi('statusFilter', e.target.value)}
                 style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', background: '#ffffff', fontSize: '13px', fontWeight: '500' }}
               >
                 <option value="ALL">All Statuses ({totalCount})</option>
@@ -459,7 +464,7 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
               <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>Priority:</span>
               <select
                 value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value)}
+                onChange={(e) => setDashUi('priorityFilter', e.target.value)}
                 style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', background: '#ffffff', fontSize: '13px', fontWeight: '500' }}
               >
                 <option value="ALL">All Priorities</option>
@@ -472,7 +477,7 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
 
             {(statusFilter !== 'ALL' || priorityFilter !== 'ALL' || searchQuery.trim()) && (
               <button 
-                onClick={() => { setStatusFilter('ALL'); setPriorityFilter('ALL'); setSearchQuery(''); }}
+                onClick={() => dispatch(resetDeptDashboardFilters())}
                 style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '13px', fontWeight: '600', cursor: 'pointer', padding: '4px 8px' }}
               >
                 Reset Filters
@@ -538,7 +543,7 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
                       {/* 1. ID & Date */}
                       <td style={{ padding: '16px', verticalAlign: 'top' }}>
                         <div 
-                          onClick={() => setSelectedComplaintForModal(c)}
+                          onClick={() => setDashUi('selectedComplaintForModal', c)}
                           style={{ fontWeight: '800', color: '#4f46e5', cursor: 'pointer', textDecoration: 'underline' }}
                         >
                           {code}
@@ -645,7 +650,7 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
                       <td style={{ padding: '16px', verticalAlign: 'top', textAlign: 'center' }}>
                         <button
                           type="button"
-                          onClick={() => setSelectedComplaintForModal(c)}
+                          onClick={() => setDashUi('selectedComplaintForModal', c)}
                           style={{
                             padding: '6px 14px',
                             background: '#4f46e5',
@@ -892,7 +897,7 @@ export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
       {selectedComplaintForModal && (
         <ComplaintDetailsModal 
           complaint={selectedComplaintForModal}
-          onClose={() => setSelectedComplaintForModal(null)}
+          onClose={() => setDashUi('selectedComplaintForModal', null)}
         />
       )}
 

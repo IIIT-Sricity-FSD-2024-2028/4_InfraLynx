@@ -381,6 +381,36 @@ export const fetchSuperAdminAuditLogs = createAsyncThunk(
 
 // ─── Initial State ───────────────────────────────────────────────────────────
 
+const defaultAddTenantForm = () => ({
+  name: '',
+  address: '',
+  contact_email: '',
+  contact_phone: '',
+  legal_entity: '',
+  primary_contact: '',
+  plan_label: 'Enterprise',
+  billing_cycle: 'YEARLY',
+  start_date: new Date().toISOString().split('T')[0],
+  expiry_date: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().split('T')[0],
+  max_users: 10,
+  max_complaints_monthly: 100,
+  max_storage_gb: 5,
+  status: 'ACTIVE',
+})
+
+const defaultCreateUserForm = () => ({
+  name: '',
+  email: '',
+  username: '',
+  password: '',
+  role: 'DESK_CLERK',
+  township_id: '',
+  department_id: '',
+  contractor_id: '',
+  sector: '',
+  phone: '',
+})
+
 const initialState = {
   overview: {
     data: null,
@@ -432,6 +462,44 @@ const initialState = {
   actionStatus: 'idle',
   actionError: null,
   notice: null, // { message: string, type: 'success' | 'error' }
+  ui: {
+    activeTab: 'overview',
+    tenantsUi: {
+      search: '',
+      filterStatus: '',
+      filterPlan: '',
+      showAdd: false,
+      addForm: defaultAddTenantForm(),
+      addErrors: {},
+      addSaving: false,
+      detailTab: 'details',
+      editForm: { name: '', address: '', contact_email: '', contact_phone: '' },
+      subForm: { plan_label: 'Enterprise', billing_cycle: 'YEARLY', expiry_date: '', reason: '' },
+      confirmSuspend: false,
+      detailSaving: false,
+      reason: '',
+    },
+    usersUi: {
+      search: '',
+      filterRole: '',
+      filterTownship: '',
+      filterStatus: '',
+      showCreate: false,
+      createForm: defaultCreateUserForm(),
+      createErrors: {},
+      createSaving: false,
+      detailTab: 'info',
+      newStatus: '',
+      statusReason: '',
+      newPassword: '',
+      confirmPw: '',
+      newRole: '',
+      newTownship: '',
+      newDept: '',
+      newContractor: '',
+      detailSaving: false,
+    },
+  },
 }
 
 // ─── Slice ───────────────────────────────────────────────────────────────────
@@ -440,14 +508,88 @@ const superAdminSlice = createSlice({
   name: 'superAdmin',
   initialState,
   reducers: {
+    setSuperAdminActiveTab(state, action) {
+      state.ui.activeTab = action.payload
+    },
+    setTenantsUiField(state, action) {
+      const { field, value } = action.payload
+      if (field in state.ui.tenantsUi) state.ui.tenantsUi[field] = value
+    },
+    setAddTenantFormField(state, action) {
+      const { key, value } = action.payload
+      state.ui.tenantsUi.addForm[key] = value
+    },
+    openAddTenantModal(state) {
+      state.ui.tenantsUi.addForm = defaultAddTenantForm()
+      state.ui.tenantsUi.addErrors = {}
+      state.ui.tenantsUi.addSaving = false
+      state.ui.tenantsUi.showAdd = true
+    },
+    setTenantEditFormField(state, action) {
+      const { key, value } = action.payload
+      state.ui.tenantsUi.editForm[key] = value
+    },
+    setTenantSubFormField(state, action) {
+      const { key, value } = action.payload
+      state.ui.tenantsUi.subForm[key] = value
+    },
+    setUsersUiField(state, action) {
+      const { field, value } = action.payload
+      if (field in state.ui.usersUi) state.ui.usersUi[field] = value
+    },
+    setCreateUserFormField(state, action) {
+      const { key, value } = action.payload
+      state.ui.usersUi.createForm[key] = value
+    },
+    patchCreateUserForm(state, action) {
+      state.ui.usersUi.createForm = { ...state.ui.usersUi.createForm, ...action.payload }
+    },
+    openCreateUserModal(state) {
+      state.ui.usersUi.createForm = defaultCreateUserForm()
+      state.ui.usersUi.createErrors = {}
+      state.ui.usersUi.createSaving = false
+      state.ui.usersUi.showCreate = true
+    },
     setSelectedTenant(state, action) {
-      state.tenants.selected = action.payload
+      const tenant = action.payload
+      state.tenants.selected = tenant
+      if (tenant) {
+        state.ui.tenantsUi.detailTab = 'details'
+        state.ui.tenantsUi.editForm = {
+          name: tenant.name || '',
+          address: tenant.address || '',
+          contact_email: tenant.contact_email || '',
+          contact_phone: tenant.contact_phone || '',
+        }
+        state.ui.tenantsUi.subForm = {
+          plan_label: tenant.subscription?.plan_label || 'Enterprise',
+          billing_cycle: tenant.subscription?.billing_cycle || 'YEARLY',
+          expiry_date: tenant.subscription?.expiry_date || '',
+          reason: '',
+        }
+        state.ui.tenantsUi.confirmSuspend = false
+        state.ui.tenantsUi.detailSaving = false
+        state.ui.tenantsUi.reason = ''
+      }
     },
     clearSelectedTenant(state) {
       state.tenants.selected = null
     },
     setSelectedUser(state, action) {
-      state.users.selected = action.payload
+      const user = action.payload
+      state.users.selected = user
+      if (user) {
+        state.ui.usersUi.detailTab = 'info'
+        state.ui.usersUi.newStatus = user.status
+        state.ui.usersUi.statusReason = ''
+        state.ui.usersUi.newPassword = ''
+        state.ui.usersUi.confirmPw = ''
+        state.ui.usersUi.newRole = user.role
+        state.ui.usersUi.newTownship = user.township_id || ''
+        state.ui.usersUi.newDept = user.department_id || ''
+        state.ui.usersUi.newContractor = user.contractor_id || ''
+        state.ui.usersUi.detailSaving = false
+      }
     },
     clearSelectedUser(state) {
       state.users.selected = null
@@ -741,6 +883,16 @@ const superAdminSlice = createSlice({
 })
 
 export const {
+  setSuperAdminActiveTab,
+  setTenantsUiField,
+  setAddTenantFormField,
+  openAddTenantModal,
+  setTenantEditFormField,
+  setTenantSubFormField,
+  setUsersUiField,
+  setCreateUserFormField,
+  patchCreateUserForm,
+  openCreateUserModal,
   setSelectedTenant,
   clearSelectedTenant,
   setSelectedUser,
@@ -779,6 +931,10 @@ export const selectSuperAdminAuditLogs       = (state) => state.superAdmin?.audi
 export const selectSuperAdminActionStatus    = (state) => state.superAdmin?.actionStatus || 'idle'
 export const selectSuperAdminActionError     = (state) => state.superAdmin?.actionError || null
 export const selectSuperAdminNotice          = (state) => state.superAdmin?.notice || null
+
+export const selectSuperAdminActiveTab       = (state) => state.superAdmin?.ui?.activeTab || 'overview'
+export const selectSuperAdminTenantsUi       = (state) => state.superAdmin?.ui?.tenantsUi
+export const selectSuperAdminUsersUi         = (state) => state.superAdmin?.ui?.usersUi
 
 export default superAdminSlice.reducer
 

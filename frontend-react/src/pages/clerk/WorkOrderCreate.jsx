@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useMemo, useEffect, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useForm } from 'react-hook-form'
 import { useTIMS } from '../../context/TIMSContext.jsx'
@@ -8,10 +8,14 @@ import {
   openBidding,
   submitBid,
   autoSelectBid,
+  setWoDispatchMode,
+  setWoIsSubmitting,
   selectWorkOrderBids,
   selectBidsLoading,
   selectIsAutoSelecting,
   selectBiddingSuccessMsg,
+  selectWoDispatchMode,
+  selectWoIsSubmitting,
 } from '../../store/clerk/workOrdersSlice.js'
 import { selectAllClerkComplaints } from '../../store/clerk/complaintsSlice.js'
 import { selectAuthUser } from '../../store/auth/authSlice.js'
@@ -34,15 +38,15 @@ export default function WorkOrderCreate({
   const currentUser = reduxUser || contextUser
   const complaints = useSelector(selectAllClerkComplaints)
 
-  // Dispatch mode: 'DIRECT' | 'BIDDING'
-  const [dispatchMode, setDispatchMode] = useState('DIRECT')
+  // Dispatch mode & UI state from Redux store ('DIRECT' | 'BIDDING')
+  const dispatchMode      = useSelector(selectWoDispatchMode)
 
   // Bidding state from Redux store
   const bids              = useSelector(selectWorkOrderBids)
   const loadingBids       = useSelector(selectBidsLoading)
   const isAutoSelecting   = useSelector(selectIsAutoSelecting)
   const biddingSuccessMsg = useSelector(selectBiddingSuccessMsg)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const isSubmitting      = useSelector(selectWoIsSubmitting)
 
   // React Hook Form
   const {
@@ -124,13 +128,13 @@ export default function WorkOrderCreate({
   // Dispatch Direct Work Order or Open for Bidding
   const onFormSubmit = async (formData) => {
     if (!active) return
-    setIsSubmitting(true)
+    dispatch(setWoIsSubmitting(true))
 
     try {
       if (dispatchMode === 'DIRECT') {
         if (!formData.contractorId) {
           alert('Please select an authorized contractor.')
-          setIsSubmitting(false)
+          dispatch(setWoIsSubmitting(false))
           return
         }
 
@@ -191,7 +195,7 @@ export default function WorkOrderCreate({
     } catch (err) {
       alert('Error creating work order: ' + (err.message || 'Server error'))
     } finally {
-      setIsSubmitting(false)
+      dispatch(setWoIsSubmitting(false))
     }
   }
 
@@ -283,7 +287,7 @@ export default function WorkOrderCreate({
         <span style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>Allocation Mechanism:</span>
         <button
           type="button"
-          onClick={() => setDispatchMode('DIRECT')}
+          onClick={() => dispatch(setWoDispatchMode('DIRECT'))}
           style={{
             padding: '8px 16px',
             borderRadius: 6,
@@ -298,7 +302,7 @@ export default function WorkOrderCreate({
         </button>
         <button
           type="button"
-          onClick={() => setDispatchMode('BIDDING')}
+          onClick={() => dispatch(setWoDispatchMode('BIDDING'))}
           style={{
             padding: '8px 16px',
             borderRadius: 6,

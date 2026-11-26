@@ -1,9 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   selectAllContractorJobs,
   selectContractorSelectedJob,
+  selectApprovalFilter,
   setSelectedJob,
+  setApprovalFilter,
 } from '../../store/contractor/contractorSlice.js'
 import './styles/ApprovalStatus.css'
 
@@ -16,6 +18,7 @@ export default function ApprovalStatus({
   const dispatch = useDispatch()
   const reduxJobs = useSelector(selectAllContractorJobs)
   const reduxSelectedJob = useSelector(selectContractorSelectedJob)
+  const filter = useSelector(selectApprovalFilter) // ALL | PENDING | APPROVED | REVISION
 
   const jobs = propsJobs || reduxJobs || []
   const selectedJob = propsSelectedJob || reduxSelectedJob
@@ -24,8 +27,6 @@ export default function ApprovalStatus({
     dispatch(setSelectedJob(job))
     if (onSelectJob) onSelectJob(job)
   }
-
-  const [filter, setFilter] = useState('ALL') // ALL | PENDING | APPROVED | REVISION
 
   // Jobs that have had estimates submitted or are in approval lifecycle
   const approvalJobs = useMemo(() => {
@@ -100,7 +101,7 @@ export default function ApprovalStatus({
           return (
             <button
               key={tab.id}
-              onClick={() => setFilter(tab.id)}
+              onClick={() => dispatch(setApprovalFilter(tab.id))}
               className={`approval-tab-btn ${isActive ? 'active' : ''}`}
             >
               <span>{tab.label}</span>

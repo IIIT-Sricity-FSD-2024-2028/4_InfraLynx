@@ -165,8 +165,55 @@ const complaintsSlice = createSlice({
       selectedStatus: 'ALL',// Status filter pill ('ALL', 'TRIAGE', 'ACTIVE', 'COMPLETED', 'CLOSED')
       selectedCategory: 'ALL', // Subcategory filter pill
     },
+    ui: {
+      currentScreen: 'dashboard', // 'dashboard' | 'triage' | 'workorder' | 'tracker'
+      selectedComplaint: null,    // Currently selected complaint object
+      successNotice: null,        // { id, message } | null
+      triage: {
+        isRejecting: false,
+        rejectionReason: 'Duplicate Complaint',
+        rejectionRemarks: '',
+        recallReason: '',
+        isSubmitting: false,
+      },
+    },
   },
   reducers: {
+    setClerkScreen(state, action) {
+      state.ui.currentScreen = action.payload
+    },
+    setClerkSelectedComplaint(state, action) {
+      const next = action.payload
+      const prevId = state.ui.selectedComplaint?.id || state.ui.selectedComplaint?.complaint_code
+      const nextId = next?.id || next?.complaint_code
+      state.ui.selectedComplaint = next
+      if (prevId !== nextId) {
+        state.ui.triage.isRejecting = false
+        state.ui.triage.rejectionRemarks = ''
+        state.ui.triage.recallReason = ''
+      }
+    },
+    setClerkSuccessNotice(state, action) {
+      state.ui.successNotice = action.payload
+    },
+    clearClerkSuccessNotice(state) {
+      state.ui.successNotice = null
+    },
+    setClerkTriageField(state, action) {
+      const { field, value } = action.payload
+      if (field in state.ui.triage) {
+        state.ui.triage[field] = value
+      }
+    },
+    resetClerkTriageForm(state) {
+      state.ui.triage = {
+        isRejecting: false,
+        rejectionReason: 'Duplicate Complaint',
+        rejectionRemarks: '',
+        recallReason: '',
+        isSubmitting: false,
+      }
+    },
     setClerkSearchQuery(state, action) {
       state.filters.searchQuery = action.payload
     },
@@ -188,6 +235,12 @@ const complaintsSlice = createSlice({
       if (idx !== -1) {
         state.items[idx] = { ...state.items[idx], ...changes }
         state.lastUpdatedId = id
+      }
+      if (
+        state.ui.selectedComplaint &&
+        (state.ui.selectedComplaint.id === id || state.ui.selectedComplaint.complaint_code === id)
+      ) {
+        state.ui.selectedComplaint = { ...state.ui.selectedComplaint, ...changes }
       }
     },
     /**
@@ -280,6 +333,12 @@ const complaintsSlice = createSlice({
 })
 
 export const {
+  setClerkScreen,
+  setClerkSelectedComplaint,
+  setClerkSuccessNotice,
+  clearClerkSuccessNotice,
+  setClerkTriageField,
+  resetClerkTriageForm,
   setClerkSearchQuery,
   setClerkStatusFilter,
   setClerkCategoryFilter,
@@ -290,12 +349,16 @@ export const {
 
 // ─── Selectors ───────────────────────────────────────────────────────────────
 
-export const selectAllClerkComplaints   = (state) => state.clerkComplaints.items
-export const selectClerkComplaintsStatus = (state) => state.clerkComplaints.status
-export const selectClerkComplaintsError  = (state) => state.clerkComplaints.error
-export const selectLastUpdatedId         = (state) => state.clerkComplaints.lastUpdatedId
-export const selectClerkSearchQuery      = (state) => state.clerkComplaints.filters.searchQuery
-export const selectClerkStatusFilter     = (state) => state.clerkComplaints.filters.selectedStatus
-export const selectClerkCategoryFilter   = (state) => state.clerkComplaints.filters.selectedCategory
+export const selectAllClerkComplaints     = (state) => state.clerkComplaints.items
+export const selectClerkComplaintsStatus  = (state) => state.clerkComplaints.status
+export const selectClerkComplaintsError   = (state) => state.clerkComplaints.error
+export const selectLastUpdatedId          = (state) => state.clerkComplaints.lastUpdatedId
+export const selectClerkSearchQuery       = (state) => state.clerkComplaints.filters.searchQuery
+export const selectClerkStatusFilter      = (state) => state.clerkComplaints.filters.selectedStatus
+export const selectClerkCategoryFilter    = (state) => state.clerkComplaints.filters.selectedCategory
+export const selectClerkScreen            = (state) => state.clerkComplaints.ui.currentScreen
+export const selectClerkSelectedComplaint = (state) => state.clerkComplaints.ui.selectedComplaint
+export const selectClerkSuccessNotice     = (state) => state.clerkComplaints.ui.successNotice
+export const selectClerkTriageUi          = (state) => state.clerkComplaints.ui.triage
 
 export default complaintsSlice.reducer

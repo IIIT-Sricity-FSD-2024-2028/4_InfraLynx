@@ -1,7 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { TIMSProvider, useTIMS } from './context/TIMSContext.jsx'
 import { authApi } from './services/api.js'
+import {
+  setAppUiField,
+  openAuthModal,
+  closeAuthModal,
+  selectAppUi,
+} from './store/auth/authSlice.js'
 import ProtectedRoute from './components/common/ProtectedRoute.jsx'
 import Nav from './components/landing/Nav.jsx'
 import Hero from './components/landing/Hero.jsx'
@@ -43,29 +50,26 @@ function LandingView({ onOpenAuth, onOpenSignUp, currentUser, onLogout, onGoToPo
 }
 
 function AppContent() {
+  const dispatch = useDispatch()
   const { currentUser, logout, setCurrentUser } = useTIMS()
   const navigate = useNavigate()
   const location = useLocation()
 
-  const [authOpen, setAuthOpen] = useState(false)
-  const [authRole, setAuthRole] = useState(null)
-  const [authNotice, setAuthNotice] = useState(null)
-  const [signUpOpen, setSignUpOpen] = useState(false)
+  const { authOpen, authRole, authNotice, signUpOpen } = useSelector(selectAppUi)
 
   // Listen for redirected state from ProtectedRoute
   useEffect(() => {
     if (location.state?.authRequired) {
-      setAuthNotice(
-        `Authentication Required: Please sign in to access the ${location.state.portalName || 'selected portal'}.`
-      )
-      setAuthOpen(true)
+      dispatch(setAppUiField({
+        field: 'authNotice',
+        value: `Authentication Required: Please sign in to access the ${location.state.portalName || 'selected portal'}.`,
+      }))
+      dispatch(setAppUiField({ field: 'authOpen', value: true }))
     }
-  }, [location.state])
+  }, [location.state, dispatch])
 
   function handleOpenAuth(role = null) {
-    setAuthRole(typeof role === 'string' ? role : null)
-    setAuthNotice(null)
-    setAuthOpen(true)
+    dispatch(openAuthModal(role))
   }
 
   function handleLoginSuccess(userOrRole) {
@@ -87,8 +91,7 @@ function AppContent() {
     else if (r === 'coo' || r === 'township_coo') target = '/coo'
     else if (r === 'super_admin' || r === 'superadmin') target = '/superadmin'
 
-    setAuthOpen(false)
-    setAuthNotice(null)
+    dispatch(closeAuthModal())
     navigate(target)
   }
 
@@ -139,7 +142,7 @@ function AppContent() {
         >
           <span>🔒 {authNotice}</span>
           <button
-            onClick={() => setAuthNotice(null)}
+            onClick={() => dispatch(setAppUiField({ field: 'authNotice', value: null }))}
             style={{
               background: 'none',
               border: 'none',
@@ -160,7 +163,7 @@ function AppContent() {
           element={
             <LandingView
               onOpenAuth={handleOpenAuth}
-              onOpenSignUp={() => setSignUpOpen(true)}
+              onOpenSignUp={() => dispatch(setAppUiField({ field: 'signUpOpen', value: true }))}
               currentUser={currentUser}
               onLogout={handleSecureLogout}
               onGoToPortal={handleGoToPortal}
@@ -238,24 +241,21 @@ function AppContent() {
       {/* Auth Modals */}
       <AuthModal
         isOpen={authOpen}
-        onClose={() => {
-          setAuthOpen(false)
-          setAuthNotice(null)
-        }}
+        onClose={() => dispatch(closeAuthModal())}
         initialRole={authRole}
         onLoginSuccess={handleLoginSuccess}
-        onOpenSignUp={() => setSignUpOpen(true)}
+        onOpenSignUp={() => dispatch(setAppUiField({ field: 'signUpOpen', value: true }))}
       />
 
       <SignUpModal
         isOpen={signUpOpen}
-        onClose={() => setSignUpOpen(false)}
+        onClose={() => dispatch(setAppUiField({ field: 'signUpOpen', value: false }))}
         onOpenLogin={() => {
-          setSignUpOpen(false)
+          dispatch(setAppUiField({ field: 'signUpOpen', value: false }))
           handleOpenAuth()
         }}
         onSignUpSuccess={(newUser) => {
-          setSignUpOpen(false)
+          dispatch(setAppUiField({ field: 'signUpOpen', value: false }))
           handleLoginSuccess(newUser)
         }}
       />

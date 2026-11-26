@@ -1,11 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   fetchDeptWorkOrders,
   escalateDeptWorkOrder,
+  setDeptWorkOrdersUiField,
+  setDeptWorkOrdersFilter,
   selectDeptWorkOrders,
   selectDeptWorkOrdersStatus,
   selectDeptWorkOrdersProcessing,
+  selectDeptWorkOrdersUi,
 } from '../../store/depthead/deptHeadSlice.js';
 
 export default function WorkOrders({ onSelectComplaint }) {
@@ -13,20 +16,19 @@ export default function WorkOrders({ onSelectComplaint }) {
   const rawWorkOrders = useSelector(selectDeptWorkOrders);
   const workOrdersStatus = useSelector(selectDeptWorkOrdersStatus);
   const reduxProcessing = useSelector(selectDeptWorkOrdersProcessing);
+  const {
+    localProcessing,
+    filters,
+    showEscalateModal,
+    selectedWO,
+    escalateReason,
+  } = useSelector(selectDeptWorkOrdersUi);
 
-  const [localProcessing, setLocalProcessing] = useState(false);
+  const setWoUi = (field, value) => dispatch(setDeptWorkOrdersUiField({ field, value }));
+
   const processing = reduxProcessing || localProcessing;
   const loading = workOrdersStatus === 'loading' && rawWorkOrders.length === 0;
   const error = workOrdersStatus === 'failed' ? 'Failed to load work orders' : null;
-  
-  const [filters, setFilters] = useState({
-    status: '',
-    search: '',
-  });
-
-  const [showEscalateModal, setShowEscalateModal] = useState(false);
-  const [selectedWO, setSelectedWO] = useState(null);
-  const [escalateReason, setEscalateReason] = useState('');
 
   useEffect(() => {
     const { sla, ...apiFilters } = filters;
@@ -48,20 +50,20 @@ export default function WorkOrders({ onSelectComplaint }) {
     if (!escalateReason.trim() || !selectedWO) return;
 
     try {
-      setLocalProcessing(true);
+      setWoUi('localProcessing', true);
       await dispatch(escalateDeptWorkOrder({ id: selectedWO.id, reason: escalateReason })).unwrap();
-      setShowEscalateModal(false);
-      setEscalateReason('');
-      setSelectedWO(null);
+      setWoUi('showEscalateModal', false);
+      setWoUi('escalateReason', '');
+      setWoUi('selectedWO', null);
     } catch (err) {
       alert(err || 'Failed to escalate work order');
     } finally {
-      setLocalProcessing(false);
+      setWoUi('localProcessing', false);
     }
   };
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    dispatch(setDeptWorkOrdersFilter({ key, value }));
   };
 
   return (
@@ -236,7 +238,7 @@ export default function WorkOrders({ onSelectComplaint }) {
                           <button 
                             className="button button-primary" 
                             style={{ padding: '6px 10px', fontSize: '12px', background: '#ef4444' }}
-                            onClick={() => { setSelectedWO(wo); setShowEscalateModal(true); }}
+                            onClick={() => { setWoUi('selectedWO', wo); setWoUi('showEscalateModal', true); }}
                           >
                             Escalate
                           </button>
@@ -271,7 +273,7 @@ export default function WorkOrders({ onSelectComplaint }) {
               <form onSubmit={handleEscalate}>
                 <textarea 
                   value={escalateReason}
-                  onChange={(e) => setEscalateReason(e.target.value)}
+                  onChange={(e) => setWoUi('escalateReason', e.target.value)}
                   placeholder="e.g. Contractor has failed to respond after 3 notices. SLA breached by 48 hours."
                   style={{ width: '100%', height: '100px', padding: '12px', borderRadius: '8px', border: '1px solid var(--line-strong)', outline: 'none', resize: 'none', marginBottom: '24px' }}
                   required
@@ -281,9 +283,9 @@ export default function WorkOrders({ onSelectComplaint }) {
                     type="button" 
                     className="button button-ghost"
                     onClick={() => {
-                      setShowEscalateModal(false);
-                      setEscalateReason('');
-                      setSelectedWO(null);
+                      setWoUi('showEscalateModal', false);
+                      setWoUi('escalateReason', '');
+                      setWoUi('selectedWO', null);
                     }}
                     disabled={processing}
                   >

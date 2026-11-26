@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 import {
@@ -6,7 +6,9 @@ import {
   validateComplaint,
   rejectComplaint,
   recallComplaint,
+  setClerkTriageField,
   selectAllClerkComplaints,
+  selectClerkTriageUi,
 } from '../../store/clerk/complaintsSlice.js'
 import { selectAuthUser } from '../../store/auth/authSlice.js'
 import { isComplaintInClerkDepartment } from './ClerkPortal.jsx'
@@ -63,12 +65,16 @@ export default function TriageValidation({
     return reduxComplaints.filter(c => isComplaintInClerkDepartment(c, currentUser))
   }, [propComplaints, reduxComplaints, currentUser])
 
-  // Form states for rejection & error-recovery workflow
-  const [isRejecting, setIsRejecting]           = useState(false)
-  const [rejectionReason, setRejectionReason]   = useState('Duplicate Complaint')
-  const [rejectionRemarks, setRejectionRemarks] = useState('')
-  const [recallReason, setRecallReason]         = useState('')
-  const [isSubmitting, setIsSubmitting]         = useState(false)
+  // Form & UI states from Redux store (rejection & error-recovery workflow)
+  const {
+    isRejecting,
+    rejectionReason,
+    rejectionRemarks,
+    recallReason,
+    isSubmitting,
+  } = useSelector(selectClerkTriageUi)
+
+  const setTriage = (field, value) => dispatch(setClerkTriageField({ field, value }))
 
   // Synchronize the currently active complaint with live state
   const active = useMemo(() => {
@@ -105,7 +111,7 @@ export default function TriageValidation({
    */
   async function handleValidate() {
     if (!active || isSubmitting) return
-    setIsSubmitting(true)
+    setTriage('isSubmitting', true)
     try {
       const historyEntry = {
         stage: 'VALIDATED',
@@ -121,12 +127,12 @@ export default function TriageValidation({
         history: [...(active.history || []), historyEntry],
       }
       if (onComplaintUpdated) onComplaintUpdated(updated)
-      setIsRejecting(false)
+      setTriage('isRejecting', false)
     } catch (err) {
       console.error('[TriageValidation] Validation failed:', err)
       alert('Validation failed: ' + (err.message || 'Server error'))
     } finally {
-      setIsSubmitting(false)
+      setTriage('isSubmitting', false)
     }
   }
 
@@ -137,7 +143,7 @@ export default function TriageValidation({
   async function handleReject(e) {
     e.preventDefault()
     if (!active || isSubmitting) return
-    setIsSubmitting(true)
+    setTriage('isSubmitting', true)
     try {
       const historyEntry = {
         stage: 'REJECTED',
@@ -160,13 +166,13 @@ export default function TriageValidation({
         history: [...(active.history || []), historyEntry],
       }
       if (onComplaintUpdated) onComplaintUpdated(updated)
-      setIsRejecting(false)
-      setRejectionRemarks('')
+      setTriage('isRejecting', false)
+      setTriage('rejectionRemarks', '')
     } catch (err) {
       console.error('[TriageValidation] Rejection failed:', err)
       alert('Rejection failed: ' + (err.message || 'Server error'))
     } finally {
-      setIsSubmitting(false)
+      setTriage('isSubmitting', false)
     }
   }
 
@@ -175,7 +181,7 @@ export default function TriageValidation({
    */
   async function handleRecall() {
     if (!active || isSubmitting || !recallReason.trim()) return
-    setIsSubmitting(true)
+    setTriage('isSubmitting', true)
     try {
       const historyEntry = {
         stage: 'RECALLED_TO_TRIAGE',
@@ -197,12 +203,12 @@ export default function TriageValidation({
         history: [...(active.history || []), historyEntry],
       }
       if (onComplaintUpdated) onComplaintUpdated(updated)
-      setRecallReason('')
+      setTriage('recallReason', '')
       alert(`Ticket ${active.complaint_code || active.id} restored to active triage!`)
     } catch (err) {
       alert('Failed to recall ticket: ' + (typeof err === 'string' ? err : err?.message || 'Server error'))
     } finally {
-      setIsSubmitting(false)
+      setTriage('isSubmitting', false)
     }
   }
 
@@ -371,7 +377,7 @@ export default function TriageValidation({
                 <li>&#10003; Not a duplicate of an existing open complaint</li>
               </ul>
               <div className="tv-validate-actions">
-                <button className="tv-btn-open-reject" onClick={() => setIsRejecting(true)}>
+                <button className="tv-btn-open-reject" onClick={() => setTriage('isRejecting', true)}>
                   Issue with complaint? Reject instead &#8594;
                 </button>
                 <button
@@ -390,7 +396,7 @@ export default function TriageValidation({
             <form className="tv-reject-box" onSubmit={handleReject}>
               <div className="tv-reject-top">
                 <h3 className="tv-reject-heading">Option B — Reject Complaint</h3>
-                <button type="button" className="tv-btn-cancel-reject" onClick={() => setIsRejecting(false)}>
+                <button type="button" className="tv-btn-cancel-reject" onClick={() => setTriage('isRejecting', false)}>
                   &#10005; Cancel
                 </button>
               </div>
@@ -398,7 +404,7 @@ export default function TriageValidation({
                 <label className="tv-attr-label">Rejection Reason <span className="tv-required-star">*</span></label>
                 <select
                   value={rejectionReason}
-                  onChange={e => setRejectionReason(e.target.value)}
+                  onChange={e => setTriage('rejectionReason', e.target.value)}
                   className="tv-select"
                   required
                 >
@@ -414,13 +420,13 @@ export default function TriageValidation({
                 <textarea
                   rows={3}
                   value={rejectionRemarks}
-                  onChange={e => setRejectionRemarks(e.target.value)}
+                  onChange={e => setTriage('rejectionRemarks', e.target.value)}
                   placeholder="Explain so RWA can re-file correctly..."
                   className="tv-textarea"
                 />
               </div>
               <div className="tv-form-actions-end">
-                <button type="button" onClick={() => setIsRejecting(false)} className="tv-btn-cancel-flat">Cancel</button>
+                <button type="button" onClick={() => setTriage('isRejecting', false)} className="tv-btn-cancel-flat">Cancel</button>
                 <button type="submit" className="tv-btn-submit-reject">Submit Rejection &#9888;</button>
               </div>
             </form>
@@ -442,7 +448,7 @@ export default function TriageValidation({
               type="text"
               placeholder="Reason for recall (e.g. Accidental rejection, verified as valid Electrical issue)..."
               value={recallReason}
-              onChange={(e) => setRecallReason(e.target.value)}
+              onChange={(e) => setTriage('recallReason', e.target.value)}
               className="tv-input"
               style={{ flex: 1, padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 14 }}
             />

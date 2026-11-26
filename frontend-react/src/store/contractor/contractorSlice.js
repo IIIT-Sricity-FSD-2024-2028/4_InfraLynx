@@ -476,6 +476,9 @@ const contractorSlice = createSlice({
     status: 'idle',      // 'idle' | 'loading' | 'succeeded' | 'failed'
     error: null,         // Global fetch error message
 
+    // Portal screen navigation state
+    currentScreen: 'dashboard', // 'dashboard' | 'workorders' | 'inspection' | 'estimate' | 'approvals' | 'execution'
+
     // Operation-specific loading and error states
     inspectionLoading: false,
     inspectionError: null,
@@ -490,9 +493,71 @@ const contractorSlice = createSlice({
     evidenceError: null,
 
     lastActionMessage: null, // Toast notice message string for ContractorPortal/Dashboard
+
+    // UI State for AssignedWorkOrders.jsx
+    workOrdersUi: {
+      filter: 'ALL',
+      searchQuery: '',
+      selectedBiddingJob: null,
+      bidAmount: '4500',
+      bidDays: '2',
+      bidJustification: 'Certified AMC rate with rapid mobilization',
+      isSubmittingBid: false,
+      bidNotice: null,
+    },
+
+    // UI State for ApprovalStatus.jsx
+    approvalUi: {
+      filter: 'ALL',
+    },
+
+    // UI State for SiteInspection.jsx
+    inspectionUi: {
+      activeJobId: '',
+      problemObserved: '',
+      equipmentCondition: '',
+      requiredWork: '',
+      beforePhoto: '',
+      uploadedFileInfo: null,
+      isDragOver: false,
+      remarks: '',
+      isSaved: false,
+      isSaving: false,
+    },
+
+    // UI State for AmcEstimateBuilder.jsx
+    estimateUi: {
+      activeJobId: '',
+      lineItems: [],
+      justification: '',
+      submittedMessage: null,
+      formErrors: {},
+      touched: false,
+    },
+
+    // UI State for WorkExecution.jsx
+    executionUi: {
+      activeJobId: '',
+      actualWork: '',
+      labourDeployed: '',
+      afterPhoto: '',
+      uploadedFileInfo: null,
+      isDragOver: false,
+      completionRemarks: '',
+      submittedMessage: null,
+      isSubmitting: false,
+      actualExpense: 0,
+      overrunReason: '',
+      rebuttalInput: '',
+      rebuttalSending: false,
+      rebuttalSuccess: null,
+    },
   },
 
   reducers: {
+    setContractorScreen(state, action) {
+      state.currentScreen = action.payload
+    },
     // Allow ContractorPortal to set the selected job directly (tab navigation)
     setSelectedJob(state, action) {
       state.selectedJob = action.payload
@@ -510,6 +575,132 @@ const contractorSlice = createSlice({
     },
     clearStatusUpdateError(state) {
       state.statusUpdateError = null
+    },
+
+    // AssignedWorkOrders UI reducers
+    setWorkOrdersUiField(state, action) {
+      const { field, value } = action.payload
+      if (field in state.workOrdersUi) {
+        state.workOrdersUi[field] = value
+      }
+    },
+    openBiddingModal(state, action) {
+      state.workOrdersUi.selectedBiddingJob = action.payload
+      state.workOrdersUi.bidNotice = null
+    },
+    clearWorkOrdersFilters(state) {
+      state.workOrdersUi.filter = 'ALL'
+      state.workOrdersUi.searchQuery = ''
+    },
+
+    // ApprovalStatus UI reducers
+    setApprovalFilter(state, action) {
+      state.approvalUi.filter = action.payload
+    },
+
+    // SiteInspection UI reducers
+    setInspectionUiField(state, action) {
+      const { field, value } = action.payload
+      if (field in state.inspectionUi) {
+        state.inspectionUi[field] = value
+      }
+    },
+    syncInspectionForJob(state, action) {
+      const job = action.payload
+      if (job?.inspection) {
+        state.inspectionUi.problemObserved = job.inspection.observedProblem || ''
+        state.inspectionUi.equipmentCondition = job.inspection.equipmentCondition || ''
+        state.inspectionUi.requiredWork = job.inspection.requiredWork || ''
+        state.inspectionUi.beforePhoto = job.inspection.inspectionPhoto || ''
+        state.inspectionUi.remarks = job.inspection.remarks || ''
+        if (job.inspection.inspectionPhoto) {
+          state.inspectionUi.uploadedFileInfo = {
+            name: 'Site Inspection Evidence',
+            size: 'Saved',
+            timestamp: new Date(job.inspection.inspectedAt || Date.now()).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+          }
+        } else {
+          state.inspectionUi.uploadedFileInfo = null
+        }
+      } else {
+        state.inspectionUi.problemObserved = ''
+        state.inspectionUi.equipmentCondition = ''
+        state.inspectionUi.requiredWork = ''
+        state.inspectionUi.beforePhoto = ''
+        state.inspectionUi.uploadedFileInfo = null
+        state.inspectionUi.remarks = ''
+      }
+      state.inspectionUi.isSaved = false
+    },
+    clearInspectionPhoto(state) {
+      state.inspectionUi.beforePhoto = ''
+      state.inspectionUi.uploadedFileInfo = null
+    },
+
+    // AmcEstimateBuilder UI reducers
+    setEstimateUiField(state, action) {
+      const { field, value } = action.payload
+      if (field in state.estimateUi) {
+        state.estimateUi[field] = value
+      }
+    },
+    syncEstimateForJob(state, action) {
+      const job = action.payload
+      if (job?.estimate?.items && job.estimate.items.length > 0) {
+        state.estimateUi.lineItems = job.estimate.items
+        state.estimateUi.justification = job.estimate.justification || ''
+      } else {
+        state.estimateUi.lineItems = []
+        state.estimateUi.justification = ''
+      }
+      state.estimateUi.formErrors = {}
+      state.estimateUi.submittedMessage = null
+      state.estimateUi.touched = false
+    },
+
+    // WorkExecution UI reducers
+    setExecutionUiField(state, action) {
+      const { field, value } = action.payload
+      if (field in state.executionUi) {
+        state.executionUi[field] = value
+      }
+    },
+    resetExecutionOverrunForJob(state, action) {
+      state.executionUi.actualExpense = action.payload || 0
+      state.executionUi.overrunReason = ''
+      state.executionUi.rebuttalInput = ''
+      state.executionUi.rebuttalSuccess = null
+    },
+    syncExecutionForJob(state, action) {
+      const job = action.payload
+      if (job?.execution?.actualWorkSummary) {
+        state.executionUi.actualWork = job.execution.actualWorkSummary
+        state.executionUi.labourDeployed = job.execution.actualLabourDetails || ''
+        state.executionUi.afterPhoto = job.execution.afterPhoto || job.afterPhotos?.[0] || ''
+        state.executionUi.completionRemarks = job.completionRemarks || ''
+        if (job.execution.afterPhoto || job.afterPhotos?.[0]) {
+          state.executionUi.uploadedFileInfo = {
+            name: 'Resolution Evidence',
+            size: 'Saved',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          }
+        } else {
+          state.executionUi.uploadedFileInfo = null
+        }
+      } else {
+        state.executionUi.actualWork = ''
+        state.executionUi.labourDeployed = ''
+        state.executionUi.afterPhoto = ''
+        state.executionUi.uploadedFileInfo = null
+        state.executionUi.completionRemarks = ''
+      }
+    },
+    clearExecutionPhoto(state) {
+      state.executionUi.afterPhoto = ''
+      state.executionUi.uploadedFileInfo = null
     },
   },
 
@@ -716,11 +907,25 @@ const contractorSlice = createSlice({
 })
 
 export const {
+  setContractorScreen,
   setSelectedJob,
   clearLastActionMessage,
   clearInspectionError,
   clearEstimateError,
   clearStatusUpdateError,
+  setWorkOrdersUiField,
+  openBiddingModal,
+  clearWorkOrdersFilters,
+  setApprovalFilter,
+  setInspectionUiField,
+  syncInspectionForJob,
+  clearInspectionPhoto,
+  setEstimateUiField,
+  syncEstimateForJob,
+  setExecutionUiField,
+  resetExecutionOverrunForJob,
+  syncExecutionForJob,
+  clearExecutionPhoto,
 } = contractorSlice.actions
 
 // ---------------------------------------------------------------------------
@@ -729,6 +934,7 @@ export const {
 
 export const selectAllContractorJobs     = (state) => state.contractor.jobs
 export const selectContractorSelectedJob = (state) => state.contractor.selectedJob
+export const selectContractorScreen      = (state) => state.contractor.currentScreen
 export const selectContractorStatus      = (state) => state.contractor.status
 export const selectContractorError       = (state) => state.contractor.error
 export const selectContractorLoading     = (state) => state.contractor.status === 'loading'
@@ -743,6 +949,13 @@ export const selectStatusUpdateError     = (state) => state.contractor.statusUpd
 export const selectEvidenceLoading       = (state) => state.contractor.evidenceLoading
 export const selectEvidenceError         = (state) => state.contractor.evidenceError
 export const selectLastActionMessage     = (state) => state.contractor.lastActionMessage
+
+// UI state selectors
+export const selectWorkOrdersUi          = (state) => state.contractor.workOrdersUi
+export const selectApprovalFilter        = (state) => state.contractor.approvalUi.filter
+export const selectInspectionUi          = (state) => state.contractor.inspectionUi
+export const selectEstimateUi            = (state) => state.contractor.estimateUi
+export const selectExecutionUi           = (state) => state.contractor.executionUi
 
 export default contractorSlice.reducer
 

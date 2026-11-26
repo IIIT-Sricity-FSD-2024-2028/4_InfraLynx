@@ -1,11 +1,14 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useEffect, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { systemApi } from '../services/api.js'
 import {
   loginUser,
   logoutUser,
+  setUser,
   clearAuth,
+  setBackendStatus as setBackendStatusAction,
   selectAuthUser,
+  selectBackendStatus,
 } from '../store/auth/authSlice.js'
 import {
   fetchContractors,
@@ -15,36 +18,25 @@ import {
 } from '../store/master/masterDataSlice.js'
 import { fetchComplaints as fetchRwaComplaints } from '../store/rwa/complaintsSlice.js'
 
-const INITIAL_CURRENT_USER = null
-
 const TIMSContext = createContext(null)
 
 export function TIMSProvider({ children }) {
   const dispatch = useDispatch()
-  const reduxUser = useSelector(selectAuthUser)
+  const currentUser = useSelector(selectAuthUser)
+  const backendStatus = useSelector(selectBackendStatus)
 
   // Master data now lives in Redux — read via selectors (Rule 6, Rule 10)
   const reduxContractors  = useSelector(selectAllContractors)
   const reduxAmcRateCards = useSelector(selectAllAmcRates)
 
-  const [currentUser, setCurrentUser] = useState(() => reduxUser || INITIAL_CURRENT_USER)
-
-  // Synchronize local state whenever Redux auth state updates
-  useEffect(() => {
-    setCurrentUser(reduxUser)
-  }, [reduxUser])
-
-  const [backendStatus, setBackendStatus] = useState({
-    connected: false,
-    checking: true,
-    environment: null,
-  })
+  const setCurrentUser = useCallback((user) => {
+    dispatch(setUser(user))
+  }, [dispatch])
 
   // Listen for session expiration or unauthorized events from API layer
   useEffect(() => {
     const handleRevocation = () => {
       dispatch(clearAuth())
-      setCurrentUser(null)
     }
     // Cross-tab logout: when another tab calls logout(), it sets tims_logout_signal
     // in localStorage which fires the 'storage' event in all other tabs
@@ -73,25 +65,25 @@ export function TIMSProvider({ children }) {
       window.removeEventListener('tims_auth_logout', handleRevocation)
       window.removeEventListener('storage', handleStorageLogout)
     }
-  }, [])
+  }, [dispatch])
 
   // Check backend server connectivity on startup
   useEffect(() => {
     let isMounted = true
     systemApi.checkHealth().then((health) => {
       if (isMounted) {
-        setBackendStatus({
+        dispatch(setBackendStatusAction({
           connected: health.success === true,
           checking: false,
           environment: health.environment || 'local',
           database: health.database || 'DISCONNECTED',
-        })
+        }))
       }
     })
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [dispatch])
 
   // Dispatch master data thunks through Redux
   const refreshMasterData = useCallback(() => {
@@ -112,14 +104,12 @@ export function TIMSProvider({ children }) {
       throw new Error(action.payload || 'Login failed')
     }
     const user = action.payload
-    setCurrentUser(user)
     return { success: true, user }
   }, [dispatch])
 
   // Logout: Dispatches logoutUser Redux thunk
   const logout = useCallback(async () => {
     await dispatch(logoutUser())
-    setCurrentUser(null)
     try {
       sessionStorage.clear()
     } catch (_) {}

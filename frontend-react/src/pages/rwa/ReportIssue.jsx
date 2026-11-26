@@ -1,8 +1,18 @@
-import { useState, useRef } from 'react'
-import { useDispatch } from 'react-redux'
+import { useRef } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { useForm } from 'react-hook-form'
 import { submitComplaint } from '../../store/rwa/complaintsSlice.js'
-import { navigateTo, selectComplaint, setSuccessNotice } from '../../store/rwa/uiSlice.js'
+import {
+  navigateTo,
+  selectComplaint,
+  setSuccessNotice,
+  setReportSubmitting,
+  addReportPhoto,
+  removeReportPhoto,
+  clearReportPhotos,
+  selectReportSubmitting,
+  selectReportPhotos,
+} from '../../store/rwa/uiSlice.js'
 import './styles/ReportIssue.css'
 
 const CATEGORY_DATA = {
@@ -54,8 +64,8 @@ const CATEGORY_DATA = {
 
 export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
   const dispatch = useDispatch()
-  const [submitting, setSubmitting] = useState(false)
-  const [photos, setPhotos] = useState([])
+  const submitting = useSelector(selectReportSubmitting)
+  const photos = useSelector(selectReportPhotos)
   const fileInputRef = useRef(null)
 
   // React Hook Form for robust standardized form validation
@@ -92,7 +102,7 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
     files.forEach((file) => {
       const reader = new FileReader()
       reader.onload = (uploadEvent) => {
-        setPhotos((prev) => [...prev, uploadEvent.target.result])
+        dispatch(addReportPhoto(uploadEvent.target.result))
       }
       reader.readAsDataURL(file)
     })
@@ -107,7 +117,7 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
 
   const onSubmit = async (data) => {
     try {
-      setSubmitting(true)
+      dispatch(setReportSubmitting(true))
 
       const created = await dispatch(
         submitComplaint({
@@ -129,7 +139,7 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
 
       // Reset form
       reset()
-      setPhotos([])
+      dispatch(clearReportPhotos())
 
       if (onComplaintSubmitted) {
         onComplaintSubmitted(created)
@@ -147,7 +157,7 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
     } catch (err) {
       alert(`Failed to submit complaint: ${err.message}`)
     } finally {
-      setSubmitting(false)
+      dispatch(setReportSubmitting(false))
     }
   }
 
@@ -334,7 +344,7 @@ export default function ReportIssue({ currentUser, onComplaintSubmitted }) {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation()
-                      setPhotos((prev) => prev.filter((_, i) => i !== idx))
+                      dispatch(removeReportPhoto(idx))
                     }}
                     className="thumbnail-remove"
                   >
