@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { selectAuthUser } from '../../store/auth/authSlice.js'
 import {
   clearSuperAdminNotice,
+  setSuperAdminActiveTab,
   selectSuperAdminNotice,
+  selectSuperAdminActiveTab,
 } from '../../store/superadmin/superAdminSlice.js'
 import Overview from './sections/Overview.jsx'
 import TenantsSubscriptions from './sections/TenantsSubscriptions.jsx'
@@ -21,7 +23,7 @@ export default function SuperAdminPortal({ onExitToLanding }) {
   const dispatch = useDispatch()
   const currentUser = useSelector(selectAuthUser)
   const toast = useSelector(selectSuperAdminNotice)
-  const [activeTab, setActiveTab] = useState('overview')
+  const activeTab = useSelector(selectSuperAdminActiveTab)
 
   useEffect(() => {
     if (!toast) return undefined
@@ -84,7 +86,7 @@ export default function SuperAdminPortal({ onExitToLanding }) {
                 aria-current={activeTab === tab.id ? 'page' : undefined}
                 className={`sa-tab-btn${activeTab === tab.id ? ' active' : ''}`}
                 onClick={() => {
-                  setActiveTab(tab.id)
+                  dispatch(setSuperAdminActiveTab(tab.id))
                   window.scrollTo({ top: 0, behavior: 'smooth' })
                 }}
               >

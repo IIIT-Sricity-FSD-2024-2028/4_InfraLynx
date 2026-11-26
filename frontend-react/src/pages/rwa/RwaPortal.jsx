@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 
@@ -13,9 +13,13 @@ import {
   selectComplaint,
   setSuccessNotice,
   dismissNotice,
+  setEditingComplaint,
+  setCancellingComplaint,
   selectCurrentScreen,
   selectSuccessNotice,
   selectSelectedComplaint,
+  selectEditingComplaint,
+  selectCancellingComplaint,
 } from '../../store/rwa/uiSlice.js'
 
 // Child screens
@@ -36,10 +40,8 @@ export default function RwaPortal({ onExitToLanding }) {
   const successNotice = useSelector(selectSuccessNotice)
   const selectedComplaint = useSelector(selectSelectedComplaint)
   const pendingVerificationCount = useSelector(selectPendingVerificationCount)
-
-  // ── Modal state ──────────────────────────────────────────────────────────
-  const [editingComplaint, setEditingComplaint] = useState(null)
-  const [cancellingComplaint, setCancellingComplaint] = useState(null)
+  const editingComplaint = useSelector(selectEditingComplaint)
+  const cancellingComplaint = useSelector(selectCancellingComplaint)
 
   // ── Fetch complaints on mount ────────────────────────────────────────────
   useEffect(() => {
@@ -156,8 +158,8 @@ export default function RwaPortal({ onExitToLanding }) {
             currentUser={currentUser}
             onComplaintSubmitted={handleComplaintSubmitted}
             onDismissNotice={handleDismissNotice}
-            onEdit={(c) => setEditingComplaint(c)}
-            onCancel={(c) => setCancellingComplaint(c)}
+            onEdit={(c) => dispatch(setEditingComplaint(c))}
+            onCancel={(c) => dispatch(setCancellingComplaint(c))}
           />
         )}
 
@@ -171,8 +173,8 @@ export default function RwaPortal({ onExitToLanding }) {
         {currentScreen === 'track' && (
           <ComplaintTracker
             currentUser={currentUser}
-            onEdit={(c) => setEditingComplaint(c)}
-            onCancel={(c) => setCancellingComplaint(c)}
+            onEdit={(c) => dispatch(setEditingComplaint(c))}
+            onCancel={(c) => dispatch(setCancellingComplaint(c))}
           />
         )}
 
@@ -187,7 +189,7 @@ export default function RwaPortal({ onExitToLanding }) {
       <EditReportModal
         isOpen={Boolean(editingComplaint)}
         complaint={editingComplaint}
-        onClose={() => setEditingComplaint(null)}
+        onClose={() => dispatch(setEditingComplaint(null))}
         onSuccess={(updated) => {
           dispatch(fetchComplaints())
           if (updated) {
@@ -200,14 +202,14 @@ export default function RwaPortal({ onExitToLanding }) {
               message: `Complaint ${updated.complaint_code || updated.id} updated successfully!`,
             })
           )
-          setEditingComplaint(null)
+          dispatch(setEditingComplaint(null))
         }}
       />
 
       <CancelReportModal
         isOpen={Boolean(cancellingComplaint)}
         complaint={cancellingComplaint}
-        onClose={() => setCancellingComplaint(null)}
+        onClose={() => dispatch(setCancellingComplaint(null))}
         onSuccess={(cancelled) => {
           dispatch(fetchComplaints())
           if (cancelled) {
@@ -220,7 +222,7 @@ export default function RwaPortal({ onExitToLanding }) {
               message: `Complaint ${cancelled?.complaint_code || cancelled?.id || ''} has been cancelled.`,
             })
           )
-          setCancellingComplaint(null)
+          dispatch(setCancellingComplaint(null))
         }}
       />
 

@@ -1,8 +1,12 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   selectAllContractorJobs,
+  selectWorkOrdersUi,
   setSelectedJob,
+  setWorkOrdersUiField,
+  openBiddingModal,
+  clearWorkOrdersFilters,
   submitContractorBid,
   retractContractorBid,
 } from '../../store/contractor/contractorSlice.js'
@@ -23,16 +27,18 @@ export default function AssignedWorkOrders({
     if (onSelectJob) onSelectJob(job)
   }
 
-  const [filter, setFilter] = useState('ALL') // ALL | ASSIGNED | IN_PROGRESS | COMPLETED | REOPENED | TENDERS
-  const [searchQuery, setSearchQuery] = useState('')
+  const {
+    filter,
+    searchQuery,
+    selectedBiddingJob,
+    bidAmount,
+    bidDays,
+    bidJustification,
+    isSubmittingBid,
+    bidNotice,
+  } = useSelector(selectWorkOrdersUi)
 
-  // Bidding modal state
-  const [selectedBiddingJob, setSelectedBiddingJob] = useState(null)
-  const [bidAmount, setBidAmount] = useState('4500')
-  const [bidDays, setBidDays] = useState('2')
-  const [bidJustification, setBidJustification] = useState('Certified AMC rate with rapid mobilization')
-  const [isSubmittingBid, setIsSubmittingBid] = useState(false)
-  const [bidNotice, setBidNotice] = useState(null)
+  const setWoUi = (field, value) => dispatch(setWorkOrdersUiField({ field, value }))
 
   // Filter jobs based on selected status tab and search term
   const filteredJobs = useMemo(() => {
@@ -94,7 +100,7 @@ export default function AssignedWorkOrders({
             type="text"
             placeholder="Search WO ID, Asset, Location..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => setWoUi('searchQuery', e.target.value)}
             className="assigned-wo-search-input"
           />
           <span className="assigned-wo-search-icon">
@@ -102,7 +108,7 @@ export default function AssignedWorkOrders({
           </span>
           {searchQuery && (
             <button
-              onClick={() => setSearchQuery('')}
+              onClick={() => setWoUi('searchQuery', '')}
               className="assigned-wo-search-clear"
             >
               ✕
@@ -161,7 +167,7 @@ export default function AssignedWorkOrders({
           return (
             <button
               key={tab.id}
-              onClick={() => setFilter(tab.id)}
+              onClick={() => setWoUi('filter', tab.id)}
               className={`assigned-wo-tab-btn ${isActive ? 'active' : ''}`}
             >
               <span>{tab.label}</span>
@@ -182,10 +188,7 @@ export default function AssignedWorkOrders({
             No work orders match the current filter &ldquo;{filter}&rdquo; {searchQuery ? `or search "${searchQuery}"` : ''}.
           </p>
           <button
-            onClick={() => {
-              setFilter('ALL')
-              setSearchQuery('')
-            }}
+            onClick={() => dispatch(clearWorkOrdersFilters())}
             className="btn-contractor-secondary assigned-wo-clear-btn"
           >
             Clear Filters
@@ -373,10 +376,7 @@ export default function AssignedWorkOrders({
 
                         {job.bidding_open && (
                           <button
-                            onClick={() => {
-                              setSelectedBiddingJob(job)
-                              setBidNotice(null)
-                            }}
+                            onClick={() => dispatch(openBiddingModal(job))}
                             className="btn-contractor-primary assigned-wo-action-btn"
                             style={{ background: '#7c3aed', borderColor: '#6d28d9' }}
                           >
@@ -419,7 +419,7 @@ export default function AssignedWorkOrders({
               </h3>
               <button
                 type="button"
-                onClick={() => setSelectedBiddingJob(null)}
+                onClick={() => setWoUi('selectedBiddingJob', null)}
                 style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#64748b' }}
               >
                 ✕
@@ -444,7 +444,7 @@ export default function AssignedWorkOrders({
                 <input
                   type="number"
                   value={bidAmount}
-                  onChange={(e) => setBidAmount(e.target.value)}
+                  onChange={(e) => setWoUi('bidAmount', e.target.value)}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }}
                   placeholder="e.g. 4500"
                 />
@@ -457,7 +457,7 @@ export default function AssignedWorkOrders({
                 <input
                   type="number"
                   value={bidDays}
-                  onChange={(e) => setBidDays(e.target.value)}
+                  onChange={(e) => setWoUi('bidDays', e.target.value)}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 14 }}
                   placeholder="e.g. 2"
                 />
@@ -470,7 +470,7 @@ export default function AssignedWorkOrders({
                 <textarea
                   rows={3}
                   value={bidJustification}
-                  onChange={(e) => setBidJustification(e.target.value)}
+                  onChange={(e) => setWoUi('bidJustification', e.target.value)}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
                   placeholder="Describe parts availability, team readiness, and quality guarantees..."
                 />
@@ -482,13 +482,13 @@ export default function AssignedWorkOrders({
                   onClick={async () => {
                     const woId = selectedBiddingJob.backendWoId || selectedBiddingJob.workOrderId || selectedBiddingJob.id
                     try {
-                      setIsSubmittingBid(true)
+                      setWoUi('isSubmittingBid', true)
                       const result = await dispatch(retractContractorBid({ workOrderId: woId, contractorId: selectedBiddingJob.contractor_id || 'c0000000-0000-0000-0000-000000000001' })); if (retractContractorBid.rejected.match(result)) throw new Error(result.payload || 'Could not retract bid');
-                      setBidNotice('Bid retracted successfully.')
+                      setWoUi('bidNotice', 'Bid retracted successfully.')
                     } catch (err) {
                       alert('Could not retract bid: ' + err.message)
                     } finally {
-                      setIsSubmittingBid(false)
+                      setWoUi('isSubmittingBid', false)
                     }
                   }}
                   disabled={isSubmittingBid}
@@ -502,14 +502,14 @@ export default function AssignedWorkOrders({
                   onClick={async () => {
                     const woId = selectedBiddingJob.backendWoId || selectedBiddingJob.workOrderId || selectedBiddingJob.id
                     try {
-                      setIsSubmittingBid(true)
+                      setWoUi('isSubmittingBid', true)
                       const result = await dispatch(submitContractorBid({ workOrderId: woId, bidData: { bid_amount: Number(bidAmount), estimated_days: Number(bidDays), justification: bidJustification } })); if (submitContractorBid.rejected.match(result)) throw new Error(result.payload || 'Failed to submit bid');
-                      setBidNotice('✓ Bid submitted successfully! The algorithm will evaluate your cost and rating.')
-                      setTimeout(() => setSelectedBiddingJob(null), 1500)
+                      setWoUi('bidNotice', '✓ Bid submitted successfully! The algorithm will evaluate your cost and rating.')
+                      setTimeout(() => setWoUi('selectedBiddingJob', null), 1500)
                     } catch (err) {
                       alert('Failed to submit bid: ' + err.message)
                     } finally {
-                      setIsSubmittingBid(false)
+                      setWoUi('isSubmittingBid', false)
                     }
                   }}
                   disabled={isSubmittingBid || !bidAmount}

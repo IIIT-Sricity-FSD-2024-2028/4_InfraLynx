@@ -1,10 +1,14 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
 import {
   selectAllContractorJobs,
   selectContractorSelectedJob,
+  selectInspectionUi,
   setSelectedJob,
+  setInspectionUiField,
+  syncInspectionForJob,
+  clearInspectionPhoto,
   submitSiteInspection,
 } from '../../store/contractor/contractorSlice.js'
 import './styles/SiteInspection.css'
@@ -19,6 +23,20 @@ export default function SiteInspection({
   const dispatch = useDispatch()
   const reduxJobs = useSelector(selectAllContractorJobs)
   const reduxSelectedJob = useSelector(selectContractorSelectedJob)
+  const {
+    activeJobId,
+    problemObserved,
+    equipmentCondition,
+    requiredWork,
+    beforePhoto,
+    uploadedFileInfo,
+    isDragOver,
+    remarks,
+    isSaved,
+    isSaving,
+  } = useSelector(selectInspectionUi)
+
+  const setUi = (field, value) => dispatch(setInspectionUiField({ field, value }))
 
   const jobs = propsJobs || reduxJobs || []
   const selectedJob = propsSelectedJob || reduxSelectedJob
@@ -39,65 +57,28 @@ export default function SiteInspection({
     })
   }, [jobs])
 
-  const [activeJobId, setActiveJobId] = useState(() => {
-    if (selectedJob && inspectionJobs.some((j) => j.id === selectedJob.id)) {
-      return selectedJob.id
-    }
-    return inspectionJobs[0]?.id || ''
-  })
-
   // Keep activeJobId in sync with available inspectionJobs
   useEffect(() => {
     if (selectedJob && inspectionJobs.some((j) => j.id === selectedJob.id)) {
-      setActiveJobId(selectedJob.id)
+      if (activeJobId !== selectedJob.id) {
+        setUi('activeJobId', selectedJob.id)
+      }
     } else if (!inspectionJobs.some((j) => j.id === activeJobId)) {
-      setActiveJobId(inspectionJobs[0]?.id || '')
+      const fallbackId = inspectionJobs[0]?.id || ''
+      if (activeJobId !== fallbackId) {
+        setUi('activeJobId', fallbackId)
+      }
     }
   }, [inspectionJobs, selectedJob, activeJobId])
 
   const currentJob = inspectionJobs.find((j) => j.id === activeJobId) || inspectionJobs[0] || null
 
-  // Form State - Starts completely empty (no prefilled dummy values)
-  const [problemObserved, setProblemObserved] = useState('')
-  const [equipmentCondition, setEquipmentCondition] = useState('')
-  const [requiredWork, setRequiredWork] = useState('')
-  const [beforePhoto, setBeforePhoto] = useState('')
-  const [uploadedFileInfo, setUploadedFileInfo] = useState(null)
-  const [isDragOver, setIsDragOver] = useState(false)
-  const [remarks, setRemarks] = useState('')
-  const [isSaved, setIsSaved] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-
   const fileInputRef = useRef(null)
 
   // Populate existing inspection data ONLY if previously saved
   useEffect(() => {
-    if (currentJob?.inspection) {
-      setProblemObserved(currentJob.inspection.observedProblem || '')
-      setEquipmentCondition(currentJob.inspection.equipmentCondition || '')
-      setRequiredWork(currentJob.inspection.requiredWork || '')
-      setBeforePhoto(currentJob.inspection.inspectionPhoto || '')
-      setRemarks(currentJob.inspection.remarks || '')
-      if (currentJob.inspection.inspectionPhoto) {
-        setUploadedFileInfo({
-          name: 'Site Inspection Evidence',
-          size: 'Saved',
-          timestamp: new Date(currentJob.inspection.inspectedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        })
-      } else {
-        setUploadedFileInfo(null)
-      }
-    } else {
-      // Clean slate - No prefilled values
-      setProblemObserved('')
-      setEquipmentCondition('')
-      setRequiredWork('')
-      setBeforePhoto('')
-      setUploadedFileInfo(null)
-      setRemarks('')
-    }
-    setIsSaved(false)
-  }, [currentJob])
+    dispatch(syncInspectionForJob(currentJob))
+  }, [currentJob, dispatch])
 
   function handleFileSelect(file) {
     if (!file) return
@@ -108,8 +89,8 @@ export default function SiteInspection({
 
     const reader = new FileReader()
     reader.onload = (uploadEvent) => {
-      setBeforePhoto(uploadEvent.target.result)
-      setUploadedFileInfo({
+      setUi('beforePhoto', uploadEvent.target.result)
+      setUi('uploadedFileInfo', {
         name: file.name,
         size: (file.size / 1024).toFixed(1) + ' KB',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -125,8 +106,7 @@ export default function SiteInspection({
   }
 
   function handleRemovePhoto() {
-    setBeforePhoto('')
-    setUploadedFileInfo(null)
+    dispatch(clearInspectionPhoto())
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -150,7 +130,7 @@ export default function SiteInspection({
     }
 
     try {
-      setIsSaving(true)
+      setUi('isSaving', true)
       if (onSaveInspection) {
         await onSaveInspection(currentJob.id, inspectionData)
       } else {
@@ -171,7 +151,7 @@ export default function SiteInspection({
           throw new Error(result.payload || 'Failed to submit site inspection')
         }
       }
-      setIsSaved(true)
+      setUi('isSaved', true)
 
       const updatedJob = { ...currentJob, inspection: inspectionData }
       dispatch(setSelectedJob(updatedJob))
@@ -182,7 +162,7 @@ export default function SiteInspection({
     } catch (err) {
       alert(`Save inspection failed: ${err.message}`)
     } finally {
-      setIsSaving(false)
+      setUi('isSaving', false)
     }
   }
 
@@ -236,7 +216,7 @@ export default function SiteInspection({
           <select
             value={currentJob.id}
             onChange={(e) => {
-              setActiveJobId(e.target.value)
+              setUi('activeJobId', e.target.value)
               const selected = inspectionJobs.find((j) => j.id === e.target.value)
               if (selected) {
                 dispatch(setSelectedJob(selected))
@@ -363,7 +343,7 @@ export default function SiteInspection({
                 rows={3}
                 required
                 value={problemObserved}
-                onChange={(e) => setProblemObserved(e.target.value)}
+                onChange={(e) => setUi('problemObserved', e.target.value)}
                 placeholder="Describe actual mechanical / electrical failure, damage level, and root cause..."
                 className="inspection-form-textarea"
               />
@@ -376,7 +356,7 @@ export default function SiteInspection({
               </label>
               <select
                 value={equipmentCondition}
-                onChange={(e) => setEquipmentCondition(e.target.value)}
+                onChange={(e) => setUi('equipmentCondition', e.target.value)}
                 className="inspection-select"
                 style={{ width: '100%', padding: '9px 12px', fontSize: 13.5 }}
                 required
@@ -398,7 +378,7 @@ export default function SiteInspection({
                 rows={3}
                 required
                 value={requiredWork}
-                onChange={(e) => setRequiredWork(e.target.value)}
+                onChange={(e) => setUi('requiredWork', e.target.value)}
                 placeholder="Specify labour requirements, spare parts, and tools needed under AMC terms..."
                 className="inspection-form-textarea"
               />
@@ -436,15 +416,15 @@ export default function SiteInspection({
                   onClick={handleTriggerFileInput}
                   onDragOver={(e) => {
                     e.preventDefault()
-                    setIsDragOver(true)
+                    setUi('isDragOver', true)
                   }}
                   onDragLeave={(e) => {
                     e.preventDefault()
-                    setIsDragOver(false)
+                    setUi('isDragOver', false)
                   }}
                   onDrop={(e) => {
                     e.preventDefault()
-                    setIsDragOver(false)
+                    setUi('isDragOver', false)
                     const file = e.dataTransfer.files?.[0]
                     if (file) handleFileSelect(file)
                   }}
@@ -516,7 +496,7 @@ export default function SiteInspection({
               <input
                 type="text"
                 value={remarks}
-                onChange={(e) => setRemarks(e.target.value)}
+                onChange={(e) => setUi('remarks', e.target.value)}
                 placeholder="Additional notes for Department Head or Desk Clerk..."
                 className="inspection-form-input"
                 style={{ marginTop: 0 }}

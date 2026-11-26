@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { setLandingUiField, selectLandingUi } from '../../store/auth/authSlice.js'
 
 export default function Nav({ onOpenAuth, onOpenSignUp, currentUser, onLogout, onGoToPortal }) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const dispatch = useDispatch()
+  const { mobileMenuOpen } = useSelector(selectLandingUi)
 
   return (
     <header
@@ -137,7 +139,7 @@ export default function Nav({ onOpenAuth, onOpenSignUp, currentUser, onLogout, o
           {/* Mobile menu toggle */}
           <button
             className="show-mobile"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={() => dispatch(setLandingUiField({ field: 'mobileMenuOpen', value: !mobileMenuOpen }))}
             style={{
               width: 38,
               height: 38,
@@ -172,17 +174,17 @@ export default function Nav({ onOpenAuth, onOpenSignUp, currentUser, onLogout, o
             fontWeight: 600,
           }}
         >
-          <a href="#roles" onClick={() => setMobileMenuOpen(false)}>7 Actor Roles</a>
-          <a href="#modules" onClick={() => setMobileMenuOpen(false)}>Modules</a>
+          <a href="#roles" onClick={() => dispatch(setLandingUiField({ field: 'mobileMenuOpen', value: false }))}>7 Actor Roles</a>
+          <a href="#modules" onClick={() => dispatch(setLandingUiField({ field: 'mobileMenuOpen', value: false }))}>Modules</a>
           <button
-            onClick={() => { setMobileMenuOpen(false); onOpenSignUp(); }}
+            onClick={() => { dispatch(setLandingUiField({ field: 'mobileMenuOpen', value: false })); onOpenSignUp(); }}
             className="button button-primary"
             style={{ width: '100%', marginTop: 8, background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)' }}
           >
             Sign Up (Township COO)
           </button>
           <button
-            onClick={() => { setMobileMenuOpen(false); onOpenAuth(); }}
+            onClick={() => { dispatch(setLandingUiField({ field: 'mobileMenuOpen', value: false })); onOpenAuth(); }}
             className="button button-secondary"
             style={{ width: '100%' }}
           >

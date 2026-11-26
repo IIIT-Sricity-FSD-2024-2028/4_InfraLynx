@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   fetchSuperAdminUsers,
@@ -11,12 +11,17 @@ import {
   resetSuperAdminUserPassword,
   setSelectedUser,
   clearSelectedUser,
+  setUsersUiField,
+  setCreateUserFormField,
+  patchCreateUserForm,
+  openCreateUserModal,
   selectSuperAdminUsers,
   selectSuperAdminSelectedUser,
   selectSuperAdminUsersStatus,
   selectSuperAdminTenants,
   selectSuperAdminDepartments,
   selectSuperAdminContractors,
+  selectSuperAdminUsersUi,
 } from '../../../store/superadmin/superAdminSlice.js'
 
 const ROLE_OPTIONS = ['RWA', 'DESK_CLERK', 'FIELD_CONTRACTOR', 'DEPARTMENT_HEAD', 'FINANCE_CLERK', 'TOWNSHIP_COO', 'SUPER_ADMIN']
@@ -32,13 +37,9 @@ function fmt(date) {
 
 // ── Create User Modal ────────────────────────────────────────────────────────
 function CreateUserModal({ onClose, onSave, townships, departments, contractors }) {
-  const [form, setForm] = useState({
-    name: '', email: '', username: '', password: '', role: 'DESK_CLERK',
-    township_id: '', department_id: '', contractor_id: '', sector: '', phone: '',
-  })
-  const [errors, setErrors] = useState({})
-  const [saving, setSaving] = useState(false)
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+  const dispatch = useDispatch()
+  const { createForm: form, createErrors: errors, createSaving: saving } = useSelector(selectSuperAdminUsersUi)
+  const set = (k, v) => dispatch(setCreateUserFormField({ key: k, value: v }))
 
   function validate() {
     const e = {}
@@ -50,15 +51,15 @@ function CreateUserModal({ onClose, onSave, townships, departments, contractors 
     if (form.role !== 'SUPER_ADMIN' && !form.township_id) e.township_id = 'Select a township for tenant accounts'
     if (form.role === 'DEPARTMENT_HEAD' && !form.department_id) e.department_id = 'Select a department for the Department Head'
     if (form.role === 'FIELD_CONTRACTOR' && !form.contractor_id) e.contractor_id = 'Select the contractor account'
-    setErrors(e)
+    dispatch(setUsersUiField({ field: 'createErrors', value: e }))
     return Object.keys(e).length === 0
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (!validate()) return
-    setSaving(true)
-    try { await onSave(form) } finally { setSaving(false) }
+    dispatch(setUsersUiField({ field: 'createSaving', value: true }))
+    try { await onSave(form) } finally { dispatch(setUsersUiField({ field: 'createSaving', value: false })) }
   }
 
   const filteredDepts = departments.filter((d) => !form.township_id || d.township_id === form.township_id)
@@ -104,8 +105,7 @@ function CreateUserModal({ onClose, onSave, townships, departments, contractors 
                 <label className="sa-label">Role *</label>
                 <select className="sa-select" value={form.role} onChange={(e) => {
                   const role = e.target.value
-                  setForm((f) => ({
-                    ...f,
+                  dispatch(patchCreateUserForm({
                     role,
                     ...(role === 'SUPER_ADMIN' ? { township_id: '', department_id: '', contractor_id: '' } : {}),
                     ...(role !== 'FIELD_CONTRACTOR' ? { contractor_id: '' } : {}),
@@ -117,7 +117,7 @@ function CreateUserModal({ onClose, onSave, townships, departments, contractors 
               </div>
               <div className="sa-form-group">
                 <label className="sa-label">Assign Township</label>
-                <select className="sa-select" value={form.township_id} disabled={form.role === 'SUPER_ADMIN'} onChange={(e) => setForm((f) => ({ ...f, township_id: e.target.value, department_id: '', contractor_id: '' }))}>
+                <select className="sa-select" value={form.township_id} disabled={form.role === 'SUPER_ADMIN'} onChange={(e) => dispatch(patchCreateUserForm({ township_id: e.target.value, department_id: '', contractor_id: '' }))}>
                   <option value="">— No Township (Platform Level) —</option>
                   {townships.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
@@ -167,36 +167,41 @@ function CreateUserModal({ onClose, onSave, townships, departments, contractors 
 
 // ── User Detail Modal ────────────────────────────────────────────────────────
 function UserDetailModal({ user, onClose, onStatusChange, onResetPassword, onUpdateRole, townships, departments, contractors }) {
-  const [tab, setTab] = useState('info')
-  const [newStatus, setNewStatus] = useState(user.status)
-  const [statusReason, setStatusReason] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPw, setConfirmPw] = useState('')
-  const [newRole, setNewRole] = useState(user.role)
-  const [newTownship, setNewTownship] = useState(user.township_id || '')
-  const [newDept, setNewDept] = useState(user.department_id || '')
-  const [newContractor, setNewContractor] = useState(user.contractor_id || '')
-  const [saving, setSaving] = useState(false)
+  const dispatch = useDispatch()
+  const {
+    detailTab: tab,
+    newStatus,
+    statusReason,
+    newPassword,
+    confirmPw,
+    newRole,
+    newTownship,
+    newDept,
+    newContractor,
+    detailSaving: saving,
+  } = useSelector(selectSuperAdminUsersUi)
+
+  const setUi = (field, value) => dispatch(setUsersUiField({ field, value }))
 
   const filteredDepts = departments.filter((d) => !newTownship || d.township_id === newTownship)
   const filteredContractors = contractors.filter((c) => !newTownship || c.township_id === newTownship)
 
   async function handleStatusSave() {
     if (newStatus === 'SUSPENDED' && !statusReason.trim()) { alert('Reason required for suspension.'); return }
-    setSaving(true)
-    try { await onStatusChange(user.id, newStatus, statusReason) } finally { setSaving(false) }
+    setUi('detailSaving', true)
+    try { await onStatusChange(user.id, newStatus, statusReason) } finally { setUi('detailSaving', false) }
   }
 
   async function handlePasswordReset() {
     if (newPassword.length < 8) { alert('Password must be at least 8 characters.'); return }
     if (newPassword !== confirmPw) { alert('Passwords do not match.'); return }
-    setSaving(true)
-    try { await onResetPassword(user.id, newPassword) } finally { setSaving(false); setNewPassword(''); setConfirmPw('') }
+    setUi('detailSaving', true)
+    try { await onResetPassword(user.id, newPassword) } finally { setUi('detailSaving', false); setUi('newPassword', ''); setUi('confirmPw', '') }
   }
 
   async function handleRoleSave() {
-    setSaving(true)
-    try { await onUpdateRole(user.id, { role: newRole, township_id: newTownship || null, department_id: newDept || null, contractor_id: newRole === 'FIELD_CONTRACTOR' ? newContractor || null : null }) } finally { setSaving(false) }
+    setUi('detailSaving', true)
+    try { await onUpdateRole(user.id, { role: newRole, township_id: newTownship || null, department_id: newDept || null, contractor_id: newRole === 'FIELD_CONTRACTOR' ? newContractor || null : null }) } finally { setUi('detailSaving', false) }
   }
 
   return (
@@ -215,7 +220,7 @@ function UserDetailModal({ user, onClose, onStatusChange, onResetPassword, onUpd
 
         <div className="sa-modal-tabs">
           {['info', 'role', 'status', 'password'].map((t) => (
-            <button key={t} className={`sa-modal-tab${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>
+            <button key={t} className={`sa-modal-tab${tab === t ? ' active' : ''}`} onClick={() => setUi('detailTab', t)}>
               {t === 'password' ? 'Reset Password' : t}
             </button>
           ))}
@@ -246,17 +251,17 @@ function UserDetailModal({ user, onClose, onStatusChange, onResetPassword, onUpd
                   <label className="sa-label">Role</label>
                   <select className="sa-select" value={newRole} onChange={(e) => {
                     const role = e.target.value
-                    setNewRole(role)
-                    if (role !== 'FIELD_CONTRACTOR') setNewContractor('')
-                    if (role === 'SUPER_ADMIN') { setNewTownship(''); setNewDept('') }
-                    if (!['DEPARTMENT_HEAD', 'DESK_CLERK', 'FINANCE_CLERK'].includes(role)) setNewDept('')
+                    setUi('newRole', role)
+                    if (role !== 'FIELD_CONTRACTOR') setUi('newContractor', '')
+                    if (role === 'SUPER_ADMIN') { setUi('newTownship', ''); setUi('newDept', '') }
+                    if (!['DEPARTMENT_HEAD', 'DESK_CLERK', 'FINANCE_CLERK'].includes(role)) setUi('newDept', '')
                   }}>
                     {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
                   </select>
                 </div>
                 <div className="sa-form-group">
                   <label className="sa-label">Township</label>
-                  <select className="sa-select" value={newTownship} disabled={newRole === 'SUPER_ADMIN'} onChange={(e) => { setNewTownship(e.target.value); setNewDept(''); setNewContractor('') }}>
+                  <select className="sa-select" value={newTownship} disabled={newRole === 'SUPER_ADMIN'} onChange={(e) => { setUi('newTownship', e.target.value); setUi('newDept', ''); setUi('newContractor', '') }}>
                     <option value="">— Platform Level —</option>
                     {townships.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
@@ -264,7 +269,7 @@ function UserDetailModal({ user, onClose, onStatusChange, onResetPassword, onUpd
                 {newRole === 'FIELD_CONTRACTOR' && (
                   <div className="sa-form-group">
                     <label className="sa-label">Contractor Account</label>
-                    <select className="sa-select" value={newContractor} onChange={(e) => setNewContractor(e.target.value)}>
+                    <select className="sa-select" value={newContractor} onChange={(e) => setUi('newContractor', e.target.value)}>
                       <option value="">— Select contractor —</option>
                       {filteredContractors.map((c) => <option key={c.id} value={c.id}>{c.company_name}</option>)}
                     </select>
@@ -273,7 +278,7 @@ function UserDetailModal({ user, onClose, onStatusChange, onResetPassword, onUpd
                 {['DEPARTMENT_HEAD', 'DESK_CLERK', 'FINANCE_CLERK'].includes(newRole) && (
                   <div className="sa-form-group">
                     <label className="sa-label">Department</label>
-                    <select className="sa-select" value={newDept} onChange={(e) => setNewDept(e.target.value)}>
+                    <select className="sa-select" value={newDept} onChange={(e) => setUi('newDept', e.target.value)}>
                       <option value="">— None —</option>
                       {filteredDepts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
@@ -293,7 +298,7 @@ function UserDetailModal({ user, onClose, onStatusChange, onResetPassword, onUpd
               <div className="sa-form-grid cols-1">
                 <div className="sa-form-group">
                   <label className="sa-label">Account Status</label>
-                  <select className="sa-select" value={newStatus} onChange={(e) => setNewStatus(e.target.value)}>
+                  <select className="sa-select" value={newStatus} onChange={(e) => setUi('newStatus', e.target.value)}>
                     <option value="ACTIVE">Active</option>
                     <option value="INACTIVE">Inactive</option>
                     <option value="SUSPENDED">Suspended</option>
@@ -301,7 +306,7 @@ function UserDetailModal({ user, onClose, onStatusChange, onResetPassword, onUpd
                 </div>
                 <div className="sa-form-group">
                   <label className="sa-label">Reason {newStatus !== user.status && newStatus === 'SUSPENDED' ? '(required)' : '(optional)'}</label>
-                  <input className="sa-input" value={statusReason} onChange={(e) => setStatusReason(e.target.value)} placeholder="Reason for status change" />
+                  <input className="sa-input" value={statusReason} onChange={(e) => setUi('statusReason', e.target.value)} placeholder="Reason for status change" />
                 </div>
               </div>
               <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
@@ -324,11 +329,11 @@ function UserDetailModal({ user, onClose, onStatusChange, onResetPassword, onUpd
               <div className="sa-form-grid cols-1">
                 <div className="sa-form-group">
                   <label className="sa-label">New Password (min 8 characters)</label>
-                  <input type="password" className="sa-input" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Enter new password" />
+                  <input type="password" className="sa-input" value={newPassword} onChange={(e) => setUi('newPassword', e.target.value)} placeholder="Enter new password" />
                 </div>
                 <div className="sa-form-group">
                   <label className="sa-label">Confirm Password</label>
-                  <input type="password" className="sa-input" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} placeholder="Repeat password" />
+                  <input type="password" className="sa-input" value={confirmPw} onChange={(e) => setUi('confirmPw', e.target.value)} placeholder="Repeat password" />
                 </div>
               </div>
               <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
@@ -353,13 +358,10 @@ export default function UsersAccess() {
   const departments = useSelector(selectSuperAdminDepartments)
   const contractors = useSelector(selectSuperAdminContractors)
   const selectedUser = useSelector(selectSuperAdminSelectedUser)
+  const { search, filterRole, filterTownship, filterStatus, showCreate } = useSelector(selectSuperAdminUsersUi)
 
   const loading = usersStatus === 'loading' && users.length === 0
-  const [search, setSearch] = useState('')
-  const [filterRole, setFilterRole] = useState('')
-  const [filterTownship, setFilterTownship] = useState('')
-  const [filterStatus, setFilterStatus] = useState('')
-  const [showCreate, setShowCreate] = useState(false)
+  const setUi = (field, value) => dispatch(setUsersUiField({ field, value }))
 
   useEffect(() => {
     dispatch(fetchSuperAdminUsers())
@@ -381,7 +383,7 @@ export default function UsersAccess() {
   async function handleCreateUser(form) {
     const action = await dispatch(createSuperAdminUser(form))
     if (createSuperAdminUser.fulfilled.match(action)) {
-      setShowCreate(false)
+      setUi('showCreate', false)
     }
   }
 
@@ -404,7 +406,7 @@ export default function UsersAccess() {
           <div className="sa-page-title">Users & Access</div>
           <div className="sa-page-desc">Global user directory across all tenants</div>
         </div>
-        <button className="sa-btn sa-btn-primary" onClick={() => setShowCreate(true)} id="sa-btn-create-user">
+        <button className="sa-btn sa-btn-primary" onClick={() => dispatch(openCreateUserModal())} id="sa-btn-create-user">
           + Create User
         </button>
       </div>
@@ -412,17 +414,17 @@ export default function UsersAccess() {
       <div className="sa-filter-bar">
         <div className="sa-search-wrap">
           <span className="sa-search-icon">🔍</span>
-          <input id="sa-user-search" className="sa-search-input" placeholder="Search name, email, username…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input id="sa-user-search" className="sa-search-input" placeholder="Search name, email, username…" value={search} onChange={(e) => setUi('search', e.target.value)} />
         </div>
-        <select className="sa-select" value={filterRole} onChange={(e) => setFilterRole(e.target.value)}>
+        <select className="sa-select" value={filterRole} onChange={(e) => setUi('filterRole', e.target.value)}>
           <option value="">All Roles</option>
           {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
         </select>
-        <select className="sa-select" value={filterTownship} onChange={(e) => setFilterTownship(e.target.value)}>
+        <select className="sa-select" value={filterTownship} onChange={(e) => setUi('filterTownship', e.target.value)}>
           <option value="">All Townships</option>
           {townships.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
-        <select className="sa-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+        <select className="sa-select" value={filterStatus} onChange={(e) => setUi('filterStatus', e.target.value)}>
           <option value="">All Statuses</option>
           <option value="ACTIVE">Active</option>
           <option value="INACTIVE">Inactive</option>
@@ -479,7 +481,7 @@ export default function UsersAccess() {
       )}
 
       {showCreate && (
-        <CreateUserModal onClose={() => setShowCreate(false)} onSave={handleCreateUser} townships={townships} departments={departments} contractors={contractors} />
+        <CreateUserModal onClose={() => setUi('showCreate', false)} onSave={handleCreateUser} townships={townships} departments={departments} contractors={contractors} />
       )}
       {selectedUser && (
         <UserDetailModal

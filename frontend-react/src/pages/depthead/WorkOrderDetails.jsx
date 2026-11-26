@@ -1,24 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   fetchDeptWorkOrderById,
   fetchDeptComplaintById,
   processApprovalDecision,
+  setDeptWoDetailsUiField,
   selectDeptApprovalsProcessing,
+  selectDeptWoDetailsUi,
 } from '../../store/depthead/deptHeadSlice.js';
 
 export default function WorkOrderDetails({ complaint, onBack }) {
   const dispatch = useDispatch();
   const reduxProcessing = useSelector(selectDeptApprovalsProcessing);
+  const {
+    details,
+    loading,
+    error,
+    showModal,
+    modalAction,
+    reason,
+    localProcessing,
+  } = useSelector(selectDeptWoDetailsUi);
 
-  const [details, setDetails] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  const [showModal, setShowModal] = useState(false);
-  const [modalAction, setModalAction] = useState('REQUEST_REVISION'); // or 'REJECT'
-  const [reason, setReason] = useState('');
-  const [localProcessing, setLocalProcessing] = useState(false);
+  const setDetailsUi = (field, value) => dispatch(setDeptWoDetailsUiField({ field, value }));
   const processing = reduxProcessing || localProcessing;
 
   useEffect(() => {
@@ -29,13 +33,13 @@ export default function WorkOrderDetails({ complaint, onBack }) {
 
   const fetchDetails = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setDetailsUi('loading', true);
+      setDetailsUi('error', null);
       // Attempt to load as work order first via Redux thunk
       try {
         const woAction = await dispatch(fetchDeptWorkOrderById(complaint.id));
         if (fetchDeptWorkOrderById.fulfilled.match(woAction) && woAction.payload) {
-          setDetails(woAction.payload);
+          setDetailsUi('details', woAction.payload);
           return;
         }
       } catch (woErr) {
@@ -47,7 +51,7 @@ export default function WorkOrderDetails({ complaint, onBack }) {
         const compAction = await dispatch(fetchDeptComplaintById(complaint.id));
         if (fetchDeptComplaintById.fulfilled.match(compAction) && compAction.payload) {
           const compData = compAction.payload;
-          setDetails({
+          setDetailsUi('details', {
             complaint: compData,
             workOrder: compData.work_order || null,
             contractor: compData.contractor || null,
@@ -58,24 +62,24 @@ export default function WorkOrderDetails({ complaint, onBack }) {
         // Fall back to using the complaint prop directly
       }
 
-      setDetails({
+      setDetailsUi('details', {
         complaint: complaint,
         workOrder: complaint.work_order || complaint,
         contractor: complaint.contractor || null,
       });
     } catch (err) {
-      setDetails({
+      setDetailsUi('details', {
         complaint: complaint,
         workOrder: complaint,
       });
     } finally {
-      setLoading(false);
+      setDetailsUi('loading', false);
     }
   };
 
   const handleApprove = async () => {
     try {
-      setLocalProcessing(true);
+      setDetailsUi('localProcessing', true);
       const targetId = details?.workOrder?.id || complaint.id;
       const res = await dispatch(processApprovalDecision({ id: targetId, action: 'APPROVE' })).unwrap();
       alert(res?.res?.message || res?.message || 'Estimate approved successfully.');
@@ -83,7 +87,7 @@ export default function WorkOrderDetails({ complaint, onBack }) {
     } catch (err) {
       alert(err || 'Failed to approve');
     } finally {
-      setLocalProcessing(false);
+      setDetailsUi('localProcessing', false);
     }
   };
 
@@ -91,7 +95,7 @@ export default function WorkOrderDetails({ complaint, onBack }) {
     e.preventDefault();
     if ((modalAction === 'REJECT' || modalAction === 'REQUEST_REVISION') && !reason.trim()) return;
     try {
-      setLocalProcessing(true);
+      setDetailsUi('localProcessing', true);
       const targetId = details?.workOrder?.id || complaint.id;
       const res = await dispatch(processApprovalDecision({ 
         id: targetId, 
@@ -99,12 +103,12 @@ export default function WorkOrderDetails({ complaint, onBack }) {
         notes: reason 
       })).unwrap();
       alert(res?.res?.message || res?.message || (modalAction === 'FORWARD_TO_COO' ? 'Estimate successfully forwarded to Township COO.' : 'Estimate processed successfully.'));
-      setShowModal(false);
+      setDetailsUi('showModal', false);
       onBack();
     } catch (err) {
       alert(err || `Failed to process ${modalAction.toLowerCase()}`);
     } finally {
-      setLocalProcessing(false);
+      setDetailsUi('localProcessing', false);
     }
   };
 
@@ -192,14 +196,14 @@ export default function WorkOrderDetails({ complaint, onBack }) {
           <div style={{ display: 'flex', gap: '12px' }}>
             <button 
               className="button button-secondary" style={{ color: '#ef4444', borderColor: '#ef4444' }}
-              onClick={() => { setModalAction('REQUEST_REVISION'); setShowModal(true); }}
+              onClick={() => { setDetailsUi('modalAction', 'REQUEST_REVISION'); setDetailsUi('showModal', true); }}
               disabled={processing}
             >
               Request Revision
             </button>
             <button 
               className="button button-secondary" style={{ color: '#b91c1c', borderColor: '#b91c1c', background: '#fef2f2' }}
-              onClick={() => { setModalAction('REJECT'); setShowModal(true); }}
+              onClick={() => { setDetailsUi('modalAction', 'REJECT'); setDetailsUi('showModal', true); }}
               disabled={processing}
             >
               Reject
@@ -401,7 +405,7 @@ export default function WorkOrderDetails({ complaint, onBack }) {
             <form onSubmit={handleModalSubmit}>
               <textarea 
                 value={reason}
-                onChange={(e) => setReason(e.target.value)}
+                onChange={(e) => setDetailsUi('reason', e.target.value)}
                 placeholder={
                   modalAction === 'FORWARD_TO_COO'
                     ? "Optional technical notes or recommendation for Township COO..."
@@ -416,7 +420,7 @@ export default function WorkOrderDetails({ complaint, onBack }) {
                 <button 
                   type="button" 
                   className="button button-ghost"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => setDetailsUi('showModal', false)}
                   disabled={processing}
                 >
                   Cancel

@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { setLandingUiField, selectLandingUi } from '../../store/auth/authSlice.js'
 
 const ACTORS = [
   {
@@ -77,7 +78,8 @@ const ACTORS = [
 ]
 
 export default function Roles() {
-  const [activeActorId, setActiveActorId] = useState('rwa')
+  const dispatch = useDispatch()
+  const { activeActorId } = useSelector(selectLandingUi)
   const actor = ACTORS.find((a) => a.id === activeActorId) || ACTORS[0]
 
   return (
@@ -112,7 +114,7 @@ export default function Roles() {
             {ACTORS.map((a) => (
               <button
                 key={a.id}
-                onClick={() => setActiveActorId(a.id)}
+                onClick={() => dispatch(setLandingUiField({ field: 'activeActorId', value: a.id }))}
                 style={{
                   padding: '9px 18px',
                   borderRadius: 'var(--radius-sm)',

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 import {
@@ -7,7 +7,9 @@ import {
   fetchDeptComplaints,
   fetchStaff,
   fetchDeptWorkOrders,
+  setDeptPortalUiField,
   selectPendingApprovalsCount,
+  selectDeptPortalUi,
 } from '../../store/depthead/deptHeadSlice.js'
 import { selectAuthUser, logoutUser } from '../../store/auth/authSlice.js'
 import DeptDashboard from './DeptDashboard.jsx'
@@ -33,10 +35,7 @@ export default function DeptHeadPortal({ onExitToLanding }) {
   const currentUser = reduxUser || contextUser
 
   const pendingApprovalsCount = useSelector(selectPendingApprovalsCount)
-
-  const [currentScreen, setCurrentScreen] = useState('dashboard')
-  const [selectedComplaint, setSelectedComplaint] = useState(null)
-  const [returnScreen, setReturnScreen] = useState('dashboard')
+  const { currentScreen, selectedComplaint, returnScreen } = useSelector(selectDeptPortalUi)
 
   // Shared Department Head data loaded at parent root level via Redux Thunks
   useEffect(() => {
@@ -50,13 +49,13 @@ export default function DeptHeadPortal({ onExitToLanding }) {
   const deptName = currentUser?.department_name || currentUser?.departmentName || 'Civil Infrastructure & Roads'
 
   function handleNavigate(screen) {
-    setCurrentScreen(screen)
+    dispatch(setDeptPortalUiField({ field: 'currentScreen', value: screen }))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function handleSelectComplaint(complaint) {
-    setSelectedComplaint(complaint)
-    setReturnScreen(currentScreen === 'workorder' ? 'dashboard' : currentScreen)
+    dispatch(setDeptPortalUiField({ field: 'selectedComplaint', value: complaint }))
+    dispatch(setDeptPortalUiField({ field: 'returnScreen', value: currentScreen === 'workorder' ? 'dashboard' : currentScreen }))
     handleNavigate('workorder')
   }
 

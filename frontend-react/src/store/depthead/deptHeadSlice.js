@@ -293,6 +293,57 @@ const initialState = {
     error: null,
     processing: false,
   },
+  portalUi: {
+    currentScreen: 'dashboard',
+    selectedComplaint: null,
+    returnScreen: 'dashboard',
+  },
+  dashboardUi: {
+    hoveredCard: null,
+    statusFilter: 'ALL',
+    priorityFilter: 'ALL',
+    searchQuery: '',
+    selectedComplaintForModal: null,
+    refreshingComplaints: false,
+  },
+  approvalsUi: {
+    localProcessing: false,
+    showModal: false,
+    modalAction: 'REQUEST_REVISION',
+    reason: '',
+    selectedItem: null,
+  },
+  employeesUi: {
+    localProcessing: false,
+    showAddModal: false,
+    showEditModal: false,
+    selectedEmp: null,
+    newEmpName: '',
+    newEmpEmail: '',
+    newEmpPhone: '',
+  },
+  workOrdersUi: {
+    localProcessing: false,
+    filters: {
+      status: '',
+      search: '',
+      priority: '',
+      sla: '',
+      contractor_id: '',
+    },
+    showEscalateModal: false,
+    selectedWO: null,
+    escalateReason: '',
+  },
+  workOrderDetailsUi: {
+    details: null,
+    loading: true,
+    error: null,
+    showModal: false,
+    modalAction: 'REQUEST_REVISION',
+    reason: '',
+    localProcessing: false,
+  },
 }
 
 // ─── Slice ───────────────────────────────────────────────────────────────────
@@ -313,6 +364,53 @@ const deptHeadSlice = createSlice({
       state.approvals.error = null
       state.workOrders.error = null
       state.staff.error = null
+    },
+    setDeptPortalUiField(state, action) {
+      const { field, value } = action.payload
+      if (field in state.portalUi) state.portalUi[field] = value
+    },
+    setDeptDashboardUiField(state, action) {
+      const { field, value } = action.payload
+      if (field in state.dashboardUi) state.dashboardUi[field] = value
+    },
+    resetDeptDashboardFilters(state) {
+      state.dashboardUi.statusFilter = 'ALL'
+      state.dashboardUi.priorityFilter = 'ALL'
+      state.dashboardUi.searchQuery = ''
+    },
+    setDeptApprovalsUiField(state, action) {
+      const { field, value } = action.payload
+      if (field in state.approvalsUi) state.approvalsUi[field] = value
+    },
+    setDeptEmployeesUiField(state, action) {
+      const { field, value } = action.payload
+      if (field in state.employeesUi) state.employeesUi[field] = value
+    },
+    openDeptAddEmpModal(state) {
+      state.employeesUi.newEmpName = ''
+      state.employeesUi.newEmpEmail = ''
+      state.employeesUi.newEmpPhone = ''
+      state.employeesUi.showAddModal = true
+    },
+    openDeptEditEmpModal(state, action) {
+      const emp = action.payload
+      state.employeesUi.selectedEmp = emp
+      state.employeesUi.newEmpName = emp.name || ''
+      state.employeesUi.newEmpEmail = emp.email || ''
+      state.employeesUi.newEmpPhone = emp.phone || ''
+      state.employeesUi.showEditModal = true
+    },
+    setDeptWorkOrdersUiField(state, action) {
+      const { field, value } = action.payload
+      if (field in state.workOrdersUi) state.workOrdersUi[field] = value
+    },
+    setDeptWorkOrdersFilter(state, action) {
+      const { key, value } = action.payload
+      state.workOrdersUi.filters[key] = value
+    },
+    setDeptWoDetailsUiField(state, action) {
+      const { field, value } = action.payload
+      if (field in state.workOrderDetailsUi) state.workOrderDetailsUi[field] = value
     },
   },
   extraReducers: (builder) => {
@@ -500,6 +598,16 @@ export const {
   setSelectedDeptWorkOrder,
   setSelectedDeptComplaint,
   clearDeptHeadErrors,
+  setDeptPortalUiField,
+  setDeptDashboardUiField,
+  resetDeptDashboardFilters,
+  setDeptApprovalsUiField,
+  setDeptEmployeesUiField,
+  openDeptAddEmpModal,
+  openDeptEditEmpModal,
+  setDeptWorkOrdersUiField,
+  setDeptWorkOrdersFilter,
+  setDeptWoDetailsUiField,
 } = deptHeadSlice.actions
 
 // ─── Selectors ───────────────────────────────────────────────────────────────
@@ -528,6 +636,14 @@ export const selectSelectedDeptWorkOrder  = (state) => state.deptHead.workOrders
 export const selectDeptStaff              = (state) => state.deptHead.staff.items
 export const selectDeptStaffStatus        = (state) => state.deptHead.staff.status
 export const selectDeptStaffProcessing    = (state) => state.deptHead.staff.processing
+
+// UI State Selectors
+export const selectDeptPortalUi           = (state) => state.deptHead.portalUi
+export const selectDeptDashboardUi        = (state) => state.deptHead.dashboardUi
+export const selectDeptApprovalsUi        = (state) => state.deptHead.approvalsUi
+export const selectDeptEmployeesUi        = (state) => state.deptHead.employeesUi
+export const selectDeptWorkOrdersUi       = (state) => state.deptHead.workOrdersUi
+export const selectDeptWoDetailsUi        = (state) => state.deptHead.workOrderDetailsUi
 
 export default deptHeadSlice.reducer
 

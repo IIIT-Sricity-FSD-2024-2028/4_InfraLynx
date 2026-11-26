@@ -1,20 +1,17 @@
-import { useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import {
+  setLandingUiField,
+  setContactFormField,
+  selectLandingUi,
+} from '../../store/auth/authSlice.js'
 
 export default function Contact() {
-  const [submitted, setSubmitted] = useState(false)
-  const [formData, setFormData] = useState({
-    name: '',
-    role: '',
-    township: '',
-    sectors: '5 to 15 Sectors',
-    email: '',
-    domain: 'All Municipal Departments',
-    message: '',
-  })
+  const dispatch = useDispatch()
+  const { contactSubmitted: submitted, contactForm: formData } = useSelector(selectLandingUi)
 
   function handleSubmit(e) {
     e.preventDefault()
-    setSubmitted(true)
+    dispatch(setLandingUiField({ field: 'contactSubmitted', value: true }))
   }
 
   return (
@@ -118,7 +115,7 @@ export default function Contact() {
                   specialist will reach out with an onboarding overview.
                 </p>
                 <button
-                  onClick={() => setSubmitted(false)}
+                  onClick={() => dispatch(setLandingUiField({ field: 'contactSubmitted', value: false }))}
                   className="button button-secondary"
                   style={{ marginTop: 22, fontSize: 13 }}
                 >
@@ -135,7 +132,7 @@ export default function Contact() {
                       required
                       placeholder="e.g. S. Venkatraman"
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e) => dispatch(setContactFormField({ field: 'name', value: e.target.value }))}
                       style={fieldStyle}
                     />
                   </div>
@@ -146,7 +143,7 @@ export default function Contact() {
                       required
                       placeholder="e.g. Dept Head / Officer"
                       value={formData.role}
-                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      onChange={(e) => dispatch(setContactFormField({ field: 'role', value: e.target.value }))}
                       style={fieldStyle}
                     />
                   </div>
@@ -160,7 +157,7 @@ export default function Contact() {
                       required
                       placeholder="e.g. Sri City Zone 2"
                       value={formData.township}
-                      onChange={(e) => setFormData({ ...formData, township: e.target.value })}
+                      onChange={(e) => dispatch(setContactFormField({ field: 'township', value: e.target.value }))}
                       style={fieldStyle}
                     />
                   </div>
@@ -168,7 +165,7 @@ export default function Contact() {
                     <label style={labelStyle}>Scale (Sectors)</label>
                     <select
                       value={formData.sectors}
-                      onChange={(e) => setFormData({ ...formData, sectors: e.target.value })}
+                      onChange={(e) => dispatch(setContactFormField({ field: 'sectors', value: e.target.value }))}
                       style={fieldStyle}
                     >
                       <option value="1 to 4 Sectors">1 to 4 Sectors</option>
@@ -187,7 +184,7 @@ export default function Contact() {
                       required
                       placeholder="name@infralynx.com"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) => dispatch(setContactFormField({ field: 'email', value: e.target.value }))}
                       style={fieldStyle}
                     />
                   </div>
@@ -195,7 +192,7 @@ export default function Contact() {
                     <label style={labelStyle}>Priority Department</label>
                     <select
                       value={formData.domain}
-                      onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
+                      onChange={(e) => dispatch(setContactFormField({ field: 'domain', value: e.target.value }))}
                       style={fieldStyle}
                     >
                       <option value="All Municipal Departments">All (Civil, Electrical, Water)</option>
@@ -212,7 +209,7 @@ export default function Contact() {
                     rows={3}
                     placeholder="Briefly describe your active contractor base, current bottlenecks, or target rollout timeline..."
                     value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    onChange={(e) => dispatch(setContactFormField({ field: 'message', value: e.target.value }))}
                     style={{ ...fieldStyle, resize: 'vertical' }}
                   />
                 </div>

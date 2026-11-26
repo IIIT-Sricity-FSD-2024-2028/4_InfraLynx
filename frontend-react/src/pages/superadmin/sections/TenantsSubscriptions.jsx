@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   fetchSuperAdminTenants,
@@ -7,9 +7,15 @@ import {
   updateSuperAdminTenantStatus,
   setSelectedTenant,
   clearSelectedTenant,
+  setTenantsUiField,
+  setAddTenantFormField,
+  openAddTenantModal,
+  setTenantEditFormField,
+  setTenantSubFormField,
   selectSuperAdminTenants,
   selectSuperAdminSelectedTenant,
   selectSuperAdminTenantsStatus,
+  selectSuperAdminTenantsUi,
 } from '../../../store/superadmin/superAdminSlice.js'
 
 const PLAN_BADGE = { Enterprise: 'enterprise', Professional: 'professional', Starter: 'starter' }
@@ -21,16 +27,9 @@ function fmt(date) {
 
 // ── Add Tenant Modal ─────────────────────────────────────────────────────────
 function AddTenantModal({ onClose, onSave }) {
-  const [form, setForm] = useState({
-    name: '', address: '', contact_email: '', contact_phone: '',
-    legal_entity: '', primary_contact: '', plan_label: 'Enterprise',
-    billing_cycle: 'YEARLY', start_date: new Date().toISOString().split('T')[0],
-    expiry_date: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().split('T')[0],
-    max_users: 10, max_complaints_monthly: 100, max_storage_gb: 5, status: 'ACTIVE',
-  })
-  const [errors, setErrors] = useState({})
-  const [saving, setSaving] = useState(false)
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+  const dispatch = useDispatch()
+  const { addForm: form, addErrors: errors, addSaving: saving } = useSelector(selectSuperAdminTenantsUi)
+  const set = (k, v) => dispatch(setAddTenantFormField({ key: k, value: v }))
 
   function validate() {
     const e = {}
@@ -42,15 +41,15 @@ function AddTenantModal({ onClose, onSave }) {
     if (!form.expiry_date) e.expiry_date = 'Expiry date required'
     else if (new Date(form.expiry_date) <= new Date(form.start_date)) e.expiry_date = 'Expiry must be after start date'
     if (!form.max_users || form.max_users < 1) e.max_users = 'Must be ≥ 1'
-    setErrors(e)
+    dispatch(setTenantsUiField({ field: 'addErrors', value: e }))
     return Object.keys(e).length === 0
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (!validate()) return
-    setSaving(true)
-    try { await onSave(form) } finally { setSaving(false) }
+    dispatch(setTenantsUiField({ field: 'addSaving', value: true }))
+    try { await onSave(form) } finally { dispatch(setTenantsUiField({ field: 'addSaving', value: false })) }
   }
 
   return (
@@ -141,40 +140,39 @@ function AddTenantModal({ onClose, onSave }) {
 
 // ── Tenant Detail Modal ──────────────────────────────────────────────────────
 function TenantDetailModal({ tenant, onClose, onUpdate, onStatusChange }) {
-  const [tab, setTab] = useState('details')
-  const [editForm, setEditForm] = useState({
-    name: tenant.name || '', address: tenant.address || '',
-    contact_email: tenant.contact_email || '', contact_phone: tenant.contact_phone || '',
-  })
-  const [subForm, setSubForm] = useState({
-    plan_label: tenant.subscription?.plan_label || 'Enterprise',
-    billing_cycle: tenant.subscription?.billing_cycle || 'YEARLY',
-    expiry_date: tenant.subscription?.expiry_date || '',
-    reason: '',
-  })
-  const [confirmSuspend, setConfirmSuspend] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [reason, setReason] = useState('')
+  const dispatch = useDispatch()
+  const {
+    detailTab: tab,
+    editForm,
+    subForm,
+    confirmSuspend,
+    detailSaving: saving,
+    reason,
+  } = useSelector(selectSuperAdminTenantsUi)
+
+  const setUi = (field, value) => dispatch(setTenantsUiField({ field, value }))
+  const setEdit = (key, value) => dispatch(setTenantEditFormField({ key, value }))
+  const setSub = (key, value) => dispatch(setTenantSubFormField({ key, value }))
   const sub = tenant.subscription
 
   async function handleSaveDetails() {
-    setSaving(true)
-    try { await onUpdate(tenant.id, editForm) } finally { setSaving(false) }
+    setUi('detailSaving', true)
+    try { await onUpdate(tenant.id, editForm) } finally { setUi('detailSaving', false) }
   }
 
   async function handleSaveSub() {
-    setSaving(true)
-    try { await onUpdate(tenant.id, subForm) } finally { setSaving(false) }
+    setUi('detailSaving', true)
+    try { await onUpdate(tenant.id, subForm) } finally { setUi('detailSaving', false) }
   }
 
   async function handleSuspend() {
-    setSaving(true)
-    try { await onStatusChange(tenant.id, 'SUSPENDED', reason) } finally { setSaving(false) }
+    setUi('detailSaving', true)
+    try { await onStatusChange(tenant.id, 'SUSPENDED', reason) } finally { setUi('detailSaving', false) }
   }
 
   async function handleReactivate() {
-    setSaving(true)
-    try { await onStatusChange(tenant.id, 'ACTIVE', reason) } finally { setSaving(false) }
+    setUi('detailSaving', true)
+    try { await onStatusChange(tenant.id, 'ACTIVE', reason) } finally { setUi('detailSaving', false) }
   }
 
   const TABS = ['details', 'subscription', 'actions']
@@ -195,7 +193,7 @@ function TenantDetailModal({ tenant, onClose, onUpdate, onStatusChange }) {
 
         <div className="sa-modal-tabs">
           {TABS.map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={`sa-modal-tab${tab === t ? ' active' : ''}`}>
+            <button key={t} onClick={() => setUi('detailTab', t)} className={`sa-modal-tab${tab === t ? ' active' : ''}`}>
               {t}
             </button>
           ))}
@@ -213,19 +211,19 @@ function TenantDetailModal({ tenant, onClose, onUpdate, onStatusChange }) {
               <div className="sa-form-grid">
                 <div className="sa-form-group full">
                   <label className="sa-label">Township Name</label>
-                  <input className="sa-input" value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} />
+                  <input className="sa-input" value={editForm.name} onChange={(e) => setEdit('name', e.target.value)} />
                 </div>
                 <div className="sa-form-group full">
                   <label className="sa-label">Address</label>
-                  <input className="sa-input" value={editForm.address} onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))} />
+                  <input className="sa-input" value={editForm.address} onChange={(e) => setEdit('address', e.target.value)} />
                 </div>
                 <div className="sa-form-group">
                   <label className="sa-label">Contact Email</label>
-                  <input className="sa-input" value={editForm.contact_email} onChange={(e) => setEditForm((f) => ({ ...f, contact_email: e.target.value }))} />
+                  <input className="sa-input" value={editForm.contact_email} onChange={(e) => setEdit('contact_email', e.target.value)} />
                 </div>
                 <div className="sa-form-group">
                   <label className="sa-label">Contact Phone</label>
-                  <input className="sa-input" value={editForm.contact_phone} onChange={(e) => setEditForm((f) => ({ ...f, contact_phone: e.target.value }))} />
+                  <input className="sa-input" value={editForm.contact_phone} onChange={(e) => setEdit('contact_phone', e.target.value)} />
                 </div>
               </div>
               <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
@@ -251,7 +249,7 @@ function TenantDetailModal({ tenant, onClose, onUpdate, onStatusChange }) {
                   <div className="sa-form-grid">
                     <div className="sa-form-group">
                       <label className="sa-label">Upgrade/Change Plan</label>
-                      <select className="sa-select" value={subForm.plan_label} onChange={(e) => setSubForm((f) => ({ ...f, plan_label: e.target.value }))}>
+                      <select className="sa-select" value={subForm.plan_label} onChange={(e) => setSub('plan_label', e.target.value)}>
                         <option value="Enterprise">Enterprise</option>
                         <option value="Professional">Professional</option>
                         <option value="Starter">Starter — Free/Trial</option>
@@ -259,18 +257,18 @@ function TenantDetailModal({ tenant, onClose, onUpdate, onStatusChange }) {
                     </div>
                     <div className="sa-form-group">
                       <label className="sa-label">Billing Cycle</label>
-                      <select className="sa-select" value={subForm.billing_cycle} onChange={(e) => setSubForm((f) => ({ ...f, billing_cycle: e.target.value }))}>
+                      <select className="sa-select" value={subForm.billing_cycle} onChange={(e) => setSub('billing_cycle', e.target.value)}>
                         <option value="YEARLY">Annual</option>
                         <option value="MONTHLY">Monthly</option>
                       </select>
                     </div>
                     <div className="sa-form-group">
                       <label className="sa-label">New Expiry Date</label>
-                      <input type="date" className="sa-input" value={subForm.expiry_date} onChange={(e) => setSubForm((f) => ({ ...f, expiry_date: e.target.value }))} />
+                      <input type="date" className="sa-input" value={subForm.expiry_date} onChange={(e) => setSub('expiry_date', e.target.value)} />
                     </div>
                     <div className="sa-form-group">
                       <label className="sa-label">Renewal Note</label>
-                      <input className="sa-input" value={subForm.reason} onChange={(e) => setSubForm((f) => ({ ...f, reason: e.target.value }))} placeholder="e.g. Annual renewal FY26-27" />
+                      <input className="sa-input" value={subForm.reason} onChange={(e) => setSub('reason', e.target.value)} placeholder="e.g. Annual renewal FY26-27" />
                     </div>
                   </div>
                   <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
@@ -311,12 +309,12 @@ function TenantDetailModal({ tenant, onClose, onUpdate, onStatusChange }) {
                     </div>
                     <div className="sa-form-group" style={{ marginTop: 12 }}>
                       <label className="sa-label">Reason for Suspension (required)</label>
-                      <input className="sa-input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Non-payment for Q3 FY26" />
+                      <input className="sa-input" value={reason} onChange={(e) => setUi('reason', e.target.value)} placeholder="e.g. Non-payment for Q3 FY26" />
                     </div>
                     <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
                       <button
                         className="sa-btn sa-btn-danger"
-                        onClick={() => { if (!reason.trim()) { alert('Please enter a reason.'); return } setConfirmSuspend(true) }}
+                        onClick={() => { if (!reason.trim()) { alert('Please enter a reason.'); return } setUi('confirmSuspend', true) }}
                       >
                         🚫 Proceed to Suspend
                       </button>
@@ -331,7 +329,7 @@ function TenantDetailModal({ tenant, onClose, onUpdate, onStatusChange }) {
                       <em style={{ fontSize: 13, color: 'var(--text-muted)' }}>Reason: {reason}</em>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 20 }}>
-                      <button className="sa-btn sa-btn-secondary" onClick={() => setConfirmSuspend(false)}>Cancel</button>
+                      <button className="sa-btn sa-btn-secondary" onClick={() => setUi('confirmSuspend', false)}>Cancel</button>
                       <button className="sa-btn sa-btn-danger" onClick={handleSuspend} disabled={saving} id="sa-btn-confirm-suspend">
                         {saving ? 'Suspending…' : '🚫 Confirm Suspend'}
                       </button>
@@ -345,7 +343,7 @@ function TenantDetailModal({ tenant, onClose, onUpdate, onStatusChange }) {
                   </div>
                   <div className="sa-form-group" style={{ marginTop: 12 }}>
                     <label className="sa-label">Reactivation Reason</label>
-                    <input className="sa-input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Payment received, subscription renewed" />
+                    <input className="sa-input" value={reason} onChange={(e) => setUi('reason', e.target.value)} placeholder="e.g. Payment received, subscription renewed" />
                   </div>
                   <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
                     <button className="sa-btn sa-btn-primary" onClick={handleReactivate} disabled={saving} id="sa-btn-reactivate">
@@ -368,12 +366,10 @@ export default function TenantsSubscriptions() {
   const tenants = useSelector(selectSuperAdminTenants)
   const tenantsStatus = useSelector(selectSuperAdminTenantsStatus)
   const selectedTenant = useSelector(selectSuperAdminSelectedTenant)
+  const { search, filterStatus, filterPlan, showAdd } = useSelector(selectSuperAdminTenantsUi)
 
   const loading = tenantsStatus === 'loading' && tenants.length === 0
-  const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState('')
-  const [filterPlan, setFilterPlan] = useState('')
-  const [showAdd, setShowAdd] = useState(false)
+  const setUi = (field, value) => dispatch(setTenantsUiField({ field, value }))
 
   useEffect(() => {
     dispatch(fetchSuperAdminTenants())
@@ -391,7 +387,7 @@ export default function TenantsSubscriptions() {
   async function handleAddTenant(form) {
     const action = await dispatch(createSuperAdminTenant(form))
     if (createSuperAdminTenant.fulfilled.match(action)) {
-      setShowAdd(false)
+      setUi('showAdd', false)
     }
   }
 
@@ -410,7 +406,7 @@ export default function TenantsSubscriptions() {
           <div className="sa-page-title">Subscriptions & Tenants</div>
           <div className="sa-page-desc">Manage all townships registered on the InfraLynx platform</div>
         </div>
-        <button className="sa-btn sa-btn-primary" onClick={() => setShowAdd(true)} id="sa-btn-add-tenant">
+        <button className="sa-btn sa-btn-primary" onClick={() => dispatch(openAddTenantModal())} id="sa-btn-add-tenant">
           + Onboard Tenant
         </button>
       </div>
@@ -419,14 +415,14 @@ export default function TenantsSubscriptions() {
       <div className="sa-filter-bar">
         <div className="sa-search-wrap">
           <span className="sa-search-icon">🔍</span>
-          <input id="sa-tenant-search" className="sa-search-input" placeholder="Search name, email, location…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input id="sa-tenant-search" className="sa-search-input" placeholder="Search name, email, location…" value={search} onChange={(e) => setUi('search', e.target.value)} />
         </div>
-        <select className="sa-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+        <select className="sa-select" value={filterStatus} onChange={(e) => setUi('filterStatus', e.target.value)}>
           <option value="">All Statuses</option>
           <option value="ACTIVE">Active</option>
           <option value="SUSPENDED">Suspended</option>
         </select>
-        <select className="sa-select" value={filterPlan} onChange={(e) => setFilterPlan(e.target.value)}>
+        <select className="sa-select" value={filterPlan} onChange={(e) => setUi('filterPlan', e.target.value)}>
           <option value="">All Plans</option>
           <option value="Enterprise">Enterprise</option>
           <option value="Professional">Professional</option>
@@ -501,7 +497,7 @@ export default function TenantsSubscriptions() {
         </div>
       )}
 
-      {showAdd && <AddTenantModal onClose={() => setShowAdd(false)} onSave={handleAddTenant} />}
+      {showAdd && <AddTenantModal onClose={() => setUi('showAdd', false)} onSave={handleAddTenant} />}
       {selectedTenant && (
         <TenantDetailModal
           tenant={selectedTenant}

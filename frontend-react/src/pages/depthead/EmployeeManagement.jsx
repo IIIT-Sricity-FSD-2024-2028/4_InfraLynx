@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTIMS } from '../../context/TIMSContext.jsx';
 import {
@@ -6,9 +6,13 @@ import {
   createStaff,
   updateStaff,
   updateStaffStatus,
+  setDeptEmployeesUiField,
+  openDeptAddEmpModal,
+  openDeptEditEmpModal,
   selectDeptStaff,
   selectDeptStaffStatus,
   selectDeptStaffProcessing,
+  selectDeptEmployeesUi,
 } from '../../store/depthead/deptHeadSlice.js';
 
 export default function EmployeeManagement() {
@@ -19,19 +23,21 @@ export default function EmployeeManagement() {
   const employees = useSelector(selectDeptStaff);
   const staffStatus = useSelector(selectDeptStaffStatus);
   const reduxProcessing = useSelector(selectDeptStaffProcessing);
+  const {
+    localProcessing,
+    showAddModal,
+    showEditModal,
+    selectedEmp,
+    newEmpName,
+    newEmpEmail,
+    newEmpPhone,
+  } = useSelector(selectDeptEmployeesUi);
 
-  const [localProcessing, setLocalProcessing] = useState(false);
+  const setEmpUi = (field, value) => dispatch(setDeptEmployeesUiField({ field, value }));
+
   const processing = reduxProcessing || localProcessing;
   const loading = staffStatus === 'loading' && employees.length === 0;
   const error = staffStatus === 'failed' ? 'Failed to load employees' : null;
-
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedEmp, setSelectedEmp] = useState(null);
-  
-  const [newEmpName, setNewEmpName] = useState('');
-  const [newEmpEmail, setNewEmpEmail] = useState('');
-  const [newEmpPhone, setNewEmpPhone] = useState('');
 
   useEffect(() => {
     if (staffStatus === 'idle') {
@@ -44,21 +50,21 @@ export default function EmployeeManagement() {
     if (!newEmpName.trim() || !newEmpEmail.trim()) return;
 
     try {
-      setLocalProcessing(true);
+      setEmpUi('localProcessing', true);
       await dispatch(createStaff({
         name: newEmpName.trim(),
         email: newEmpEmail.trim(),
         phone: newEmpPhone.trim(),
         password: 'Password@123',
       })).unwrap();
-      setShowAddModal(false);
-      setNewEmpName('');
-      setNewEmpEmail('');
-      setNewEmpPhone('');
+      setEmpUi('showAddModal', false);
+      setEmpUi('newEmpName', '');
+      setEmpUi('newEmpEmail', '');
+      setEmpUi('newEmpPhone', '');
     } catch (err) {
       alert(err || 'Failed to create employee');
     } finally {
-      setLocalProcessing(false);
+      setEmpUi('localProcessing', false);
     }
   };
 
@@ -67,7 +73,7 @@ export default function EmployeeManagement() {
     if (!selectedEmp) return;
 
     try {
-      setLocalProcessing(true);
+      setEmpUi('localProcessing', true);
       await dispatch(updateStaff({
         id: selectedEmp.id,
         payload: {
@@ -76,12 +82,12 @@ export default function EmployeeManagement() {
           phone: newEmpPhone.trim(),
         },
       })).unwrap();
-      setShowEditModal(false);
-      setSelectedEmp(null);
+      setEmpUi('showEditModal', false);
+      setEmpUi('selectedEmp', null);
     } catch (err) {
       alert(err || 'Failed to update employee');
     } finally {
-      setLocalProcessing(false);
+      setEmpUi('localProcessing', false);
     }
   };
 
@@ -95,11 +101,7 @@ export default function EmployeeManagement() {
   };
 
   const openEditModal = (emp) => {
-    setSelectedEmp(emp);
-    setNewEmpName(emp.name || '');
-    setNewEmpEmail(emp.email || '');
-    setNewEmpPhone(emp.phone || '');
-    setShowEditModal(true);
+    dispatch(openDeptEditEmpModal(emp));
   };
 
   if (loading && employees.length === 0) {
@@ -127,12 +129,7 @@ export default function EmployeeManagement() {
         </div>
         <button 
           className="button button-primary"
-          onClick={() => {
-            setNewEmpName('');
-            setNewEmpEmail('');
-            setNewEmpPhone('');
-            setShowAddModal(true);
-          }}
+          onClick={() => dispatch(openDeptAddEmpModal())}
         >
           + Add Employee
         </button>
@@ -241,7 +238,7 @@ export default function EmployeeManagement() {
                 <input 
                   type="text" 
                   value={newEmpName}
-                  onChange={(e) => setNewEmpName(e.target.value)}
+                  onChange={(e) => setEmpUi('newEmpName', e.target.value)}
                   style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line-strong)' }}
                   placeholder="e.g. Jane Doe"
                   required
@@ -253,7 +250,7 @@ export default function EmployeeManagement() {
                 <input 
                   type="email" 
                   value={newEmpEmail}
-                  onChange={(e) => setNewEmpEmail(e.target.value)}
+                  onChange={(e) => setEmpUi('newEmpEmail', e.target.value)}
                   style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line-strong)' }}
                   placeholder="e.g. jane.doe@example.com"
                   required
@@ -265,7 +262,7 @@ export default function EmployeeManagement() {
                 <input 
                   type="text" 
                   value={newEmpPhone}
-                  onChange={(e) => setNewEmpPhone(e.target.value)}
+                  onChange={(e) => setEmpUi('newEmpPhone', e.target.value)}
                   style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line-strong)' }}
                   placeholder="e.g. +91 9876543210"
                 />
@@ -282,8 +279,8 @@ export default function EmployeeManagement() {
                   type="button" 
                   className="button button-ghost"
                   onClick={() => {
-                    setShowAddModal(false);
-                    setShowEditModal(false);
+                    setEmpUi('showAddModal', false);
+                    setEmpUi('showEditModal', false);
                   }}
                   disabled={processing}
                 >

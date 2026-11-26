@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   fetchApprovals,
   processApprovalDecision,
+  setDeptApprovalsUiField,
   selectDeptApprovals,
   selectDeptApprovalsStatus,
   selectDeptApprovalsProcessing,
+  selectDeptApprovalsUi,
 } from '../../store/depthead/deptHeadSlice.js';
 
 export default function ApprovalQueue({ onSelectComplaint }) {
@@ -13,16 +15,19 @@ export default function ApprovalQueue({ onSelectComplaint }) {
   const approvals = useSelector(selectDeptApprovals);
   const approvalsStatus = useSelector(selectDeptApprovalsStatus);
   const reduxProcessing = useSelector(selectDeptApprovalsProcessing);
+  const {
+    localProcessing,
+    showModal,
+    modalAction,
+    reason,
+    selectedItem,
+  } = useSelector(selectDeptApprovalsUi);
 
-  const [localProcessing, setLocalProcessing] = useState(false);
+  const setUi = (field, value) => dispatch(setDeptApprovalsUiField({ field, value }));
+
   const processing = reduxProcessing || localProcessing;
   const loading = approvalsStatus === 'loading' && approvals.length === 0;
   const error = approvalsStatus === 'failed' ? 'Failed to load pending approvals' : null;
-  
-  const [showModal, setShowModal] = useState(false);
-  const [modalAction, setModalAction] = useState('REQUEST_REVISION'); // or 'REJECT'
-  const [reason, setReason] = useState('');
-  const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
     if (approvalsStatus === 'idle') {
@@ -32,13 +37,13 @@ export default function ApprovalQueue({ onSelectComplaint }) {
 
   const handleApprove = async (item) => {
     try {
-      setLocalProcessing(true);
+      setUi('localProcessing', true);
       const actionResult = await dispatch(processApprovalDecision({ id: item.id, action: 'APPROVE' })).unwrap();
       alert(actionResult?.res?.message || actionResult?.message || 'Estimate approved successfully.');
     } catch (err) {
       alert(err || 'Failed to approve estimate');
     } finally {
-      setLocalProcessing(false);
+      setUi('localProcessing', false);
     }
   };
 
@@ -47,20 +52,20 @@ export default function ApprovalQueue({ onSelectComplaint }) {
     if ((modalAction === 'REJECT' || modalAction === 'REQUEST_REVISION') && !reason.trim()) return;
     
     try {
-      setLocalProcessing(true);
+      setUi('localProcessing', true);
       const actionResult = await dispatch(processApprovalDecision({ 
         id: selectedItem.id, 
         action: modalAction, 
         notes: reason 
       })).unwrap();
       alert(actionResult?.res?.message || actionResult?.message || (modalAction === 'FORWARD_TO_COO' ? 'Estimate successfully forwarded to Township COO.' : 'Estimate processed successfully.'));
-      setShowModal(false);
-      setReason('');
-      setSelectedItem(null);
+      setUi('showModal', false);
+      setUi('reason', '');
+      setUi('selectedItem', null);
     } catch (err) {
       alert(err || `Failed to process ${modalAction.toLowerCase()}`);
     } finally {
-      setLocalProcessing(false);
+      setUi('localProcessing', false);
     }
   };
 
@@ -149,7 +154,7 @@ export default function ApprovalQueue({ onSelectComplaint }) {
                       <button 
                         className="button button-secondary" 
                         style={{ padding: '6px 12px', fontSize: '12px', color: '#ef4444', borderColor: '#ef4444' }}
-                        onClick={() => { setSelectedItem(item); setModalAction('REQUEST_REVISION'); setShowModal(true); }}
+                        onClick={() => { setUi('selectedItem', item); setUi('modalAction', 'REQUEST_REVISION'); setUi('showModal', true); }}
                         disabled={processing}
                       >
                         Revise
@@ -157,7 +162,7 @@ export default function ApprovalQueue({ onSelectComplaint }) {
                       <button 
                         className="button button-secondary" 
                         style={{ padding: '6px 12px', fontSize: '12px', color: '#b91c1c', borderColor: '#b91c1c', background: '#fef2f2' }}
-                        onClick={() => { setSelectedItem(item); setModalAction('REJECT'); setShowModal(true); }}
+                        onClick={() => { setUi('selectedItem', item); setUi('modalAction', 'REJECT'); setUi('showModal', true); }}
                         disabled={processing}
                       >
                         Reject
@@ -197,7 +202,7 @@ export default function ApprovalQueue({ onSelectComplaint }) {
             <form onSubmit={handleModalSubmit}>
               <textarea 
                 value={reason}
-                onChange={(e) => setReason(e.target.value)}
+                onChange={(e) => setUi('reason', e.target.value)}
                 placeholder={
                   modalAction === 'FORWARD_TO_COO'
                     ? "Optional technical notes or recommendation for Township COO..."
@@ -213,9 +218,9 @@ export default function ApprovalQueue({ onSelectComplaint }) {
                   type="button" 
                   className="button button-ghost"
                   onClick={() => {
-                    setShowModal(false);
-                    setReason('');
-                    setSelectedItem(null);
+                    setUi('showModal', false);
+                    setUi('reason', '');
+                    setUi('selectedItem', null);
                   }}
                   disabled={processing}
                 >

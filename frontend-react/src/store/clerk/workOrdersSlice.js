@@ -174,6 +174,10 @@ const workOrdersSlice = createSlice({
     bidsLoading: false,
     isAutoSelecting: false,
     biddingSuccessMsg: null,
+    ui: {
+      dispatchMode: 'DIRECT', // 'DIRECT' | 'BIDDING'
+      isSubmitting: false,
+    },
   },
   reducers: {
     setSelectedWorkOrder(state, action) {
@@ -185,6 +189,12 @@ const workOrdersSlice = createSlice({
     clearBiddingState(state) {
       state.bids = []
       state.biddingSuccessMsg = null
+    },
+    setWoDispatchMode(state, action) {
+      state.ui.dispatchMode = action.payload
+    },
+    setWoIsSubmitting(state, action) {
+      state.ui.isSubmitting = action.payload
     },
   },
   extraReducers: (builder) => {
@@ -269,6 +279,8 @@ export const {
   setSelectedWorkOrder,
   setBiddingSuccessMsg,
   clearBiddingState,
+  setWoDispatchMode,
+  setWoIsSubmitting,
 } = workOrdersSlice.actions
 
 // ─── Selectors ───────────────────────────────────────────────────────────────
@@ -281,5 +293,7 @@ export const selectWorkOrderBids      = (state) => state.clerkWorkOrders.bids
 export const selectBidsLoading        = (state) => state.clerkWorkOrders.bidsLoading
 export const selectIsAutoSelecting    = (state) => state.clerkWorkOrders.isAutoSelecting
 export const selectBiddingSuccessMsg  = (state) => state.clerkWorkOrders.biddingSuccessMsg
+export const selectWoDispatchMode     = (state) => state.clerkWorkOrders.ui.dispatchMode
+export const selectWoIsSubmitting     = (state) => state.clerkWorkOrders.ui.isSubmitting
 
 export default workOrdersSlice.reducer

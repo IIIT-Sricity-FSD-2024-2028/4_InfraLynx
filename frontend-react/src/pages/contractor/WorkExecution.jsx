@@ -1,10 +1,15 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
 import {
   selectAllContractorJobs,
   selectContractorSelectedJob,
+  selectExecutionUi,
   setSelectedJob,
+  setExecutionUiField,
+  resetExecutionOverrunForJob,
+  syncExecutionForJob,
+  clearExecutionPhoto,
   startWorkOrder,
   submitJobCompletion,
   respondToOverrunInquiry,
@@ -22,21 +27,41 @@ export default function WorkExecution({
   const dispatch = useDispatch()
   const reduxJobs = useSelector(selectAllContractorJobs)
   const reduxSelectedJob = useSelector(selectContractorSelectedJob)
+  const {
+    activeJobId,
+    actualWork,
+    labourDeployed,
+    afterPhoto,
+    uploadedFileInfo,
+    isDragOver,
+    completionRemarks,
+    submittedMessage,
+    isSubmitting,
+    actualExpense,
+    overrunReason,
+    rebuttalInput,
+    rebuttalSending,
+    rebuttalSuccess,
+  } = useSelector(selectExecutionUi)
+
+  const setExecUi = (field, value) => dispatch(setExecutionUiField({ field, value }))
 
   const jobs = propsJobs || reduxJobs || []
   const selectedJob = propsSelectedJob || reduxSelectedJob
 
-  const [activeJobId, setActiveJobId] = useState(() => {
-    if (selectedJob?.id) return selectedJob.id
-    const readyJob = jobs.find((j) => j.status === 'IN_PROGRESS' || j.status === 'APPROVED' || j.status === 'COMPLETED')
-    return readyJob?.id || jobs[0]?.id || ''
-  })
-
   useEffect(() => {
     if (selectedJob?.id) {
-      setActiveJobId(selectedJob.id)
+      if (activeJobId !== selectedJob.id) {
+        setExecUi('activeJobId', selectedJob.id)
+      }
+    } else if (!activeJobId && jobs.length > 0) {
+      const readyJob = jobs.find((j) => j.status === 'IN_PROGRESS' || j.status === 'APPROVED' || j.status === 'COMPLETED')
+      const fallbackId = readyJob?.id || jobs[0]?.id || ''
+      if (fallbackId) {
+        setExecUi('activeJobId', fallbackId)
+      }
     }
-  }, [selectedJob])
+  }, [selectedJob, jobs, activeJobId])
 
   const currentJob = jobs.find((j) => j.id === activeJobId) || selectedJob || jobs[0]
 
@@ -45,31 +70,9 @@ export default function WorkExecution({
     currentJob?.estimatedCost || currentJob?.estimated_cost || currentJob?.estimateAmount || 0
   )
 
-  // Form states - Starts completely empty (no prefilled dummy values)
-  const [actualWork, setActualWork] = useState('')
-  const [labourDeployed, setLabourDeployed] = useState('')
-  const [afterPhoto, setAfterPhoto] = useState('')
-  const [uploadedFileInfo, setUploadedFileInfo] = useState(null)
-  const [isDragOver, setIsDragOver] = useState(false)
-  const [completionRemarks, setCompletionRemarks] = useState('')
-  const [submittedMessage, setSubmittedMessage] = useState(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  // Actual expense and overrun reason (editable on completion form)
-  const [actualExpense, setActualExpense] = useState(() => initialEst)
-  const [overrunReason, setOverrunReason] = useState('')
-
-  // Overrun rebuttal state (for Finance/COO inquiry response box)
-  const [rebuttalInput, setRebuttalInput] = useState('')
-  const [rebuttalSending, setRebuttalSending] = useState(false)
-  const [rebuttalSuccess, setRebuttalSuccess] = useState(null)
-
   // Reset actualExpense when job changes
   useEffect(() => {
-    setActualExpense(initialEst)
-    setOverrunReason('')
-    setRebuttalInput('')
-    setRebuttalSuccess(null)
+    dispatch(resetExecutionOverrunForJob(initialEst))
   }, [currentJob?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fileInputRef = useRef(null)
@@ -82,8 +85,8 @@ export default function WorkExecution({
     }
     const reader = new FileReader()
     reader.onload = (e) => {
-      setAfterPhoto(e.target.result)
-      setUploadedFileInfo({
+      setExecUi('afterPhoto', e.target.result)
+      setExecUi('uploadedFileInfo', {
         name: file.name,
         size: (file.size / 1024).toFixed(1) + ' KB',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -106,24 +109,23 @@ export default function WorkExecution({
     }
     const backendWoId = currentJob.backendWoId || currentJob.work_order_id || currentJob.id
     try {
-      setRebuttalSending(true)
+      setExecUi('rebuttalSending', true)
       const result = await dispatch(
         respondToOverrunInquiry({ backendWoId, rebuttal: rebuttalInput.trim() })
       )
       if (respondToOverrunInquiry.rejected.match(result)) {
         alert(`Failed to send rebuttal: ${result.payload}`)
       } else {
-        setRebuttalSuccess('Response submitted to Finance/COO for review.')
-        setRebuttalInput('')
+        setExecUi('rebuttalSuccess', 'Response submitted to Finance/COO for review.')
+        setExecUi('rebuttalInput', '')
       }
     } finally {
-      setRebuttalSending(false)
+      setExecUi('rebuttalSending', false)
     }
   }
 
   function handleRemovePhoto() {
-    setAfterPhoto('')
-    setUploadedFileInfo(null)
+    dispatch(clearExecutionPhoto())
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -131,29 +133,8 @@ export default function WorkExecution({
 
   // Populate existing execution data ONLY if previously saved
   useEffect(() => {
-    if (currentJob?.execution?.actualWorkSummary) {
-      setActualWork(currentJob.execution.actualWorkSummary)
-      setLabourDeployed(currentJob.execution.actualLabourDetails || '')
-      setAfterPhoto(currentJob.execution.afterPhoto || currentJob.afterPhotos?.[0] || '')
-      setCompletionRemarks(currentJob.completionRemarks || '')
-      if (currentJob.execution.afterPhoto || currentJob.afterPhotos?.[0]) {
-        setUploadedFileInfo({
-          name: 'Resolution Evidence',
-          size: 'Saved',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        })
-      } else {
-        setUploadedFileInfo(null)
-      }
-    } else {
-      // Clean slate - No prefilled values
-      setActualWork('')
-      setLabourDeployed('')
-      setAfterPhoto('')
-      setUploadedFileInfo(null)
-      setCompletionRemarks('')
-    }
-  }, [currentJob])
+    dispatch(syncExecutionForJob(currentJob))
+  }, [currentJob, dispatch])
 
   const isInProgress = currentJob?.status === 'IN_PROGRESS'
   const isCompleted = currentJob?.status === 'COMPLETED' || currentJob?.status === 'PENDING_VERIFICATION' || currentJob?.status === 'CLOSED'
@@ -186,7 +167,7 @@ export default function WorkExecution({
         return
       }
     }
-    setSubmittedMessage(`Work Order ${currentJob.workOrderId || currentJob.id} is now IN PROGRESS. Field crew dispatched.`)
+    setExecUi('submittedMessage', `Work Order ${currentJob.workOrderId || currentJob.id} is now IN PROGRESS. Field crew dispatched.`)
   }
 
   async function handleComplete(e) {
@@ -214,7 +195,7 @@ export default function WorkExecution({
     }
 
     try {
-      setIsSubmitting(true)
+      setExecUi('isSubmitting', true)
       if (onSubmitCompletion) {
         await onSubmitCompletion(currentJob.id, completionData)
       } else {
@@ -233,13 +214,14 @@ export default function WorkExecution({
           throw new Error(result.payload || 'Completion submission failed')
         }
       }
-      setSubmittedMessage(
+      setExecUi(
+        'submittedMessage',
         `Work Order ${currentJob.workOrderId || currentJob.id} marked as COMPLETED! Forwarded to RWA for verification and Finance for payment authorization.`
       )
     } catch (err) {
       alert(`Submission failed: ${err.message}`)
     } finally {
-      setIsSubmitting(false)
+      setExecUi('isSubmitting', false)
     }
   }
 
@@ -290,7 +272,7 @@ export default function WorkExecution({
           <select
             value={currentJob.id}
             onChange={(e) => {
-              setActiveJobId(e.target.value)
+              setExecUi('activeJobId', e.target.value)
               const sel = jobs.find((j) => j.id === e.target.value)
               if (sel) {
                 dispatch(setSelectedJob(sel))
@@ -596,7 +578,7 @@ export default function WorkExecution({
                     rows={2}
                     placeholder="Enter your explanation / itemized cost justification..."
                     value={rebuttalInput}
-                    onChange={(e) => setRebuttalInput(e.target.value)}
+                    onChange={(e) => setExecUi('rebuttalInput', e.target.value)}
                     style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #fdba74', fontSize: 13 }}
                   />
                   <button
@@ -635,7 +617,7 @@ export default function WorkExecution({
                 type="number"
                 disabled={isCompleted}
                 value={actualExpense}
-                onChange={(e) => setActualExpense(Number(e.target.value))}
+                onChange={(e) => setExecUi('actualExpense', Number(e.target.value))}
                 className="execution-input"
                 style={{ fontWeight: 700, color: Number(actualExpense) > initialEst ? '#dc2626' : '#1e293b' }}
               />
@@ -656,7 +638,7 @@ export default function WorkExecution({
                 disabled={isCompleted}
                 placeholder="Explain unexpected subsurface damage, extra materials, or rate changes requiring higher expenditure..."
                 value={overrunReason}
-                onChange={(e) => setOverrunReason(e.target.value)}
+                onChange={(e) => setExecUi('overrunReason', e.target.value)}
                 style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #fca5a5', fontSize: 13, boxSizing: 'border-box' }}
               />
             </div>
@@ -672,7 +654,7 @@ export default function WorkExecution({
               required
               disabled={isCompleted}
               value={actualWork}
-              onChange={(e) => setActualWork(e.target.value)}
+              onChange={(e) => setExecUi('actualWork', e.target.value)}
               placeholder="e.g. Replaced 150W industrial driver, installed new MCB protection and re-calibrated twilight timer..."
               className="execution-textarea"
             />
@@ -688,7 +670,7 @@ export default function WorkExecution({
               required
               disabled={isCompleted}
               value={labourDeployed}
-              onChange={(e) => setLabourDeployed(e.target.value)}
+              onChange={(e) => setExecUi('labourDeployed', e.target.value)}
               placeholder="e.g. 2x Electrician hours, 3x General Labour hours, 10m Cable installed"
               className="execution-input"
             />
@@ -727,15 +709,15 @@ export default function WorkExecution({
                   onClick={handleTriggerFileInput}
                   onDragOver={(e) => {
                     e.preventDefault()
-                    setIsDragOver(true)
+                    setExecUi('isDragOver', true)
                   }}
                   onDragLeave={(e) => {
                     e.preventDefault()
-                    setIsDragOver(false)
+                    setExecUi('isDragOver', false)
                   }}
                   onDrop={(e) => {
                     e.preventDefault()
-                    setIsDragOver(false)
+                    setExecUi('isDragOver', false)
                     const file = e.dataTransfer.files?.[0]
                     if (file) handleFileSelect(file)
                   }}
@@ -767,8 +749,8 @@ export default function WorkExecution({
                       onClick={(e) => {
                         e.stopPropagation()
                         const sampleSvg = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="#0f172a"/><circle cx="200" cy="140" r="70" fill="#22c55e"/><text x="200" y="145" fill="white" font-size="18" font-family="sans-serif" text-anchor="middle" font-weight="bold">REPAIR VERIFIED</text><text x="200" y="175" fill="#f8fafc" font-size="13" font-family="sans-serif" text-anchor="middle">Voltech Power &amp; Electrical</text></svg>')
-                        setAfterPhoto(sampleSvg)
-                        setUploadedFileInfo({
+                        setExecUi('afterPhoto', sampleSvg)
+                        setExecUi('uploadedFileInfo', {
                           name: 'resolution_verified_proof.svg',
                           size: '8.5 KB',
                           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -824,7 +806,7 @@ export default function WorkExecution({
               type="text"
               disabled={isCompleted}
               value={completionRemarks}
-              onChange={(e) => setCompletionRemarks(e.target.value)}
+              onChange={(e) => setExecUi('completionRemarks', e.target.value)}
               placeholder="e.g. Work inspected by Lead Engineer; site restored to pristine condition."
               className="execution-input"
             />

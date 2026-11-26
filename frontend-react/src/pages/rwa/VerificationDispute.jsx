@@ -1,11 +1,14 @@
-import { useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { selectAllComplaints } from '../../store/rwa/complaintsSlice.js'
 import { confirmFix } from '../../store/rwa/verificationSlice.js'
 import {
   selectSelectedComplaint,
+  selectVerificationUi,
   navigateTo,
   selectComplaint,
+  setVerificationRating,
+  setVerificationRemarks,
+  setVerificationDoneMessage,
 } from '../../store/rwa/uiSlice.js'
 import { getPhotoUrl, handlePhotoError } from '../../utils/photoUrl.js'
 import './styles/VerificationDispute.css'
@@ -14,6 +17,7 @@ export default function VerificationDispute({ currentUser }) {
   const dispatch = useDispatch()
   const complaints = useSelector(selectAllComplaints)
   const selectedComplaint = useSelector(selectSelectedComplaint)
+  const { rating, confirmRemarks, actionDoneMessage } = useSelector(selectVerificationUi)
 
   const normStatus = (s) => (s || '').toUpperCase().replace(/[\s_-]+/g, '_')
 
@@ -29,10 +33,6 @@ export default function VerificationDispute({ currentUser }) {
       )) ||
     eligibleComplaints[0] ||
     null
-
-  const [rating, setRating] = useState(5)
-  const [confirmRemarks, setConfirmRemarks] = useState('')
-  const [actionDoneMessage, setActionDoneMessage] = useState(null)
 
   async function handleConfirm() {
     if (!activeComplaint) return
@@ -50,11 +50,11 @@ export default function VerificationDispute({ currentUser }) {
         })
       ).unwrap()
 
-      setActionDoneMessage({
+      dispatch(setVerificationDoneMessage({
         type: 'success',
         title: 'Fix Confirmed & Verified!',
         text: `Complaint ${ticketId} verified by ${currentUser?.name || 'Dr. Arvind Swaminathan'} and is now CLOSED. Finance has been notified to process contractor payment.`,
-      })
+      }))
 
       const nextPending = eligibleComplaints.find(
         (c) => c.id !== activeComplaint.id && c.complaint_code !== ticketId
@@ -146,12 +146,12 @@ export default function VerificationDispute({ currentUser }) {
           <span style={{ fontSize: 13, color: 'var(--text-soft)' }}>Inspecting Ticket:</span>
           <select
             value={activeComplaint.id}
-            onChange={(e) => {
+              onChange={(e) => {
               const c = eligibleComplaints.find(
                 (item) => item.id === e.target.value || item.complaint_code === e.target.value
               )
               if (c) dispatch(selectComplaint(c))
-              setActionDoneMessage(null)
+              dispatch(setVerificationDoneMessage(null))
             }}
             className="ticket-inspect-select"
           >
@@ -261,7 +261,7 @@ export default function VerificationDispute({ currentUser }) {
                     <button
                       key={star}
                       type="button"
-                      onClick={() => setRating(star)}
+                      onClick={() => dispatch(setVerificationRating(star))}
                       className="star-btn"
                       style={{ color: star <= rating ? '#f59e0b' : '#cbd5e1' }}
                     >
@@ -275,7 +275,7 @@ export default function VerificationDispute({ currentUser }) {
             <input
               type="text"
               value={confirmRemarks}
-              onChange={(e) => setConfirmRemarks(e.target.value)}
+              onChange={(e) => dispatch(setVerificationRemarks(e.target.value))}
               placeholder="Optional verification remarks (e.g., 'Inspected on-site; streetlights fully restored')..."
               className="confirm-remarks-input"
             />

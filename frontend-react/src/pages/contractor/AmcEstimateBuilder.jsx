@@ -1,10 +1,13 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useMemo, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTIMS } from '../../context/TIMSContext.jsx'
 import {
   selectAllContractorJobs,
   selectContractorSelectedJob,
+  selectEstimateUi,
   setSelectedJob,
+  setEstimateUiField,
+  syncEstimateForJob,
   submitAmcEstimate,
 } from '../../store/contractor/contractorSlice.js'
 import './styles/AmcEstimateBuilder.css'
@@ -19,6 +22,16 @@ export default function AmcEstimateBuilder({
   const dispatch = useDispatch()
   const reduxJobs = useSelector(selectAllContractorJobs)
   const reduxSelectedJob = useSelector(selectContractorSelectedJob)
+  const {
+    activeJobId,
+    lineItems,
+    justification,
+    submittedMessage,
+    formErrors,
+    touched,
+  } = useSelector(selectEstimateUi)
+
+  const setEstUi = (field, value) => dispatch(setEstimateUiField({ field, value }))
 
   const jobs = propsJobs || reduxJobs || []
   const selectedJob = propsSelectedJob || reduxSelectedJob
@@ -58,18 +71,16 @@ export default function AmcEstimateBuilder({
     })
   }, [jobs])
 
-  const [activeJobId, setActiveJobId] = useState(() => {
-    if (selectedJob && estimatableJobs.some((j) => j.id === selectedJob.id)) {
-      return selectedJob.id
-    }
-    return estimatableJobs[0]?.id || ''
-  })
-
   useEffect(() => {
     if (selectedJob && estimatableJobs.some((j) => j.id === selectedJob.id)) {
-      setActiveJobId(selectedJob.id)
+      if (activeJobId !== selectedJob.id) {
+        setEstUi('activeJobId', selectedJob.id)
+      }
     } else if (!estimatableJobs.some((j) => j.id === activeJobId)) {
-      setActiveJobId(estimatableJobs[0]?.id || '')
+      const fallbackId = estimatableJobs[0]?.id || ''
+      if (activeJobId !== fallbackId) {
+        setEstUi('activeJobId', fallbackId)
+      }
     }
   }, [estimatableJobs, selectedJob, activeJobId])
 
@@ -84,19 +95,6 @@ export default function AmcEstimateBuilder({
     )
     return filtered.length > 0 ? filtered : amcRateCards
   }, [amcRateCards, currentJob])
-
-  // Line items state - starts empty; contractor adds items manually per inspection
-  const [lineItems, setLineItems] = useState(() => {
-    if (selectedJob?.estimate?.items && selectedJob.estimate.items.length > 0) {
-      return selectedJob.estimate.items
-    }
-    return []
-  })
-
-  const [justification, setJustification] = useState('')
-  const [submittedMessage, setSubmittedMessage] = useState(null)
-  const [formErrors, setFormErrors] = useState({})
-  const [touched, setTouched] = useState(false)
 
   // Validation function
   function validateForm(items = lineItems, just = justification) {
@@ -120,51 +118,37 @@ export default function AmcEstimateBuilder({
 
   // Sync if job has existing estimate or revision details
   useEffect(() => {
-    if (currentJob?.estimate?.items && currentJob.estimate.items.length > 0) {
-      setLineItems(currentJob.estimate.items)
-      setJustification(currentJob.estimate.justification || '')
-    } else {
-      // Start empty - contractor adds items manually
-      setLineItems([])
-      setJustification('')
-    }
-    setFormErrors({})
-    setSubmittedMessage(null)
-    setTouched(false)
-  }, [currentJob])
+    dispatch(syncEstimateForJob(currentJob))
+  }, [currentJob, dispatch])
 
   // Handle changing rate card selection for a row
   function handleRateCardChange(index, rateCardId) {
     const card = amcRateCards.find((r) => r.id === rateCardId)
     if (!card) return
 
-    setLineItems((prev) => {
-      const copy = [...prev]
-      copy[index] = {
-        rateCardId: card.id,
-        service: card.service,
-        unit: card.unit,
-        rate: card.rate,
-        qty: copy[index]?.qty || 1,
-      }
-      if (touched) {
-        setFormErrors(validateForm(copy, justification))
-      }
-      return copy
-    })
+    const copy = [...lineItems]
+    copy[index] = {
+      rateCardId: card.id,
+      service: card.service,
+      unit: card.unit,
+      rate: card.rate,
+      qty: copy[index]?.qty || 1,
+    }
+    setEstUi('lineItems', copy)
+    if (touched) {
+      setEstUi('formErrors', validateForm(copy, justification))
+    }
   }
 
   // Handle changing quantity
   function handleQtyChange(index, val) {
     const num = val === '' ? '' : parseInt(val, 10)
-    setLineItems((prev) => {
-      const copy = [...prev]
-      copy[index] = { ...copy[index], qty: num }
-      if (touched) {
-        setFormErrors(validateForm(copy, justification))
-      }
-      return copy
-    })
+    const copy = [...lineItems]
+    copy[index] = { ...copy[index], qty: num }
+    setEstUi('lineItems', copy)
+    if (touched) {
+      setEstUi('formErrors', validateForm(copy, justification))
+    }
   }
 
   // Add new row with first available rate card
@@ -185,26 +169,26 @@ export default function AmcEstimateBuilder({
         qty: 1,
       },
     ]
-    setLineItems(newItems)
+    setEstUi('lineItems', newItems)
     if (touched) {
-      setFormErrors(validateForm(newItems, justification))
+      setEstUi('formErrors', validateForm(newItems, justification))
     }
   }
 
   // Remove row
   function handleRemoveRow(index) {
     const next = lineItems.filter((_, i) => i !== index)
-    setLineItems(next)
+    setEstUi('lineItems', next)
     if (touched) {
-      setFormErrors(validateForm(next, justification))
+      setEstUi('formErrors', validateForm(next, justification))
     }
   }
 
   function handleJustificationChange(e) {
     const val = e.target.value
-    setJustification(val)
+    setEstUi('justification', val)
     if (touched) {
-      setFormErrors(validateForm(lineItems, val))
+      setEstUi('formErrors', validateForm(lineItems, val))
     }
   }
 
@@ -233,14 +217,14 @@ export default function AmcEstimateBuilder({
     e.preventDefault()
     if (!currentJob) return
 
-    setTouched(true)
+    setEstUi('touched', true)
     const errors = validateForm(lineItems, justification)
     if (Object.keys(errors).length > 0) {
-      setFormErrors(errors)
+      setEstUi('formErrors', errors)
       return
     }
 
-    setFormErrors({})
+    setEstUi('formErrors', {})
 
     const estimateData = {
       items: calculatedItems,
@@ -268,7 +252,8 @@ export default function AmcEstimateBuilder({
       )
     }
 
-    setSubmittedMessage(
+    setEstUi(
+      'submittedMessage',
       `Estimate of ₹${totalEstimate.toLocaleString('en-IN')} submitted for ${currentJob.workOrderId || currentJob.id}. Forwarded to Department Head for approval.`
     )
 
@@ -328,7 +313,7 @@ export default function AmcEstimateBuilder({
           <select
             value={currentJob.id}
             onChange={(e) => {
-              setActiveJobId(e.target.value)
+              setEstUi('activeJobId', e.target.value)
               const sel = estimatableJobs.find((j) => j.id === e.target.value)
               if (sel) {
                 dispatch(setSelectedJob(sel))

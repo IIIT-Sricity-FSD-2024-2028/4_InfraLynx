@@ -7,14 +7,21 @@
  * - Step 3 (Credential Provisioning): Displays provisioned COO credentials, role badge, and allows password update.
  *
  * Key React Concepts:
- * - Controlled Components: Form state held in useState and synchronized on every keystroke.
+ * - Controlled Components: Form state held in Redux (authSlice) and synchronized on every keystroke.
  * - Performance Optimization: useMemo caches field validation and password rules to prevent redundant recalculations.
  * - Event Callbacks: useCallback memoizes change and submit handlers to prevent child re-renders.
  * - Side Effect Cleanup: useEffect with useRef cleanly unmounts any pending setTimeout handles to avoid memory leaks.
  */
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { useDispatch } from 'react-redux'
-import { registerTownship, setUserPassword } from '../../store/auth/authSlice.js'
+import { useMemo, useCallback, useRef, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import {
+  registerTownship,
+  setUserPassword,
+  setSignUpModalUiField,
+  setSignUpFormField,
+  setSignUpTouchedField,
+  selectSignUpModalUi,
+} from '../../store/auth/authSlice.js'
 import './styles/SignUpModal.css'
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
@@ -24,11 +31,6 @@ const UPPER_REGEX = /[A-Z]/
 const LOWER_REGEX = /[a-z]/
 const DIGIT_REGEX = /\d/
 const SPECIAL_REGEX = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/
-
-const INITIAL_FORM = {
-  townshipName: '', executiveName: '', email: '', phone: '',
-  sector: '', password: '', confirmPassword: '', agreeTerms: false,
-}
 
 const STEP1_FIELDS = [
   { key: 'townshipName', label: 'Township / Municipal Entity Name', placeholder: 'e.g. DLF CyberCity & Aralias Smart Township', full: true },
@@ -95,18 +97,20 @@ export default function SignUpModal({
   onSignUpSuccess,  // Callback notifying parent of newly provisioned township & credentials
 }) {
   const dispatch = useDispatch()
-  // --- 1. Component State & Controlled Form Hooks ---
-  const [step, setStep]                                 = useState(1)           // Active wizard step (1: Details, 2: Plan, 3: Provisioned Credentials)
-  const [loading, setLoading]                           = useState(false)       // Async submission loading state (disables buttons & shows spinner)
-  const [apiError, setApiError]                         = useState(null)        // Server error response message (e.g. duplicate email registration)
-  const [formData, setFormData]                         = useState(INITIAL_FORM)// Controlled form object storing all input fields
-  const [touched, setTouched]                           = useState({})          // Tracks blurred fields so errors only show after user interaction
-  const [showPasswordChange, setShowPasswordChange]     = useState(false)       // Toggles inline password update drawer in Step 3
-  const [newPassword, setNewPassword]                   = useState('')          // Controlled input state for password change in Step 3
-  const [passwordUpdateMsg, setPasswordUpdateMsg]       = useState(null)        // Feedback toast message for password update
-  const [passwordUpdateLoading, setPasswordUpdateLoading]= useState(false)       // Loading state for password update API call
-  const [createdData, setCreatedData]                   = useState(null)        // Stores newly created township and provisioned COO account
-  const pwdTimerRef                                     = useRef(null)          // Mutable timer reference to cleanly cancel timeouts on unmount
+  // --- 1. Component State & Controlled Form Hooks (backed by Redux authSlice) ---
+  const {
+    step,
+    loading,
+    apiError,
+    formData,
+    touched,
+    showPasswordChange,
+    newPassword,
+    passwordUpdateMsg,
+    passwordUpdateLoading,
+    createdData,
+  } = useSelector(selectSignUpModalUi)
+  const pwdTimerRef = useRef(null) // Mutable timer reference to cleanly cancel timeouts on unmount
 
   useEffect(() => () => { if (pwdTimerRef.current) clearTimeout(pwdTimerRef.current) }, [])
 
@@ -134,25 +138,31 @@ export default function SignUpModal({
     // --- 3. Event Handlers & Callbacks (Memoized) ---
   // Handles controlled input changes and clears api error
   const handleChange = useCallback((field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    setApiError(null)
-  }, [])
+    dispatch(setSignUpFormField({ field, value }))
+    dispatch(setSignUpModalUiField({ field: 'apiError', value: null }))
+  }, [dispatch])
 
   const handleBlur = useCallback((field) => {
-    setTouched(prev => ({ ...prev, [field]: true }))
-  }, [])
+    dispatch(setSignUpTouchedField(field))
+  }, [dispatch])
 
     // Validates step 1 inputs on submit before advancing to subscription selection
   const handleProceedToPlan = useCallback((e) => {
     e.preventDefault()
-    setTouched(Object.keys(formData).reduce((acc, k) => { acc[k] = true; return acc }, {}))
-    if (isStep1Valid) { setApiError(null); setStep(2) }
-  }, [formData, isStep1Valid])
+    dispatch(setSignUpModalUiField({
+      field: 'touched',
+      value: Object.keys(formData).reduce((acc, k) => { acc[k] = true; return acc }, {}),
+    }))
+    if (isStep1Valid) {
+      dispatch(setSignUpModalUiField({ field: 'apiError', value: null }))
+      dispatch(setSignUpModalUiField({ field: 'step', value: 2 }))
+    }
+  }, [dispatch, formData, isStep1Valid])
 
   // Submits registration payload via Redux thunk and activates township tier
   const handleActivateSubscription = useCallback(async () => {
-    setLoading(true)
-    setApiError(null)
+    dispatch(setSignUpModalUiField({ field: 'loading', value: true }))
+    dispatch(setSignUpModalUiField({ field: 'apiError', value: null }))
     try {
       const data = await dispatch(registerTownship({
         townshipName: formData.townshipName.trim(),
@@ -164,13 +174,16 @@ export default function SignUpModal({
         planLabel: 'Enterprise Municipal Plan',
       })).unwrap()
       if (!data) throw new Error('Failed to retrieve registration data.')
-      setCreatedData(data)
-      setStep(3)
+      dispatch(setSignUpModalUiField({ field: 'createdData', value: data }))
+      dispatch(setSignUpModalUiField({ field: 'step', value: 3 }))
     } catch (err) {
       console.warn('[SignUp Error]:', typeof err === 'string' ? err : err?.message)
-      setApiError((typeof err === 'string' ? err : err?.message) || 'Server connection error during onboarding.')
+      dispatch(setSignUpModalUiField({
+        field: 'apiError',
+        value: (typeof err === 'string' ? err : err?.message) || 'Server connection error during onboarding.',
+      }))
     } finally {
-      setLoading(false)
+      dispatch(setSignUpModalUiField({ field: 'loading', value: false }))
     }
   }, [dispatch, formData])
 
@@ -178,26 +191,38 @@ export default function SignUpModal({
   const handleUpdatePassword = useCallback(async (e) => {
     e.preventDefault()
     const pwdErr = validateField('password', newPassword)
-    if (pwdErr) { setPasswordUpdateMsg({ type: 'error', text: pwdErr }); return }
+    if (pwdErr) {
+      dispatch(setSignUpModalUiField({ field: 'passwordUpdateMsg', value: { type: 'error', text: pwdErr } }))
+      return
+    }
 
-    setPasswordUpdateLoading(true)
-    setPasswordUpdateMsg(null)
+    dispatch(setSignUpModalUiField({ field: 'passwordUpdateLoading', value: true }))
+    dispatch(setSignUpModalUiField({ field: 'passwordUpdateMsg', value: null }))
     try {
       await dispatch(setUserPassword({
         emailOrNewPassword: createdData?.user?.email || formData.email.trim(),
         maybeNewPassword: newPassword,
       })).unwrap()
-      setPasswordUpdateMsg({ type: 'success', text: 'Password successfully updated!' })
-      setNewPassword('')
+      dispatch(setSignUpModalUiField({
+        field: 'passwordUpdateMsg',
+        value: { type: 'success', text: 'Password successfully updated!' },
+      }))
+      dispatch(setSignUpModalUiField({ field: 'newPassword', value: '' }))
       if (pwdTimerRef.current) clearTimeout(pwdTimerRef.current)
-      pwdTimerRef.current = setTimeout(() => setShowPasswordChange(false), 2000)
+      pwdTimerRef.current = setTimeout(
+        () => dispatch(setSignUpModalUiField({ field: 'showPasswordChange', value: false })),
+        2000
+      )
     } catch (err) {
-      setPasswordUpdateMsg({
-        type: 'error',
-        text: (typeof err === 'string' ? err : err?.message) || 'Could not update password.',
-      })
+      dispatch(setSignUpModalUiField({
+        field: 'passwordUpdateMsg',
+        value: {
+          type: 'error',
+          text: (typeof err === 'string' ? err : err?.message) || 'Could not update password.',
+        },
+      }))
     } finally {
-      setPasswordUpdateLoading(false)
+      dispatch(setSignUpModalUiField({ field: 'passwordUpdateLoading', value: false }))
     }
   }, [dispatch, newPassword, createdData, formData.email])
 
@@ -376,7 +401,7 @@ export default function SignUpModal({
                   <span>Security &amp; Password</span>
                   <button
                     type="button"
-                    onClick={() => setShowPasswordChange(!showPasswordChange)}
+                    onClick={() => dispatch(setSignUpModalUiField({ field: 'showPasswordChange', value: !showPasswordChange }))}
                     style={{ background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
                   >
                     {showPasswordChange ? 'Cancel' : 'Change Password'}
@@ -394,7 +419,7 @@ export default function SignUpModal({
                         type="password"
                         placeholder="Enter new strong password"
                         value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
+                        onChange={(e) => dispatch(setSignUpModalUiField({ field: 'newPassword', value: e.target.value }))}
                         className="su-input"
                         style={{ flex: 1 }}
                         required
@@ -432,7 +457,7 @@ export default function SignUpModal({
 
           {step === 2 && (
             <>
-              <button type="button" className="su-btn su-btn-secondary" onClick={() => setStep(1)} disabled={loading}>
+              <button type="button" className="su-btn su-btn-secondary" onClick={() => dispatch(setSignUpModalUiField({ field: 'step', value: 1 }))} disabled={loading}>
                 &larr; Back to Details
               </button>
               <button type="button" className="su-btn su-btn-primary" onClick={handleActivateSubscription} disabled={loading}>
