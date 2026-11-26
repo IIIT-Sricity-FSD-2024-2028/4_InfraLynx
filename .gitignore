@@ -39,13 +39,13 @@ back-end/logs/*
 
 # ── Uploaded files (evidence photos etc.) ─────────────
 back-end/uploads/*
-backend-react/uploads/*
-!backend-react/uploads/.gitkeep
-backend-react/uploads/.env
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/uploads/.env
 !back-end/uploads/.gitkeep
 
 # ── Local database dumps (contain user data + password hashes) ──
-backend-react/db-backups/
+backend/db-backups/
 
 # ── Test coverage ─────────────────────────────────────
 coverage/

@@ -1,0 +1,666 @@
+import { useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import {
+  fetchSuperAdminUsers,
+  fetchSuperAdminTenants,
+  fetchSuperAdminDepartments,
+  fetchSuperAdminContractors,
+  createSuperAdminUser,
+  updateSuperAdminUser,
+  updateSuperAdminUserStatus,
+  resetSuperAdminUserPassword,
+  setSelectedUser,
+  clearSelectedUser,
+  setUsersUiField,
+  setCreateUserFormField,
+  patchCreateUserForm,
+  setCreateUserContractorType,
+  toggleCreateUserServiceType,
+  openCreateUserModal,
+  CONTRACTOR_TYPE_DEFAULTS,
+  selectSuperAdminUsers,
+  selectSuperAdminSelectedUser,
+  selectSuperAdminUsersStatus,
+  selectSuperAdminTenants,
+  selectSuperAdminDepartments,
+  selectSuperAdminContractors,
+  selectSuperAdminUsersUi,
+} from '../../../store/superadmin/superAdminSlice.js'
+
+const ROLE_OPTIONS = ['RWA', 'DESK_CLERK', 'FIELD_CONTRACTOR', 'DEPARTMENT_HEAD', 'FINANCE_CLERK', 'TOWNSHIP_COO', 'SUPER_ADMIN']
+const ROLE_LABELS = {
+  RWA: 'RWA Rep', DESK_CLERK: 'Desk Clerk', FIELD_CONTRACTOR: 'Field Contractor',
+  DEPARTMENT_HEAD: 'Dept Head', FINANCE_CLERK: 'Finance Clerk', TOWNSHIP_COO: 'Township COO', SUPER_ADMIN: 'Super Admin',
+}
+
+const CONTRACTOR_TYPE_OPTIONS = [
+  { value: 'Civil', label: 'Civil — Civil Infrastructure & Roads' },
+  { value: 'Electrical', label: 'Electrical — Electrical & Power Distribution' },
+  { value: 'Water', label: 'Water — Water Supply & Drainage Sanitation' },
+  { value: 'Horticulture', label: 'Horticulture — Horticulture & Urban Waste Management' },
+]
+
+const ALL_CONTRACTOR_SERVICES = Array.from(new Set(Object.values(CONTRACTOR_TYPE_DEFAULTS).flat()))
+
+function fmt(date) {
+  if (!date) return '—'
+  return new Date(date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+// ── Create User Modal ────────────────────────────────────────────────────────
+function CreateUserModal({ onClose, onSave, townships, departments, contractors }) {
+  const dispatch = useDispatch()
+  const { createForm: form, createErrors: errors, createSaving: saving } = useSelector(selectSuperAdminUsersUi)
+  const set = (k, v) => dispatch(setCreateUserFormField({ key: k, value: v }))
+
+  const filteredDepts = departments.filter((d) => !form.township_id || d.township_id === form.township_id)
+  const filteredContractors = contractors.filter((c) => !form.township_id || c.township_id === form.township_id)
+  const hasTownshipContractors = filteredContractors.length > 0
+  const effectiveContractorMode = hasTownshipContractors ? (form.contractor_mode || 'existing') : 'new'
+
+  function validate() {
+    const e = {}
+    if (!form.name.trim()) e.name = 'Name required'
+    if (!form.email.trim()) e.email = 'Email required'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Invalid email'
+    if (!form.username.trim()) e.username = 'Username required'
+    if (!form.password || form.password.length < 8) e.password = 'Min 8 characters'
+    if (form.role !== 'SUPER_ADMIN' && !form.township_id) e.township_id = 'Select a township for tenant accounts'
+    if (form.role === 'DEPARTMENT_HEAD' && !form.department_id) e.department_id = 'Select a department for the Department Head'
+    if (form.role === 'FIELD_CONTRACTOR') {
+      if (effectiveContractorMode === 'existing') {
+        if (!form.contractor_id) e.contractor_id = 'Select the contractor account'
+      } else {
+        if (!form.contractor_type) e.contractor_type = 'Select a contractor type'
+        if (!form.contractor_company?.trim()) e.contractor_company = 'Contractor company / firm name required'
+        if (!Array.isArray(form.service_types) || form.service_types.length === 0) {
+          e.service_types = 'Select at least one contractor specialization'
+        }
+      }
+    }
+    dispatch(setUsersUiField({ field: 'createErrors', value: e }))
+    return Object.keys(e).length === 0
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!validate()) return
+    dispatch(setUsersUiField({ field: 'createSaving', value: true }))
+    try {
+      const payload = {
+        name: form.name,
+        email: form.email,
+        username: form.username,
+        password: form.password,
+        role: form.role,
+        township_id: form.role === 'SUPER_ADMIN' ? '' : form.township_id,
+        department_id: ['DEPARTMENT_HEAD', 'DESK_CLERK', 'FINANCE_CLERK'].includes(form.role) ? form.department_id : '',
+        sector: form.sector,
+        phone: form.phone,
+      }
+      if (form.role === 'FIELD_CONTRACTOR') {
+        if (effectiveContractorMode === 'existing') {
+          payload.contractor_id = form.contractor_id
+        } else {
+          payload.contractor_type = form.contractor_type
+          payload.service_types = form.service_types
+          payload.contractor_company = form.contractor_company.trim()
+          payload.contractor_gstin = (form.contractor_gstin || '').trim()
+          payload.contractor_address = (form.contractor_address || '').trim()
+        }
+      }
+      await onSave(payload)
+    } finally {
+      dispatch(setUsersUiField({ field: 'createSaving', value: false }))
+    }
+  }
+
+  return (
+    <div className="sa-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="sa-modal wide">
+        <div className="sa-modal-header">
+          <div>
+            <div className="sa-modal-title">👤 Create User Account</div>
+            <div className="sa-modal-subtitle">Add a new authorized user to the platform</div>
+          </div>
+          <button className="sa-modal-close" onClick={onClose}>✕</button>
+        </div>
+        <form onSubmit={handleSubmit} autoComplete="off">
+          <div className="sa-modal-body">
+            <div className="sa-warn-box">
+              ⚠️ Passwords are hashed before storage. The user should change their temporary password on first login.
+            </div>
+            <div className="sa-form-grid">
+              <div className="sa-form-group">
+                <label className="sa-label">Full Name *</label>
+                <input id="sa-new-user-name" className="sa-input" autoComplete="off" value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Dr. Ananya Sharma" />
+                {errors.name && <div className="sa-form-error">{errors.name}</div>}
+              </div>
+              <div className="sa-form-group">
+                <label className="sa-label">Email *</label>
+                <input className="sa-input" autoComplete="off" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="user@township.in" />
+                {errors.email && <div className="sa-form-error">{errors.email}</div>}
+              </div>
+              <div className="sa-form-group">
+                <label className="sa-label">Username *</label>
+                <input className="sa-input" autoComplete="off" value={form.username} onChange={(e) => set('username', e.target.value)} placeholder="user_handle" />
+                {errors.username && <div className="sa-form-error">{errors.username}</div>}
+              </div>
+              <div className="sa-form-group">
+                <label className="sa-label">Temporary Password *</label>
+                <input type="password" className="sa-input" autoComplete="new-password" value={form.password} onChange={(e) => set('password', e.target.value)} placeholder="Min 8 characters" />
+                {errors.password && <div className="sa-form-error">{errors.password}</div>}
+              </div>
+              <div className="sa-form-group">
+                <label className="sa-label">Role *</label>
+                <select className="sa-select" value={form.role} onChange={(e) => {
+                  const role = e.target.value
+                  dispatch(patchCreateUserForm({
+                    role,
+                    ...(role === 'SUPER_ADMIN' ? { township_id: '', department_id: '', contractor_id: '' } : {}),
+                    ...(role !== 'FIELD_CONTRACTOR' ? { contractor_id: '' } : {
+                      contractor_mode: hasTownshipContractors ? 'existing' : 'new',
+                    }),
+                    ...(!['DEPARTMENT_HEAD', 'DESK_CLERK', 'FINANCE_CLERK'].includes(role) ? { department_id: '' } : {}),
+                  }))
+                }}>
+                  {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                </select>
+              </div>
+              <div className="sa-form-group">
+                <label className="sa-label">Assign Township</label>
+                <select className="sa-select" value={form.township_id} disabled={form.role === 'SUPER_ADMIN'} onChange={(e) => {
+                  const nextTownshipId = e.target.value
+                  const nextHasContractors = contractors.some((c) => !nextTownshipId || c.township_id === nextTownshipId)
+                  dispatch(patchCreateUserForm({
+                    township_id: nextTownshipId,
+                    department_id: '',
+                    contractor_id: '',
+                    contractor_mode: nextHasContractors ? 'existing' : 'new',
+                  }))
+                }}>
+                  <option value="">— No Township (Platform Level) —</option>
+                  {townships.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+                {errors.township_id && <div className="sa-form-error">{errors.township_id}</div>}
+              </div>
+              {form.role === 'FIELD_CONTRACTOR' && (
+                <>
+                  {hasTownshipContractors ? (
+                    <div className="sa-form-group full">
+                      <label className="sa-label">Contractor Setup</label>
+                      <div className="sa-mode-toggle">
+                        <button
+                          type="button"
+                          className={`sa-mode-btn${effectiveContractorMode === 'existing' ? ' active' : ''}`}
+                          onClick={() => set('contractor_mode', 'existing')}
+                        >
+                          Select Existing Contractor
+                        </button>
+                        <button
+                          type="button"
+                          className={`sa-mode-btn${effectiveContractorMode === 'new' ? ' active' : ''}`}
+                          onClick={() => dispatch(patchCreateUserForm({ contractor_mode: 'new', contractor_id: '' }))}
+                        >
+                          + Create New Contractor
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="sa-form-group full">
+                      <div className="sa-info-box" style={{ marginBottom: 0 }}>
+                        ℹ️ No contractor accounts exist for this township yet. Choose the contractor type and firm details below to create the contractor account and user together.
+                      </div>
+                    </div>
+                  )}
+
+                  {effectiveContractorMode === 'existing' ? (
+                    <div className="sa-form-group full">
+                      <label className="sa-label">Contractor Account *</label>
+                      <select className="sa-select" value={form.contractor_id} onChange={(e) => set('contractor_id', e.target.value)}>
+                        <option value="">— Select contractor —</option>
+                        {filteredContractors.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.company_name}{Array.isArray(c.service_types) && c.service_types.length > 0 ? ` (${c.service_types.join(', ')})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.contractor_id && <div className="sa-form-error">{errors.contractor_id}</div>}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="sa-form-group">
+                        <label className="sa-label">Contractor Type *</label>
+                        <select
+                          id="sa-new-contractor-type"
+                          className="sa-select"
+                          value={form.contractor_type}
+                          onChange={(e) => dispatch(setCreateUserContractorType(e.target.value))}
+                        >
+                          {CONTRACTOR_TYPE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                        {errors.contractor_type && <div className="sa-form-error">{errors.contractor_type}</div>}
+                      </div>
+                      <div className="sa-form-group">
+                        <label className="sa-label">Contractor Company / Firm Name *</label>
+                        <input
+                          id="sa-new-contractor-company"
+                          className="sa-input"
+                          value={form.contractor_company}
+                          onChange={(e) => set('contractor_company', e.target.value)}
+                          placeholder="e.g. Apex Infra Works Pvt. Ltd."
+                        />
+                        {errors.contractor_company && <div className="sa-form-error">{errors.contractor_company}</div>}
+                      </div>
+                      <div className="sa-form-group full">
+                        <label className="sa-label">Service Specializations *</label>
+                        <div className="sa-chip-group">
+                          {ALL_CONTRACTOR_SERVICES.map((svc) => {
+                            const selected = Array.isArray(form.service_types) && form.service_types.includes(svc)
+                            return (
+                              <button
+                                key={svc}
+                                type="button"
+                                className={`sa-chip${selected ? ' active' : ''}`}
+                                onClick={() => dispatch(toggleCreateUserServiceType(svc))}
+                              >
+                                {selected ? '✓ ' : '+ '}{svc}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        {errors.service_types && <div className="sa-form-error">{errors.service_types}</div>}
+                      </div>
+                      <div className="sa-form-group">
+                        <label className="sa-label">Company GSTIN</label>
+                        <input
+                          className="sa-input"
+                          value={form.contractor_gstin}
+                          onChange={(e) => set('contractor_gstin', e.target.value)}
+                          placeholder="e.g. 06AABCU9603R1ZM"
+                        />
+                      </div>
+                      <div className="sa-form-group">
+                        <label className="sa-label">Company Office Address</label>
+                        <input
+                          className="sa-input"
+                          value={form.contractor_address}
+                          onChange={(e) => set('contractor_address', e.target.value)}
+                          placeholder="e.g. Plot 12, Sector 54"
+                        />
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+              {['DEPARTMENT_HEAD', 'DESK_CLERK', 'FINANCE_CLERK'].includes(form.role) && (
+                <div className="sa-form-group">
+                  <label className="sa-label">Department</label>
+                  <select className="sa-select" value={form.department_id} onChange={(e) => set('department_id', e.target.value)}>
+                    <option value="">— None —</option>
+                    {filteredDepts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                  {errors.department_id && <div className="sa-form-error">{errors.department_id}</div>}
+                </div>
+              )}
+              <div className="sa-form-group">
+                <label className="sa-label">Sector / Block</label>
+                <input className="sa-input" value={form.sector} onChange={(e) => set('sector', e.target.value)} placeholder="e.g. Sector 54" />
+              </div>
+              <div className="sa-form-group">
+                <label className="sa-label">Phone</label>
+                <input className="sa-input" value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="+91 98000 00000" />
+              </div>
+            </div>
+          </div>
+          <div className="sa-modal-footer">
+            <button type="button" className="sa-btn sa-btn-secondary" onClick={onClose}>Cancel</button>
+            <button type="submit" id="sa-btn-save-user" className="sa-btn sa-btn-primary" disabled={saving}>
+              {saving ? 'Creating…' : '✓ Create Account'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ── User Detail Modal ────────────────────────────────────────────────────────
+function UserDetailModal({ user, onClose, onStatusChange, onResetPassword, onUpdateRole, townships, departments, contractors }) {
+  const dispatch = useDispatch()
+  const {
+    detailTab: tab,
+    newStatus,
+    statusReason,
+    newPassword,
+    confirmPw,
+    newRole,
+    newTownship,
+    newDept,
+    newContractor,
+    detailSaving: saving,
+  } = useSelector(selectSuperAdminUsersUi)
+
+  const setUi = (field, value) => dispatch(setUsersUiField({ field, value }))
+
+  const filteredDepts = departments.filter((d) => !newTownship || d.township_id === newTownship)
+  const filteredContractors = contractors.filter((c) => !newTownship || c.township_id === newTownship)
+
+  async function handleStatusSave() {
+    if (newStatus === 'SUSPENDED' && !statusReason.trim()) { alert('Reason required for suspension.'); return }
+    setUi('detailSaving', true)
+    try { await onStatusChange(user.id, newStatus, statusReason) } finally { setUi('detailSaving', false) }
+  }
+
+  async function handlePasswordReset() {
+    if (newPassword.length < 8) { alert('Password must be at least 8 characters.'); return }
+    if (newPassword !== confirmPw) { alert('Passwords do not match.'); return }
+    setUi('detailSaving', true)
+    try { await onResetPassword(user.id, newPassword) } finally { setUi('detailSaving', false); setUi('newPassword', ''); setUi('confirmPw', '') }
+  }
+
+  async function handleRoleSave() {
+    setUi('detailSaving', true)
+    try { await onUpdateRole(user.id, { role: newRole, township_id: newTownship || null, department_id: newDept || null, contractor_id: newRole === 'FIELD_CONTRACTOR' ? newContractor || null : null }) } finally { setUi('detailSaving', false) }
+  }
+
+  return (
+    <div className="sa-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="sa-modal wide">
+        <div className="sa-modal-header">
+          <div>
+            <div className="sa-modal-title">{user.name}</div>
+            <div className="sa-modal-subtitle" style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
+              <span className={`sa-pill ${(user.status || 'active').toLowerCase()}`}>{user.status}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-soft)' }}>{ROLE_LABELS[user.role] || user.role}</span>
+            </div>
+          </div>
+          <button className="sa-modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="sa-modal-tabs">
+          {['info', 'role', 'status', 'password'].map((t) => (
+            <button key={t} className={`sa-modal-tab${tab === t ? ' active' : ''}`} onClick={() => setUi('detailTab', t)}>
+              {t === 'password' ? 'Reset Password' : t}
+            </button>
+          ))}
+        </div>
+
+        <div className="sa-modal-body">
+          {tab === 'info' && (
+            <div className="sa-detail-grid">
+              <div><div className="sa-detail-label">Email</div><div className="sa-detail-value">{user.email}</div></div>
+              <div><div className="sa-detail-label">Username</div><div className="sa-detail-value" style={{ fontFamily: 'var(--font-mono)' }}>{user.username}</div></div>
+              <div><div className="sa-detail-label">Role</div><div className="sa-detail-value">{ROLE_LABELS[user.role] || user.role}</div></div>
+              <div><div className="sa-detail-label">Township</div><div className="sa-detail-value">{user.township_name || <span style={{ color: 'var(--sa-accent)', fontWeight: 700 }}>Platform Level</span>}</div></div>
+              <div><div className="sa-detail-label">Department</div><div className="sa-detail-value">{user.department_name || '—'}</div></div>
+              <div><div className="sa-detail-label">Contractor</div><div className="sa-detail-value">{user.contractor_name || '—'}</div></div>
+              <div><div className="sa-detail-label">Sector</div><div className="sa-detail-value">{user.sector || '—'}</div></div>
+              <div><div className="sa-detail-label">Phone</div><div className="sa-detail-value">{user.phone || '—'}</div></div>
+              <div><div className="sa-detail-label">Last Login</div><div className="sa-detail-value">{user.last_login_at ? new Date(user.last_login_at).toLocaleDateString('en-IN') : '—'}</div></div>
+            </div>
+          )}
+
+          {tab === 'role' && (
+            <div>
+              <div className="sa-info-box">
+                ℹ️ Changing a user's role may affect which features they can access. Only assign roles appropriate for the user's position.
+              </div>
+              <div className="sa-form-grid">
+                <div className="sa-form-group">
+                  <label className="sa-label">Role</label>
+                  <select className="sa-select" value={newRole} onChange={(e) => {
+                    const role = e.target.value
+                    setUi('newRole', role)
+                    if (role !== 'FIELD_CONTRACTOR') setUi('newContractor', '')
+                    if (role === 'SUPER_ADMIN') { setUi('newTownship', ''); setUi('newDept', '') }
+                    if (!['DEPARTMENT_HEAD', 'DESK_CLERK', 'FINANCE_CLERK'].includes(role)) setUi('newDept', '')
+                  }}>
+                    {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                  </select>
+                </div>
+                <div className="sa-form-group">
+                  <label className="sa-label">Township</label>
+                  <select className="sa-select" value={newTownship} disabled={newRole === 'SUPER_ADMIN'} onChange={(e) => { setUi('newTownship', e.target.value); setUi('newDept', ''); setUi('newContractor', '') }}>
+                    <option value="">— Platform Level —</option>
+                    {townships.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+                {newRole === 'FIELD_CONTRACTOR' && (
+                  <div className="sa-form-group">
+                    <label className="sa-label">Contractor Account</label>
+                    <select className="sa-select" value={newContractor} onChange={(e) => setUi('newContractor', e.target.value)}>
+                      <option value="">— Select contractor —</option>
+                      {filteredContractors.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.company_name}{Array.isArray(c.service_types) && c.service_types.length > 0 ? ` (${c.service_types.join(', ')})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {['DEPARTMENT_HEAD', 'DESK_CLERK', 'FINANCE_CLERK'].includes(newRole) && (
+                  <div className="sa-form-group">
+                    <label className="sa-label">Department</label>
+                    <select className="sa-select" value={newDept} onChange={(e) => setUi('newDept', e.target.value)}>
+                      <option value="">— None —</option>
+                      {filteredDepts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
+              <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                <button className="sa-btn sa-btn-primary" onClick={handleRoleSave} disabled={saving}>
+                  {saving ? 'Saving…' : '✓ Update Role & Assignment'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {tab === 'status' && (
+            <div>
+              <div className="sa-form-grid cols-1">
+                <div className="sa-form-group">
+                  <label className="sa-label">Account Status</label>
+                  <select className="sa-select" value={newStatus} onChange={(e) => setUi('newStatus', e.target.value)}>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                    <option value="SUSPENDED">Suspended</option>
+                  </select>
+                </div>
+                <div className="sa-form-group">
+                  <label className="sa-label">Reason {newStatus !== user.status && newStatus === 'SUSPENDED' ? '(required)' : '(optional)'}</label>
+                  <input className="sa-input" value={statusReason} onChange={(e) => setUi('statusReason', e.target.value)} placeholder="Reason for status change" />
+                </div>
+              </div>
+              <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  className={`sa-btn ${newStatus === 'SUSPENDED' ? 'sa-btn-danger' : 'sa-btn-primary'}`}
+                  onClick={handleStatusSave}
+                  disabled={saving || newStatus === user.status}
+                >
+                  {saving ? 'Saving…' : `Set to ${newStatus}`}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {tab === 'password' && (
+            <div>
+              <div className="sa-warn-box">
+                ⚠️ This resets the user's password immediately. The new password is required for their next login. Passwords are stored as bcrypt hashes.
+              </div>
+              <div className="sa-form-grid cols-1">
+                <div className="sa-form-group">
+                  <label className="sa-label">New Password (min 8 characters)</label>
+                  <input type="password" className="sa-input" value={newPassword} onChange={(e) => setUi('newPassword', e.target.value)} placeholder="Enter new password" />
+                </div>
+                <div className="sa-form-group">
+                  <label className="sa-label">Confirm Password</label>
+                  <input type="password" className="sa-input" value={confirmPw} onChange={(e) => setUi('confirmPw', e.target.value)} placeholder="Repeat password" />
+                </div>
+              </div>
+              <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                <button className="sa-btn sa-btn-danger" onClick={handlePasswordReset} disabled={saving || !newPassword} id="sa-btn-reset-pw">
+                  {saving ? 'Resetting…' : '🔑 Reset Password'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Main Component ───────────────────────────────────────────────────────────
+export default function UsersAccess() {
+  const dispatch = useDispatch()
+  const users = useSelector(selectSuperAdminUsers)
+  const usersStatus = useSelector(selectSuperAdminUsersStatus)
+  const townships = useSelector(selectSuperAdminTenants)
+  const departments = useSelector(selectSuperAdminDepartments)
+  const contractors = useSelector(selectSuperAdminContractors)
+  const selectedUser = useSelector(selectSuperAdminSelectedUser)
+  const { search, filterRole, filterTownship, filterStatus, showCreate } = useSelector(selectSuperAdminUsersUi)
+
+  const loading = usersStatus === 'loading' && users.length === 0
+  const setUi = (field, value) => dispatch(setUsersUiField({ field, value }))
+
+  useEffect(() => {
+    dispatch(fetchSuperAdminUsers())
+    dispatch(fetchSuperAdminTenants())
+    dispatch(fetchSuperAdminDepartments())
+    dispatch(fetchSuperAdminContractors())
+  }, [dispatch])
+
+  const filtered = users.filter((u) => {
+    const q = search.toLowerCase()
+    return (
+      (!q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.username?.toLowerCase().includes(q)) &&
+      (!filterRole || u.role === filterRole) &&
+      (!filterTownship || u.township_id === filterTownship) &&
+      (!filterStatus || u.status === filterStatus)
+    )
+  })
+
+  async function handleCreateUser(form) {
+    const action = await dispatch(createSuperAdminUser(form))
+    if (createSuperAdminUser.fulfilled.match(action)) {
+      setUi('showCreate', false)
+    }
+  }
+
+  async function handleStatusChange(id, status, reason) {
+    await dispatch(updateSuperAdminUserStatus({ id, status, reason }))
+  }
+
+  async function handleResetPassword(id, new_password) {
+    await dispatch(resetSuperAdminUserPassword({ id, new_password }))
+  }
+
+  async function handleUpdateRole(id, payload) {
+    await dispatch(updateSuperAdminUser({ id, payload }))
+  }
+
+  return (
+    <div>
+      <div className="sa-page-header">
+        <div>
+          <div className="sa-page-title">Users & Access</div>
+          <div className="sa-page-desc">Global user directory across all tenants</div>
+        </div>
+        <button className="sa-btn sa-btn-primary" onClick={() => dispatch(openCreateUserModal())} id="sa-btn-create-user">
+          + Create User
+        </button>
+      </div>
+
+      <div className="sa-filter-bar">
+        <div className="sa-search-wrap">
+          <span className="sa-search-icon">🔍</span>
+          <input id="sa-user-search" className="sa-search-input" placeholder="Search name, email, username…" value={search} onChange={(e) => setUi('search', e.target.value)} />
+        </div>
+        <select className="sa-select" value={filterRole} onChange={(e) => setUi('filterRole', e.target.value)}>
+          <option value="">All Roles</option>
+          {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+        </select>
+        <select className="sa-select" value={filterTownship} onChange={(e) => setUi('filterTownship', e.target.value)}>
+          <option value="">All Townships</option>
+          {townships.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+        <select className="sa-select" value={filterStatus} onChange={(e) => setUi('filterStatus', e.target.value)}>
+          <option value="">All Statuses</option>
+          <option value="ACTIVE">Active</option>
+          <option value="INACTIVE">Inactive</option>
+          <option value="SUSPENDED">Suspended</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <div className="sa-loading"><div className="sa-spinner" /> Loading users…</div>
+      ) : filtered.length === 0 ? (
+        <div className="sa-empty"><div className="sa-empty-icon">👥</div><div className="sa-empty-title">No users found</div></div>
+      ) : (
+        <div className="sa-panel">
+          <div className="sa-panel-header">
+            <div className="sa-panel-title">User Directory</div>
+            <div className="sa-panel-subtitle">{filtered.length} account{filtered.length !== 1 ? 's' : ''}</div>
+          </div>
+          <div className="sa-table-wrap">
+            <table className="sa-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email / Username</th>
+                  <th>Role</th>
+                  <th>Township</th>
+                  <th>Status</th>
+                  <th>Last Login</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((u) => (
+                  <tr key={u.id}>
+                    <td><div className="sa-td-name">{u.name}</div></td>
+                    <td>
+                      <div style={{ fontSize: 13.5, color: 'var(--text)' }}>{u.email}</div>
+                      <div className="sa-td-sub">{u.username}</div>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: u.role === 'SUPER_ADMIN' ? 'var(--sa-accent)' : 'var(--accent-blue)' }}>
+                        {ROLE_LABELS[u.role] || u.role}
+                      </span>
+                    </td>
+                    <td><span style={{ fontSize: 13, color: 'var(--text-soft)' }}>{u.township_name || <span style={{ color: 'var(--primary-dark)', fontWeight: 700 }}>Platform</span>}</span></td>
+                    <td><span className={`sa-pill ${(u.status || 'active').toLowerCase()}`}>{u.status}</span></td>
+                    <td><span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{u.last_login_at ? new Date(u.last_login_at).toLocaleDateString('en-IN') : '—'}</span></td>
+                    <td><button className="sa-btn sa-btn-ghost sa-btn-sm" onClick={() => dispatch(setSelectedUser(u))}>Manage →</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {showCreate && (
+        <CreateUserModal onClose={() => setUi('showCreate', false)} onSave={handleCreateUser} townships={townships} departments={departments} contractors={contractors} />
+      )}
+      {selectedUser && (
+        <UserDetailModal
+          user={selectedUser}
+          onClose={() => dispatch(clearSelectedUser())}
+          onStatusChange={handleStatusChange}
+          onResetPassword={handleResetPassword}
+          onUpdateRole={handleUpdateRole}
+          townships={townships}
+          departments={departments}
+          contractors={contractors}
+        />
+      )}
+    </div>
+  )
+}
