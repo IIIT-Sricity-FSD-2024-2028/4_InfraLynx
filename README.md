@@ -33,11 +33,11 @@ cd 4_InfraLynx
 npm install
 
 # Install backend dependencies
-cd backend-react
+cd backend
 npm install
 
 # Install frontend dependencies
-cd ../frontend-react
+cd ../frontend
 npm install
 
 # Return to root directory
@@ -45,16 +45,16 @@ cd ..
 ```
 
 ### 3. Configure Environment Variables
-Create a `.env` file in `backend-react/` by copying the example:
+Create a `.env` file in `backend/` by copying the example:
 ```bash
 # Windows PowerShell
-Copy-Item backend-react/.env.example backend-react/.env
+Copy-Item backend/.env.example backend/.env
 
 # Linux / macOS / Git Bash
-cp backend-react/.env.example backend-react/.env
+cp backend/.env.example backend/.env
 ```
 
-Set your database URL and settings in `backend-react/.env`:
+Set your database URL and settings in `backend/.env`:
 ```env
 PORT=5000
 NODE_ENV=development
@@ -65,7 +65,7 @@ UPLOAD_DIR=uploads
 CORS_ORIGIN=http://localhost:5173,http://localhost:3000
 ```
 
-*(Note: `frontend-react/.env` is already pre-configured to connect to `http://localhost:5000/api/v1`)*
+*(Note: `frontend/.env` is already pre-configured to connect to `http://localhost:5000/api/v1`)*
 
 ---
 
@@ -85,13 +85,13 @@ npm run start:react
 
 **Terminal 1 — Backend:**
 ```bash
-cd backend-react
+cd backend
 npm run dev
 ```
 
 **Terminal 2 — Frontend:**
 ```bash
-cd frontend-react
+cd frontend
 npm run dev
 ```
 
@@ -102,7 +102,7 @@ npm run dev
 ### Automated Integration Tests
 Run the backend role-based integration test suite:
 ```bash
-cd backend-react
+cd backend
 npm test
 ```
 
@@ -141,21 +141,19 @@ All test accounts use the password: **`Password@123`**
 - **Course:** Full Stack Development (FDFED) — 5th Semester
 - **Assigned Module:** Field Contractor Management Portal & Execution Lifecycle
 - **GitHub Username:** `yshasvee11` (`yshasveep24-code`)
-- **Detailed Evaluation Dossier & Viva Guide:** [contribution_266.md](./contribution_266.md)
 
 ### Specific Files Developed & Modified
 
 | File / Component Path | Description & Key Contributions |
 |---|---|
-| [`frontend-react/src/pages/contractor/ContractorPortal.jsx`](./frontend-react/src/pages/contractor/ContractorPortal.jsx) | **Root State Orchestrator:** Manages contractor global state, screen routing, real-time context synchronization, sessionStorage persistence, and backend API integration. |
-| [`frontend-react/src/pages/contractor/ContractorDashboard.jsx`](./frontend-react/src/pages/contractor/ContractorDashboard.jsx) | **Overview & KPIs:** Real-time metrics counters, SLA breach alerts, active work order status distribution, and rapid navigation shortcuts. |
-| [`frontend-react/src/pages/contractor/AssignedWorkOrders.jsx`](./frontend-react/src/pages/contractor/AssignedWorkOrders.jsx) | **Work Order Explorer:** Multi-criteria status filtering (Assigned, Pending Approval, Approved, Completed), live multi-attribute search (WO ID, location, asset), and SLA countdown indicators. |
-| [`frontend-react/src/pages/contractor/SiteInspection.jsx`](./frontend-react/src/pages/contractor/SiteInspection.jsx) | **Pre-Work Assessment Engine:** Defect logging, equipment condition assessment, and photographic evidence capture using `useRef` and `FileReader` base64 encoding. |
-| [`frontend-react/src/pages/contractor/AmcEstimateBuilder.jsx`](./frontend-react/src/pages/contractor/AmcEstimateBuilder.jsx) | **Dynamic AMC Quotation Builder:** Dynamic line-item table, rate card selection, instant rate × quantity subtotaling, live mathematical audit formula generator, technical justification validation, and dispatch to Department Head. |
-| [`frontend-react/src/pages/contractor/ApprovalStatus.jsx`](./frontend-react/src/pages/contractor/ApprovalStatus.jsx) | **Multi-Tier Approval Tracker:** Visual workflow status cards monitoring Desk Clerk, Department Head, and COO escalation statuses with instant "Start Execution" action triggers. |
-| [`frontend-react/src/pages/contractor/WorkExecution.jsx`](./frontend-react/src/pages/contractor/WorkExecution.jsx) | **Physical Execution & Work Closure:** Labor tracking, post-repair completion proof upload (`AFTER` evidence), and dual-handshake closure forwarding to RWA and Finance. |
-| [`frontend-react/src/pages/contractor/styles/*.css`](./frontend-react/src/pages/contractor/styles/) | **Modular Stylesheets:** Scoped, zero-collision vanilla CSS stylesheets for all contractor portal screens. |
-| [`backend-react/src/controllers/contractorController.js`](./backend-react/src/controllers/contractorController.js) | **Field Contractor API Controller (838 lines):** Ground inspection submission, AMC estimate calculations, photo evidence persistence, and lifecycle transitions. |
-| [`scripts/test_full_workflow.js`](./scripts/test_full_workflow.js) | **Automated Municipal E2E Suite (466 lines):** Automated 7-step test script simulating full lifecycle from complaint intake to finance audit. |
-| [`backend-react/tests/test-all-roles.js`](./backend-react/tests/test-all-roles.js) & [`backend-react/package.json`](./backend-react/package.json) | **Integration & Verification:** Contractor role API verification, inspection and estimate workflow test coverage. |
+| [`frontend/src/pages/contractor/ContractorPortal.jsx`](./frontend/src/pages/contractor/ContractorPortal.jsx) | **Root State Orchestrator:** Manages contractor global state, screen routing, real-time context synchronization, sessionStorage persistence, and backend API integration. |
+| [`frontend/src/pages/contractor/ContractorDashboard.jsx`](./frontend/src/pages/contractor/ContractorDashboard.jsx) | **Overview & KPIs:** Real-time metrics counters, SLA breach alerts, active work order status distribution, and rapid navigation shortcuts. |
+| [`frontend/src/pages/contractor/AssignedWorkOrders.jsx`](./frontend/src/pages/contractor/AssignedWorkOrders.jsx) | **Work Order Explorer:** Multi-criteria status filtering (Assigned, Pending Approval, Approved, Completed), live multi-attribute search (WO ID, location, asset), and SLA countdown indicators. |
+| [`frontend/src/pages/contractor/SiteInspection.jsx`](./frontend/src/pages/contractor/SiteInspection.jsx) | **Pre-Work Assessment Engine:** Defect logging, equipment condition assessment, and photographic evidence capture using `useRef` and `FileReader` base64 encoding. |
+| [`frontend/src/pages/contractor/AmcEstimateBuilder.jsx`](./frontend/src/pages/contractor/AmcEstimateBuilder.jsx) | **Dynamic AMC Quotation Builder:** Dynamic line-item table, rate card selection, instant rate × quantity subtotaling, live mathematical audit formula generator, technical justification validation, and dispatch to Department Head. |
+| [`frontend/src/pages/contractor/ApprovalStatus.jsx`](./frontend/src/pages/contractor/ApprovalStatus.jsx) | **Multi-Tier Approval Tracker:** Visual workflow status cards monitoring Desk Clerk, Department Head, and COO escalation statuses with instant "Start Execution" action triggers. |
+| [`frontend/src/pages/contractor/WorkExecution.jsx`](./frontend/src/pages/contractor/WorkExecution.jsx) | **Physical Execution & Work Closure:** Labor tracking, post-repair completion proof upload (`AFTER` evidence), and dual-handshake closure forwarding to RWA and Finance. |
+| [`frontend/src/pages/contractor/styles/*.css`](./frontend/src/pages/contractor/styles/) | **Modular Stylesheets:** Scoped, zero-collision vanilla CSS stylesheets for all contractor portal screens. |
+| [`backend/src/controllers/contractorController.js`](./backend/src/controllers/contractorController.js) | **Field Contractor API Controller:** Ground inspection submission, AMC estimate calculations, photo evidence persistence, and lifecycle transitions. |
+| [`backend/tests/test-all-roles.js`](./backend/tests/test-all-roles.js) & [`backend/package.json`](./backend/package.json) | **Integration & Verification:** Contractor role API verification, inspection and estimate workflow test coverage. |
 

@@ -34,18 +34,14 @@ eslint.config.js
 *.log
 logs/*
 !logs/.gitkeep
-back-end/logs/*
-!back-end/logs/.gitkeep
 
 # ── Uploaded files (evidence photos etc.) ─────────────
-back-end/uploads/*
-backend-react/uploads/*
-!backend-react/uploads/.gitkeep
-backend-react/uploads/.env
-!back-end/uploads/.gitkeep
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/uploads/.env
 
 # ── Local database dumps (contain user data + password hashes) ──
-backend-react/db-backups/
+backend/db-backups/
 
 # ── Test coverage ─────────────────────────────────────
 coverage/

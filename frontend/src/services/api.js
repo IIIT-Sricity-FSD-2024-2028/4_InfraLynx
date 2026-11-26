@@ -1,0 +1,1085 @@
+/**
+ * TIMS Frontend API Service
+ * Centralized HTTP client connecting React frontend to Express.js / PostgreSQL backend
+ */
+
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000/api/v1';
+const SERVER_BASE = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:5000';
+
+export const TOKEN_KEY = 'tims_auth_token';
+export const USER_KEY = 'tims_auth_user';
+// Tab-specific session ID: generated fresh on every login.
+// Duplicated tabs inherit the same session ID via sessionStorage copy,
+// so cross-tab logout only fires for tabs sharing the original session.
+const SESSION_ID_KEY = 'tims_session_id';
+
+// Clean up any legacy localStorage entries from insecure previous sessions
+try {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+  localStorage.removeItem('tims_token');
+  localStorage.removeItem('tims_complaints_v3');
+  localStorage.removeItem('tims_contractors');
+  localStorage.removeItem('tims_rate_cards');
+} catch {
+  // Ignore in non-browser environments
+}
+
+/**
+ * Validates JWT token structure and expiration claim on the client
+ */
+export function isTokenValid(token) {
+  if (!token || typeof token !== 'string') return false;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+    // Decode base64url payload
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const decoded = JSON.parse(jsonPayload);
+    if (decoded.exp && decoded.exp * 1000 <= Date.now()) {
+      return false; // Expired
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * XSS Sanitizer: strips/escapes dangerous HTML characters
+ */
+export function sanitizeInput(str) {
+  if (typeof str !== 'string') return str;
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
+// In-flight GET request deduplication map
+const pendingRequests = new Map();
+
+// Short-TTL cache for static/semi-static master data (15 seconds)
+const getCache = new Map();
+const CACHE_TTL_MS = 15000;
+
+function isCacheable(endpoint, method) {
+  if (method && method.toUpperCase() !== 'GET') return false;
+  return (
+    endpoint.includes('/master/amc-rates') ||
+    endpoint.includes('/master/departments') ||
+    endpoint.includes('/subscription-plans') ||
+    endpoint.includes('/super-admin/config')
+  );
+}
+
+export function clearApiCache() {
+  getCache.clear();
+}
+
+/**
+ * Low-level API request helper with fast connection, deduplication, and cache
+ */
+export async function apiRequest(endpoint, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  
+  // Clear cache on write operations
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    getCache.clear();
+  }
+
+  // Check cache for eligible GET requests
+  const cacheKey = `${method}:${endpoint}`;
+  if (isCacheable(endpoint, method)) {
+    const cached = getCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+      return cached.data;
+    }
+  }
+
+  // Deduplicate identical in-flight GET requests
+  if (method === 'GET' && pendingRequests.has(cacheKey)) {
+    return pendingRequests.get(cacheKey);
+  }
+
+  const reqPromise = (async () => {
+    // Use sessionStorage (tab-isolated) to prevent token leakage across tabs or browsers
+    let token = sessionStorage.getItem(TOKEN_KEY);
+
+    // If token is expired, immediately purge it
+    if (token && !isTokenValid(token)) {
+      sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(USER_KEY);
+      token = null;
+      window.dispatchEvent(new Event('tims_auth_session_expired'));
+      throw new Error('Your session has expired. Please sign in again.');
+    }
+
+    const defaultHeaders = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+
+    // If sending FormData (file uploads), do NOT set Content-Type header (browser will set multipart boundary)
+    if (options.body instanceof FormData) {
+      delete defaultHeaders['Content-Type'];
+    }
+
+    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+
+    // 15-second AbortController timeout to prevent hanging connections
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    try {
+      const res = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          ...defaultHeaders,
+          ...options.headers,
+        },
+      });
+
+      clearTimeout(timeoutId);
+
+      // Handle 401 Unauthorized globally: purge session and notify app
+      if (res.status === 401) {
+        sessionStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem(USER_KEY);
+        window.dispatchEvent(new Event('tims_auth_unauthorized'));
+      }
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const errorMessage = data?.error?.message || data?.message || `Request failed with status ${res.status}`;
+        const err = new Error(errorMessage);
+        err.status = res.status;
+        err.code = data?.error?.code;
+        throw err;
+      }
+
+      // Populate short TTL cache
+      if (isCacheable(endpoint, method)) {
+        getCache.set(cacheKey, { timestamp: Date.now(), data });
+      }
+
+      return data;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        throw new Error('Request timed out. Please check backend server performance and try again.');
+      }
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        throw new Error('Cannot connect to backend server. Make sure the backend is running on port 5000.');
+      }
+      throw err;
+    } finally {
+      if (method === 'GET') {
+        pendingRequests.delete(cacheKey);
+      }
+    }
+  })();
+
+  if (method === 'GET') {
+    pendingRequests.set(cacheKey, reqPromise);
+  }
+
+  return reqPromise;
+}
+
+/**
+ * Authentication API Service (using tab-isolated sessionStorage)
+ */
+export const authApi = {
+  /**
+   * Log in user with credentials and persist session token in sessionStorage
+   */
+  async login(emailOrUsername, password) {
+    const res = await apiRequest('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: emailOrUsername,
+        password,
+      }),
+    });
+
+    if (res.data?.token) {
+      // Fresh login = new isolated session; generate a unique session ID
+      const freshSessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      sessionStorage.setItem(SESSION_ID_KEY, freshSessionId);
+      sessionStorage.setItem(TOKEN_KEY, res.data.token);
+      sessionStorage.setItem(USER_KEY, JSON.stringify(res.data.user));
+    }
+
+    return res.data;
+  },
+
+  /**
+   * Fetch current authenticated user profile
+   */
+  async getMe() {
+    const res = await apiRequest('/auth/me');
+    if (res.data?.user) {
+      sessionStorage.setItem(USER_KEY, JSON.stringify(res.data.user));
+    }
+    return res.data.user;
+  },
+
+  /**
+   * Log out and clear local credentials
+   */
+  async logout() {
+    try {
+      await apiRequest('/auth/logout', { method: 'POST' });
+    } catch {
+      // Ignore network errors on logout
+    } finally {
+      sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(USER_KEY);
+      // Broadcast logout to other open tabs via localStorage storage event
+      // Include session ID so only tabs sharing the same session log out
+      try {
+        const sid = sessionStorage.getItem(SESSION_ID_KEY) || 'unknown';
+        localStorage.setItem('tims_logout_signal', sid + ':' + Date.now());
+      } catch (_) {}
+      window.dispatchEvent(new Event('tims_auth_logout'));
+    }
+  },
+
+  /**
+   * Register a new Township & Township COO account
+   */
+  async registerTownship(payload) {
+    try {
+      const res = await apiRequest('/auth/register-township', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      if (res.data?.token) {
+        sessionStorage.setItem(TOKEN_KEY, res.data.token);
+      }
+      if (res.data?.user) {
+        sessionStorage.setItem(USER_KEY, JSON.stringify(res.data.user));
+      }
+
+      return res.data;
+    } catch (err) {
+      console.warn('[authApi.registerTownship Error]:', err.message);
+      // If server returned structured error (e.g. duplicate email, validation), rethrow it
+      if (err.message && !err.message.includes('Failed to fetch') && !err.message.includes('NetworkError') && !err.message.includes('Unexpected token') && !err.message.includes('Cannot connect')) {
+        throw err;
+      }
+      // Offline / standalone fallback
+      const mockTownshipId = 't-' + Math.random().toString(36).substring(2, 9);
+      const mockUserId = 'u-' + Math.random().toString(36).substring(2, 9);
+      const mockUser = {
+        id: mockUserId,
+        name: payload.executiveName,
+        email: payload.email,
+        username: payload.email.split('@')[0],
+        role: 'TOWNSHIP_COO',
+        townshipId: mockTownshipId,
+        townshipName: payload.townshipName,
+        phone: payload.phone,
+      };
+      sessionStorage.setItem(USER_KEY, JSON.stringify(mockUser));
+      return {
+        user: mockUser,
+        township: {
+          id: mockTownshipId,
+          name: payload.townshipName,
+          plan: payload.planLabel || 'Enterprise Municipal Plan',
+          status: 'ACTIVE',
+        },
+        credentials: {
+          email: payload.email,
+          role: 'TOWNSHIP_COO',
+          townshipName: payload.townshipName,
+        },
+      };
+    }
+  },
+
+  /**
+   * Set or update password
+   */
+  async setPassword(emailOrNewPassword, maybeNewPassword, currentPassword = '') {
+    const newPassword = maybeNewPassword || emailOrNewPassword;
+    const body = currentPassword
+      ? { currentPassword, newPassword }
+      : { newPassword };
+    try {
+      return await apiRequest('/auth/set-password', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+    } catch (err) {
+      if (
+        err.message &&
+        (err.message.includes('Cannot connect') ||
+          err.message.includes('Failed to fetch') ||
+          err.message.includes('NetworkError'))
+      ) {
+        return { success: true, message: 'Password updated (offline mode).' };
+      }
+      throw err;
+    }
+  },
+
+  /**
+   * Get cached user from sessionStorage (validates token first)
+   */
+  getCachedUser() {
+    try {
+      const token = sessionStorage.getItem(TOKEN_KEY);
+      if (!isTokenValid(token)) {
+        sessionStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem(USER_KEY);
+        return null;
+      }
+      const stored = sessionStorage.getItem(USER_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Check if token is present and unexpired
+   */
+  isAuthenticated() {
+    const token = sessionStorage.getItem(TOKEN_KEY);
+    return isTokenValid(token);
+  },
+};
+
+/**
+ * Complaints API Service (Member 1 - RWA Endpoints)
+ */
+export const complaintApi = {
+  async getComplaints(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = `/complaints${query ? `?${query}` : ''}`;
+    const res = await apiRequest(endpoint);
+    return res.data;
+  },
+
+  async getComplaintById(id) {
+    const res = await apiRequest(`/complaints/${id}`);
+    return res.data;
+  },
+
+  async createComplaint(data) {
+    const res = await apiRequest('/complaints', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res.data;
+  },
+
+  async editComplaint(id, payload) {
+    const res = await apiRequest(`/complaints/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async updateComplaint(id, payload) {
+    const res = await apiRequest(`/complaints/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async cancelComplaint(id, payload) {
+    const res = await apiRequest(`/complaints/${id}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async pauseSla(id, reason) {
+    const res = await apiRequest(`/complaints/${id}/pause`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+    return res.data;
+  },
+
+  async resumeSla(id) {
+    const res = await apiRequest(`/complaints/${id}/resume`, {
+      method: 'POST',
+    });
+    return res.data;
+  },
+
+  async verifyComplaint(id, payload) {
+    const res = await apiRequest(`/complaints/${id}/verify`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+};
+
+/**
+ * Master Data API Service (Contractors, AMC Rates, Departments)
+ */
+export const masterApi = {
+  async getContractors() {
+    const res = await apiRequest('/master/contractors');
+    return res.data || [];
+  },
+
+  async getDepartments() {
+    const res = await apiRequest('/master/departments');
+    return res.data || [];
+  },
+
+  async getAmcRates() {
+    const res = await apiRequest('/master/amc-rates');
+    return res.data || [];
+  },
+
+  async resetMaster() {
+    const res = await apiRequest('/master/reset', { method: 'POST' });
+    return res;
+  },
+};
+
+/**
+ * Desk Clerk API Service (Member 2)
+ */
+export const clerkApi = {
+  async getTriageQueue() {
+    const res = await apiRequest('/clerk/triage-queue');
+    return res.data || [];
+  },
+
+  async getDuplicateCheck(complaintId) {
+    const res = await apiRequest(`/clerk/duplicate-check?complaintId=${encodeURIComponent(complaintId)}`);
+    return res;
+  },
+
+  async linkDuplicate(duplicateId, masterComplaintId, notes = '') {
+    const res = await apiRequest(`/clerk/duplicate-link/${duplicateId}`, {
+      method: 'POST',
+      body: JSON.stringify({ masterComplaintId, notes }),
+    });
+    return res.data;
+  },
+
+  async triageComplaint(id) {
+    const res = await apiRequest(`/clerk/complaints/${id}/triage`, {
+      method: 'PATCH',
+    });
+    return res.data;
+  },
+
+  async validateComplaint(id) {
+    const res = await apiRequest(`/clerk/complaints/${id}/validate`, {
+      method: 'PATCH',
+    });
+    return res.data;
+  },
+
+  async rejectComplaint(id, payload) {
+    const res = await apiRequest(`/clerk/complaints/${id}/reject`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async recallComplaint(id, reason = '') {
+    const res = await apiRequest(`/clerk/complaints/${id}/recall`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+    return res.data;
+  },
+
+  async createWorkOrder(payload) {
+    const res = await apiRequest('/clerk/work-orders', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async getWorkOrders(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = `/clerk/work-orders${query ? `?${query}` : ''}`;
+    const res = await apiRequest(endpoint);
+    return res.data || [];
+  },
+
+  async getWorkOrderById(id) {
+    const res = await apiRequest(`/clerk/work-orders/${id}`);
+    return res.data;
+  },
+
+  async escalate(id, payload) {
+    const res = await apiRequest(`/clerk/escalate/${id}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+};
+
+/**
+ * Department Head API Service (Member 4)
+ */
+export const deptHeadApi = {
+  async getDashboard() {
+    const res = await apiRequest('/dept-head/dashboard');
+    return res.data || {};
+  },
+
+  async getApprovals() {
+    const res = await apiRequest('/dept-head/approvals');
+    return res.data || [];
+  },
+
+  async getApprovalDetails(id) {
+    const res = await apiRequest(`/dept-head/approvals/${id}`);
+    return res.data || {};
+  },
+
+  async processApproval(id, { action = 'APPROVE', notes = '' } = {}) {
+    const res = await apiRequest(`/dept-head/approvals/${id}/decision`, {
+      method: 'POST',
+      body: JSON.stringify({ action, notes }),
+    });
+    return res.data;
+  },
+
+  async getWorkOrders(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = `/dept-head/work-orders${query ? `?${query}` : ''}`;
+    const res = await apiRequest(endpoint);
+    return res.data || [];
+  },
+
+  async getWorkOrderById(id) {
+    const res = await apiRequest(`/dept-head/work-orders/${id}`);
+    return res.data;
+  },
+
+  async escalateWorkOrder(id, reason) {
+    const res = await apiRequest(`/dept-head/work-orders/${id}/escalate`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+    return res.data;
+  },
+
+  async getComplaints(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = `/dept-head/complaints${query ? `?${query}` : ''}`;
+    const res = await apiRequest(endpoint);
+    return res.data || [];
+  },
+
+  async getComplaintById(id) {
+    const res = await apiRequest(`/dept-head/complaints/${id}`);
+    return res.data;
+  },
+
+  async getStaff() {
+    const res = await apiRequest('/dept-head/staff');
+    return res.data || [];
+  },
+
+  async createStaff(payload) {
+    const res = await apiRequest('/dept-head/staff', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async updateStaff(id, payload) {
+    const res = await apiRequest(`/dept-head/staff/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async updateStaffStatus(id, status) {
+    const res = await apiRequest(`/dept-head/staff/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+    return res.data;
+  },
+};
+
+/**
+ * Field Contractor API Service (Member 3)
+ */
+export const contractorApi = {
+  async getJobs(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = `/contractor/jobs${query ? `?${query}` : ''}`;
+    const res = await apiRequest(endpoint);
+    return res.data || [];
+  },
+
+  async getJobById(id) {
+    const res = await apiRequest(`/contractor/jobs/${id}`);
+    return res.data;
+  },
+
+  async submitInspection(payload) {
+    const res = await apiRequest('/contractor/inspection', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async submitEstimate(payload) {
+    const res = await apiRequest('/contractor/estimates', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async updateJobStatus(id, payload) {
+    const res = await apiRequest(`/contractor/jobs/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async uploadEvidence(payload) {
+    const res = await apiRequest('/contractor/evidence', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async amendInspection(workOrderId, payload) {
+    const res = await apiRequest(`/contractor/jobs/${workOrderId}/amend-inspection`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async respondToOverrun(workOrderId, rebuttal) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/overrun-response`, {
+      method: 'POST',
+      body: JSON.stringify({ rebuttal }),
+    });
+    return res.data;
+  },
+
+  async submitBid(workOrderId, payload) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/bids`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async retractBid(workOrderId, contractorId) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/bids/${contractorId}`, {
+      method: 'DELETE',
+    });
+    return res.data;
+  },
+};
+
+/**
+ * Work Order & Bidding API Service
+ */
+export const workOrderApi = {
+  async openBidding(workOrderId) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/open-bidding`, {
+      method: 'POST',
+    });
+    return res.data;
+  },
+
+  async getBids(workOrderId) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/bids`);
+    return res.data || [];
+  },
+
+  async submitBid(workOrderId, payload) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/bids`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async retractBid(workOrderId, contractorId) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/bids/retract`, {
+      method: 'POST',
+      body: JSON.stringify({ contractor_id: contractorId }),
+    });
+    return res.data;
+  },
+
+  async autoSelectBid(workOrderId) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/auto-select-bid`, {
+      method: 'POST',
+    });
+    return res.data;
+  },
+
+  async addOverrunInquiry(workOrderId, remark) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/overrun-inquiry`, {
+      method: 'POST',
+      body: JSON.stringify({ remark }),
+    });
+    return res.data;
+  },
+
+  async respondToOverrun(workOrderId, rebuttal) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/overrun-response`, {
+      method: 'POST',
+      body: JSON.stringify({ rebuttal }),
+    });
+    return res.data;
+  },
+
+  async resolveOverrun(workOrderId, payload) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/overrun-resolve`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+};
+
+/**
+ * Finance & AMC API Service (Member 5)
+ */
+export const financeApi = {
+  async getInvoices(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = `/finance/invoices${query ? `?${query}` : ''}`;
+    const res = await apiRequest(endpoint);
+    return res.data || [];
+  },
+
+  async getInvoiceById(id) {
+    const res = await apiRequest(`/finance/invoices/${id}`);
+    return res.data;
+  },
+
+  async get3WayCheck(id) {
+    const res = await apiRequest(`/finance/invoices/${id}/3-way-check`);
+    return res.data;
+  },
+
+  async addOverrunInquiry(workOrderId, remark) {
+    const res = await apiRequest(`/work-orders/${workOrderId}/overrun-inquiry`, {
+      method: 'POST',
+      body: JSON.stringify({ remark }),
+    });
+    return res.data;
+  },
+
+  async flagItem(invoiceId, itemId, reason) {
+    const res = await apiRequest(`/finance/invoices/${invoiceId}/flag-item`, {
+      method: 'POST',
+      body: JSON.stringify({ itemId, reason }),
+    });
+    return res.data;
+  },
+
+  async flagLineItem(invoiceId, itemId, reason) {
+    return this.flagItem(invoiceId, itemId, reason);
+  },
+
+  async resolveOverrunInquiry(workOrderId, payload) {
+    return workOrderApi.resolveOverrun(workOrderId, payload);
+  },
+
+  async authorizeInvoice(id, payload = {}) {
+    const res = await apiRequest(`/finance/invoices/${id}/authorize`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async flagVariance(id, reason) {
+    const res = await apiRequest(`/finance/invoices/${id}/flag-variance`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+    return res.data;
+  },
+
+  async releasePayment(id, payload = {}) {
+    const res = await apiRequest(`/finance/invoices/${id}/pay`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async getRateCards() {
+    const res = await apiRequest('/finance/rate-cards');
+    return res.data || [];
+  },
+
+  async getAnalytics() {
+    const res = await apiRequest('/finance/analytics');
+    return res.data || {};
+  },
+
+  async getPayments() {
+    const res = await apiRequest('/finance/payments');
+    return res.data || [];
+  },
+};
+
+/**
+ * Township COO API Service (Executive Governance)
+ */
+export const cooApi = {
+  async getDashboard() {
+    const res = await apiRequest('/coo/dashboard');
+    return res.data || {};
+  },
+
+  async getDepartments() {
+    const res = await apiRequest('/coo/departments');
+    return res.data || [];
+  },
+
+  async updateDepartment(id, payload) {
+    const res = await apiRequest(`/coo/departments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async assignDepartmentHead(deptId, departmentHeadId) {
+    const res = await apiRequest(`/coo/departments/${deptId}/head`, {
+      method: 'PATCH',
+      body: JSON.stringify({ departmentHeadId }),
+    });
+    return res.data;
+  },
+
+  async getDepartmentHeads() {
+    const res = await apiRequest('/coo/department-heads');
+    return res.data || [];
+  },
+
+  async createDepartmentHead(payload) {
+    const res = await apiRequest('/coo/department-heads', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async unassignDepartmentHead(headId) {
+    const res = await apiRequest(`/coo/department-heads/${headId}/unassign`, {
+      method: 'POST',
+    });
+    return res.data;
+  },
+
+  async getDepartmentStaff(deptId) {
+    const res = await apiRequest(`/coo/departments/${deptId}/staff`);
+    return res.data || [];
+  },
+
+  async getWorkOrders(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = `/coo/work-orders${query ? `?${query}` : ''}`;
+    const res = await apiRequest(endpoint);
+    return res.data || [];
+  },
+
+  async getWorkOrderById(id) {
+    const res = await apiRequest(`/coo/work-orders/${id}`);
+    return res.data;
+  },
+
+  async escalateWorkOrder(id, payload = {}) {
+    const res = await apiRequest(`/coo/work-orders/${id}/escalate`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+
+  async getApprovals() {
+    const res = await apiRequest('/coo/approvals');
+    return res.data || [];
+  },
+
+  async processApproval(id, payload = {}) {
+    const res = await apiRequest(`/coo/approvals/${id}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+};
+
+/**
+ * Super Admin API Service (Platform Maker Console)
+ */
+export const superAdminApi = {
+  async getOverview() {
+    const res = await apiRequest('/super-admin/overview');
+    return res.data || {};
+  },
+
+  // Tenants
+  async getTenants() {
+    const res = await apiRequest('/super-admin/tenants');
+    return res.data || [];
+  },
+  async getTenantById(id) {
+    const res = await apiRequest(`/super-admin/tenants/${id}`);
+    return res.data;
+  },
+  async createTenant(payload) {
+    const res = await apiRequest('/super-admin/tenants', { method: 'POST', body: JSON.stringify(payload) });
+    return res.data;
+  },
+  async updateTenant(id, payload) {
+    const res = await apiRequest(`/super-admin/tenants/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+    return res.data;
+  },
+  async updateTenantStatus(id, status, reason) {
+    const res = await apiRequest(`/super-admin/tenants/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, reason }) });
+    return res.data;
+  },
+  async updateSubscription(id, payload) {
+    const res = await apiRequest(`/super-admin/tenants/${id}/subscription`, { method: 'PATCH', body: JSON.stringify(payload) });
+    return res.data;
+  },
+
+  // Users
+  async getUsers() {
+    const res = await apiRequest('/super-admin/users');
+    return res.data || [];
+  },
+  async createUser(payload) {
+    const res = await apiRequest('/super-admin/users', { method: 'POST', body: JSON.stringify(payload) });
+    return res.data;
+  },
+  async updateUser(id, payload) {
+    const res = await apiRequest(`/super-admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+    return res.data;
+  },
+  async updateUserStatus(id, status, reason) {
+    const res = await apiRequest(`/super-admin/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, reason }) });
+    return res.data;
+  },
+  async resetUserPassword(id, new_password) {
+    const res = await apiRequest(`/super-admin/users/${id}/reset-password`, { method: 'POST', body: JSON.stringify({ new_password }) });
+    return res;
+  },
+
+  // Config
+  async getConfig() {
+    const res = await apiRequest('/super-admin/config');
+    return res.data || [];
+  },
+  async updateConfig(updates, reason) {
+    const res = await apiRequest('/super-admin/config', { method: 'PUT', body: JSON.stringify({ updates, reason }) });
+    return res.data || [];
+  },
+
+  // Departments & Contractors
+  async getDepartments() {
+    const res = await apiRequest('/super-admin/departments');
+    return res.data || [];
+  },
+  async createDepartment(payload) {
+    const res = await apiRequest('/super-admin/departments', { method: 'POST', body: JSON.stringify(payload) });
+    return res.data;
+  },
+  async getContractors() {
+    const res = await apiRequest('/super-admin/contractors');
+    return res.data || [];
+  },
+  async createContractor(payload) {
+    const res = await apiRequest('/super-admin/contractors', { method: 'POST', body: JSON.stringify(payload) });
+    return res.data;
+  },
+
+  // AMC Rates
+  async getAmcRates() {
+    const res = await apiRequest('/super-admin/amc-rates');
+    return res.data || [];
+  },
+  async updateAmcRate(id, payload) {
+    const res = await apiRequest(`/super-admin/amc-rates/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+    return res.data;
+  },
+
+  // System Health & Audit
+  async getHealth() {
+    const res = await apiRequest('/super-admin/health');
+    return res.data || {};
+  },
+  async getAuditLogs() {
+    const res = await apiRequest('/super-admin/audit-logs');
+    return res.data || [];
+  },
+};
+
+/**
+ * Health and diagnostics API
+ */
+export const systemApi = {
+  async checkHealth() {
+    try {
+      const res = await fetch(`${SERVER_BASE}/health`);
+      return await res.json();
+    } catch (err) {
+      return { success: false, status: 'DOWN', error: err.message };
+    }
+  },
+};
+
+export default {
+  apiRequest,
+  authApi,
+  complaintApi,
+  clerkApi,
+  workOrderApi,
+  contractorApi,
+  deptHeadApi,
+  financeApi,
+  cooApi,
+  masterApi,
+  superAdminApi,
+  systemApi,
+};

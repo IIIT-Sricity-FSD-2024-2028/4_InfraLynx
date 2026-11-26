@@ -6,8 +6,8 @@
 const { spawn } = require('child_process');
 const path = require('path');
 
-const BACKEND_DIR = path.join(__dirname, 'backend-react');
-const FRONTEND_DIR = path.join(__dirname, 'frontend-react');
+const BACKEND_DIR = path.join(__dirname, 'backend');
+const FRONTEND_DIR = path.join(__dirname, 'frontend');
 
 console.log('===========================================================');
 console.log('     🚀 TIMS (Township Infrastructure Management System)   ');

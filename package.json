@@ -5,9 +5,5 @@
     "scripts": {
         "start": "node start-react.js",
         "start:react": "node start-react.js"
-    },
-    "dependencies": {
-        "@reduxjs/toolkit": "^2.14.0",
-        "react-redux": "^9.3.1"
     }
 }
