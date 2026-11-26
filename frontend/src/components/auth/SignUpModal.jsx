@@ -124,7 +124,7 @@ export default function SignUpModal({
 
   const isStep1Valid = useMemo(() => (
     Object.values(errors).every(e => !e) &&
-    Object.entries(formData).every(([k, v]) => Boolean(v))
+    Object.values(formData).every(Boolean)
   ), [errors, formData])
 
   const pwdChecks = useMemo(() => ({

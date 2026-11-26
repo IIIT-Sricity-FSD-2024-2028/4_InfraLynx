@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import path from 'path';
 import fs from 'fs';
 import config from './config/env.js';
 import db from './config/db.js';
@@ -106,9 +105,7 @@ app.use(
 
 // Healthcheck & System Info Endpoint
 app.get('/health', async (req, res) => {
-  const dbStatus = await db.testConnection();
-  const dbType = 'POSTGRESQL';
-  res.status(dbStatus ? 200 : 503).json({
+  const dbStatus = await db.testConnection();  res.status(dbStatus ? 200 : 503).json({
     success: dbStatus,
     status: dbStatus ? 'UP' : 'DEGRADED',
     timestamp: new Date().toISOString(),
@@ -163,7 +160,7 @@ app.use('/api/v1/master',      masterRoutes);        // Shared reference data
 app.use('/api/v1/super-admin', superAdminRoutes);   // Platform — Super Admin
 
 // 404 Route Handler
-app.use((req, res, next) => {
+app.use((req, res) => {
   res.status(404).json({
     success: false,
     error: {

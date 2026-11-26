@@ -24,7 +24,6 @@ export function parseCoordinates(gps) {
 
   if (typeof gps === 'string') {
     // Format: "28.5355° N, 77.3910° E" or "28.5355, 77.3910"
-    const cleaned = gps.replace(/[°NSEWnsew\s]/g, '');
     const parts = gps.split(/[,;]/);
     if (parts.length >= 2) {
       const latVal = parseFloat(parts[0].replace(/[^\d.-]/g, ''));
@@ -67,7 +66,7 @@ export function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
  * @param {number} [radiusMeters=100] - Default 100 meters per TIMS specification
  * @returns {Array<object>} List of duplicate matches with distance and confidence
  */
-export function findNearbyDuplicates(targetComplaint, allComplaints = [], radiusMeters = 100) {
+export function findNearbyDuplicates(targetComplaint, allComplaints = [], _radiusMeters = 100) {
   if (!targetComplaint) return [];
 
 

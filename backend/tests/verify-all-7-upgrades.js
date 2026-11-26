@@ -9,9 +9,6 @@ import db from '../src/config/db.js';
 import {
   evaluateSlaStatus,
   calculateResponseSlaDeadline,
-  calculateResolutionSlaDeadline,
-  pauseSla,
-  resumeSla,
 } from '../src/services/slaService.js';
 
 let server;

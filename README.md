@@ -141,7 +141,6 @@ All test accounts use the password: **`Password@123`**
 - **Course:** Full Stack Development (FDFED) — 5th Semester
 - **Assigned Module:** Field Contractor Management Portal & Execution Lifecycle
 - **GitHub Username:** `yshasvee11` (`yshasveep24-code`)
-- **Detailed Evaluation Dossier & Viva Guide:** [contribution_266.md](./contribution_266.md)
 
 ### Specific Files Developed & Modified
 
@@ -155,7 +154,6 @@ All test accounts use the password: **`Password@123`**
 | [`frontend/src/pages/contractor/ApprovalStatus.jsx`](./frontend/src/pages/contractor/ApprovalStatus.jsx) | **Multi-Tier Approval Tracker:** Visual workflow status cards monitoring Desk Clerk, Department Head, and COO escalation statuses with instant "Start Execution" action triggers. |
 | [`frontend/src/pages/contractor/WorkExecution.jsx`](./frontend/src/pages/contractor/WorkExecution.jsx) | **Physical Execution & Work Closure:** Labor tracking, post-repair completion proof upload (`AFTER` evidence), and dual-handshake closure forwarding to RWA and Finance. |
 | [`frontend/src/pages/contractor/styles/*.css`](./frontend/src/pages/contractor/styles/) | **Modular Stylesheets:** Scoped, zero-collision vanilla CSS stylesheets for all contractor portal screens. |
-| [`backend/src/controllers/contractorController.js`](./backend/src/controllers/contractorController.js) | **Field Contractor API Controller (838 lines):** Ground inspection submission, AMC estimate calculations, photo evidence persistence, and lifecycle transitions. |
-| [`scripts/test_full_workflow.js`](./scripts/test_full_workflow.js) | **Automated Municipal E2E Suite (466 lines):** Automated 7-step test script simulating full lifecycle from complaint intake to finance audit. |
+| [`backend/src/controllers/contractorController.js`](./backend/src/controllers/contractorController.js) | **Field Contractor API Controller:** Ground inspection submission, AMC estimate calculations, photo evidence persistence, and lifecycle transitions. |
 | [`backend/tests/test-all-roles.js`](./backend/tests/test-all-roles.js) & [`backend/package.json`](./backend/package.json) | **Integration & Verification:** Contractor role API verification, inspection and estimate workflow test coverage. |
 

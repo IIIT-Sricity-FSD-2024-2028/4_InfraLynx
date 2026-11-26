@@ -59,7 +59,7 @@ const handleMulterError = (err) => {
 /**
  * Centralized Global Error Handler Middleware
  */
-export const errorHandler = (err, req, res, next) => {
+export const errorHandler = (err, req, res, _next) => {
   let statusCode = err.statusCode || 500;
   let code = err.code || 'INTERNAL_SERVER_ERROR';
   let message = err.message || 'An unexpected internal server error occurred.';

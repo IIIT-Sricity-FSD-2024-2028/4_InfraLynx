@@ -12,7 +12,6 @@
 
 import crypto from 'crypto';
 import db from '../config/db.js';
-import { AppError } from '../middleware/error.js';
 import { getApprovalThresholds } from '../services/approvalService.js';
 import { hashPassword } from '../utils/auth.js';
 

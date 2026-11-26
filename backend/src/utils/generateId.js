@@ -1,17 +1,3 @@
-import crypto from 'crypto';
-
-/**
- * Generates a random alphanumeric suffix of specified length
- * @param {number} length
- * @returns {string} Uppercase alphanumeric string
- */
-const getRandomSuffix = (length = 4) => {
-  return crypto.randomBytes(Math.ceil(length / 2))
-    .toString('hex')
-    .slice(0, length)
-    .toUpperCase();
-};
-
 /**
  * Current Year helper (e.g. 2026)
  */

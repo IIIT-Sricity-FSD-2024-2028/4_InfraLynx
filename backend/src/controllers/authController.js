@@ -176,7 +176,6 @@ export const registerTownship = async (req, res, next) => {
       phone,
       address,
       password,
-      planLabel = 'Enterprise Municipal Plan',
     } = req.body;
 
     // 1. Strict validation
@@ -289,7 +288,7 @@ export const registerTownship = async (req, res, next) => {
     const hashedPassword = await hashPassword(password);
     const username = email.trim().split('@')[0];
 
-    const newUser = db.insert('users', {
+    db.insert('users', {
       id: userId,
       township_id: townshipId,
       name: executiveName.trim(),

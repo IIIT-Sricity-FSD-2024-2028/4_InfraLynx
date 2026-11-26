@@ -42,11 +42,6 @@ const CONTRACTOR_TYPE_OPTIONS = [
 
 const ALL_CONTRACTOR_SERVICES = Array.from(new Set(Object.values(CONTRACTOR_TYPE_DEFAULTS).flat()))
 
-function fmt(date) {
-  if (!date) return '—'
-  return new Date(date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-}
-
 // ── Create User Modal ────────────────────────────────────────────────────────
 function CreateUserModal({ onClose, onSave, townships, departments, contractors }) {
   const dispatch = useDispatch()

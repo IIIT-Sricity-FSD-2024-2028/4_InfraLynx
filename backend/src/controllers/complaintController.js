@@ -46,8 +46,7 @@ const findDepartmentByCategory = (category = '', townshipId = null) => {
 /**
  * Format complaint with full evidence and SLA status for response
  */
-const formatComplaintResponse = (complaint, options = {}) => {
-  const { listMode = false } = options;
+const formatComplaintResponse = (complaint) => {
   const allEvidence = db.findAll('complaint_evidence', (e) => e.complaint_id === complaint.id || e.complaint_id === complaint.complaint_code);
   const wo = db.findOne('work_orders', (w) => w.complaint_id === complaint.id || w.complaint_id === complaint.complaint_code);
   const woEvidence = wo ? db.findAll('work_evidence', (we) => we.work_order_id === wo.id) : [];

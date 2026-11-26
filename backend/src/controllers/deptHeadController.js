@@ -559,7 +559,7 @@ export const getDepartmentComplaintById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const townshipId = req.user.township_id;
-    const { deptId, deptName } = getUserDepartment(req);
+    const { deptId } = getUserDepartment(req);
     validateCivilAccess(req, deptId);
 
     const c = db.findOne('complaints', (comp) => comp.id === id || comp.complaint_code === id);

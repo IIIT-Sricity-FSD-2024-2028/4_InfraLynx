@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   selectAllContractorJobs,
-  selectContractorSelectedJob,
   selectApprovalFilter,
   setSelectedJob,
   setApprovalFilter,
@@ -11,17 +10,14 @@ import './styles/ApprovalStatus.css'
 
 export default function ApprovalStatus({
   jobs: propsJobs,
-  selectedJob: propsSelectedJob,
   onSelectJob,
   onNavigate,
 }) {
   const dispatch = useDispatch()
   const reduxJobs = useSelector(selectAllContractorJobs)
-  const reduxSelectedJob = useSelector(selectContractorSelectedJob)
   const filter = useSelector(selectApprovalFilter) // ALL | PENDING | APPROVED | REVISION
 
   const jobs = propsJobs || reduxJobs || []
-  const selectedJob = propsSelectedJob || reduxSelectedJob
 
   const handleSelectJob = (job) => {
     dispatch(setSelectedJob(job))

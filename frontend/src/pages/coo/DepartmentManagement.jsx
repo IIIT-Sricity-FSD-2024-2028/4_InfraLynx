@@ -15,7 +15,7 @@ import {
   selectCooDeptForm,
 } from '../../store/coo/cooSlice.js';
 
-export default function DepartmentManagement({ departments, departmentHeads }) {
+export default function DepartmentManagement({ departments }) {
   const dispatch = useDispatch();
   const staffList    = useSelector(selectCooDeptStaff);
   const actionStatus = useSelector(selectCooActionStatus);

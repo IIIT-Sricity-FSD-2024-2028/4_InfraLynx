@@ -16,7 +16,6 @@ import config from '../config/env.js';
 import db from '../config/db.js';
 import { AppError } from '../middleware/error.js';
 import { calculateVerifiedEstimate } from '../services/estimateService.js';
-import { getApprovalThresholds, requiresDeptHeadApproval } from '../services/approvalService.js';
 
 const getUserTownshipId = (user) => user.township_id;
 const getUserContractorId = (user) => user.contractor_id;
@@ -265,7 +264,6 @@ export const submitSiteInspection = async (req, res, next) => {
     const workOrderId = req.body.work_order_id || req.body.workOrderId || req.body.id;
     const complaintId = req.body.complaint_id || req.body.complaintId;
     const inspectionNotes = req.body.inspection_notes || req.body.inspectionNotes;
-    const severityConfirmed = req.body.severity_confirmed ?? req.body.severityConfirmed;
 
     const wo = findWorkOrderByReference(workOrderId, complaintId);
 
@@ -577,7 +575,7 @@ export const updateJobStatus = async (req, res, next) => {
 
     const note = `Contractor ${actorName} marked work '${normalizedStatus}'. ${remarks ? `Remarks: "${remarks}"` : ''}`;
 
-    const updatedWo = db.update('work_orders', wo.id, {
+    db.update('work_orders', wo.id, {
       status: woNextStatus,
       completion_remarks: remarks || null,
       completed_at: normalizedStatus === 'COMPLETED' ? now : wo.completed_at,

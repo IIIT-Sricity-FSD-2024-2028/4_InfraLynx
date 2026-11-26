@@ -31,7 +31,7 @@ export default function WorkOrders({ onSelectComplaint }) {
   const error = workOrdersStatus === 'failed' ? 'Failed to load work orders' : null;
 
   useEffect(() => {
-    const { sla, ...apiFilters } = filters;
+    const { sla: _sla, ...apiFilters } = filters;
     dispatch(fetchDeptWorkOrders(apiFilters));
   }, [dispatch, filters.status, filters.search]);
 
@@ -128,7 +128,7 @@ export default function WorkOrders({ onSelectComplaint }) {
               style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--line-strong)', outline: 'none', width: '150px' }}
             />
           </div>
-          <button onClick={() => { const { sla, ...apiFilters } = filters; dispatch(fetchDeptWorkOrders(apiFilters)); }} className="button button-ghost" style={{ fontSize: '13px' }}>
+          <button onClick={() => { const { sla: _sla, ...apiFilters } = filters; dispatch(fetchDeptWorkOrders(apiFilters)); }} className="button button-ghost" style={{ fontSize: '13px' }}>
             Refresh Data
           </button>
         </div>

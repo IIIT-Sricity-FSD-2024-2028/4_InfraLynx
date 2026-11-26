@@ -59,7 +59,6 @@ export default function Overview() {
 
   const roleEntries = Object.entries(data.roleBreakdown || {}).sort((a, b) => b[1] - a[1])
   const maxRoleCount = Math.max(1, ...roleEntries.map(([, count]) => count))
-  const attentionCount = Number(data.expiringSoon || 0) + Number(data.overdue || 0) + Number(data.suspended || 0)
 
   const metrics = [
     { icon: '🏢', value: data.totalTownships ?? 0, label: 'Total tenants', sub: 'Townships on platform', tone: 'green' },

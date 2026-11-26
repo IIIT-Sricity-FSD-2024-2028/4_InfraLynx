@@ -18,7 +18,6 @@ import {
   selectWoIsSubmitting,
 } from '../../store/clerk/workOrdersSlice.js'
 import { selectAllClerkComplaints } from '../../store/clerk/complaintsSlice.js'
-import { selectAuthUser } from '../../store/auth/authSlice.js'
 import './styles/WorkOrderCreate.css'
 
 const PRIORITIES = ['Emergency', 'High', 'Medium', 'Low']
@@ -29,13 +28,10 @@ export default function WorkOrderCreate({
   onWorkOrderCreated,
 }) {
   const dispatch = useDispatch()
-  const reduxUser = useSelector(selectAuthUser)
   const {
     contractors = [],
-    currentUser: contextUser,
     refreshMasterData,
   } = useTIMS()
-  const currentUser = reduxUser || contextUser
   const complaints = useSelector(selectAllClerkComplaints)
 
   // Dispatch mode & UI state from Redux store ('DIRECT' | 'BIDDING')

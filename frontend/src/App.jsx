@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { TIMSProvider, useTIMS } from './context/TIMSContext.jsx'
-import { authApi } from './services/api.js'
 import {
   setAppUiField,
   openAuthModal,

@@ -34,15 +34,11 @@ eslint.config.js
 *.log
 logs/*
 !logs/.gitkeep
-back-end/logs/*
-!back-end/logs/.gitkeep
 
 # ── Uploaded files (evidence photos etc.) ─────────────
-back-end/uploads/*
 backend/uploads/*
 !backend/uploads/.gitkeep
 backend/uploads/.env
-!back-end/uploads/.gitkeep
 
 # ── Local database dumps (contain user data + password hashes) ──
 backend/db-backups/

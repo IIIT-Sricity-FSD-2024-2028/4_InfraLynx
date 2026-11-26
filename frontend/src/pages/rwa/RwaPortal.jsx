@@ -5,7 +5,6 @@ import { useTIMS } from '../../context/TIMSContext.jsx'
 // Redux slices
 import {
   fetchComplaints,
-  selectAllComplaints,
   selectPendingVerificationCount,
 } from '../../store/rwa/complaintsSlice.js'
 import {
@@ -16,8 +15,6 @@ import {
   setEditingComplaint,
   setCancellingComplaint,
   selectCurrentScreen,
-  selectSuccessNotice,
-  selectSelectedComplaint,
   selectEditingComplaint,
   selectCancellingComplaint,
 } from '../../store/rwa/uiSlice.js'
@@ -37,8 +34,6 @@ export default function RwaPortal({ onExitToLanding }) {
 
   // ── Redux state ──────────────────────────────────────────────────────────
   const currentScreen = useSelector(selectCurrentScreen)
-  const successNotice = useSelector(selectSuccessNotice)
-  const selectedComplaint = useSelector(selectSelectedComplaint)
   const pendingVerificationCount = useSelector(selectPendingVerificationCount)
   const editingComplaint = useSelector(selectEditingComplaint)
   const cancellingComplaint = useSelector(selectCancellingComplaint)
@@ -52,10 +47,6 @@ export default function RwaPortal({ onExitToLanding }) {
   function handleNavigate(screen) {
     dispatch(navigateTo(screen))
     window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  function handleSelectComplaint(complaint) {
-    dispatch(selectComplaint(complaint))
   }
 
   function handleDismissNotice() {

@@ -74,7 +74,7 @@ function validateField(name, value) {
   return ''
 }
 
-export default function AuthModal({ isOpen, onClose, initialRole, onLoginSuccess, onOpenSignUp }) {
+export default function AuthModal({ isOpen, onClose, onLoginSuccess, onOpenSignUp }) {
   const dispatch = useDispatch()
   const { login } = useTIMS()
   const {

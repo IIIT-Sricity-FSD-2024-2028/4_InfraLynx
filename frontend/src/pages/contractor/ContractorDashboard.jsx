@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   selectAllContractorJobs,
-  fetchContractorJobs,
   setSelectedJob,
 } from '../../store/contractor/contractorSlice.js'
 import { getSlaEvaluation } from '../../utils/slaUtils.js'

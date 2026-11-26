@@ -308,7 +308,7 @@ export const processApproval = async (req, res, next) => {
       req.user
     );
 
-    const { targetStatus, wo: updatedWo, complaint: updatedComplaint, message } = decisionResult;
+    const { wo: updatedWo, complaint: updatedComplaint, message } = decisionResult;
 
     return res.status(200).json({
       success: true,

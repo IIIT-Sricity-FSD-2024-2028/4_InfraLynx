@@ -425,7 +425,7 @@ export const withTransaction = async (callback) => {
 
 export const testConnection = async () => {
   try {
-    const res = await pool.query('SELECT NOW() AS current_time');
+    await pool.query('SELECT NOW() AS current_time');
     return true;
   } catch (err) {
     console.error('[PostgreSQL Connection Test Failed]:', err.message);

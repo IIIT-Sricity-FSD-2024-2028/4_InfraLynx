@@ -335,7 +335,7 @@ async function runTests() {
   const newCmpId = newCivilComplaint.data?.data?.id;
 
   // Step 1a: Desk Clerk validates the complaint
-  const validateCmpRes = await req(
+  await req(
     `/clerk/complaints/${newCmpId}/validate`,
     'PATCH',
     { action: 'VALIDATE' },

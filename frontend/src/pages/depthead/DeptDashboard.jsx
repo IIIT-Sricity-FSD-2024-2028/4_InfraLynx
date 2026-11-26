@@ -9,19 +9,17 @@ import {
   selectDeptDashboardStatus,
   selectDeptDashboardError,
   selectDeptComplaints,
-  selectDeptComplaintsStatus,
   selectDeptDashboardUi,
 } from '../../store/depthead/deptHeadSlice.js';
 import ComplaintDetailsModal from './ComplaintDetailsModal.jsx';
 
-export default function DeptDashboard({ onNavigate, onSelectComplaint }) {
+export default function DeptDashboard({ onNavigate }) {
   const dispatch = useDispatch();
   const rawDashboard = useSelector(selectDeptDashboard);
   const dashboardStatus = useSelector(selectDeptDashboardStatus);
   const dashboardError = useSelector(selectDeptDashboardError);
 
   const reduxComplaints = useSelector(selectDeptComplaints);
-  const complaintsStatus = useSelector(selectDeptComplaintsStatus);
 
   const {
     hoveredCard,

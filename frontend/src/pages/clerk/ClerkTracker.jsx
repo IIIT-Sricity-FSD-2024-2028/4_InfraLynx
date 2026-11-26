@@ -18,7 +18,7 @@ import { useMemo, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTIMS }     from '../../context/TIMSContext.jsx'
 import { selectAllClerkComplaints } from '../../store/clerk/complaintsSlice.js'
-import { selectAllWorkOrders, fetchWorkOrders } from '../../store/clerk/workOrdersSlice.js'
+import { fetchWorkOrders } from '../../store/clerk/workOrdersSlice.js'
 import { selectAuthUser } from '../../store/auth/authSlice.js'
 import { isComplaintInClerkDepartment } from './ClerkPortal.jsx'
 import './styles/ClerkTracker.css'
@@ -54,7 +54,6 @@ export default function ClerkTracker({
   // --- Props Received from Parent (ClerkPortal) ---
   complaints: propComplaints, // Complaints queue from ClerkPortal
   selectedComplaint,          // Currently active complaint selected for lifecycle inspection
-  onNavigate,                 // Callback to switch between portal tabs ('dashboard', 'triage', 'workorder')
   onSelectComplaint,          // Callback to update selected complaint in parent state
 }) {
   // --- 1. Redux Dispatch & Session State ---
@@ -71,7 +70,6 @@ export default function ClerkTracker({
   // --- 2. Redux Store Selectors ---
   // Components read data directly from Redux store — never fetch independently
   const reduxComplaints = useSelector(selectAllClerkComplaints)
-  const reduxWorkOrders = useSelector(selectAllWorkOrders)
 
   const complaints = useMemo(() => {
     if (propComplaints) return propComplaints
