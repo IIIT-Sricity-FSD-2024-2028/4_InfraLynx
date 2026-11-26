@@ -150,6 +150,16 @@ const invoicesSlice = createSlice({
       selectedStatus: 'ALL',
       searchQuery: '',
     },
+    // FinancePortal UI
+    currentScreen: 'dashboard',
+    // InvoiceAuditModal UI
+    varianceReasonInput: '',
+    showVarianceForm: false,
+    paymentMode: 'RTGS / Township Escrow',
+    paymentReference: '',
+    isReleasing: false,
+    inquiryRemarkInput: '',
+    showInquiryForm: false,
   },
   reducers: {
     setSelectedInvoice(state, action) {
@@ -158,6 +168,15 @@ const invoicesSlice = createSlice({
       state.flaggedItems = {}
       state.inquirySentMsg = null
       state.overrunResolutionMsg = null
+      // reset modal UI whenever a new invoice is opened
+      state.showVarianceForm = false
+      state.varianceReasonInput = ''
+      state.showInquiryForm = false
+      state.inquiryRemarkInput = ''
+      if (action.payload) {
+        state.paymentMode = action.payload.paymentMode || 'RTGS / Township Escrow'
+        state.paymentReference = action.payload.paymentReference || action.payload.bankReference || ''
+      }
     },
     clearSelectedInvoice(state) {
       state.selectedInvoice = null
@@ -183,6 +202,16 @@ const invoicesSlice = createSlice({
     setInvoiceSearchQuery(state, action) {
       state.filters.searchQuery = action.payload
     },
+    // FinancePortal navigation
+    setFinanceCurrentScreen(state, action) { state.currentScreen = action.payload },
+    // InvoiceAuditModal form/flag reducers
+    setVarianceReasonInput(state, action) { state.varianceReasonInput = action.payload },
+    setShowVarianceForm(state, action) { state.showVarianceForm = action.payload },
+    setPaymentMode(state, action) { state.paymentMode = action.payload },
+    setPaymentReference(state, action) { state.paymentReference = action.payload },
+    setIsReleasing(state, action) { state.isReleasing = action.payload },
+    setInquiryRemarkInput(state, action) { state.inquiryRemarkInput = action.payload },
+    setShowInquiryForm(state, action) { state.showInquiryForm = action.payload },
   },
   extraReducers: (builder) => {
     builder
@@ -341,6 +370,14 @@ export const {
   setInvoiceDeptFilter,
   setInvoiceStatusFilter,
   setInvoiceSearchQuery,
+  setFinanceCurrentScreen,
+  setVarianceReasonInput,
+  setShowVarianceForm,
+  setPaymentMode,
+  setPaymentReference,
+  setIsReleasing,
+  setInquiryRemarkInput,
+  setShowInquiryForm,
 } = invoicesSlice.actions
 
 export const selectAllInvoices          = (state) => state.financeInvoices?.items || []
@@ -359,5 +396,15 @@ export const selectInvoiceStatusFilter  = (state) => state.financeInvoices?.filt
 export const selectInvoiceSearchQuery   = (state) => state.financeInvoices?.filters?.searchQuery || ''
 export const selectPendingAuditCount    = (state) =>
   (state.financeInvoices?.items || []).filter((i) => i.auditStatus === 'PENDING_AUDIT').length
+// UI selectors — FinancePortal
+export const selectFinanceCurrentScreen   = (state) => state.financeInvoices?.currentScreen || 'dashboard'
+// UI selectors — InvoiceAuditModal
+export const selectVarianceReasonInput    = (state) => state.financeInvoices?.varianceReasonInput || ''
+export const selectShowVarianceForm       = (state) => state.financeInvoices?.showVarianceForm || false
+export const selectPaymentMode            = (state) => state.financeInvoices?.paymentMode || 'RTGS / Township Escrow'
+export const selectPaymentReference       = (state) => state.financeInvoices?.paymentReference || ''
+export const selectIsReleasing            = (state) => state.financeInvoices?.isReleasing || false
+export const selectInquiryRemarkInput     = (state) => state.financeInvoices?.inquiryRemarkInput || ''
+export const selectShowInquiryForm        = (state) => state.financeInvoices?.showInquiryForm || false
 
 export default invoicesSlice.reducer

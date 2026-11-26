@@ -1,25 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   fetchCooWorkOrderById,
+  setCooWoError,
   selectCooSelectedWorkOrder,
   selectCooStatus,
+  selectCooWoError,
 } from '../../store/coo/cooSlice.js';
 
 export default function WorkOrderDetailsModal({ workOrderId, onClose }) {
   const dispatch = useDispatch();
-  const data = useSelector(selectCooSelectedWorkOrder);
+  const data     = useSelector(selectCooSelectedWorkOrder);
   const cooStatus = useSelector(selectCooStatus);
+  const error     = useSelector(selectCooWoError);
 
   const loading = cooStatus === 'loading';
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (workOrderId) {
-      setError(null);
+      dispatch(setCooWoError(null));
       dispatch(fetchCooWorkOrderById(workOrderId))
         .unwrap()
-        .catch((err) => setError(err || 'Failed to fetch work order details.'));
+        .catch((err) => dispatch(setCooWoError(err || 'Failed to fetch work order details.')));
     }
   }, [workOrderId, dispatch]);
 
@@ -85,7 +87,6 @@ export default function WorkOrderDetailsModal({ workOrderId, onClose }) {
                     <p className="wo-detail-para"><strong>GSTIN:</strong> {data.contractor?.gstin || 'N/A'}</p>
                   </div>
                 </div>
-
 
                 <div className="wo-detail-card">
                   <div className="wo-detail-card-title">4. Work Progress</div>

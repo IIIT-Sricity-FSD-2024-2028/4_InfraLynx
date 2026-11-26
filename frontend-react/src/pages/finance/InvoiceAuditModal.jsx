@@ -1,16 +1,30 @@
 // 3-way reconciliation audit modal: invoice details, reconciliation report, payments, and variance
-import React, { useState, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import {
   fetch3WayCheck,
   flagLineItem,
   addOverrunInquiry,
   resolveOverrunInquiry,
+  setVarianceReasonInput,
+  setShowVarianceForm,
+  setPaymentMode,
+  setPaymentReference,
+  setIsReleasing,
+  setInquiryRemarkInput,
+  setShowInquiryForm,
   selectSelectedInvoice,
   selectReconciliationReport,
   selectFlaggedItems,
   selectInquirySentMsg,
   selectOverrunResolutionMsg,
+  selectVarianceReasonInput,
+  selectShowVarianceForm,
+  selectPaymentMode,
+  selectPaymentReference,
+  selectIsReleasing,
+  selectInquiryRemarkInput,
+  selectShowInquiryForm,
 } from '../../store/finance/invoicesSlice.js'
 import './styles/InvoiceAudit.css'
 
@@ -22,43 +36,22 @@ export default function InvoiceAuditModal({
 }) {
   const dispatch = useDispatch()
 
-  // ── Redux state (Rule 6: shared data from Redux) ──────────────────────────
+  // ── Redux state ──────────────────────────────────────────────────────────
   const invoice              = useSelector(selectSelectedInvoice)
   const reconciliationReport = useSelector(selectReconciliationReport)
-
-  // ── Local UI-only state ───────────────────────────────────────────────────
-  // Variance flagging (Raman's finance flow)
-  const [varianceReasonInput, setVarianceReasonInput] = useState('')
-  const [showVarianceForm, setShowVarianceForm]       = useState(false)
-  const [paymentMode, setPaymentMode]                 = useState('RTGS / Township Escrow')
-  const [paymentReference, setPaymentReference]       = useState('')
-  const [isReleasing, setIsReleasing]                 = useState(false)
-
-  // Overrun inquest workflow (Finance / COO asking contractor why high amount) — stored in Redux
   const flaggedItems         = useSelector(selectFlaggedItems)
   const inquirySentMsg       = useSelector(selectInquirySentMsg)
   const overrunResolutionMsg = useSelector(selectOverrunResolutionMsg)
-  const [inquiryRemarkInput, setInquiryRemarkInput] = useState('')
-  const [showInquiryForm, setShowInquiryForm]       = useState(false)
+  // UI state from Redux
+  const varianceReasonInput  = useSelector(selectVarianceReasonInput)
+  const showVarianceForm     = useSelector(selectShowVarianceForm)
+  const paymentMode          = useSelector(selectPaymentMode)
+  const paymentReference     = useSelector(selectPaymentReference)
+  const isReleasing          = useSelector(selectIsReleasing)
+  const inquiryRemarkInput   = useSelector(selectInquiryRemarkInput)
+  const showInquiryForm      = useSelector(selectShowInquiryForm)
 
-  // ── Reset local state when selected invoice changes ───────────────────────
-  useEffect(() => {
-    if (invoice) {
-      setPaymentMode(invoice.paymentMode || 'RTGS / Township Escrow')
-      setPaymentReference(
-        invoice.paymentReference ||
-        invoice.bankReference ||
-        `UTR-HDFC-${Math.floor(10000000000 + Math.random() * 90000000000)}`
-      )
-      setShowVarianceForm(false)
-      setVarianceReasonInput('')
-      // Reset overrun inquest form state for new invoice
-      setShowInquiryForm(false)
-      setInquiryRemarkInput('')
-    }
-  }, [invoice?.rawId, invoice?.id])
-
-  // ── Dispatch 3-way check thunk whenever selected invoice changes (Rule 7/8) ──
+  // ── Dispatch 3-way check thunk whenever selected invoice changes ──────────
   useEffect(() => {
     if (!invoice) return
     const targetId = invoice.rawId || invoice.id
@@ -69,7 +62,7 @@ export default function InvoiceAuditModal({
 
   const currentStatus = invoice.auditStatus || invoice.status || 'PENDING_AUDIT'
 
-  // Overrun detection: billed > estimated OR explicit varianceAmount > 0
+  // Overrun detection
   const isOverrun =
     Number(invoice.billedAmount || 0) > Number(invoice.estimateAmount || 0) ||
     Number(invoice.varianceAmount || 0) > 0
@@ -89,7 +82,7 @@ export default function InvoiceAuditModal({
 
   async function handleDisbursePaymentClick() {
     if (!invoice || !onReleasePayment) return
-    setIsReleasing(true)
+    dispatch(setIsReleasing(true))
     try {
       await onReleasePayment(invoice.rawId || invoice.id, {
         paymentMode,
@@ -100,7 +93,7 @@ export default function InvoiceAuditModal({
     } catch (err) {
       console.warn('[InvoiceAuditModal] Disburse error:', err.message)
     } finally {
-      setIsReleasing(false)
+      dispatch(setIsReleasing(false))
     }
   }
 
@@ -108,8 +101,8 @@ export default function InvoiceAuditModal({
     e.preventDefault()
     if (!varianceReasonInput.trim()) return
     if (onFlagVariance) onFlagVariance(invoice.rawId || invoice.id, varianceReasonInput)
-    setVarianceReasonInput('')
-    setShowVarianceForm(false)
+    dispatch(setVarianceReasonInput(''))
+    dispatch(setShowVarianceForm(false))
   }
 
   async function handleFlagItem(item) {
@@ -143,8 +136,8 @@ export default function InvoiceAuditModal({
           remark: inquiryRemarkInput.trim(),
         })
       ).unwrap()
-      setInquiryRemarkInput('')
-      setShowInquiryForm(false)
+      dispatch(setInquiryRemarkInput(''))
+      dispatch(setShowInquiryForm(false))
     } catch (err) {
       alert(`Failed to issue inquiry: ${typeof err === 'string' ? err : err?.message}`)
     }
@@ -219,7 +212,7 @@ export default function InvoiceAuditModal({
             </div>
           </div>
 
-          {/* Reconciliation Banner – from Redux (Rule 6) */}
+          {/* Reconciliation Banner */}
           {reconciliationReport && (() => {
             const isMatch = reconciliationReport.compliance?.reconciliationStatus === 'MATCH'
             return (
@@ -256,7 +249,7 @@ export default function InvoiceAuditModal({
               <div className="payout-card-controls">
                 <div className="payout-control-group">
                   <label className="payout-label">Payment Method</label>
-                  <select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)} className="payout-select">
+                  <select value={paymentMode} onChange={(e) => dispatch(setPaymentMode(e.target.value))} className="payout-select">
                     <option value="NEFT / Bank Transfer">NEFT / Bank Transfer</option>
                     <option value="RTGS / Township Escrow">RTGS / Township Escrow</option>
                     <option value="Direct Treasury Wire">Direct Treasury Wire</option>
@@ -267,7 +260,7 @@ export default function InvoiceAuditModal({
                   <input
                     type="text"
                     value={paymentReference}
-                    onChange={(e) => setPaymentReference(e.target.value)}
+                    onChange={(e) => dispatch(setPaymentReference(e.target.value))}
                     placeholder="UTR Reference Number"
                     className="payout-input"
                   />
@@ -319,7 +312,7 @@ export default function InvoiceAuditModal({
             </div>
           </div>
 
-          {/* Line Items – from reconciliationReport in Redux, fallback to invoice.items */}
+          {/* Line Items */}
           <div>
             <h4 className="line-items-header">Contractual Rate Card Itemization</h4>
             <table className="line-items-table">
@@ -369,15 +362,7 @@ export default function InvoiceAuditModal({
                           <button
                             type="button"
                             onClick={() => handleFlagItem(item)}
-                            style={{
-                              fontSize: 11,
-                              padding: '2px 8px',
-                              borderRadius: 4,
-                              background: '#fef2f2',
-                              border: '1px solid #fca5a5',
-                              color: '#b91c1c',
-                              cursor: 'pointer',
-                            }}
+                            style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: '#fef2f2', border: '1px solid #fca5a5', color: '#b91c1c', cursor: 'pointer' }}
                           >
                             🚩 Flag
                           </button>
@@ -390,7 +375,7 @@ export default function InvoiceAuditModal({
             </table>
           </div>
 
-          {/* Budget Overrun Inquest & Inquiry Workflow */}
+          {/* Budget Overrun Inquest */}
           {isOverrun && (
             <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: 16, marginTop: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -432,12 +417,12 @@ export default function InvoiceAuditModal({
                   <textarea
                     rows={2}
                     value={inquiryRemarkInput}
-                    onChange={(e) => setInquiryRemarkInput(e.target.value)}
+                    onChange={(e) => dispatch(setInquiryRemarkInput(e.target.value))}
                     placeholder="e.g. Please provide GST bills and rate card justification for the 25% surplus billed..."
                     style={{ width: '100%', padding: '8px 10px', borderRadius: 4, border: '1px solid #cbd5e1', fontSize: 13 }}
                   />
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                    <button type="button" onClick={() => setShowInquiryForm(false)} style={{ padding: '5px 12px', borderRadius: 4, background: '#f1f5f9', border: '1px solid #cbd5e1', fontSize: 12, cursor: 'pointer' }}>
+                    <button type="button" onClick={() => dispatch(setShowInquiryForm(false))} style={{ padding: '5px 12px', borderRadius: 4, background: '#f1f5f9', border: '1px solid #cbd5e1', fontSize: 12, cursor: 'pointer' }}>
                       Cancel
                     </button>
                     <button type="button" onClick={handleSendOverrunInquiry} style={{ padding: '5px 14px', borderRadius: 4, background: '#dc2626', color: '#fff', border: 'none', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
@@ -449,7 +434,7 @@ export default function InvoiceAuditModal({
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <button
                     type="button"
-                    onClick={() => setShowInquiryForm(true)}
+                    onClick={() => dispatch(setShowInquiryForm(true))}
                     style={{ background: '#fff', border: '1px solid #f87171', color: '#b91c1c', padding: '6px 12px', borderRadius: 6, fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
                   >
                     💬 Ask Contractor: Why High Amount?
@@ -491,11 +476,11 @@ export default function InvoiceAuditModal({
                 required
                 placeholder="e.g. Quantity billed exceeds estimate by 4 units without prior Dept Head authorization..."
                 value={varianceReasonInput}
-                onChange={(e) => setVarianceReasonInput(e.target.value)}
+                onChange={(e) => dispatch(setVarianceReasonInput(e.target.value))}
                 className="variance-form-textarea"
               />
               <div className="variance-form-actions">
-                <button type="button" onClick={() => setShowVarianceForm(false)} className="btn-variance-cancel">Cancel</button>
+                <button type="button" onClick={() => dispatch(setShowVarianceForm(false))} className="btn-variance-cancel">Cancel</button>
                 <button type="submit" className="btn-variance-confirm">Confirm Variance Flag</button>
               </div>
             </form>
@@ -517,7 +502,7 @@ export default function InvoiceAuditModal({
           <button onClick={onClose} className="btn-modal-close">Close View</button>
           {currentStatus === 'PENDING_AUDIT' && !showVarianceForm && (
             <>
-              <button onClick={() => setShowVarianceForm(true)} className="btn-modal-flag">Flag Variance Discrepancy</button>
+              <button onClick={() => dispatch(setShowVarianceForm(true))} className="btn-modal-flag">Flag Variance Discrepancy</button>
               <button
                 onClick={() => handleAuthorizeClick(true)}
                 disabled={invoice.rwaVerified === false}
